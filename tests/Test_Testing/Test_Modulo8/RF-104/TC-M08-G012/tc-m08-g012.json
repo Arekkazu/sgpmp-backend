@@ -1,0 +1,3037 @@
+{
+  "info": {
+    "_postman_id": "5c95420b-baa0-4678-9c7d-598e7af53207",
+    "name": "RF-104 - TC-M08-G012 Auditoria, integridad y restriccion de Gerencia (020 a 022)",
+    "description": "RF-104 CU-02 Fase 6. 020 auditoria de la generacion (CA-15); 021 checksum (calculado, cabecera y base); 022 datos agregados de M06: el rol Gerencia no existe, los reportes gerenciales los generan el Productor y el Administrador. Todo dentro de un run de sandbox (rollback).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el ultimo paso la",
+          "// revierte (DELETE /test-control/runs/{run_id}). Los logins van FUERA del sandbox (dentro del run solo funciona el primero).",
+          "// El secreto no se guarda en este archivo: se pasa con  --env-var \"sandbox_secret=<secreto>\"  (correr_newman.ps1 lo pide oculto).",
+          "const nombre = pm.info.requestName || '';",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "const base = String(pm.variables.get('base_url') || '');",
+          "const desviar = function (motivo) {",
+          "  console.error(motivo + ' Peticion desviada, no se envia.');",
+          "  pm.request.url.update('http://127.0.0.1:9/desviada');",
+          "};",
+          "if (!pm.collectionVariables.get('sufijo')) {",
+          "  const ahora = Date.now() - 5 * 3600 * 1000;                       // America/Bogota (UTC-5, sin horario de verano)",
+          "  const dia = function (n) { return new Date(ahora - n * 86400000).toISOString().slice(0, 10); };",
+          "  pm.collectionVariables.set('sufijo', pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').slice(0, 8));",
+          "  pm.collectionVariables.set('hoy', dia(0));",
+          "  pm.collectionVariables.set('futuro', dia(-30));",
+          "}",
+          "if (!/api-sgpmp-test/.test(base)) {",
+          "  desviar('base_url no apunta al ambiente TEST (/api-sgpmp-test): MAIN (/sigab) nunca se prueba.');",
+          "} else if (nombre.indexOf('LOGIN') === 0) {",
+          "  // login: sin cabeceras de sandbox",
+          "} else if (!secreto) {",
+          "  desviar('Falta sandbox_secret (--env-var sandbox_secret=<secreto>).');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-newman-' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '')); }",
+          "  if (!pm.collectionVariables.get('t0')) { pm.collectionVariables.set('t0', String(Date.now())); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Logins (fuera del sandbox)",
+      "item": [
+        {
+          "name": "LOGIN admin (fuera del sandbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de admin responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' - ' + pm.response.text().slice(0, 160)).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_admin', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LOGIN Productor M08 (fuera del sandbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_m08_productor}}\",\n  \"contrasena\": \"{{contrasena_m08_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de Productor M08 responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' - ' + pm.response.text().slice(0, 160)).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_productor', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LOGIN Contador M08 (fuera del sandbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_m08_contador}}\",\n  \"contrasena\": \"{{contrasena_m08_contador}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de Contador M08 responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' - ' + pm.response.text().slice(0, 160)).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_contador', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-020 Cada generacion de reporte queda auditada",
+      "item": [
+        {
+          "name": "020a Productor: generar inventario biologico en PDF",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_INVENTARIO_BIOLOGICO\",\n  \"formato\": \"PDF\",\n  \"filtros\": {\n    \"fecha_inicio\": \"2026-01-01\",\n    \"fecha_fin\": \"{{hoy}}\",\n    \"finca_id\": {{id_finca}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "if (listo()) { generado('020a inventario PDF', 'PDF', 'REPORTE_INVENTARIO_BIOLOGICO'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "020b SELECT: eventos de auditoria de la corrida (MODULO8)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT e.id_evento, e.id_usuario, t.nombre AS tipo, e.modulo, e.resultado::text AS resultado, e.fecha_evento::text AS fecha, (e.hash_integridad IS NOT NULL) AS con_hash, e.detalle::text AS detalle, e.detalle::text AS detalle_completo FROM modulo1.eventos e JOIN modulo1.tipos_eventos t ON t.id_tipo_evento = e.tipo_evento WHERE e.modulo = 'MODULO8' AND e.id_usuario IN ({{id_user_productor}}, {{id_user_contador}}) AND e.fecha_evento > now() - interval '30 minutes' ORDER BY e.id_evento\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  pm.test('SELECT 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  const f = filas(cuerpo());",
+                  "  console.log('Eventos MODULO8 de las cuentas de la corrida: ' + JSON.stringify(f).slice(0, 1500));",
+                  "  const idr = pm.collectionVariables.get('id_reporte');",
+                  "  const prod = Number(pm.collectionVariables.get('id_user_productor'));",
+                  "  const cont = Number(pm.collectionVariables.get('id_user_contador'));",
+                  "  const gen = f.filter(function (e) { return e.tipo === 'REPORTE_GENERADO' && Number(e.id_usuario) === prod && String(e.detalle).indexOf(idr) >= 0; });",
+                  "  pm.test('020a: la generacion queda auditada (REPORTE_GENERADO, modulo MODULO8, usuario del Productor)', function () {",
+                  "    pm.expect(gen.length, 'no hay evento REPORTE_GENERADO del reporte ' + idr).to.eql(1);",
+                  "  });",
+                  "  if (gen.length) {",
+                  "    const e = gen[0];",
+                  "    let det = {}; try { det = JSON.parse(e.detalle_completo); } catch (x) {}",
+                  "    pm.test('020a: el evento trae usuario, resultado, marca de tiempo y hash de integridad', function () {",
+                  "      pm.expect(e.fecha, 'fecha_evento').to.be.a('string');",
+                  "      pm.expect(String(e.resultado).length).to.be.above(0);",
+                  "      pm.expect(e.con_hash, 'hash_integridad').to.eql(true);",
+                  "    });",
+                  "    pm.test('020a: el detalle incluye tipo de reporte, filtros (con la finca), formato, snapshot, estado final, checksum y registros', function () {",
+                  "      ['id_reporte', 'tipo_reporte', 'filtros_aplicados', 'formato', 'fecha_snapshot', 'estado_final', 'checksum', 'numero_registros'].forEach(function (k) {",
+                  "        pm.expect(det, 'falta ' + k).to.have.property(k);",
+                  "      });",
+                  "      pm.expect(det.tipo_reporte).to.eql('REPORTE_INVENTARIO_BIOLOGICO');",
+                  "      pm.expect(Number((det.filtros_aplicados || {}).finca_id)).to.eql(Number(pm.collectionVariables.get('id_finca')));",
+                  "      pm.expect(det.checksum).to.eql(pm.collectionVariables.get('checksum_reporte'));",
+                  "    });",
+                  "  }",
+                  "  console.log('020: los registros no se pueden modificar -> NO VERIFICABLE por la API de QA (solo SELECT); se verifica que cada evento tiene hash_integridad.');",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M08-021 Checksum del archivo generado",
+      "item": [
+        {
+          "name": "021a Productor: generar inventario biologico en Excel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_INVENTARIO_BIOLOGICO\",\n  \"formato\": \"EXCEL\",\n  \"filtros\": {\n    \"fecha_inicio\": \"2026-01-01\",\n    \"fecha_fin\": \"{{hoy}}\",\n    \"finca_id\": {{id_finca}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "if (listo()) { generado('021a inventario Excel', 'EXCEL', 'REPORTE_INVENTARIO_BIOLOGICO'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "021b Productor: descargar y calcular el checksum (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/{{id_reporte}}/partes/1/descarga",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_reporte}}",
+                "partes",
+                "1",
+                "descarga"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  descargaOk('021b Excel', CT_XLSX, XLSX_MAGIA);",
+                  "  const s = sha256Respuesta();",
+                  "  const registrado = pm.collectionVariables.get('checksum_reporte');",
+                  "  pm.collectionVariables.set('checksum_calculado', s || '');",
+                  "  pm.test('021b Excel: el checksum calculado del archivo descargado coincide con el registrado (' + registrado + ')', function () {",
+                  "    pm.expect(s, 'checksum calculado').to.eql(registrado);",
+                  "  });",
+                  "  pm.test('021b Excel: la cabecera X-Checksum-SHA256 coincide con el calculado', function () { pm.expect(pm.response.headers.get('X-Checksum-SHA256')).to.eql(s); });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "021c SELECT: checksum guardado en la base",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT s.checksum_sha256 AS checksum_solicitud, a.checksum_sha256 AS checksum_archivo, a.tamano_bytes FROM modulo8.solicitudes_reportes s JOIN modulo8.archivos_reportes a ON a.id_solicitud_reporte = s.id_solicitud_reporte AND a.numero_parte = 1 WHERE s.id_solicitud_reporte = '{{id_reporte}}'\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  pm.test('SELECT 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  const f = filas(cuerpo());",
+                  "  pm.test('021: el checksum guardado en la base (solicitud y archivo) coincide con el del archivo descargado', function () {",
+                  "    pm.expect(f.length).to.eql(1);",
+                  "    pm.expect(f[0].checksum_solicitud).to.eql(pm.collectionVariables.get('checksum_calculado'));",
+                  "    pm.expect(f[0].checksum_archivo).to.eql(pm.collectionVariables.get('checksum_calculado'));",
+                  "    pm.expect(Number(f[0].tamano_bytes)).to.be.above(500);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "021d Contador: generar estado de exportaciones (periodo 635) en PDF",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_ESTADO_EXPORTACIONES\",\n  \"formato\": \"PDF\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "if (listo()) { generado('021d Estado exportaciones PDF', 'PDF', 'REPORTE_ESTADO_EXPORTACIONES'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "021e Contador: descargar y calcular el checksum (Estado exportaciones PDF)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/{{id_reporte}}/partes/1/descarga",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_reporte}}",
+                "partes",
+                "1",
+                "descarga"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  descargaOk('021e Estado exportaciones PDF', CT_PDF, PDF_MAGIA);",
+                  "  const s = sha256Respuesta();",
+                  "  const registrado = pm.collectionVariables.get('checksum_reporte');",
+                  "  pm.collectionVariables.set('checksum_calculado', s || '');",
+                  "  pm.test('021e Estado exportaciones PDF: el checksum calculado del archivo descargado coincide con el registrado (' + registrado + ')', function () {",
+                  "    pm.expect(s, 'checksum calculado').to.eql(registrado);",
+                  "  });",
+                  "  pm.test('021e Estado exportaciones PDF: la cabecera X-Checksum-SHA256 coincide con el calculado', function () { pm.expect(pm.response.headers.get('X-Checksum-SHA256')).to.eql(s); });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M08-022 Reportes gerenciales con datos agregados de M06 (Productor y Administrador)",
+      "item": [
+        {
+          "name": "022a SELECT: roles Gerencia/Gerente en M01 (informativo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT id_rol, nombre_rol FROM modulo1.roles WHERE nombre_rol ILIKE '%gerenc%' OR nombre_rol ILIKE '%gerente%'\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  pm.test('SELECT 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  console.log('Roles parecidos a Gerencia en modulo1.roles: ' + JSON.stringify(filas(cuerpo())) + ' (informativo: RNF-11 y CA-9 nombran el rol Gerencia; si la lista esta vacia el rol no existe y los reportes gerenciales los generan el Productor y el Administrador)');",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "022b Productor (reportes gerenciales): ejecutivo consolidado del periodo 635",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_EJECUTIVO_CONSOLIDADO\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}},\n    \"finca_id\": {{id_finca}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  permitido('REPORTE_EJECUTIVO_CONSOLIDADO', '022b ejecutivo');",
+                  "  const d = cuerpo() || {};",
+                  "  const t = JSON.stringify(d);",
+                  "  pm.test('022b ejecutivo: solo datos agregados: no aparece ninguna valoracion ni identificador individual (QA-M08-*)', function () {",
+                  "    pm.expect(t.indexOf('QA-M08-'), 'aparece un identificador de animal en el reporte').to.eql(-1);",
+                  "  });",
+                  "  pm.test('022b ejecutivo: no incluye el detalle de la exportacion contable ni de las facturas', function () {",
+                  "    pm.expect(t.indexOf('FVH-10457')).to.eql(-1); pm.expect(t.indexOf('CSM-88213')).to.eql(-1);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "022c Productor: rentabilidad por finca del periodo 635",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_RENTABILIDAD_FINCA\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}},\n    \"finca_id\": {{id_finca}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  permitido('REPORTE_RENTABILIDAD_FINCA', '022c rentabilidad');",
+                  "  const d = cuerpo() || {};",
+                  "  const t = JSON.stringify(d);",
+                  "  pm.test('022c rentabilidad: solo datos agregados: no aparece ninguna valoracion ni identificador individual (QA-M08-*)', function () {",
+                  "    pm.expect(t.indexOf('QA-M08-'), 'aparece un identificador de animal en el reporte').to.eql(-1);",
+                  "  });",
+                  "  pm.test('022c rentabilidad: no incluye el detalle de la exportacion contable ni de las facturas', function () {",
+                  "    pm.expect(t.indexOf('FVH-10457')).to.eql(-1); pm.expect(t.indexOf('CSM-88213')).to.eql(-1);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "022d Productor: comparativo de periodos (635 frente a 634)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_COMPARATIVO_PERIODOS\",\n  \"filtros\": {\n    \"periodo_contable_base\": {{id_periodo_cerrado}},\n    \"periodo_contable_comparacion\": {{id_periodo_sin_datos}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  permitido('REPORTE_COMPARATIVO_PERIODOS', '022d comparativo');",
+                  "  const d = cuerpo() || {};",
+                  "  const t = JSON.stringify(d);",
+                  "  pm.test('022d comparativo: solo datos agregados: no aparece ninguna valoracion ni identificador individual (QA-M08-*)', function () {",
+                  "    pm.expect(t.indexOf('QA-M08-'), 'aparece un identificador de animal en el reporte').to.eql(-1);",
+                  "  });",
+                  "  pm.test('022d comparativo: no incluye el detalle de la exportacion contable ni de las facturas', function () {",
+                  "    pm.expect(t.indexOf('FVH-10457')).to.eql(-1); pm.expect(t.indexOf('CSM-88213')).to.eql(-1);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "022e Administrador: ejecutivo consolidado del periodo 635",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_EJECUTIVO_CONSOLIDADO\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}},\n    \"finca_id\": {{id_finca}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  permitido('REPORTE_EJECUTIVO_CONSOLIDADO', '022e admin ejecutivo');",
+                  "  const d = cuerpo() || {};",
+                  "  const t = JSON.stringify(d);",
+                  "  pm.test('022e admin ejecutivo: solo datos agregados: no aparece ninguna valoracion ni identificador individual (QA-M08-*)', function () {",
+                  "    pm.expect(t.indexOf('QA-M08-'), 'aparece un identificador de animal en el reporte').to.eql(-1);",
+                  "  });",
+                  "  pm.test('022e admin ejecutivo: no incluye el detalle de la exportacion contable ni de las facturas', function () {",
+                  "    pm.expect(t.indexOf('FVH-10457')).to.eql(-1); pm.expect(t.indexOf('CSM-88213')).to.eql(-1);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "022f Administrador: rentabilidad por finca del periodo 635",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_RENTABILIDAD_FINCA\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}},\n    \"finca_id\": {{id_finca}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  permitido('REPORTE_RENTABILIDAD_FINCA', '022f admin rentabilidad');",
+                  "  const d = cuerpo() || {};",
+                  "  const t = JSON.stringify(d);",
+                  "  pm.test('022f admin rentabilidad: solo datos agregados: no aparece ninguna valoracion ni identificador individual (QA-M08-*)', function () {",
+                  "    pm.expect(t.indexOf('QA-M08-'), 'aparece un identificador de animal en el reporte').to.eql(-1);",
+                  "  });",
+                  "  pm.test('022f admin rentabilidad: no incluye el detalle de la exportacion contable ni de las facturas', function () {",
+                  "    pm.expect(t.indexOf('FVH-10457')).to.eql(-1); pm.expect(t.indexOf('CSM-88213')).to.eql(-1);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "022g Administrador: comparativo de periodos (635 frente a 634)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_COMPARATIVO_PERIODOS\",\n  \"filtros\": {\n    \"periodo_contable_base\": {{id_periodo_cerrado}},\n    \"periodo_contable_comparacion\": {{id_periodo_sin_datos}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  permitido('REPORTE_COMPARATIVO_PERIODOS', '022g admin comparativo');",
+                  "  const d = cuerpo() || {};",
+                  "  const t = JSON.stringify(d);",
+                  "  pm.test('022g admin comparativo: solo datos agregados: no aparece ninguna valoracion ni identificador individual (QA-M08-*)', function () {",
+                  "    pm.expect(t.indexOf('QA-M08-'), 'aparece un identificador de animal en el reporte').to.eql(-1);",
+                  "  });",
+                  "  pm.test('022g admin comparativo: no incluye el detalle de la exportacion contable ni de las facturas', function () {",
+                  "    pm.expect(t.indexOf('FVH-10457')).to.eql(-1); pm.expect(t.indexOf('CSM-88213')).to.eql(-1);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "022h Productor (control positivo): ficha animal con identificador individual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_FICHA_ANIMAL\",\n  \"filtros\": {\n    \"activo_biologico_id\": {{id_activo_ficha}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "function errorEsperado(estado, codigo, etiqueta, campo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': HTTP ' + estado, function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(estado); });",
+                  "  pm.test(etiqueta + ': codigo ' + codigo + ' con mensaje claro', function () {",
+                  "    pm.expect(d.error_code, 'cuerpo: ' + pm.response.text().slice(0, 300)).to.eql(codigo);",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  if (campo) {",
+                  "    pm.test(etiqueta + ': senala el campo ' + campo, function () { pm.expect(pm.response.text()).to.include(campo); });",
+                  "  }",
+                  "  pm.test(etiqueta + ': sin vista previa, archivo ni id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function sinTexto(etiqueta, textos) {",
+                  "  const t = pm.response.text();",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos de otra finca', function () {",
+                  "    textos.forEach(function (x) { pm.expect(t.indexOf(x), 'aparece ' + x).to.eql(-1); });",
+                  "  });",
+                  "}",
+                  "function bytesRespuesta() { try { return pm.response.stream; } catch (e) { return null; } }",
+                  "function sha256Respuesta() {",
+                  "  const b = bytesRespuesta();",
+                  "  if (!b) { return null; }",
+                  "  return CryptoJS.SHA256(CryptoJS.lib.WordArray.create(new Uint8Array(b))).toString();",
+                  "}",
+                  "function descargaOk(etiqueta, tipoContenido, magia) {",
+                  "  pm.test(etiqueta + ': descarga HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  if (pm.response.code !== 200) { return; }",
+                  "  pm.test(etiqueta + ': tipo de contenido ' + tipoContenido, function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include(tipoContenido);",
+                  "  });",
+                  "  pm.test(etiqueta + ': Content-Disposition con nombre de archivo', function () {",
+                  "    pm.expect(String(pm.response.headers.get('Content-Disposition') || '')).to.match(/attachment; filename=\".+\"/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': cabecera X-Checksum-SHA256 de 64 hex', function () {",
+                  "    pm.expect(String(pm.response.headers.get('X-Checksum-SHA256') || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "  });",
+                  "  pm.test(etiqueta + ': el archivo llega completo (no vacio, inicia con la firma ' + magia.name + ')', function () {",
+                  "    const b = bytesRespuesta();",
+                  "    pm.expect(b && b.length, 'sin cuerpo binario').to.be.above(500);",
+                  "    for (let i = 0; i < magia.bytes.length; i++) { pm.expect(b[i], 'byte ' + i).to.eql(magia.bytes[i]); }",
+                  "  });",
+                  "}",
+                  "const PDF_MAGIA = { name: '%PDF', bytes: [0x25, 0x50, 0x44, 0x46] };",
+                  "const XLSX_MAGIA = { name: 'PK (xlsx)', bytes: [0x50, 0x4b] };",
+                  "const CT_PDF = 'application/pdf';",
+                  "const CT_XLSX = 'spreadsheetml.sheet';",
+                  "function generado(etiqueta, formato, tipo) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se genera de inmediato (HTTP 201, GENERADO)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201);",
+                  "    pm.expect(d.estado).to.eql('GENERADO');",
+                  "  });",
+                  "  pm.test(etiqueta + ': trae id, formato ' + formato + ', checksum y al menos una parte', function () {",
+                  "    pm.expect(d.id_reporte).to.be.a('string');",
+                  "    pm.expect(d.formato).to.eql(formato);",
+                  "    pm.expect(String(d.checksum_sha256 || '')).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect((d.partes || []).length).to.be.above(0);",
+                  "  });",
+                  "  if (d.id_reporte) { pm.collectionVariables.set('id_reporte', d.id_reporte); pm.collectionVariables.set('checksum_reporte', d.checksum_sha256 || ''); }",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  permitido('REPORTE_FICHA_ANIMAL', '022 control positivo (ficha animal)');",
+                  "  const t = JSON.stringify(cuerpo() || {});",
+                  "  pm.test('022 control positivo: la ficha animal SI trae identificadores individuales (la comprobacion detecta valoraciones por animal)', function () {",
+                  "    pm.expect(t.indexOf('QA-M08-'), 'la ficha animal no trae el activo QA-M08: la prueba negativa no demostraria nada').to.be.above(-1);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rollback del sandbox",
+      "item": [
+        {
+          "name": "Rollback del sandbox (la BD queda como estaba)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "pm.test('El run se cerro (2xx) - duracion ' + (t0 ? Math.round((Date.now() - t0) / 1000) : '?') + ' s de 180 s', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.be.within(200, 299); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "t0",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "hoy",
+      "value": ""
+    },
+    {
+      "key": "futuro",
+      "value": ""
+    },
+    {
+      "key": "bloqueado",
+      "value": ""
+    },
+    {
+      "key": "base_efectos",
+      "value": ""
+    },
+    {
+      "key": "id_reporte",
+      "value": ""
+    },
+    {
+      "key": "checksum_reporte",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "id_periodo_sin_datos",
+      "value": "634"
+    },
+    {
+      "key": "id_periodo_cerrado",
+      "value": "635"
+    },
+    {
+      "key": "id_periodo_abierto",
+      "value": "636"
+    },
+    {
+      "key": "id_infra",
+      "value": "1468"
+    },
+    {
+      "key": "id_activo_ficha",
+      "value": "2563"
+    },
+    {
+      "key": "id_activo_2",
+      "value": "2564"
+    },
+    {
+      "key": "id_activo_3",
+      "value": "2565"
+    },
+    {
+      "key": "id_activo_ajeno",
+      "value": "2562"
+    },
+    {
+      "key": "id_user_productor",
+      "value": "176"
+    },
+    {
+      "key": "id_user_veterinario",
+      "value": "177"
+    },
+    {
+      "key": "id_user_contador",
+      "value": "178"
+    },
+    {
+      "key": "id_user_ingeniero",
+      "value": "179"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_contador",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "checksum_calculado",
+      "value": ""
+    }
+  ]
+}

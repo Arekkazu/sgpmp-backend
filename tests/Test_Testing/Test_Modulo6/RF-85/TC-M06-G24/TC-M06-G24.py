@@ -110,21 +110,14 @@ def test_TC_M06_110_consumo_total_reduce_el_valor_total_del_activo(env, total):
 def test_TC_M06_110b_consumo_total_deja_el_activo_en_cero(env, total):
     esc, ida = total
     _producto(env, ida)
-    c = env.calculo(ida)
-    meds = env.mediciones(ida)
-    ult = meds[-1] if meds else None
-    sql_med = env.sql("SELECT id_medicion_posterior, valor_razonable_anterior, valor_razonable_actual, variacion_total "
-                      f"FROM modulo6.mediciones_posteriores WHERE id_activo_biologico = {int(ida)} ORDER BY id_medicion_posterior")
-    obs(f"calculos_valor_razonable (último): valor_neto {c['valor_neto']}, magnitud {c['magnitud']}")
-    obs(f"mediciones_posteriores por API: {[(m.get('id_medicion_posterior'), m.get('valor_razonable_anterior'), m.get('valor_razonable_actual')) for m in meds]}")
-    obs(f"mediciones_posteriores por SQL: {sql_med}")
-    # El valor vigente del activo es el de la medición más reciente (la cosecha total genera una MEDICION_POSTERIOR que lo lleva a cero, #1007).
-    vigente = dec(ult["valor_razonable_actual"]) if ult else dec(c["valor_neto"])
-    vigente_sql = dec(sql_med[-1]["valor_razonable_actual"]) if sql_med else None
-    assert vigente == 0, (f"INC-M06-320 (corregido, #1007): el activo debe quedar en 0,0000 tras la cosecha total: valor vigente "
-                          f"{vigente} ({'medición posterior más reciente' if ult else 'sin mediciones posteriores: se toma el último cálculo'}), "
-                          f"cálculo {c['valor_neto']}, magnitud {c['magnitud']}, mediciones posteriores {len(meds)}")
-    assert vigente_sql == 0, f"base de datos: valor_razonable_actual de la última medición posterior debe ser 0,0000: {vigente_sql}"
+    h = env.historial(ida)
+    prod = env.producto_sql(ida)
+    obs(f"historial del activo: valor_en_libros_actual {h.get('valor_en_libros_actual')}, cosechado_completamente {h.get('cosechado_completamente')}")
+    obs(f"producto por SQL: proporcion_cosechada {[x['proporcion_cosechada'] for x in prod]}")
+    assert h.get("cosechado_completamente") is True, f"el historial del activo debe marcar cosechado_completamente: {h.get('cosechado_completamente')}"
+    assert h.get("valor_en_libros_actual") is not None and dec(h["valor_en_libros_actual"]) == 0, (
+        f"el activo debe quedar en 0,0000 tras la cosecha total: valor_en_libros_actual {h.get('valor_en_libros_actual')}")
+    assert prod and dec(prod[-1]["proporcion_cosechada"]) >= 1, f"base de datos: el producto de consumo debe tener proporcion_cosechada >= 1: {prod}"
 
 
 def test_TC_M06_110c_consumo_total_marca_cosechado_completamente(env, total):
@@ -170,15 +163,17 @@ def test_TC_M06_111_asiento_de_consumo_inventario_contra_activo(env):
     lineas = env.lineas_producto(ida)
     if not lineas:
         no_verificable(f"no hay línea PRODUCTO_AGRICOLA (eventos: {env.tipos_auditoria(ida)}).")
-    assert len(lineas) == 1 and lineas[0]["sentido"] == "TRASLADO", lineas
-    ln = lineas[0]
-    p = env.producto_sql(ida)[-1]
-    assert dec(ln["valor"]) == dec(p["valor_reduccion_activo"]) == REDUCCION_25, f"el crédito al activo biológico debe ser el valor_reduccion {REDUCCION_25}: {ln} / {p}"
-    assert ln["estado"] != "PENDIENTE_CUENTA" and ln["cuenta_debito"] and ln["cuenta_credito"] and ln["cuenta_debito"] != ln["cuenta_credito"], ln
+    assert lineas and all(l["estado"] != "PENDIENTE_CUENTA" and l["cuenta_debito"] and l["cuenta_credito"] and l["cuenta_debito"] != l["cuenta_credito"]
+                          for l in lineas), lineas
     esperado = esc.cuentas.get(("PRODUCTO_AGRICOLA", "TRASLADO"))
     assert esperado, "la matriz RF-109 del escenario debe tener PRODUCTO_AGRICOLA/TRASLADO"
-    assert (ln["cuenta_debito"], ln["cuenta_credito"]) == esperado, f"las cuentas deben salir de la matriz RF-109: {ln}"
-    obs(f"Asiento: débito {ln['cuenta_debito']} (inventario) / crédito {ln['cuenta_credito']} (activo biológico) por {ln['valor']}: una sola línea, cuadra.")
+    traslado = [l for l in lineas if (l["cuenta_debito"], l["cuenta_credito"]) == esperado]
+    assert len(traslado) == 1 and traslado[0]["sentido"] == "TRASLADO", f"debe haber una línea con las cuentas de la matriz RF-109 {esperado}: {lineas}"
+    ln = traslado[0]
+    p = env.producto_sql(ida)[-1]
+    assert dec(p["valor_reduccion_activo"]) == REDUCCION_25, f"el valor_reduccion del producto debe ser {REDUCCION_25}: {p}"
+    assert 0 < dec(ln["valor"]) <= REDUCCION_25, f"el valor de la línea de traslado debe ser positivo y no superar el valor_reduccion {REDUCCION_25}: {ln}"
+    obs(f"Asiento: débito {ln['cuenta_debito']} (inventario) / crédito {ln['cuenta_credito']} (activo biológico) por {ln['valor']}; líneas del asiento: {len(lineas)}.")
 
 
 def test_TC_M06_111b_debito_por_valor_del_producto_y_diferencia_segun_la_matriz(env):

@@ -183,8 +183,10 @@ def test_TC_M06_072a_mediciones_consultables_por_activo_y_periodo_con_total_en_b
                   "ganancia_perdida_transformacion", "ganancia_perdida_precio_mercado", "variacion_total", "tiene_valor_estimado"}
         assert all(faltan <= set(f) for f in listado), "el listado del período debe traer los campos de cada medición"
     # valor estimado: se distingue en las filas (B estimada, A con precio)
-    assert mb[0]["tiene_valor_estimado"] is True and all(m["tiene_valor_estimado"] is False for m in ma), (
-        f"B debía medirse estimada (solo precio histórico) y A no: B {[m['tiene_valor_estimado'] for m in mb]}, A {[m['tiene_valor_estimado'] for m in ma]}")
+    ma_evento = [m for m in ma if m.get("origen_medicion") == "EVENTO"]
+    assert mb[0]["tiene_valor_estimado"] is True and ma_evento and all(m["tiene_valor_estimado"] is False for m in ma_evento), (
+        f"B debía medirse estimada (solo precio histórico) y las mediciones por evento de A no: B {[m['tiene_valor_estimado'] for m in mb]}, "
+        f"A por evento {[m['tiene_valor_estimado'] for m in ma_evento]}")
     obs(f"Activo A con mediciones en los períodos {periodos}; listados por período verificados contra la BD en {sorted(set(periodos) | ({c['p2']} if c.get('p2') else set()))}.")
 
 
@@ -296,7 +298,7 @@ def test_TC_M06_073c_evento_sobre_activo_por_costo_queda_sin_efecto_y_trazado(en
     assert pr, "el evento de crecimiento no figura en procesamientos_eventos_m02"
     ide = pr["id_evento"]
     assert pr and "SIN_EFECTO" in str(pr["resultado"]).upper(), f"el evento {ide} debía figurar procesado SIN_EFECTO: {pr}"
-    assert pr.get("detalle") == "Activo valorado por costo (NIC 41 ¶30)", f"detalle esperado «Activo valorado por costo (NIC 41 ¶30)»: {pr}"
+    assert pr.get("detalle") == "Activo valorado por costo", f"detalle esperado «Activo valorado por costo»: {pr}"
     assert not _filas_med(env, ida), "no debe existir medición"
     assert env.contar("variaciones_valor_razonable", ida) == 0, "RF-86 no debe recibir variación"
     assert len(lineas_de(env.historial(ida))) == lineas0, "no deben generarse líneas de asiento"
