@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: Mappers 02/06, rango alineado, envelope y hash de contenido |
 # | 2026-11-14 | Arekkazu | M07 RF-97: ExchangeId AF-SIGAB-AAAA-MM-NNNNNNN, el formato que exige SIGCON |
+# | 2026-11-19 | Leandro | INC-M07-378-G61 RF-AE02: rechazar importes no positivos tras truncar las líneas de compra. |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -158,6 +159,14 @@ def mapear_compras(costos: Iterable[CostoFactura]) -> list[dict]:
         lineas = []
         for costo in registros:
             valor = truncar2(costo.monto_costo)
+            if valor <= 0:
+                raise AaefError(
+                    "MAPPER_FALLIDO",
+                    f"La factura de compra {prefijo}{numero} tiene una línea por debajo de 0,01 COP. "
+                    "Revise el costo asociado a esa línea en Finanzas.",
+                    "Value",
+                    {"mapper": MAPPER_COMPRAS},
+                )
             lineas.append({
                 "Code": costo.subtipo_costo,
                 "Name": ETIQUETA_SUBTIPO.get(costo.subtipo_costo, costo.subtipo_costo).capitalize(),

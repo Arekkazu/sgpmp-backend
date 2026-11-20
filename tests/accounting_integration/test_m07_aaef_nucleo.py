@@ -2,9 +2,11 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: pruebas del núcleo AAEF (sin BD) |
 # | 2026-11-14 | Arekkazu | M07 RF-97: el ExchangeId cumple el patrón de SIGCON |
+# | 2026-11-19 | Leandro | INC-M07-378-G61 RF-AE02: verificar importes mínimos y truncamiento de los tipos 02 y 06. |
 """Pruebas del núcleo AAEF: rango, Mappers, envelope, hash y esquema de AgroFusion."""
 import json
 import re
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal as D
 
@@ -79,6 +81,24 @@ def test_factura_sin_prefijo_sale_con_prefijo_vacio():
     assert mapear_compras([_costo(5, "10", prefijo=None)])[0]["Header"]["Prefix"] == ""
 
 
+@pytest.mark.parametrize("monto", ["0", "0.0049", "-0.01"])
+def test_compras_rechaza_linea_no_positiva_tras_truncar(monto):
+    # La otra línea es válida y deja la factura con un total positivo.
+    with pytest.raises(AaefError) as error:
+        mapear_compras([_costo(11, "5"), _costo(12, monto)])
+    assert (error.value.codigo, error.value.campo, error.value.detalle["mapper"]) == (
+        "MAPPER_FALLIDO", "Value", "COMPRAS",
+    )
+
+
+@pytest.mark.parametrize(("monto", "esperado"), [("0.01", "0.01"), ("100.999", "100.99")])
+def test_compras_conserva_importes_positivos_truncados(monto, esperado):
+    [factura] = mapear_compras([_costo(5, monto)])
+    [linea] = factura["Lines"]
+    assert linea["Value"] == linea["UnitPrice"] == D(esperado)
+    assert factura["Totals"]["Subtotal"] == factura["Totals"]["TotalPayment"] == D(esperado)
+
+
 def test_costo_sin_cuenta_detiene_la_transformacion():
     with pytest.raises(AaefError) as e:
         mapear_compras([_costo(5, "10", cuenta=None)])
@@ -91,6 +111,16 @@ def test_comprobante_06_una_linea_por_par_de_cuentas_con_dos_cuentas():
     assert doc["ThirdParty"] == {"NIT": "900123456", "Name": "Hacienda La Esperanza SAS"}
     assert [ln["accounting_account"] for ln in doc["Lines"]] == [["15120501", "42950501"], ["53150501", "15120501"]]
     assert doc["Totals"]["Subtotal"] == D("1500000.55") and doc["Totals"]["OutstandingBalance"] == 0
+
+
+def test_comprobante_06_conserva_el_minimo_positivo():
+    original = _comprobante()
+    linea = original.lineas[0]
+    with pytest.raises(AaefError) as error:
+        mapear_comprobantes([replace(original, lineas=[{**linea, "valor": "0.0049"}])], TITULAR)
+    assert (error.value.codigo, error.value.campo) == ("MAPPER_FALLIDO", "Value")
+    [comprobante] = mapear_comprobantes([replace(original, lineas=[{**linea, "valor": "0.01"}])], TITULAR)
+    assert comprobante["Lines"][0]["Value"] == D("0.01")
 
 
 def _envelope(compras, comprobantes=()):
