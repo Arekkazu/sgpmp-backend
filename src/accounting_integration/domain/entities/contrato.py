@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-AE02: versiones del contrato AAEF, anexo y resolución de versión |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: estado antes que anexo al activar y solo una versión pendiente se modifica |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: el mínimo de gracia lo fija M09 |
+# | 2026-11-20 | Arekkazu | QA-M07 CU04 H-02 RF-98: el límite de versiones no manda a retirar una que ya está en retiro |
 """Contrato AAEF (RF-98 v1.1) y anexo de mapeo (RF-AE02 v3.0).
 
 El contrato avanza PENDIENTE → ACTIVO → DEPRECADO → INACTIVO, sin retrocesos ni saltos. Un MAJOR
@@ -18,6 +19,7 @@ from typing import Iterable, Optional
 from src.accounting_integration.domain.services.aaef import MAPPERS_DISPONIBLES
 from src.configuration.domain.entities.parametro_mlops import RF98_GRACIA_DEFECTO_BASE, RF98_GRACIA_MINIMA_BASE
 from src.shared.errors import BusinessRuleError, FlowError, GoneError, NotFoundError, ValidationError
+from src.shared.fechas import fecha_usuario
 
 # Valores base de RF-98; los efectivos se configuran en M09 (RNF-98.10).
 GRACIA_MINIMA_DIAS = RF98_GRACIA_MINIMA_BASE
@@ -167,14 +169,25 @@ def versiones_a_deprecar(contrato: VersionContrato, contratos: Iterable[VersionC
 
 
 def exigir_cupo(contrato: VersionContrato, contratos: Iterable[VersionContrato]) -> None:
-    """RF-98 5.3 / CA-29: máximo dos versiones ACTIVO o DEPRECADO; dice cuál retirar primero."""
+    """RF-98 5.3 / CA-29: máximo dos versiones ACTIVO o DEPRECADO; dice cómo se libera el cupo.
+
+    Una versión en retiro sigue contando hasta que termina su plazo, así que retirar otra no libera cupo
+    mientras haya una en retiro: entonces se informa cuándo termina ese retiro (CU04 H-02)."""
     vigentes = [c for c in contratos if c.estado in ("ACTIVO", "DEPRECADO")
                 and c.id_version_contrato_aaef != contrato.id_version_contrato_aaef]
-    if len(vigentes) >= LIMITE_VIGENTES:
-        candidata = min(vigentes, key=lambda c: (c.estado != "DEPRECADO", c.numero))
-        raise BusinessRuleError(code="LIMITE_VERSIONES_EXCEDIDO", message=(
-            f"Ya hay {len(vigentes)} versiones vigentes. Retire primero la versión {candidata.contrato_version} "
-            "antes de activar una nueva."))
+    if len(vigentes) < LIMITE_VIGENTES:
+        return
+    en_retiro = [c for c in vigentes if c.estado == "DEPRECADO"]
+    if en_retiro:
+        proxima = min(en_retiro, key=lambda c: (c.fecha_inactivacion is None, c.fecha_inactivacion or datetime.max))
+        hasta = f" hasta el {fecha_usuario(proxima.fecha_inactivacion):%d/%m/%Y}" if proxima.fecha_inactivacion else ""
+        mensaje = (f"Ya hay {len(vigentes)} versiones vigentes y la versión {proxima.contrato_version} ya está en "
+                   f"retiro{hasta}. Podrá activar una nueva versión cuando termine ese retiro.")
+    else:
+        candidata = min(vigentes, key=lambda c: c.numero)
+        mensaje = (f"Ya hay {len(vigentes)} versiones vigentes. Retire primero la versión {candidata.contrato_version}; "
+                   "podrá activar una nueva cuando termine su plazo de retiro.")
+    raise BusinessRuleError(code="LIMITE_VERSIONES_EXCEDIDO", message=mensaje)
 
 
 def resolver_version(contratos: Iterable[VersionContrato], solicitada: Optional[str]) -> VersionContrato:

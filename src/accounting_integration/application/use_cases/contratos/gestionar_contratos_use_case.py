@@ -4,6 +4,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: transición rechazada auditada (WARNING) y avisada, estado antes que anexo y modificación de pendientes |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37/374-G38 RF-98: gracia desde M09 y aviso de la activación manual bloqueada |
 # | 2026-11-19 | Arekkazu | M7-03 RF-98: condiciones de activación de cada versión pendiente |
+# | 2026-11-20 | Arekkazu | QA-M07 CU04 H-03/S-02 RF-98: un aviso diario por versión bloqueada contado en la auditoría y con el código real |
 """Versiones del contrato AAEF (RF-98 v1.1).
 
 Registro siempre en PENDIENTE. La activación ocurre al llegar la fecha de vigencia (proceso de fondo)
@@ -29,7 +30,10 @@ from src.accounting_integration.domain.entities.contrato import (
     versiones_a_deprecar,
 )
 from src.accounting_integration.domain.entities.evento_integracion import EventoIntegracion
-from src.accounting_integration.domain.repositories.auditoria_integracion_repository import AuditoriaIntegracionRepository
+from src.accounting_integration.domain.repositories.auditoria_integracion_repository import (
+    AuditoriaIntegracionRepository,
+    FiltrosAuditoria,
+)
 from src.accounting_integration.domain.repositories.contrato_repository import ContratoRepository
 from src.accounting_integration.domain.services.aaef import MAPPER_COMPROBANTE_NIC41, MAPPERS_DISPONIBLES
 from src.shared.errors import BusinessRuleError, ConflictError, FlowError, NotFoundError, ValidationError
@@ -51,8 +55,6 @@ class SolicitudContrato:
 
 
 class GestionarContratosUseCase:
-    _avisados: dict[str, date] = {}  # versión -> último día avisado; un aviso diario por versión bloqueada
-
     def __init__(self, contratos: ContratoRepository, auditoria: AuditoriaIntegracionRepository, db: Session,
                  es_produccion: Callable[[], bool], alertar: Callable[[str, dict], None],
                  comprobante_habilitado: bool = False,
@@ -168,7 +170,7 @@ class GestionarContratosUseCase:
         except Exception as exc:
             self.db.rollback()
             if id_usuario is not None and contrato is not None and isinstance(exc, BusinessRuleError):
-                self._avisar_bloqueo(contrato, exc.message, id_usuario)
+                self._avisar_bloqueo(contrato, exc, id_usuario)
             raise
         return contrato
 
@@ -234,9 +236,8 @@ class GestionarContratosUseCase:
                     self.activar(contrato.id_version_contrato_aaef, None)
                     cambios += 1
                 except (BusinessRuleError, ConflictError) as exc:  # queda PENDIENTE y se avisa (CA-24)
-                    if self._avisados.get(contrato.contrato_version) != hoy:
-                        self._avisados[contrato.contrato_version] = hoy
-                        self._avisar_bloqueo(contrato, exc.message)
+                    if not self._bloqueo_avisado(contrato, hoy):
+                        self._avisar_bloqueo(contrato, exc)
             elif contrato.estado == "DEPRECADO" and contrato.fecha_inactivacion and contrato.fecha_inactivacion <= ahora:
                 try:
                     vigente = next(c for c in self.contratos.listar_contratos(bloquear=True)
@@ -251,18 +252,26 @@ class GestionarContratosUseCase:
                     raise
         return cambios
 
-    def _avisar_bloqueo(self, contrato: VersionContrato, motivo: str, id_usuario: Optional[int] = None) -> None:
-        # ponytail: el control de "una vez al día" vive en memoria del proceso; con varias réplicas
-        # cada una avisaría una vez. Pasar a la auditoría si se escala.
+    def _bloqueo_avisado(self, contrato: VersionContrato, hoy: date) -> bool:
+        """S-02: un aviso al día por versión bloqueada, contado en la auditoría para que un reinicio del
+        proceso no lo repita."""
+        _, total = self.auditoria.consultar(FiltrosAuditoria(
+            tipos_evento=("CONTRATO_ACTIVACION_BLOQUEADA",), desde=hoy, hasta=hoy,
+            version_contrato=contrato.contrato_version), 1, 1)
+        return total > 0
+
+    def _avisar_bloqueo(self, contrato: VersionContrato, exc: BusinessRuleError | ConflictError,
+                        id_usuario: Optional[int] = None) -> None:
+        """CA-5 / CA-24: queda auditado con el código real del rechazo y el motivo, y se avisa al Administrador."""
         try:
             self.auditoria.registrar(EventoIntegracion(
                 tipo_evento="CONTRATO_ACTIVACION_BLOQUEADA", severidad="WARNING", version_contrato=contrato.contrato_version,
                 tipo_actor="USUARIO" if id_usuario else "SISTEMA", id_usuario=id_usuario,
-                codigo_resultado="CONTRATO_NO_VALIDO", json_detalle={"motivo": motivo}))
+                codigo_resultado=exc.code, json_detalle={"motivo": exc.message}))
             self.db.commit()
         except Exception:
             self.db.rollback()
-        self.alertar(f"La versión {contrato.contrato_version} del contrato contable no pudo activarse: {motivo}",
+        self.alertar(f"La versión {contrato.contrato_version} del contrato contable no pudo activarse: {exc.message}",
                      {"version_contrato": contrato.contrato_version})
 
     def listar_con_condiciones(self) -> list[dict]:
