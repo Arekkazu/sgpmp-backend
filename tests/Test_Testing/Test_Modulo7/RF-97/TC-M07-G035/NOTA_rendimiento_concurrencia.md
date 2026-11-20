@@ -6,6 +6,9 @@ infraestructura de carga no disponible en este hilo. No se fabrica un resultado 
 
 ## Confirmado en vivo, de forma ligera (no es una prueba de carga formal)
 
+Script reproducible: `chequeo_aislamiento_concurrente.py` (en esta misma carpeta). Ejecutar con
+`python chequeo_aislamiento_concurrente.py --pass "<clave real del Contador>"`.
+
 2026-11-18, 12 llamadas concurrentes (`ThreadPoolExecutor`, 12 workers) mezclando 3 titulares
 distintos contra `GET /integracion/aaef/vista-previa/productores/{nit}` en TEST:
 
