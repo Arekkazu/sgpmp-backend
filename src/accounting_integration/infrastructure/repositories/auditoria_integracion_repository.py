@@ -4,6 +4,7 @@
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
 # | 2026-11-19 | Leandro | INC-M07-371-G58 RF-102: consultar los dos almacenes y trasladar lotes elegibles. |
 # | 2026-11-19 | Arekkazu | M7-11 RF-102: nombre de quien actuó, además del correo |
+# | 2026-11-20 | Arekkazu | QA-M07 CU07 H-01 RF-102: Desde/Hasta en la zona del usuario, no en días UTC |
 """Persistencia de auditoría M07 y acceso al archivo de RF-102. Los triggers bloquean UPDATE, DELETE y
 TRUNCATE; aquí solo se inserta, se consulta y se traslada al archivo con la función de BD."""
 from __future__ import annotations
@@ -23,6 +24,7 @@ from src.accounting_integration.domain.repositories.auditoria_integracion_reposi
 )
 from src.financial_valuation.infrastructure.repositories.sql import a_json, escribir, filas, nombres_usuarios
 from src.shared.errors import InfrastructureError
+from src.shared.fechas import fin_dia_usuario, inicio_dia_usuario
 
 logger = logging.getLogger(__name__)
 
@@ -77,13 +79,15 @@ class SqlAlchemyAuditoriaIntegracionRepository(AuditoriaIntegracionRepository):
         if filtros.tipos_evento:
             condiciones.append("e.tipo_evento::text = ANY(:tipos)")
             params["tipos"] = list(filtros.tipos_evento)
+        # CU07 H-01: el día del filtro es el que el usuario ve en la tabla (su zona), no el día UTC.
         for campo, valor, sql in (
             ("cliente", filtros.id_cliente_externo, "e.id_cliente_externo = :cliente"),
-            ("desde", filtros.desde, "e.fecha_evento >= CAST(:desde AS date)"),
-            ("hasta", filtros.hasta, "e.fecha_evento < CAST(:hasta AS date) + 1"),
+            ("desde", filtros.desde and inicio_dia_usuario(filtros.desde), "e.fecha_evento >= :desde"),
+            ("hasta", filtros.hasta and fin_dia_usuario(filtros.hasta), "e.fecha_evento <= :hasta"),
             ("endpoint", filtros.endpoint, "e.endpoint = :endpoint"),
             ("codigo_http", filtros.codigo_http, "e.codigo_http = :codigo_http"),
             ("nit", filtros.numero_id_tributaria, "e.numero_id_tributaria = :nit"),
+            ("version", filtros.version_contrato, "e.version_contrato = :version"),
         ):
             if valor is not None:
                 condiciones.append(sql)
