@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-97: puerto de lectura de M06/M09 para el envelope AAEF |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: las líneas sin trazabilidad se devuelven con sus hechos, no solo el conteo |
 """Puerto de solo lectura sobre lo que M06 y M09 ya calcularon (RF-97 Fase 3)."""
 from __future__ import annotations
 
@@ -34,5 +35,6 @@ class FuenteContableRepository(ABC):
     def comprobantes(self, nit: str, desde: date, hasta: date) -> list[ComprobanteNic41]: ...
 
     @abstractmethod
-    def lineas_sin_trazabilidad(self, nit: str, desde: date, hasta: date) -> int:
-        """Líneas de asiento del rango sin trazabilidad verificada (RF-97 Fase 2)."""
+    def lineas_sin_trazabilidad(self, nit: str, desde: date, hasta: date) -> list[dict]:
+        """Líneas de asiento del rango sin trazabilidad verificada (RF-97 Fase 2, FA-3): una por hecho, con
+        ``id_linea_asiento_nic41``, ``tipo_hecho``, ``id_activo_biologico``, ``activo`` y ``fecha_hecho``."""

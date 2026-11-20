@@ -1,6 +1,9 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95 Fases 3-5 / RF-97: alcance por fincas, versión y envelope AAEF del titular |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del error AAEF (Mapper, documento) llega a la respuesta y a la auditoría |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: TRAZABILIDAD_INCOMPLETA nombra los hechos afectados y los trae en el detalle |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: ERROR_DATOS_FINANCIEROS para fallas al leer los datos financieros y ERROR_INTERNO_RF97 para lo inesperado |
 """Genera el envelope AAEF de un titular para un rango de períodos cerrados (RF-97 v3.0).
 
 Lo invoca el Gateway (RF-95) con el usuario ya autenticado y con permiso; aquí se resuelve lo que
@@ -32,7 +35,43 @@ from src.accounting_integration.domain.services.aaef import (
     verificar_cuadre,
 )
 from src.accounting_integration.domain.services.esquema_agrofusion import AccountingConsultResponse
-from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
+from src.financial_valuation.domain.value_objects.nic41 import ETIQUETA_HECHO
+from src.shared.errors import AppError, AuthorizationError, BusinessRuleError, InfrastructureError, NotFoundError
+
+
+_HECHOS_EN_MENSAJE = 5
+_ERROR_DATOS_FINANCIEROS = ("No se pudo leer la información financiera del productor para la exportación contable. "
+                            "Intente de nuevo en unos minutos; si continúa, contacte al administrador del SGPMP.")
+_ERROR_INTERNO = ("Ocurrió un error inesperado al generar la información contable. "
+                  "Contacte al administrador del SGPMP.")
+
+
+def _financieros(leer: Callable, *args):
+    """RF-97 Fase 3 / FA-7: una falla al leer los datos financieros sale como ERROR_DATOS_FINANCIEROS
+    (la causa original queda encadenada para el log y para reconocer el tiempo máximo agotado)."""
+    try:
+        return leer(*args)
+    except AppError:
+        raise
+    except Exception as exc:
+        raise InfrastructureError(code="ERROR_DATOS_FINANCIEROS", message=_ERROR_DATOS_FINANCIEROS,
+                                  original_error=exc) from exc
+
+
+def _trazabilidad_incompleta(lineas: list[dict]) -> AaefError:
+    """RF-97 FA-3: bloquea «con el detalle de los hechos afectados». El mensaje nombra los primeros y el
+    ``detalle`` los trae todos, para que el Contador los ubique en Finanzas."""
+    hechos = [{**ln, "hecho": ETIQUETA_HECHO.get(ln["tipo_hecho"], "Hecho contable"),
+               "fecha_hecho": ln["fecha_hecho"].isoformat() if ln.get("fecha_hecho") else None} for ln in lineas]
+    nombrados = "; ".join(
+        h["hecho"] + (f" del activo {h['activo']}" if h.get("activo") else "")
+        + (f" del {h['fecha_hecho']}" if h["fecha_hecho"] else "") for h in hechos[:_HECHOS_EN_MENSAJE])
+    resto = len(hechos) - _HECHOS_EN_MENSAJE
+    return AaefError(
+        "TRAZABILIDAD_INCOMPLETA",
+        f"{len(hechos)} asientos del rango no tienen la trazabilidad completa: {nombrados}"
+        + (f" y {resto} más" if resto > 0 else "") + ". El Contador debe revisarlos en Finanzas antes de exportar.",
+        detalle={"hechos": hechos})
 
 
 @dataclass(frozen=True)
@@ -74,14 +113,13 @@ class ConsultarAaefUseCase:
                 "Solicite al administrador la asignación completa."))
         contrato = resolver_version(self.contratos.listar_contratos(), s.version_solicitada)
         try:
-            validar_rango(self.fuente.periodos(s.nit), s.desde, s.hasta)
-            sin_traza = self.fuente.lineas_sin_trazabilidad(s.nit, s.desde, s.hasta)
+            validar_rango(_financieros(self.fuente.periodos, s.nit), s.desde, s.hasta)
+            sin_traza = _financieros(self.fuente.lineas_sin_trazabilidad, s.nit, s.desde, s.hasta)
             if sin_traza:  # RF-97 FA-3; el cierre de M06 ya lo impide, esto es la última defensa
-                raise AaefError("TRAZABILIDAD_INCOMPLETA", f"{sin_traza} asientos del rango no tienen la trazabilidad "
-                                "completa. El Contador debe revisarlos en Finanzas antes de exportar.")
-            compras = (mapear_compras(self.fuente.costos_factura(s.nit, s.desde, s.hasta))
+                raise _trazabilidad_incompleta(sin_traza)
+            compras = (mapear_compras(_financieros(self.fuente.costos_factura, s.nit, s.desde, s.hasta))
                        if MAPPER_COMPRAS in contrato.mapeadores else [])
-            comprobantes = (mapear_comprobantes(self.fuente.comprobantes(s.nit, s.desde, s.hasta), titular)
+            comprobantes = (mapear_comprobantes(_financieros(self.fuente.comprobantes, s.nit, s.desde, s.hasta), titular)
                             if MAPPER_COMPROBANTE_NIC41 in contrato.mapeadores else [])
             envelope = construir_envelope(titular, s.desde, s.hasta, self.sistema, s.correo_usuario, self.hoy(),
                                           compras, comprobantes)
@@ -94,6 +132,12 @@ class ConsultarAaefUseCase:
                                 "Contacte al administrador del SGPMP.", detalle={"errores": exc.error_count()}) from exc
             controlar_tamano(cuerpo, self.limite_bytes)
         except AaefError as exc:
-            raise BusinessRuleError(code=exc.codigo, message=exc.mensaje, field=exc.campo) from exc
+            # RNF-96.4: el Mapper y el documento que fallaron viajan estructurados, no solo en el mensaje
+            raise BusinessRuleError(code=exc.codigo, message=exc.mensaje, field=exc.campo,
+                                    detalle=exc.detalle or None) from exc
+        except AppError:
+            raise
+        except Exception as exc:  # RF-97 FA-10: error inesperado de la transformación (Fases 5-7)
+            raise InfrastructureError(code="ERROR_INTERNO_RF97", message=_ERROR_INTERNO, original_error=exc) from exc
         return ResultadoAaef(cuerpo, hash_contenido(envelope["invoices"]), contrato,
                              envelope["metadata"]["ExchangeId"], len(envelope["invoices"]))

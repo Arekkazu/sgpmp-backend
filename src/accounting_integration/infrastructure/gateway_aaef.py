@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-95 / RF-AE01: Gateway de la consulta contable de AgroFusion |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del error queda en la auditoría de la solicitud rechazada |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: códigos ERROR_DATOS_FINANCIEROS / ERROR_INTERNO_RF97 y 503 si se agota el tiempo leyendo datos financieros |
 """Gateway de la consulta AAEF (RF-95 v2.0): las cinco responsabilidades y nada más.
 
 1. Forma de la solicitud (400) y credenciales en la URL (400 + evento de seguridad).
@@ -30,7 +32,7 @@ from src.accounting_integration.domain.entities.evento_integracion import Evento
 from src.accounting_integration.infrastructure import configuracion
 from src.accounting_integration.infrastructure.factoria import M07
 from src.shared.database import declarar_identidad
-from src.shared.errors import AppError, AuthorizationError, ServiceUnavailableError, ValidationError
+from src.shared.errors import AppError, AuthorizationError, InfrastructureError, ServiceUnavailableError, ValidationError
 from src.shared.rbac import tiene_permiso_sobre
 
 
@@ -52,6 +54,17 @@ def _fecha(valor: Optional[str], campo: str) -> date:
         pass
     raise ValidationError(code="PARAMETROS_INVALIDOS", field=campo,
                           message=f"El parámetro «{campo}» es obligatorio y debe tener el formato AAAA-MM-DD, por ejemplo 2026-10-01.")
+
+
+def _consulta_cancelada(exc: Optional[BaseException]) -> bool:
+    """El tiempo máximo de la transacción se agotó (``statement_timeout``)."""
+    return isinstance(exc, OperationalError) and getattr(exc.orig, "pgcode", None) == _PG_CONSULTA_CANCELADA
+
+
+def _tiempo_agotado(m07: M07, evento: dict, inicio: float, exc: BaseException) -> ServiceUnavailableError:
+    _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 503, "SERVICIO_NO_DISPONIBLE", "ERROR")
+    return ServiceUnavailableError(code="SERVICIO_NO_DISPONIBLE", original_error=exc, message=(
+        "La consulta contable tardó más de lo permitido. Intente de nuevo en unos minutos."))
 
 
 def _id_solicitud(request: Request) -> str:
@@ -104,19 +117,22 @@ def atender(request: Request, db: Session, nit: str, desde: Optional[str], hasta
             nit, fecha_desde, fecha_hasta, acceso.usuario.id_usuario, acceso.usuario.correo,
             request.headers.get("Accept-Version")))
     except AppError as exc:
+        if _consulta_cancelada(exc.__cause__):  # el tiempo máximo se agotó leyendo los datos financieros
+            raise _tiempo_agotado(m07, evento, inicio, exc.__cause__) from exc
         evento.setdefault("tipo_evento", "RATE_LIMIT_EXCEDIDO" if exc.status_code == 429 else "SOLICITUD_RECHAZADA")
+        if exc.detalle:  # RNF-96.4: Mapper, documento y campo quedan en RF-102
+            evento["json_detalle"] = {**exc.detalle, "campo": exc.field}
         _auditar(m07, evento, inicio, exc.status_code, exc.code, "WARNING" if exc.status_code < 500 else "ERROR")
         raise
     except OperationalError as exc:
-        if getattr(exc.orig, "pgcode", None) != _PG_CONSULTA_CANCELADA:
-            _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 500, "ERROR_INTERNO", "ERROR")
+        if not _consulta_cancelada(exc):  # base de datos caída: el handler global responde 503
+            _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 500, "ERROR_INTERNO_RF97", "ERROR")
             raise
-        _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 503, "SERVICIO_NO_DISPONIBLE", "ERROR")
-        raise ServiceUnavailableError(code="SERVICIO_NO_DISPONIBLE", original_error=exc, message=(
-            "La consulta contable tardó más de lo permitido. Intente de nuevo en unos minutos.")) from exc
-    except Exception:
-        _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 500, "ERROR_INTERNO", "ERROR")
-        raise
+        raise _tiempo_agotado(m07, evento, inicio, exc) from exc
+    except Exception as exc:  # RF-97 FA-10: nunca un 500 genérico sin código propio
+        _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 500, "ERROR_INTERNO_RF97", "ERROR")
+        raise InfrastructureError(code="ERROR_INTERNO_RF97", original_error=exc, message=(
+            "Ocurrió un error inesperado al generar la información contable. Contacte al administrador del SGPMP.")) from exc
     _auditar(m07, {**evento, "tipo_evento": "PAQUETE_AAEF_CONSULTADO", "version_contrato": resultado.contrato.contrato_version,
                    "hash_contenido": resultado.hash_contenido, "id_intercambio": resultado.id_intercambio,
                    "tamano_payload_bytes": len(resultado.cuerpo), "json_detalle": {"documentos": resultado.documentos}},
