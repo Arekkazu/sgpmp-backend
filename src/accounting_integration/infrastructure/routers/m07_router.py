@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-95..102 / RF-AE01: consulta AAEF para AgroFusion y administración de la integración |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: PATCH/PUT de una versión del contrato; las protegidas responden MODIFICACION_NO_PERMITIDA |
+# | 2026-11-19 | Arekkazu | M7-02/M7-03 RF-98: justificación del anexo y condiciones de activación en el listado |
 """Routers de M07 (``/integracion``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 - ``GET /integracion/aaef/productores/{nit}``: la consulta de AgroFusion (RF-AE01). Su autenticación
@@ -25,6 +26,7 @@ from src.accounting_integration.domain.repositories.auditoria_integracion_reposi
 from src.accounting_integration.infrastructure import gateway_aaef
 from src.accounting_integration.infrastructure.dto.m07_dto import (
     AprobarAnexoDTO,
+    EnviarAnexoRevisionDTO,
     DeprecarContratoDTO,
     EditarClienteDTO,
     ModificarContratoDTO,
@@ -198,9 +200,9 @@ def registrar_anexo(dto: RegistrarAnexoDTO, m07: M07 = Depends(_m07),
 @router.post("/anexos/{id_mapeo_anexo_aaef}/revision", tags=[TAG_CONTRATOS],
              dependencies=[Depends(permiso("contratos_aaef", E))],
              summary="Aprobación interna del Contador: valida el mapeo y pasa el anexo a revisión")
-def enviar_anexo_a_revision(id_mapeo_anexo_aaef: int, m07: M07 = Depends(_m07),
+def enviar_anexo_a_revision(id_mapeo_anexo_aaef: int, dto: EnviarAnexoRevisionDTO, m07: M07 = Depends(_m07),
                             usuario_actual: UsuarioActual = Depends(get_current_user)):
-    return m07.gestionar_anexos().enviar_a_revision(id_mapeo_anexo_aaef, usuario_actual.id_usuario)
+    return m07.gestionar_anexos().enviar_a_revision(id_mapeo_anexo_aaef, usuario_actual.id_usuario, dto.justificacion)
 
 
 @router.post("/anexos/{id_mapeo_anexo_aaef}/aprobar", tags=[TAG_CONTRATOS],
@@ -214,7 +216,7 @@ def aprobar_anexo(id_mapeo_anexo_aaef: int, dto: AprobarAnexoDTO, m07: M07 = Dep
 @router.get("/contratos", tags=[TAG_CONTRATOS], dependencies=[Depends(permiso("contratos_aaef", R))],
             summary="Listar las versiones del contrato AAEF")
 def listar_contratos(m07: M07 = Depends(_m07)):
-    return m07.contratos.listar_contratos()
+    return m07.gestionar_contratos().listar_con_condiciones()
 
 
 @router.post("/contratos", status_code=201, tags=[TAG_CONTRATOS], dependencies=[Depends(permiso("contratos_aaef", C))],

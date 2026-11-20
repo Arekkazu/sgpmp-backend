@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-AE02: registro, revisión (validación automática) y aprobación del anexo |
 # | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE02: bloquear y auditar fallas de cobertura y cuadre del resumen. |
+# | 2026-11-19 | Arekkazu | M7-02 RF-98: la aprobación interna guarda la justificación del Contador |
 """Anexo de mapeo AAEF (RF-AE02 v3.0): BORRADOR → EN_REVISION → APROBADO, sin vuelta atrás.
 
 - Pasar a revisión es la aprobación interna del Contador (5.9) y exige la validación automática con
@@ -124,7 +125,7 @@ class GestionarAnexosUseCase:
         return self._confirmar(AnexoMapeo(None, codigo_anexo, version_anexo, ruta_documento, sha),
                                "ANEXO_REGISTRADO", id_usuario, {"sha256_documento": sha})
 
-    def enviar_a_revision(self, id_mapeo_anexo_aaef: int, id_usuario: int) -> AnexoMapeo:
+    def enviar_a_revision(self, id_mapeo_anexo_aaef: int, id_usuario: int, justificacion: str) -> AnexoMapeo:
         anexo = self._anexo(id_mapeo_anexo_aaef)
         fallas = validar_con_datos_de_prueba()
         if fallas:  # FA-2: no avanza
@@ -140,7 +141,8 @@ class GestionarAnexosUseCase:
             raise BusinessRuleError(code="ANEXO_VALIDACION_FALLIDA", message=(
                 f"La validación automática del anexo falló ({', '.join(fallas)}). Corrija el mapeo antes de enviarlo a revisión."))
         anexo.enviar_a_revision(datetime.now(timezone.utc))
-        return self._confirmar(anexo, "ANEXO_EN_REVISION", id_usuario, {"validacion_automatica": "OK"})
+        return self._confirmar(anexo, "ANEXO_EN_REVISION", id_usuario,
+                               {"validacion_automatica": "OK", "justificacion": justificacion})
 
     def aprobar(self, id_mapeo_anexo_aaef: int, evidencia: dict, id_usuario: int) -> AnexoMapeo:
         anexo = self._anexo(id_mapeo_anexo_aaef)

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                       |
 # |------------|----------|---------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: la bandeja falsa recibe el filtro nuevo |
+# | 2026-11-19 | Arekkazu | M8-05 RF-105: el ejemplo de aviso de cuenta ya no es el inicio de sesión |
 """Pruebas unitarias del servicio central y la bandeja RF-14."""
 from datetime import datetime, timezone
 import pytest
@@ -134,7 +135,7 @@ def test_push_se_despacha_antes_que_el_correo(monkeypatch) -> None:
     monkeypatch.setattr(service_module, "send_push", lambda **_datos: orden.append("push"))
 
     NotificacionService(port=port, db=DbFake()).notificar(
-        tipo_evento=3,
+        tipo_evento=6,
         id_usuario=7,
         correo_destino="ana@example.com",
     )

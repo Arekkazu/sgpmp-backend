@@ -4,6 +4,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: DTO para modificar una versión pendiente del contrato |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: el mínimo de gracia lo valida el caso de uso con el valor de M09 |
 # | 2026-11-19 | Leandro | INC-M07-372-G36 RF-98: delegar al caso de uso la validación de mapeadores. |
+# | 2026-11-19 | Arekkazu | M7-02 RF-98: justificación de la aprobación interna del anexo |
 """DTOs de entrada de la administración de M07 (clientes, anexos y contratos)."""
 from __future__ import annotations
 
@@ -80,6 +81,11 @@ class RegistrarAnexoDTO(BaseDTO):
     version_anexo: str = Field(pattern=r"^\d{1,3}\.\d{1,3}$", examples=["3.0"])
     ruta_documento: str = Field(min_length=3, max_length=500, description="Dónde está el documento formal del anexo.")
     sha256_documento: str = Field(min_length=64, max_length=64, description="SHA-256 del documento formal.")
+
+
+class EnviarAnexoRevisionDTO(BaseDTO):
+    justificacion: str = Field(min_length=20, max_length=1000,
+                               description="Por qué el Contador aprueba el mapeo; queda en la auditoría.")
 
 
 class AprobarAnexoDTO(BaseDTO):

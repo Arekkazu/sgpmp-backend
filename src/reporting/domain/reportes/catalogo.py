@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: catálogo de los 18 reportes, filtros y validación |
+# | 2026-11-19 | Arekkazu | M08 RF-104: textos de los valores y de los filtros sin elegir, para el PDF |
 """Catálogo de reportes de RF-104: qué filtros pide cada uno y cómo se validan.
 
 Cada tipo tiene su recurso RBAC (``reporte_<tipo>``, acción Ejecutar): quién lo genera se decide en
@@ -66,6 +67,23 @@ ETIQUETAS = {
     "variable_ambiental": "Variable", "estado_dispositivo": "Estado del dispositivo",
     "tipo_alerta": "Tipo de alerta", "nivel_severidad": "Severidad",
 }
+
+# Cómo se lee cada valor de lista en «Parámetros de selección» del PDF y del Excel.
+TEXTO_VALORES = {
+    "ACTIVO": "Activo", "VENDIDO": "Vendido", "MUERTO": "Muerto", "ALIMENTACION": "Alimentación",
+    "MEDICACION": "Medicación", "OTROS": "Otros", "MUERTE": "Muerte", "VENTA": "Venta", "SACRIFICIO": "Sacrificio",
+    "TRASLADO": "Traslado", "DIAGNOSTICO": "Diagnóstico", "VACUNACION": "Vacunación", "TRATAMIENTO": "Tratamiento",
+    "ALTO": "Alto", "MEDIO": "Medio", "BAJO": "Bajo", "VACUNA": "Vacuna", "MEDICAMENTO": "Medicamento",
+    "ANTIPARASITARIO": "Antiparasitario", "TEMPERATURA": "Temperatura", "HUMEDAD": "Humedad", "PH": "pH",
+    "CO2": "CO2", "INACTIVO": "Inactivo", "FALLO": "Falla", "SIN_SEÑAL": "Sin señal",
+    "MANTENIMIENTO": "En mantenimiento", "FUERA_DE_RANGO": "Fuera de rango", "DESCONEXION": "Desconexión",
+    "FALLO_DISPOSITIVO": "Falla del dispositivo", "CRITICA": "Crítica", "ADVERTENCIA": "Advertencia",
+    "INFORMATIVA": "Informativa",
+}
+
+# Qué dice un filtro que no se eligió.
+SIN_ELEGIR = {"especie_id": "Todas", "finca_id": "Todas", "infraestructura_id": "Todas",
+              "fecha_inicio": "Desde el primer registro", "fecha_prediccion_desde": "Últimos 7 días"}
 
 _INICIO, _FIN = Filtro("fecha_inicio", FECHA, True), Filtro("fecha_fin", FECHA, True)
 _ESPECIE, _FINCA = Filtro("especie_id", ESPECIE), Filtro("finca_id", FINCA)

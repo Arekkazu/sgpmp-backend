@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-98: registro y transiciones de las versiones del contrato AAEF |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: transición rechazada auditada (WARNING) y avisada, estado antes que anexo y modificación de pendientes |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37/374-G38 RF-98: gracia desde M09 y aviso de la activación manual bloqueada |
+# | 2026-11-19 | Arekkazu | M7-03 RF-98: condiciones de activación de cada versión pendiente |
 """Versiones del contrato AAEF (RF-98 v1.1).
 
 Registro siempre en PENDIENTE. La activación ocurre al llegar la fecha de vigencia (proceso de fondo)
@@ -263,3 +264,25 @@ class GestionarContratosUseCase:
             self.db.rollback()
         self.alertar(f"La versión {contrato.contrato_version} del contrato contable no pudo activarse: {motivo}",
                      {"version_contrato": contrato.contrato_version})
+
+    def listar_con_condiciones(self) -> list[dict]:
+        """Las versiones y, en las pendientes, si «Activar» procede y qué versiones retira (M7-03). Son las mismas
+        reglas de :meth:`activar`, para que la pantalla no ofrezca lo que el servidor va a rechazar."""
+        contratos = self.contratos.listar_contratos()
+        salida = []
+        for c in contratos:
+            fila = {**vars(c), "motivo_no_activable": None, "versiones_que_retira": []}
+            if c.estado == "PENDIENTE":
+                try:
+                    motivo = motivo_bloqueo_activacion(
+                        c, self.contratos.obtener_anexo(c.id_mapeo_anexo_aaef) if c.id_mapeo_anexo_aaef else None,
+                        self.es_produccion())
+                    if motivo:
+                        raise BusinessRuleError(code="CONTRATO_NO_VALIDO", message=motivo)
+                    self._exigir_comprobante_disponible(c.mapeadores)
+                    exigir_cupo(c, contratos)
+                except BusinessRuleError as exc:
+                    fila["motivo_no_activable"] = exc.message
+                fila["versiones_que_retira"] = [a.contrato_version for a in versiones_a_deprecar(c, contratos)]
+            salida.append(fila)
+        return salida

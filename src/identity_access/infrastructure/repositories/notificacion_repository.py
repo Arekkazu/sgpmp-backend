@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación, filtros de bandeja, entrega y purga  |
 # | 2026-11-18 | Arekkazu | M08 RF-105: escalamiento, auditoría de cada notificación, preferencias y ventana de M09 |
+# | 2026-11-19 | Arekkazu | M8-05 RF-105: agrupa avisos repetidos sin atender y saca de la bandeja los inicios de sesión |
 """Implementación SQLAlchemy del puerto de dominio :class:`NotificacionRepository`.
 
 Traduce el estado de envío de texto al enum ``EnumEstadoEnvio`` de la columna y
@@ -9,7 +10,8 @@ gestiona el registro de notificaciones, el control anti-spam por ventana
 temporal y la consulta/registro de dispositivos FCM.
 
 RF-105: el nivel definitivo sale del tipo de evento (nunca más bajo que el sugerido), la bandeja se
-ordena por nivel y luego por fecha, y ``es_leido`` se mantiene sincronizada con ``estado`` mientras
+ordena por nivel y luego por fecha (sin los inicios de sesión, que solo van por correo), un aviso interno con el
+mismo tipo y el mismo texto que otro aún sin atender suma una ocurrencia a ese en vez de otra fila, y ``es_leido`` se mantiene sincronizada con ``estado`` mientras
 el front anterior la siga leyendo.
 
 Fase 5: cada notificación interna creada, cada cambio de estado (LEÍDA, ATENDIDA, DESCARTADA) y cada entrega
@@ -37,6 +39,7 @@ from src.identity_access.domain.value_objects.nivel_notificacion import (
     LEIDA,
     NUEVA,
     NUMERO_POR_MODULO,
+    TIPOS_FUERA_DE_BANDEJA,
     VENTANA_AGRUPACION_POR_DEFECTO,
     canal_por_defecto,
     destino_por_defecto,
@@ -131,6 +134,16 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         modulo = modulo_desde(origen.modulo if origen else None)
         ahora = datetime.now(timezone.utc)
         nivel_final = nivel_para(origen.tipo if origen else None, nivel)
+        if id_canal == ID_CANAL_INTERNO:
+            repetida = self._repetida_sin_atender(id_usuario, id_evento, mensaje)
+            if repetida is not None:
+                try:
+                    repetida.ocurrencias = (repetida.ocurrencias or 1) + 1
+                    repetida.fecha_ultima_ocurrencia = ahora
+                    self.db.flush()
+                except Exception as exc:
+                    raise_from_db_error(exc)
+                return repetida.id_notificacion
         if (nivel_final != CRITICA and id_activo_biologico is not None and modulo in _MODULOS_SANITARIOS
                 and self._criticas_recientes(id_usuario, id_activo_biologico, ahora) >= _CRITICAS_ESCALAMIENTO):
             nivel_final = CRITICA
@@ -158,6 +171,19 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             self._auditar(id_usuario, {"accion": "CREADA", "id_notificacion": notificacion.id_notificacion,
                                        "nivel": nivel_final, "canal": "IN_APP", "modulo": modulo, "estado": NUEVA})
         return notificacion.id_notificacion
+
+    def _repetida_sin_atender(self, id_usuario: int, id_evento: int, mensaje: str) -> Optional[Notificaciones]:
+        """La notificación interna del mismo tipo y con el mismo texto que el usuario aún no atendió (M8-05)."""
+        tipo = self.db.query(Eventos.tipo_evento).filter(Eventos.id_evento == id_evento).scalar_subquery()
+        return (self.db.query(Notificaciones)
+                .join(Eventos, Notificaciones.id_evento == Eventos.id_evento)
+                .filter(Notificaciones.id_usuario == id_usuario,
+                        Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
+                        Notificaciones.estado.in_((NUEVA, LEIDA)), Notificaciones.mensaje == mensaje,
+                        Eventos.tipo_evento == tipo)
+                .order_by(Notificaciones.fecha_envio.desc())
+                .with_for_update(of=Notificaciones)
+                .first())
 
     def _criticas_recientes(self, id_usuario: int, id_activo: int, ahora: datetime) -> int:
         return (self.db.query(func.count(Notificaciones.id_notificacion))
@@ -383,6 +409,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             .filter(
                 Notificaciones.id_usuario == id_usuario,
                 Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
+                Eventos.tipo_evento.not_in(TIPOS_FUERA_DE_BANDEJA),
             )
         )
         if filtro is None:

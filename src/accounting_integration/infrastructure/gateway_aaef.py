@@ -4,6 +4,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: el detalle del error queda en la auditoría de la solicitud rechazada |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: códigos ERROR_DATOS_FINANCIEROS / ERROR_INTERNO_RF97 y 503 si se agota el tiempo leyendo datos financieros |
 # | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01: rechazar password y omitir la query del log de acceso AAEF. |
+# | 2026-11-19 | Arekkazu | M7-05 RF-102: los rechazos de la vista previa quedan en la auditoría |
 """Gateway de la consulta AAEF (RF-95 v2.0): las cinco responsabilidades y nada más.
 
 1. Forma de la solicitud (400) y credenciales en la URL (400 + evento de seguridad).
@@ -157,9 +158,17 @@ def atender(request: Request, db: Session, nit: str, desde: Optional[str], hasta
 def vista_previa(request: Request, db: Session, nit: str, desde: date, hasta: date, id_usuario: int, correo: str) -> Response:
     """La misma generación con la sesión web del Contador, para revisar antes de AgroFusion (RF-AE02 5.10)."""
     m07 = M07(db)
-    resultado = m07.consultar_aaef().execute(SolicitudAaef(nit, desde, hasta, id_usuario, correo,
-                                                           request.headers.get("Accept-Version")))
     id_solicitud = _id_solicitud(request)
+    try:
+        resultado = m07.consultar_aaef().execute(SolicitudAaef(nit, desde, hasta, id_usuario, correo,
+                                                               request.headers.get("Accept-Version")))
+    except AppError as exc:  # M7-05: los rechazos de la vista previa también quedan en la auditoría
+        m07.auditar_aparte(EventoIntegracion(
+            tipo_evento="PREPARACION_AAEF_FALLIDA", severidad="WARNING" if exc.status_code < 500 else "ERROR",
+            tipo_actor="USUARIO", id_usuario=id_usuario, id_solicitud=id_solicitud, numero_id_tributaria=nit,
+            fecha_desde=desde, fecha_hasta=hasta, codigo_http=exc.status_code, codigo_resultado=exc.code,
+            json_detalle={"mensaje": exc.message}))
+        raise
     m07.auditar_aparte(EventoIntegracion(
         tipo_evento="VISTA_AAEF_GENERADA", tipo_actor="USUARIO", id_usuario=id_usuario, id_solicitud=id_solicitud,
         numero_id_tributaria=nit, fecha_desde=desde, fecha_hasta=hasta,

@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-97: lectura de M06/M09 para el envelope AAEF |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: las líneas sin trazabilidad se devuelven con su hecho, activo y fecha |
 # | 2026-11-19 | Arekkazu | TC-M07-G019 RF-96: catálogo de LineType de la matriz contable |
+# | 2026-11-19 | Arekkazu | M7-05 RF-95: el Administrador tiene todas las fincas del titular |
 """Lectura de M06 y M09 para RF-97, como el usuario de servicio.
 
 El acceso ya se autorizó antes (permiso y todas las fincas del titular, RF-95 5.3). Leer como
@@ -43,8 +44,9 @@ class SqlAlchemyFuenteContableRepository(FuenteContableRepository):
 
     def fincas_usuario(self, id_usuario: int) -> set[int]:
         with como_sistema(self.db):
-            return {f["id_finca"] for f in filas(self.db, "SELECT id_finca FROM modulo9.usuarios_fincas "
-                                                          "WHERE id_usuario = :u AND es_activo", {"u": id_usuario})}
+            # La regla de la RLS: el Administrador (rol protegido) tiene todas; el resto, las asignadas (M7-05).
+            return {f["id_finca"] for f in filas(self.db, "SELECT id_finca FROM modulo9.fn_fincas_del_usuario(:u)",
+                                                 {"u": id_usuario})}
 
     def periodos(self, nit: str) -> list[Periodo]:
         return [Periodo(f["fecha_inicio"], f["fecha_fin"], f["estado"]) for f in filas(self.db, """

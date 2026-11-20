@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                   |
 # |------------|----------|---------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104/RF-106: puerto de lectura de los datos de reportes |
+# | 2026-11-19 | Arekkazu | M08 RF-104: nombre de una referencia para los parámetros del PDF |
 """Puerto de lectura de los datos que consolidan los reportes (RF-104) y el historial predictivo (RF-106).
 
 Todo es de solo lectura y se acota a ``fincas`` (``None`` = alcance global, una lista = esas fincas). Las
@@ -20,6 +21,10 @@ Fincas = Optional[list[int]]
 class FuenteReportesRepository(ABC):
 
     # --- Referencias (validación de filtros) ----------------------------------------------------
+
+    @abstractmethod
+    def nombre_referencia(self, tipo: str, id_referencia: int) -> Optional[str]:
+        """Cómo se lee una finca, especie, animal, lote, área o sensor elegido en los filtros."""
 
     @abstractmethod
     def ubicar(self, tipo: str, id_referencia: int) -> Optional[Fila]:
