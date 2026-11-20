@@ -1,0 +1,1008 @@
+{
+  "info": {
+    "name": "TC-M08-G002 Contenido del dashboard por rol frente al RF (RF-103)",
+    "description": "TC-M08-003 y 004. Cada indicador contra su módulo de origen, finca 494. Corre en el sandbox.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo.",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (pm.request.headers.has('X-Fuera-Sandbox')) {",
+          "  pm.request.headers.remove('X-Fuera-Sandbox');  // TC-001: solo login y lecturas, fuera del sandbox",
+          "} else if (!secreto) {",
+          "  console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ': se omite ' + pm.info.requestName); pm.execution.skipRequest(); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "catalogo",
+      "value": ""
+    },
+    {
+      "key": "patch_body",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_prod_real",
+      "value": ""
+    },
+    {
+      "key": "tok_admin_real",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_gestor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "item": [
+        {
+          "name": "PRE - Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Veterinario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Veterinario (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_vet', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_vet', t); pm.collectionVariables.set('id_veterinario', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Contador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Contador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_cont', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_cont', t); pm.collectionVariables.set('id_contador', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_contador}}\",\n  \"contrasena\": \"{{contrasena_contador}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Ingeniero de Campo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Ingeniero de Campo (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_ing', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_ing', t); pm.collectionVariables.set('id_ingeniero', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Catálogo de widgets (Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - catálogo de widgets (200)', () => pm.response.to.have.status(200));",
+                  "const m = {}; (pm.response.json() || []).forEach(w => m[w.id_widget] = w.clave);",
+                  "pm.collectionVariables.set('catalogo', JSON.stringify(m));",
+                  "console.log('Catálogo: ' + JSON.stringify(m));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M08-003 Dashboard del Productor y del Veterinario según el RF",
+      "item": [
+        {
+          "name": "TC-M08-003 - Productor GET activos biológicos de la finca (módulo de origen M02)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-003 - listado de activos de la finca (200)', () => pm.response.to.have.status(200));",
+                  "const r = (pm.response.json() || {}).registros || []; const n = {};",
+                  "r.forEach(a => { n[a.nombre_estado] = (n[a.nombre_estado] || 0) + 1; });",
+                  "pm.collectionVariables.set('activos_m02', JSON.stringify(n)); console.log('M02 por estado: ' + JSON.stringify(n));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos?id_finca={{id_finca}}&registros_por_pagina=100"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Productor widget inventario_especies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - inventario_especies responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - inventario_especies trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "const n = JSON.parse(pm.collectionVariables.get('activos_m02') || '{}');",
+                  "const s = (datos.especies || []).reduce((a, e) => ({ ACTIVO: a.ACTIVO + e.activos, EN_TRATAMIENTO: a.EN_TRATAMIENTO + e.en_tratamiento, BAJA: a.BAJA + e.bajas }), { ACTIVO: 0, EN_TRATAMIENTO: 0, BAJA: 0 });",
+                  "pm.test('TC-M08-003 - activos por estado coinciden con Activos biológicos (ACTIVO, EN_TRATAMIENTO, BAJA)', () => pm.expect(s).to.eql({ ACTIVO: n.ACTIVO || 0, EN_TRATAMIENTO: n.EN_TRATAMIENTO || 0, BAJA: n.BAJA || 0 }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/inventario_especies?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Productor widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - semaforo_areas responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - semaforo_areas trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - semáforo por infraestructura con VERDE/AMARILLO/ROJO (o SIN_DATOS)', () => { pm.expect(datos.areas).to.be.an('array').that.is.not.empty; datos.areas.forEach(a => pm.expect(a.estado).to.be.oneOf(['VERDE', 'AMARILLO', 'ROJO', 'SIN_DATOS'])); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Productor widget temp_galpon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - temp_galpon responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - temp_galpon trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - temperatura por infraestructura (área y unidad en cada lectura)', () => (datos.lecturas || []).forEach(l => { pm.expect(l.area).to.be.a('string'); pm.expect(l.variable).to.match(/temperatura/i); }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/temp_galpon?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Productor widget hum_galpon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - hum_galpon responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - hum_galpon trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - humedad por infraestructura: presente (si no hay sensores de humedad, SIN_DATOS con mensaje)', () => { if (d.estado === 'SIN_DATOS') pm.expect(d.mensaje).to.be.a('string').and.not.empty; else (datos.lecturas || []).forEach(l => pm.expect(l.variable).to.match(/humedad/i)); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/hum_galpon?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Contador (referencia M06) widget valor_inventario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "pm.collectionVariables.set('valor_cont', JSON.stringify(d));",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - valor del inventario leído como Contador, misma finca (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/valor_inventario?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Productor widget valor_inventario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - valor_inventario responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - valor_inventario trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "const ref = JSON.parse(pm.collectionVariables.get('valor_cont') || '{}').datos || {};",
+                  "pm.test('TC-M08-003 - valor total del inventario en COP', () => pm.expect(datos.moneda).to.equal('COP'));",
+                  "pm.test('TC-M08-003 - el valor del Productor coincide con M06 (Contador ve ' + ref.valor_total + ' COP en ' + ref.activos + ' activos)', () => { pm.expect(datos.valor_total).to.equal(ref.valor_total); pm.expect(datos.activos).to.equal(ref.activos); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/valor_inventario?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Productor widget ultimos_eventos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - ultimos_eventos responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - ultimos_eventos trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - últimos 5 eventos biológicos con fecha y tipo, del más reciente al más viejo', () => { const it = datos.items || []; pm.expect(it.length).to.be.within(1, 5); it.forEach(e => { pm.expect(Date.parse(e.fecha)).to.not.be.NaN; pm.expect(e.tipo).to.be.a('string'); }); for (let k = 1; k < it.length; k++) pm.expect(Date.parse(it[k - 1].fecha)).to.be.at.least(Date.parse(it[k].fecha)); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/ultimos_eventos?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Productor widget conversion_alimenticia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - conversion_alimenticia responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - conversion_alimenticia trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - conversión alimenticia del último período: presente (sin cálculo en la finca → SIN_DATOS con mensaje)', () => { if (d.estado === 'SIN_DATOS') pm.expect(d.mensaje).to.be.a('string').and.not.empty; else (datos.especies || []).forEach(e => pm.expect(e.valor).to.not.be.null); });",
+                  "if (d.estado === 'SIN_DATOS') console.warn('DATO: la finca no tiene resultado_ica calculado; el valor no se pudo comparar con M05.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/conversion_alimenticia?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Veterinario widget riesgo_sanitario_alto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - riesgo_sanitario_alto responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - riesgo_sanitario_alto trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - activos con riesgo ALTO de las últimas 24 h (lista; cada uno con patología y fecha de ≤ 24 h)', () => { pm.expect(datos.items).to.be.an('array'); datos.items.forEach(a => pm.expect(Date.now() - Date.parse(a.fecha_inferencia)).to.be.at.most(24 * 3600e3)); });",
+                  "if (!(datos.items || []).length) console.warn('DATO: no hay inferencias de riesgo alto en las últimas 24 h (las de la finca 494 son del 15-11).');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/riesgo_sanitario_alto?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Veterinario widget distribucion_riesgo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - distribucion_riesgo responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - distribucion_riesgo trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - distribución de probabilidades por especie (normal, moderado, alto)', () => (datos.especies || []).forEach(e => ['normal', 'moderado', 'alto'].forEach(k => pm.expect(e[k]).to.be.a('number'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/distribucion_riesgo?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Veterinario widget retroalimentacion_pendiente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - retroalimentacion_pendiente responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - retroalimentacion_pendiente trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - pendientes de retroalimentación con antigüedad > 48 h', () => { pm.expect(datos.items).to.be.an('array').that.is.not.empty; datos.items.forEach(a => pm.expect(Date.now() - Date.parse(a.fecha_inferencia)).to.be.above(48 * 3600e3)); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/retroalimentacion_pendiente?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Veterinario widget alertas_sanitarias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - alertas_sanitarias responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-003 - alertas_sanitarias trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-003 - alertas de patología activas por tipo (lista de tipos)', () => pm.expect(datos.tipos).to.be.an('array'));",
+                  "if (!(datos.tipos || []).length) console.warn('Sin alertas de patología de Telemetría (M04 no escribe alertas_patologicas: fuera de alcance según el lanzamiento v6/v7).');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/alertas_sanitarias?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-003 - Productor widget riesgo_sanitario_alto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-003 - el Productor no puede leer un widget del Veterinario (403 WIDGET_NO_AUTORIZADO)', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().error_code).to.equal('WIDGET_NO_AUTORIZADO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/riesgo_sanitario_alto?id_finca={{id_finca}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-004 Dashboard del Contador y del Ingeniero de Campo según el RF",
+      "item": [
+        {
+          "name": "TC-M08-004 - Contador widget periodos_abiertos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - periodos_abiertos responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-004 - periodos_abiertos trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-004 - períodos abiertos con fecha de cierre esperada (incluye el 636 de noviembre)', () => { const it = datos.items || []; pm.expect(it.map(p => p.id_periodo_contable)).to.include(636); it.forEach(p => { pm.expect(p.estado).to.be.oneOf(['ABIERTO', 'EN_CIERRE']); pm.expect(p.fecha_fin).to.be.a('string'); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/periodos_abiertos?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Contador widget reconocimientos_pendientes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - reconocimientos_pendientes responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-004 - reconocimientos_pendientes trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-004 - activos pendientes de reconocimiento inicial de la finca', () => { pm.expect(datos.items).to.be.an('array').that.is.not.empty; datos.items.forEach(a => pm.expect(a.finca).to.equal('Finca Reportes Integrados Qa')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/reconocimientos_pendientes?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Contador widget integraciones_fallidas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - integraciones_fallidas responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-004 - integraciones_fallidas trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-004 - exportaciones contables pendientes o fallidas (ninguna SUCCESS)', () => (datos.items || []).forEach(s => pm.expect(s.estado).to.not.equal('SUCCESS')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/integraciones_fallidas?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Contador widget precios_por_vencer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - precios_por_vencer responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-004 - precios_por_vencer trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-004 - precios que vencen en los próximos 15 días', () => (datos.items || []).forEach(p => pm.expect(p.dias_restantes).to.be.within(0, 15)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/precios_por_vencer?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Contador widget valor_inventario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - valor_inventario responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-004 - valor_inventario trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-004 - valor del inventario por método (VALOR_RAZONABLE + COSTO = total)', () => { pm.expect(datos.vista).to.equal('POR_METODO'); pm.expect(datos.valor_razonable + datos.valor_costo).to.be.closeTo(datos.valor_total, 0.01); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/valor_inventario?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Contador widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - el Contador no puede leer un widget del Productor (403)', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Ingeniero GET dispositivos IoT de la finca (módulo de origen)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-004 - dispositivos de la finca (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('disp_m03', JSON.stringify(((pm.response.json() || {}).items || []).map(x => x.id_dispositivo_iot).sort()));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Ingeniero widget estado_iot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - estado_iot responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-004 - estado_iot trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-004 - estados exactos de RF-60, sin estados inventados (SIN_HEARTBEAT)', () => (datos.items || []).forEach(x => pm.expect(x.estado).to.be.oneOf([\"ACTIVO\", \"BUFFER_ACTIVO\", \"SIN_SEÑAL\", \"INACTIVO\", \"EN_MANTENIMIENTO\"])));",
+                  "pm.test('TC-M08-004 - cada dispositivo de la finca aparece con su estado', () => pm.expect((datos.items || []).map(x => x.id_dispositivo_iot).sort()).to.eql(JSON.parse(pm.collectionVariables.get('disp_m03'))));",
+                  "console.log('Conteo por estado: ' + JSON.stringify(datos.conteo));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/estado_iot?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Ingeniero widget dispositivos_sin_senal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - dispositivos_sin_senal responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-004 - dispositivos_sin_senal trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-004 - dispositivos sin señal con su última comunicación', () => (datos.items || []).forEach(x => { pm.expect(x.estado).to.be.oneOf(['SIN_SEÑAL', 'INACTIVO']); pm.expect(x).to.have.property('fecha_ultimo_contacto'); }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/dispositivos_sin_senal?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-004 - Ingeniero widget lecturas_area",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json() || {}; const datos = d.datos || {};",
+                  "console.log(JSON.stringify(d).slice(0, 1500));",
+                  "pm.test('TC-M08-004 - lecturas_area responde 200 con estado OK o SIN_DATOS (no ERROR)', () => { pm.response.to.have.status(200); pm.expect(d.estado).to.be.oneOf(['OK', 'SIN_DATOS']); });",
+                  "pm.test('TC-M08-004 - lecturas_area trae la hora de su última actualización', () => pm.expect(Date.parse(d.actualizado_en)).to.be.a('number').and.not.NaN);",
+                  "pm.test('TC-M08-004 - lecturas por sensor (sensor, variable y unidad)', () => { pm.expect(datos.lecturas).to.be.an('array').that.is.not.empty; datos.lecturas.forEach(l => { pm.expect(l.id_sensor).to.be.a('number'); pm.expect(l.variable).to.be.a('string'); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/lecturas_area?id_finca={{id_finca}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

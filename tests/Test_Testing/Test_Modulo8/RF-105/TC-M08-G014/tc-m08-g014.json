@@ -1,0 +1,902 @@
+{
+  "info": {
+    "name": "TC-M08-G014 Propiedad y ciclo de vida de las notificaciones (RF-105)",
+    "description": "TC-M08-016 y 017. Críticas y advertencias de la bandeja del Administrador; todo se revierte con el sandbox.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo.",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (pm.request.headers.has('X-Fuera-Sandbox')) {",
+          "  pm.request.headers.remove('X-Fuera-Sandbox');  // TC-001: solo login y lecturas, fuera del sandbox",
+          "} else if (!secreto) {",
+          "  console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ': se omite ' + pm.info.requestName); pm.execution.skipRequest(); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "catalogo",
+      "value": ""
+    },
+    {
+      "key": "patch_body",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_prod_real",
+      "value": ""
+    },
+    {
+      "key": "tok_admin_real",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_gestor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "item": [
+        {
+          "name": "PRE - Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M08-016 Nadie cambia notificaciones de otro usuario",
+      "item": [
+        {
+          "name": "TC-M08-016 - Administrador GET una no leída suya",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-016 - el Administrador tiene una no leída', () => pm.expect(it.length).to.equal(1));",
+                  "pm.collectionVariables.set('id_ajena', String(it[0].id_notificacion));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?solo_no_leidas=true&tamano=1"
+          }
+        },
+        {
+          "name": "TC-M08-016 - Productor PATCH leida sobre la del Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "const r = pm.response.json() || {};",
+                  "pm.test('TC-M08-016 - la notificación ajena se rechaza (403/404)', () => pm.expect(pm.response.code).to.be.oneOf([403, 404]));",
+                  "pm.test('TC-M08-016 - mensaje del RF: «No tiene permisos para modificar notificaciones de otros usuarios» (hoy: ' + r.message + ')', () => pm.expect(r.message).to.match(/no tiene permisos para modificar notificaciones de otros usuarios/i));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_ajena}}/leida"
+          }
+        },
+        {
+          "name": "TC-M08-016 - Productor PATCH atendida sobre la del Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "const r = pm.response.json() || {};",
+                  "pm.test('TC-M08-016 - la notificación ajena se rechaza (403/404)', () => pm.expect(pm.response.code).to.be.oneOf([403, 404]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_ajena}}/atendida",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion_documentada\": \"Intento de atender una notificacion ajena QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-016 - Productor PATCH descartada sobre la del Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "const r = pm.response.json() || {};",
+                  "pm.test('TC-M08-016 - la notificación ajena se rechaza (403/404)', () => pm.expect(pm.response.code).to.be.oneOf([403, 404]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_ajena}}/descartada"
+          }
+        },
+        {
+          "name": "TC-M08-016 - Administrador GET su notificación después de los intentos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-016 - la notificación del Administrador sigue sin leer (NUEVA)', () => { pm.expect(String(it[0].id_notificacion)).to.equal(pm.collectionVariables.get('id_ajena')); pm.expect(it[0].estado).to.equal('NUEVA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?solo_no_leidas=true&tamano=1"
+          }
+        },
+        {
+          "name": "TC-M08-016 - PATCH /notificaciones/999999999/leida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-016 - inexistente: 404 NOTIFICACION_NO_ENCONTRADA', () => { pm.response.to.have.status(404); pm.expect(pm.response.json().error_code).to.equal('NOTIFICACION_NO_ENCONTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/999999999/leida"
+          }
+        },
+        {
+          "name": "TC-M08-016 - GET /notificaciones sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-016 - sin token: 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/notificaciones"
+          }
+        },
+        {
+          "name": "TC-M08-016 - PATCH leida sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-016 - PATCH sin token: 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{base_url}}/notificaciones/{{id_ajena}}/leida"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-017 Atender una crítica con acción documentada y bloquear su descarte",
+      "item": [
+        {
+          "name": "TC-M08-017 - Administrador GET una CRÍTICA nueva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-017 - hay una notificación CRÍTICA nueva', () => pm.expect(it.length).to.equal(1));",
+                  "pm.collectionVariables.set('id_crit', String(it[0].id_notificacion));",
+                  "pm.test('TC-M08-017 - la crítica no ofrece Descartar (puede_descartarse=false) y sí Atender', () => { pm.expect(it[0].puede_descartarse).to.be.false; pm.expect(it[0].puede_atenderse).to.be.true; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=CRITICA&estado=NUEVA&tamano=1"
+          }
+        },
+        {
+          "name": "TC-M08-017 - forzar Descartar la crítica",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-017 - descartar una crítica: 422 CRITICA_NO_DESCARTABLE con mensaje', () => { pm.response.to.have.status(422); pm.expect(pm.response.json().error_code).to.equal('CRITICA_NO_DESCARTABLE'); pm.expect(pm.response.json().message).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_crit}}/descartada"
+          }
+        },
+        {
+          "name": "TC-M08-017 - Atender con 'ok' (2 caracteres)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-017 - acción 'ok' (2 caracteres) rechazada (400 VAL_ENTRADA)', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_crit}}/atendida",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"accion_documentada\": \"ok\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-017 - Atender con 20 espacios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-017 - acción 20 espacios rechazada (400 VAL_ENTRADA)', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_crit}}/atendida",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"accion_documentada\": \"                    \"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-017 - Atender con 20 letras repetidas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-017 - acción 20 letras repetidas rechazada (400 VAL_ENTRADA)', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_crit}}/atendida",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"accion_documentada\": \"aaaaaaaaaaaaaaaaaaaa\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-017 - Atender con 'Se revisó el galpón' (19 caracteres)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-017 - acción 'Se revisó el galpón' (19 caracteres) rechazada (400 VAL_ENTRADA)', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_crit}}/atendida",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"accion_documentada\": \"Se revisó el galpón\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-017 - la crítica sigue activa tras los 4 rechazos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-017 - la crítica sigue NUEVA', () => pm.expect(it.map(n => String(n.id_notificacion))).to.include(pm.collectionVariables.get('id_crit')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=CRITICA&estado=NUEVA&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-017 - Atender con 'Se revisó el galpón.' (20 caracteres)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "const n = pm.response.json();",
+                  "pm.test('TC-M08-017 - 20 caracteres con sentido: ATENDIDA con la acción y la hora guardadas', () => { pm.response.to.have.status(200); pm.expect(n.estado).to.equal('ATENDIDA'); pm.expect(n.accion_documentada).to.equal('Se revisó el galpón.'); pm.expect(Date.parse(n.fecha_atencion)).to.not.be.NaN; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_crit}}/atendida",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"accion_documentada\": \"Se revisó el galpón.\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-017 - Atender otra vez la ya atendida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-017 - una atendida no se vuelve a cerrar (422 NOTIFICACION_CERRADA)', () => { pm.response.to.have.status(422); pm.expect(pm.response.json().error_code).to.equal('NOTIFICACION_CERRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_crit}}/atendida",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"accion_documentada\": \"Se revisó el galpón otra vez.\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-017 - Administrador GET una ADVERTENCIA nueva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-017 - hay una ADVERTENCIA nueva que se puede descartar', () => { pm.expect(it.length).to.equal(1); pm.expect(it[0].puede_descartarse).to.be.true; });",
+                  "pm.collectionVariables.set('id_advertencia', String(it[0].id_notificacion));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=ADVERTENCIA&estado=NUEVA&tamano=1"
+          }
+        },
+        {
+          "name": "TC-M08-017 - Descartar la ADVERTENCIA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-017 - la ADVERTENCIA queda DESCARTADA (200)', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().estado).to.equal('DESCARTADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_advertencia}}/descartada"
+          }
+        },
+        {
+          "name": "TC-M08-017 - historial: la ADVERTENCIA descartada se sigue consultando",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-017 - la ADVERTENCIA descartada sigue en el historial', () => pm.expect(it.map(n => String(n.id_notificacion))).to.include(pm.collectionVariables.get('id_advertencia')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=ADVERTENCIA&estado=DESCARTADA&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-017 - Administrador GET una INFORMATIVA nueva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-017 - hay una INFORMATIVA nueva que se puede descartar', () => { pm.expect(it.length).to.equal(1); pm.expect(it[0].puede_descartarse).to.be.true; });",
+                  "pm.collectionVariables.set('id_informativa', String(it[0].id_notificacion));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=INFORMATIVA&estado=NUEVA&tamano=1"
+          }
+        },
+        {
+          "name": "TC-M08-017 - Descartar la INFORMATIVA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-017 - la INFORMATIVA queda DESCARTADA (200)', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().estado).to.equal('DESCARTADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_informativa}}/descartada"
+          }
+        },
+        {
+          "name": "TC-M08-017 - historial: la INFORMATIVA descartada se sigue consultando",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-017 - la INFORMATIVA descartada sigue en el historial', () => pm.expect(it.map(n => String(n.id_notificacion))).to.include(pm.collectionVariables.get('id_informativa')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=INFORMATIVA&estado=DESCARTADA&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-017 - panel principal sin las cerradas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-017 - la crítica atendida sale del panel principal', () => pm.expect(it.map(n => String(n.id_notificacion))).to.not.include(pm.collectionVariables.get('id_crit')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?tamano=50&nivel=CRITICA"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,643 @@
+{
+  "info": {
+    "name": "TC-M08-G016 Contenido, filtros e historial de la bandeja (RF-105)",
+    "description": "TC-M08-020, 021 y 022. Bandejas del Administrador y del Productor qa.m08. Corre en el sandbox.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo.",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (pm.request.headers.has('X-Fuera-Sandbox')) {",
+          "  pm.request.headers.remove('X-Fuera-Sandbox');  // TC-001: solo login y lecturas, fuera del sandbox",
+          "} else if (!secreto) {",
+          "  console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ': se omite ' + pm.info.requestName); pm.execution.skipRequest(); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "catalogo",
+      "value": ""
+    },
+    {
+      "key": "patch_body",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_prod_real",
+      "value": ""
+    },
+    {
+      "key": "tok_admin_real",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_gestor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "item": [
+        {
+          "name": "PRE - Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M08-020 Mensajes claros, sin códigos internos",
+      "item": [
+        {
+          "name": "TC-M08-020 - Administrador GET CRITICA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "const malos = it.filter(n => /((?<![\\w-])RFC?-\\d+(?![\\w-])|(?<![\\w-])M0\\d(?![\\w-])|\\b[A-Z]{2,}_[A-Z_]{2,}\\b|#\\d+|\\bNone\\b|\\bnull\\b|\\bÁrea \\d+\\b)/.test(n.mensaje)).map(n => n.id_notificacion + ': ' + n.mensaje);",
+                  "console.log(JSON.stringify(it.map(n => n.mensaje)));",
+                  "pm.test('TC-M08-020 - CRITICA: ningún mensaje trae códigos internos, enums ni ids (' + malos.length + ' con códigos)', () => pm.expect(malos).to.eql([]));",
+                  "pm.test('TC-M08-020 - CRITICA: cada mensaje tiene texto', () => it.forEach(n => pm.expect(n.mensaje.trim()).to.not.be.empty));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=CRITICA&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-020 - Administrador GET ADVERTENCIA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "const malos = it.filter(n => /((?<![\\w-])RFC?-\\d+(?![\\w-])|(?<![\\w-])M0\\d(?![\\w-])|\\b[A-Z]{2,}_[A-Z_]{2,}\\b|#\\d+|\\bNone\\b|\\bnull\\b|\\bÁrea \\d+\\b)/.test(n.mensaje)).map(n => n.id_notificacion + ': ' + n.mensaje);",
+                  "console.log(JSON.stringify(it.map(n => n.mensaje)));",
+                  "pm.test('TC-M08-020 - ADVERTENCIA: ningún mensaje trae códigos internos, enums ni ids (' + malos.length + ' con códigos)', () => pm.expect(malos).to.eql([]));",
+                  "pm.test('TC-M08-020 - ADVERTENCIA: cada mensaje tiene texto', () => it.forEach(n => pm.expect(n.mensaje.trim()).to.not.be.empty));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=ADVERTENCIA&tamano=50"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-021 Filtros, orden por prioridad y agrupamiento",
+      "item": [
+        {
+          "name": "TC-M08-021 - filtro nivel=CRITICA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-021 - nivel=CRITICA: 200 y solo devuelve nivel = CRITICA', () => { pm.response.to.have.status(200); it.forEach(n => pm.expect(n.nivel).to.equal('CRITICA')); });",
+                  "if (!it.length) console.warn('DATO: nivel=CRITICA no tiene filas en esta bandeja');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=CRITICA&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-021 - filtro estado=LEIDA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-021 - estado=LEIDA: 200 y solo devuelve estado = LEIDA', () => { pm.response.to.have.status(200); it.forEach(n => pm.expect(n.estado).to.equal('LEIDA')); });",
+                  "if (!it.length) console.warn('DATO: estado=LEIDA no tiene filas en esta bandeja');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?estado=LEIDA&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-021 - filtro modulo=telemetria",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-021 - modulo=telemetria: 200 y solo devuelve modulo = telemetria', () => { pm.response.to.have.status(200); it.forEach(n => pm.expect(n.modulo).to.equal('telemetria')); });",
+                  "if (!it.length) console.warn('DATO: modulo=telemetria no tiene filas en esta bandeja');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?modulo=telemetria&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-021 - filtros combinados nivel=CRITICA&modulo=telemetria",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-021 - combinados (AND): solo críticas de telemetría', () => { pm.response.to.have.status(200); it.forEach(n => { pm.expect(n.nivel).to.equal('CRITICA'); pm.expect(n.modulo).to.equal('telemetria'); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=CRITICA&modulo=telemetria&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-021 - filtro fuera de catálogo nivel=XYZ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-021 - nivel=XYZ: 400 VAL_ENTRADA', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?nivel=XYZ"
+          }
+        },
+        {
+          "name": "TC-M08-021 - filtro fuera de catálogo estado=XYZ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-021 - estado=XYZ: 400 VAL_ENTRADA', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?estado=XYZ"
+          }
+        },
+        {
+          "name": "TC-M08-021 - filtro fuera de catálogo modulo=xyz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-021 - modulo=xyz: 400 VAL_ENTRADA', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?modulo=xyz"
+          }
+        },
+        {
+          "name": "TC-M08-021 - orden de una bandeja mezclada (Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "const rango = n => ({ CRITICA: 0, ADVERTENCIA: 1, INFORMATIVA: 2 })[n.nivel];",
+                  "const ordenada = it => it.every((n, k) => k === 0 || rango(it[k - 1]) < rango(n) || (rango(it[k - 1]) === rango(n) && Date.parse(it[k - 1].fecha_envio) >= Date.parse(n.fecha_envio)));",
+                  "console.log(JSON.stringify(it.map(n => n.nivel + ' ' + n.fecha_envio)));",
+                  "pm.test('TC-M08-021 - primero críticas, luego advertencias e informativas; dentro de cada nivel de la más reciente a la más antigua', () => pm.expect(ordenada(it)).to.be.true);",
+                  "pm.test('TC-M08-021 - cada notificación trae su contador de ocurrencias (agrupamiento)', () => it.forEach(n => pm.expect(n.ocurrencias).to.be.a('number').and.at.least(1)));",
+                  "const grupos = it.filter(n => n.ocurrencias > 1); console.log('Agrupadas: ' + JSON.stringify(grupos.map(n => [n.id_notificacion, n.ocurrencias])));",
+                  "if (!grupos.length) console.warn('DATO: ninguna notificación agrupada en esta bandeja; agruparlas exige generar la misma alerta del mismo activo (TC-019, bloqueado).');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?tamano=50"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M08-022 Historial de 90 días y borrado de informativas a los 30 días",
+      "item": [
+        {
+          "name": "TC-M08-022 - Productor: panel principal completo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "const total = pm.response.json().total; const nums = Array.from({ length: Math.ceil(total / 50) }, (_, k) => k + 1);",
+                  "enSerie(nums, p => pedir('GET', '/notificaciones?tamano=50&pagina=' + p + '', 'tok_prod')).then(rs => {",
+                  "  const it = [].concat(...rs.map(x => (x.json || {}).items || []));",
+                  "  const dias = n => (Date.now() - Date.parse(n.fecha_envio)) / 86400e3;",
+                  "  console.log('total ' + total + ', leídas ' + it.length + ', la más antigua de ' + Math.round(Math.max(0, ...it.map(dias))) + ' días');",
+                  "  pm.test('TC-M08-022 - el panel principal no trae notificaciones de más de 90 días', () => pm.expect(it.filter(n => dias(n) > 90).map(n => n.id_notificacion)).to.eql([]));",
+                  "  pm.collectionVariables.set('total_principal', String(total));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-022 - Productor: con incluir_archivadas=true",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "const total = pm.response.json().total; const nums = Array.from({ length: Math.ceil(total / 50) }, (_, k) => k + 1);",
+                  "enSerie(nums, p => pedir('GET', '/notificaciones?tamano=50&pagina=' + p + '&incluir_archivadas=true', 'tok_prod')).then(rs => {",
+                  "  const it = [].concat(...rs.map(x => (x.json || {}).items || []));",
+                  "  const dias = n => (Date.now() - Date.parse(n.fecha_envio)) / 86400e3;",
+                  "  console.log('total ' + total + ', leídas ' + it.length + ', la más antigua de ' + Math.round(Math.max(0, ...it.map(dias))) + ' días');",
+                  "  pm.test('TC-M08-022 - incluir_archivadas trae al menos lo del panel principal', () => pm.expect(total).to.be.at.least(Number(pm.collectionVariables.get('total_principal'))));",
+                  "  const viejas = it.filter(n => dias(n) > 90); console.log('Archivadas (> 90 días): ' + viejas.length);",
+                  "  if (!viejas.length) console.warn('DATO: la bandeja no tiene notificaciones de más de 90 días (las fronteras 89/90/91 están en la cuenta 182 del DBA).');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50&incluir_archivadas=true"
+          }
+        },
+        {
+          "name": "TC-M08-022 - Productor: informativas LEIDA con archivadas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "const total = pm.response.json().total; const nums = Array.from({ length: Math.ceil(total / 50) }, (_, k) => k + 1);",
+                  "enSerie(nums, p => pedir('GET', '/notificaciones?tamano=50&pagina=' + p + '&nivel=INFORMATIVA&estado=LEIDA&incluir_archivadas=true', 'tok_prod')).then(rs => {",
+                  "  const it = [].concat(...rs.map(x => (x.json || {}).items || []));",
+                  "  const dias = n => (Date.now() - Date.parse(n.fecha_envio)) / 86400e3;",
+                  "  console.log('total ' + total + ', leídas ' + it.length + ', la más antigua de ' + Math.round(Math.max(0, ...it.map(dias))) + ' días');",
+                  "  pm.test('TC-M08-022 - no quedan informativas LEIDA de más de 30 días (purga diaria)', () => pm.expect(it.filter(n => dias(n) > 31).map(n => n.id_notificacion + ' (' + Math.round(dias(n)) + ' d)')).to.eql([]));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50&nivel=INFORMATIVA&estado=LEIDA&incluir_archivadas=true"
+          }
+        },
+        {
+          "name": "TC-M08-022 - Productor: informativas DESCARTADA con archivadas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "const total = pm.response.json().total; const nums = Array.from({ length: Math.ceil(total / 50) }, (_, k) => k + 1);",
+                  "enSerie(nums, p => pedir('GET', '/notificaciones?tamano=50&pagina=' + p + '&nivel=INFORMATIVA&estado=DESCARTADA&incluir_archivadas=true', 'tok_prod')).then(rs => {",
+                  "  const it = [].concat(...rs.map(x => (x.json || {}).items || []));",
+                  "  const dias = n => (Date.now() - Date.parse(n.fecha_envio)) / 86400e3;",
+                  "  console.log('total ' + total + ', leídas ' + it.length + ', la más antigua de ' + Math.round(Math.max(0, ...it.map(dias))) + ' días');",
+                  "  pm.test('TC-M08-022 - no quedan informativas DESCARTADA de más de 30 días (purga diaria)', () => pm.expect(it.filter(n => dias(n) > 31).map(n => n.id_notificacion + ' (' + Math.round(dias(n)) + ' d)')).to.eql([]));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50&nivel=INFORMATIVA&estado=DESCARTADA&incluir_archivadas=true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

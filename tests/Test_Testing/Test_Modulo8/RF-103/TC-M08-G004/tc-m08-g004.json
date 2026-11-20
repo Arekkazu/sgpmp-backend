@@ -1,0 +1,575 @@
+{
+  "info": {
+    "name": "TC-M08-G004 Resiliencia y frecuencia de actualización (RF-103)",
+    "description": "TC-M08-008 y 009 (parte del backend). El refresco automático en pantalla y el modo offline (TC-M08-010) se prueban en el navegador. Corre en el sandbox.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo.",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (pm.request.headers.has('X-Fuera-Sandbox')) {",
+          "  pm.request.headers.remove('X-Fuera-Sandbox');  // TC-001: solo login y lecturas, fuera del sandbox",
+          "} else if (!secreto) {",
+          "  console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ': se omite ' + pm.info.requestName); pm.execution.skipRequest(); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "catalogo",
+      "value": ""
+    },
+    {
+      "key": "patch_body",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_prod_real",
+      "value": ""
+    },
+    {
+      "key": "tok_admin_real",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_gestor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "item": [
+        {
+          "name": "PRE - Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Catálogo de widgets (Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - catálogo de widgets (200)', () => pm.response.to.have.status(200));",
+                  "const m = {}; (pm.response.json() || []).forEach(w => m[w.id_widget] = w.clave);",
+                  "pm.collectionVariables.set('catalogo', JSON.stringify(m));",
+                  "console.log('Catálogo: ' + JSON.stringify(m));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M08-008 Un widget sin datos no bloquea a los demás",
+      "item": [
+        {
+          "name": "TC-M08-008 - Productor widgets del layout (uno sin datos y otros con datos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "pm.test('TC-M08-008 - layout del Productor (200)', () => pm.response.to.have.status(200));",
+                  "const claves = (pm.response.json().grid || []).map(g => cat[g.id_widget]).filter(Boolean);",
+                  "enSerie(claves, k => pedir('GET', '/dashboard/widgets/' + k + '?id_finca=494', 'tok_prod')).then(rs => {",
+                  "  const est = {}; rs.forEach((x, i) => est[claves[i]] = x.json || {}); console.log(JSON.stringify(Object.keys(est).map(k => [k, est[k].estado, est[k].mensaje])));",
+                  "  const vacios = claves.filter(k => est[k].estado === 'SIN_DATOS'), llenos = claves.filter(k => est[k].estado === 'OK');",
+                  "  pm.test('TC-M08-008 - hay al menos un widget sin datos y otros con datos en el mismo layout', () => { pm.expect(vacios.length).to.be.above(0); pm.expect(llenos.length).to.be.above(0); });",
+                  "  pm.test('TC-M08-008 - cada widget vacío llega con SIN_DATOS y su mensaje (' + vacios.join(', ') + ')', () => vacios.forEach(k => pm.expect(est[k].mensaje, k).to.be.a('string').and.not.empty));",
+                  "  pm.test('TC-M08-008 - los demás widgets muestran sus datos normalmente (200 y OK)', () => llenos.forEach((k) => pm.expect(est[k].datos, k).to.be.an('object')));",
+                  "  pm.test('TC-M08-008 - ningún widget del layout queda en ERROR ni falla', () => rs.forEach((x, i) => pm.expect(x.r && x.r.code, claves[i]).to.equal(200)));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-008 - Productor GET dashboard/datos (endpoint de la ficha, deprecated): sin_datos con mensaje",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-008 - dashboard/datos (200)', () => pm.response.to.have.status(200));",
+                  "const it = pm.response.json() || []; console.log(JSON.stringify(it).slice(0, 1500));",
+                  "pm.test('TC-M08-008 - los widgets sin datos traen sin_datos=true y mensaje', () => it.filter(w => w.sin_datos).forEach(w => pm.expect(w.mensaje).to.be.a('string').and.not.empty));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/datos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-009 Frecuencia de actualización (backend: valor por defecto y límites 15 a 120 s)",
+      "item": [
+        {
+          "name": "TC-M08-009 - Productor GET layout (frecuencia por defecto)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-009 - layout (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('layout_prod', pm.response.text());",
+                  "pm.test('TC-M08-009 - frecuencia por defecto 30 s', () => pm.expect(pm.response.json().frecuencia_actualizacion).to.equal(30));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-009 - Productor PATCH frecuencia_actualizacion = 15 s",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const lay = JSON.parse(pm.collectionVariables.get('layout_prod') || '{}');",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "let cfg = (lay.grid || []).map(g => ({ id_widget: g.id_widget, posicion_fila: g.posicion_fila, posicion_columna: g.posicion_columna,",
+                  "  span_columnas: g.span_columnas, visible: g.visible, orden: g.orden, parametros: g.parametros || {} }));",
+                  "let frecuencia;",
+                  "frecuencia = 15;",
+                  "const cuerpo = { layout_config: cfg, active_widget: cfg.map(c => cat[c.id_widget]).filter(Boolean), version_perfil: lay.version_perfil };",
+                  "if (frecuencia !== undefined) cuerpo.frecuencia_actualizacion = frecuencia;",
+                  "pm.collectionVariables.set('patch_body', JSON.stringify(cuerpo));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 800));",
+                  "pm.test('TC-M08-009 - frecuencia 15 s aceptada (200)', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M08-009 - la respuesta guarda 15 s', () => pm.expect(pm.response.json().frecuencia_actualizacion).to.equal(15));",
+                  "pm.collectionVariables.set('layout_prod', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard",
+            "body": {
+              "mode": "raw",
+              "raw": "{{patch_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-009 - Productor PATCH frecuencia_actualizacion = 120 s",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const lay = JSON.parse(pm.collectionVariables.get('layout_prod') || '{}');",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "let cfg = (lay.grid || []).map(g => ({ id_widget: g.id_widget, posicion_fila: g.posicion_fila, posicion_columna: g.posicion_columna,",
+                  "  span_columnas: g.span_columnas, visible: g.visible, orden: g.orden, parametros: g.parametros || {} }));",
+                  "let frecuencia;",
+                  "frecuencia = 120;",
+                  "const cuerpo = { layout_config: cfg, active_widget: cfg.map(c => cat[c.id_widget]).filter(Boolean), version_perfil: lay.version_perfil };",
+                  "if (frecuencia !== undefined) cuerpo.frecuencia_actualizacion = frecuencia;",
+                  "pm.collectionVariables.set('patch_body', JSON.stringify(cuerpo));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 800));",
+                  "pm.test('TC-M08-009 - frecuencia 120 s aceptada (200)', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M08-009 - la respuesta guarda 120 s', () => pm.expect(pm.response.json().frecuencia_actualizacion).to.equal(120));",
+                  "pm.collectionVariables.set('layout_prod', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard",
+            "body": {
+              "mode": "raw",
+              "raw": "{{patch_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-009 - Productor PATCH frecuencia_actualizacion = 14 s",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const lay = JSON.parse(pm.collectionVariables.get('layout_prod') || '{}');",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "let cfg = (lay.grid || []).map(g => ({ id_widget: g.id_widget, posicion_fila: g.posicion_fila, posicion_columna: g.posicion_columna,",
+                  "  span_columnas: g.span_columnas, visible: g.visible, orden: g.orden, parametros: g.parametros || {} }));",
+                  "let frecuencia;",
+                  "frecuencia = 14;",
+                  "const cuerpo = { layout_config: cfg, active_widget: cfg.map(c => cat[c.id_widget]).filter(Boolean), version_perfil: lay.version_perfil };",
+                  "if (frecuencia !== undefined) cuerpo.frecuencia_actualizacion = frecuencia;",
+                  "pm.collectionVariables.set('patch_body', JSON.stringify(cuerpo));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 800));",
+                  "pm.test('TC-M08-009 - frecuencia 14 s rechazada (400)', () => pm.response.to.have.status(400));",
+                  "pm.test('TC-M08-009 - el rechazo de 14 s trae un mensaje', () => pm.expect(pm.response.json().message).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard",
+            "body": {
+              "mode": "raw",
+              "raw": "{{patch_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-009 - Productor PATCH frecuencia_actualizacion = 121 s",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const lay = JSON.parse(pm.collectionVariables.get('layout_prod') || '{}');",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "let cfg = (lay.grid || []).map(g => ({ id_widget: g.id_widget, posicion_fila: g.posicion_fila, posicion_columna: g.posicion_columna,",
+                  "  span_columnas: g.span_columnas, visible: g.visible, orden: g.orden, parametros: g.parametros || {} }));",
+                  "let frecuencia;",
+                  "frecuencia = 121;",
+                  "const cuerpo = { layout_config: cfg, active_widget: cfg.map(c => cat[c.id_widget]).filter(Boolean), version_perfil: lay.version_perfil };",
+                  "if (frecuencia !== undefined) cuerpo.frecuencia_actualizacion = frecuencia;",
+                  "pm.collectionVariables.set('patch_body', JSON.stringify(cuerpo));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 800));",
+                  "pm.test('TC-M08-009 - frecuencia 121 s rechazada (400)', () => pm.response.to.have.status(400));",
+                  "pm.test('TC-M08-009 - el rechazo de 121 s trae un mensaje', () => pm.expect(pm.response.json().message).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard",
+            "body": {
+              "mode": "raw",
+              "raw": "{{patch_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-009 - Productor GET layout después de los rechazos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-009 - tras rechazar 14 y 121 queda el último valor válido (120 s)', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().frecuencia_actualizacion).to.equal(120); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}
