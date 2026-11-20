@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101: SGPMP_ENTORNO; credenciales de AgroFusion pasan al registro de clientes |
 # | 2026-11-07 | Sebastián Sandoval (Implementación) | SSO AgroFusion: montar la clave pública RS256 en /app/secrets |
+# | 2026-11-19 | Arekkazu | SEG-M04-01 RF-69: M04_FIRMA_MODELOS_KEY para firmar los artefactos de modelos |
 # ==============================================================
 # SGPMP - Backend - Ambiente PROD
 # ==============================================================
@@ -152,6 +153,7 @@ services:
       AGROFUSION_ISSUER: ${AGROFUSION_ISSUER:-agrofusion-auth}
       SGPMP_ENTORNO: ${SGPMP_ENTORNO:-PROD}
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY:-}
+      M04_FIRMA_MODELOS_KEY: ${M04_FIRMA_MODELOS_KEY:-}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL:-}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN:-}
       BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN:-}

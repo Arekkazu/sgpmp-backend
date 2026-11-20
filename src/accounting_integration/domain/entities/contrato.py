@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-AE02: versiones del contrato AAEF, anexo y resolución de versión |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: estado antes que anexo al activar y solo una versión pendiente se modifica |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: el mínimo de gracia lo fija M09 |
 """Contrato AAEF (RF-98 v1.1) y anexo de mapeo (RF-AE02 v3.0).
 
 El contrato avanza PENDIENTE → ACTIVO → DEPRECADO → INACTIVO, sin retrocesos ni saltos. Un MAJOR
@@ -14,10 +16,12 @@ from datetime import date, datetime, timedelta
 from typing import Iterable, Optional
 
 from src.accounting_integration.domain.services.aaef import MAPPERS_DISPONIBLES
+from src.configuration.domain.entities.parametro_mlops import RF98_GRACIA_DEFECTO_BASE, RF98_GRACIA_MINIMA_BASE
 from src.shared.errors import BusinessRuleError, FlowError, GoneError, NotFoundError, ValidationError
 
-GRACIA_MINIMA_DIAS = 30
-GRACIA_DEFECTO_DIAS = 90
+# Valores base de RF-98; los efectivos se configuran en M09 (RNF-98.10).
+GRACIA_MINIMA_DIAS = RF98_GRACIA_MINIMA_BASE
+GRACIA_DEFECTO_DIAS = RF98_GRACIA_DEFECTO_BASE
 LIMITE_VIGENTES = 2
 _FORMATO_VERSION = re.compile(r"^(\d{1,3})\.(\d{1,3})$")
 
@@ -71,15 +75,48 @@ class VersionContrato:
     def numero(self) -> tuple[int, int]:
         return numero_version(self.contrato_version)
 
+    def exigir_activable(self) -> None:
+        """RF-98 CA-12/FA-13: el estado se valida antes que el anexo o los transformadores, para que una
+        versión inactiva responda que no se reactiva y no que le falta el anexo."""
+        self._exigir("PENDIENTE", "activar")
+
     def activar(self, ahora: datetime) -> None:
         self._exigir("PENDIENTE", "activar")
         self.estado, self.fecha_activacion = "ACTIVO", ahora
 
-    def deprecar(self, ahora: datetime, dias_gracia: int) -> None:
+    def modificar(self, *, fecha_vigencia: Optional[date] = None, id_mapeo_anexo_aaef: Optional[int] = None,
+                  mapeadores: Optional[list[str]] = None, periodo_gracia_dias: Optional[int] = None,
+                  descripcion: Optional[str] = None, minimo_dias: int = GRACIA_MINIMA_DIAS) -> None:
+        """RF-98 5.12 / CA-20 / FA-12: solo una versión PENDIENTE cambia sus datos; la versión y el tipo
+        de cambio son su identidad y no se modifican nunca."""
+        if self.estado != "PENDIENTE":
+            raise FlowError(code="MODIFICACION_NO_PERMITIDA", message=(
+                f"La versión {self.contrato_version} está {self.estado.lower()} y ya no puede modificarse."))
+        if periodo_gracia_dias is not None:
+            if self.tipo_cambio != "MAJOR":
+                raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="periodo_gracia_dias",
+                                      message="Solo una versión de cambio mayor tiene período de gracia.")
+            if periodo_gracia_dias < minimo_dias:
+                raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="periodo_gracia_dias",
+                                      message=f"El período de gracia debe ser de al menos {minimo_dias} días.")
+            self.periodo_gracia_dias = periodo_gracia_dias
+        if mapeadores is not None:
+            if not mapeadores or any(m not in MAPPERS_DISPONIBLES for m in mapeadores):
+                raise ValidationError(code="MAPPERS_INVALIDOS", field="mapeadores",
+                                      message="Indique transformadores válidos: compras y, si aplica, comprobante NIC 41.")
+            self.mapeadores = sorted(set(mapeadores))
+        if fecha_vigencia is not None:
+            self.fecha_vigencia = fecha_vigencia
+        if id_mapeo_anexo_aaef is not None:
+            self.id_mapeo_anexo_aaef = id_mapeo_anexo_aaef
+        if descripcion is not None:
+            self.descripcion = descripcion
+
+    def deprecar(self, ahora: datetime, dias_gracia: int, minimo_dias: int = GRACIA_MINIMA_DIAS) -> None:
         self._exigir("ACTIVO", "deprecar")
-        if dias_gracia < GRACIA_MINIMA_DIAS:
+        if dias_gracia < minimo_dias:
             raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="dias_gracia",
-                                  message=f"El período de gracia debe ser de al menos {GRACIA_MINIMA_DIAS} días.")
+                                  message=f"El período de gracia debe ser de al menos {minimo_dias} días.")
         self.estado, self.fecha_deprecacion = "DEPRECADO", ahora
         self.fecha_inactivacion = ahora + timedelta(days=dias_gracia)
 

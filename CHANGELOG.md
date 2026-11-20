@@ -1,3 +1,35 @@
+## [1.4.0-rc.81](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.80...v1.4.0-rc.81) (2026-11-20)
+
+### Bug Fixes
+
+* **rls:** RLS de M07/M08 sobre el lote del 20-11, downgrade acotado y token de AgroFusion como sistema ([31b024d](https://github.com/Arekkazu/sgpmp-backend/commit/31b024d4b3e1905f6ea9951e976389a22c70b277))
+
+## [1.4.0-rc.80](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.79...v1.4.0-rc.80) (2026-11-20)
+
+### Features
+
+* **rf104-mod8:** reportes PDF y Excel con el diseno de las plantillas V1.1 ([e014afb](https://github.com/Arekkazu/sgpmp-backend/commit/e014afbdded3bd0d3ad7f92531247e4891f76f51))
+
+### Bug Fixes
+
+* **rf-ae01-mod7:** validar credenciales y cuadre del anexo aaef ([#1187](https://github.com/Arekkazu/sgpmp-backend/issues/1187)) ([f42865c](https://github.com/Arekkazu/sgpmp-backend/commit/f42865ce968bf7259f5c50a608511c9ba49afe08))
+* **rf-ae02-mod7:** rechazar importes no positivos en compras aaef ([#1188](https://github.com/Arekkazu/sgpmp-backend/issues/1188)) ([e0e4ddb](https://github.com/Arekkazu/sgpmp-backend/commit/e0e4ddb7b31d14fa74831ebee66fbb408fe3e19a))
+* **rf101-mod7:** nombre de cliente externo unico (409 en nombre) ([c06394a](https://github.com/Arekkazu/sgpmp-backend/commit/c06394a639cbed9aecbd2e8a0200a2407cecb9b6)), closes [#1170](https://github.com/Arekkazu/sgpmp-backend/issues/1170)
+* **rf102-mod7:** conservar y archivar la auditoria de integracion ([#1165](https://github.com/Arekkazu/sgpmp-backend/issues/1165)) ([98f8b5c](https://github.com/Arekkazu/sgpmp-backend/commit/98f8b5c8822f4a169fb90cc1092cbe8bbb2f2b6a))
+* **rf105-mod8:** inicios de sesion fuera de la bandeja, avisos repetidos agrupados y nivel de las alertas anteriores ([7e58f2e](https://github.com/Arekkazu/sgpmp-backend/commit/7e58f2eaf4cd16b30b3b9d1b7576c58afb4d252a))
+* **rf53-mod3:** limite del cuerpo de ingesta, vector acotado y auditoria IoT sin perdidas silenciosas ([ec64527](https://github.com/Arekkazu/sgpmp-backend/commit/ec64527abaf5dacb6b338b755f049dddd766b76d)), closes [#1164](https://github.com/Arekkazu/sgpmp-backend/issues/1164) [#1163](https://github.com/Arekkazu/sgpmp-backend/issues/1163) [#1162](https://github.com/Arekkazu/sgpmp-backend/issues/1162)
+* **rf69-mod4:** firma HMAC del artefacto al registrar y antes de correr en el motor ([d417c0c](https://github.com/Arekkazu/sgpmp-backend/commit/d417c0c68fbeee0bbc91bb41344ffcbae261a6eb)), closes [#1161](https://github.com/Arekkazu/sgpmp-backend/issues/1161)
+* **rf95-mod7:** el cuerpo de error trae field ademas de fields ([756a04d](https://github.com/Arekkazu/sgpmp-backend/commit/756a04d91529bc9cbc0a4f46c0916cc7d5b163fd)), closes [#1169](https://github.com/Arekkazu/sgpmp-backend/issues/1169)
+* **rf96-mod7:** neto negativo invierte las cuentas y LineType validado contra la matriz contable ([4a8f13b](https://github.com/Arekkazu/sgpmp-backend/commit/4a8f13b3937346b4d5d2517875e3392e6a030396)), closes [#1177](https://github.com/Arekkazu/sgpmp-backend/issues/1177) [#1178](https://github.com/Arekkazu/sgpmp-backend/issues/1178)
+* **rf97-mod7:** el envelope AAEF y su hash de contenido usan texto Unicode NFC ([#1184](https://github.com/Arekkazu/sgpmp-backend/issues/1184)) ([bbea35a](https://github.com/Arekkazu/sgpmp-backend/commit/bbea35a0fd2e1c69ea6fc8a07b0261db668f085a))
+* **rf97-mod7:** el error de un Mapper expone el Mapper y el documento en la respuesta y en la auditoria ([#1183](https://github.com/Arekkazu/sgpmp-backend/issues/1183)) ([446541d](https://github.com/Arekkazu/sgpmp-backend/commit/446541d5b15296ffbf87d05178c3f22399c56572))
+* **rf97-mod7:** la consulta contable distingue ERROR_DATOS_FINANCIEROS de ERROR_INTERNO_RF97 ([#1182](https://github.com/Arekkazu/sgpmp-backend/issues/1182)) ([da5b806](https://github.com/Arekkazu/sgpmp-backend/commit/da5b806ccdb4902ef5c9d7bd308a141f7efb8add))
+* **rf97-mod7:** TRAZABILIDAD_INCOMPLETA identifica los hechos afectados (hecho, activo, fecha) y no solo el conteo ([#1181](https://github.com/Arekkazu/sgpmp-backend/issues/1181)) ([649c121](https://github.com/Arekkazu/sgpmp-backend/commit/649c121b2c9d26061d4fcef9aa249217381c6e9b))
+* **rf98-mod7:** devolver mappers invalidos al registrar contratos ([#1166](https://github.com/Arekkazu/sgpmp-backend/issues/1166)) ([5baa6e1](https://github.com/Arekkazu/sgpmp-backend/commit/5baa6e1fc0b044b02702b18616ccd27ae7b2ecb5))
+* **rf98-mod7:** gracia del contrato desde M09 y aviso de la activacion manual bloqueada ([0553cef](https://github.com/Arekkazu/sgpmp-backend/commit/0553cefdc76fc898459506b2493354ecc2e4b5fe)), closes [#1167](https://github.com/Arekkazu/sgpmp-backend/issues/1167) [#1168](https://github.com/Arekkazu/sgpmp-backend/issues/1168)
+* **rf98-mod7:** justificacion del anexo, condiciones de activacion y auditoria mas legible ([20b5f70](https://github.com/Arekkazu/sgpmp-backend/commit/20b5f7019c2d6ba657c85c6a4de4aa3daebc48c1))
+* **rf98-mod7:** las transiciones rechazadas del contrato AAEF se auditan con WARNING y avisan, las versiones protegidas responden MODIFICACION_NO_PERMITIDA y una inactiva no se reactiva ([#1175](https://github.com/Arekkazu/sgpmp-backend/issues/1175)) ([04bddac](https://github.com/Arekkazu/sgpmp-backend/commit/04bddac4886893f9857f24a62d51729eb3ce5c5e))
+
 ## [1.4.0-rc.79](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.78...v1.4.0-rc.79) (2026-11-19)
 
 ### Features

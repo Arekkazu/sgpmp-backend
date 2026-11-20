@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                          |
 # |------------|----------|------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: vista previa con las primeras 20 filas   |
+# | 2026-11-19 | Arekkazu | M08 RF-104: parámetros, indicadores y autor en la vista previa |
 """Caso de uso: vista previa de un reporte (RF-104 Fase 2.2).
 
 Valida igual que la generación y arma el contenido en la instantánea. Devuelve los totales, las primeras 20 filas
@@ -51,4 +52,8 @@ class PrevisualizarReporteUseCase:
                           for s in secciones],
             "finales": [tabla_previa(t) for t in c.finales],
             "advertencias": c.advertencias, "aclaraciones": c.aclaraciones,
+            "generado_por": c.generado_por or None,
+            "parametros": [{"dato": k, "valor": v} for k, v in c.parametros],
+            "indicadores": [{"etiqueta": i.etiqueta, "valor": json_seguro(i.valor), "tipo": i.tipo}
+                            for i in c.indicadores],
         }

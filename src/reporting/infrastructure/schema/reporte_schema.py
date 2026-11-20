@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                          |
 # |------------|----------|------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: respuestas del catálogo, vista previa y reportes |
+# | 2026-11-19 | Arekkazu | M08 RF-104: parámetros, indicadores y autor en la vista previa |
 """Esquemas de respuesta de los reportes (RF-104)."""
 from __future__ import annotations
 
@@ -53,6 +54,12 @@ class DatoEncabezadoResponse(BaseModel):
     valor: str
 
 
+class IndicadorResponse(BaseModel):
+    etiqueta: str
+    valor: Any
+    tipo: str
+
+
 class VistaPreviaResponse(BaseModel):
     tipo_reporte: str
     titulo: str
@@ -67,6 +74,9 @@ class VistaPreviaResponse(BaseModel):
     finales: list[TablaPreviaResponse]
     advertencias: list[str]
     aclaraciones: list[str]
+    generado_por: Optional[str] = None
+    parametros: list[DatoEncabezadoResponse] = []
+    indicadores: list[IndicadorResponse] = []
 
 
 class ParteReporteResponse(BaseModel):

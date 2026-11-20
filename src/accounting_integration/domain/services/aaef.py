@@ -2,6 +2,11 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-96/RF-97: Mappers 02/06, rango alineado, envelope y hash de contenido |
 # | 2026-11-14 | Arekkazu | M07 RF-97: ExchangeId AF-SIGAB-AAAA-MM-NNNNNNN, el formato que exige SIGCON |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: todo MAPPER_FALLIDO dice el Mapper y el documento |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-382 RF-97: el envelope y su hash de contenido usan texto Unicode NFC |
+# | 2026-11-19 | Arekkazu | TC-M07-G016/G019 RF-96: neto negativo invierte las cuentas y LineType contra la matriz |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE02: verificar los cuatro totales del resumen contra los documentos. |
+# | 2026-11-19 | Leandro | INC-M07-378-G61 RF-AE02: rechazar importes no positivos tras truncar las líneas de compra. |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -16,6 +21,7 @@ from __future__ import annotations
 
 import json
 import secrets
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -136,18 +142,37 @@ def _cuenta(valor: Optional[str], documento: str) -> str:
     return str(valor)
 
 
+def _exigir_catalogo(line_type: Optional[str], catalogados: Optional[frozenset], etiquetas: dict, documento: str,
+                     mapper: str) -> None:
+    """RF-96 CA-6: el LineType debe tener par de cuentas activo en la matriz contable (RF-109).
+
+    ``catalogados`` es ``None`` cuando no hay catálogo que consultar (autoprueba del anexo); un ``None``
+    dentro del conjunto es una fila de la matriz que aplica a todos los subtipos."""
+    if catalogados is None:
+        return
+    if line_type in etiquetas and (line_type in catalogados or None in catalogados):
+        return
+    nombre = f"«{etiquetas[line_type].capitalize()}»" if line_type in etiquetas else "sin un tipo reconocido"
+    raise AaefError("LINETYPE_NO_CATALOGADO", f"El documento {documento} tiene una línea {nombre} sin cuenta activa en la "
+                    "matriz contable. Complétela en Configuración contable.", "LineType",
+                    {"mapper": mapper, "documento": documento})
+
+
 def _totales(subtotal: Decimal, saldo: Decimal) -> dict:
     return {"Subtotal": subtotal, "TotalVAT": CERO, "TotalWithholdings": CERO, "TotalDiscounts": CERO,
             "TotalPayment": subtotal, "OutstandingBalance": saldo}
 
 
-def mapear_compras(costos: Iterable[CostoFactura]) -> list[dict]:
-    """Mapper de Compras (``02``): un documento por factura, una línea por registro (RF-AE02 5.3)."""
+def mapear_compras(costos: Iterable[CostoFactura], catalogo: Optional[frozenset] = None) -> list[dict]:
+    """Mapper de Compras (``02``): un documento por factura, una línea por registro (RF-AE02 5.3).
+
+    ``catalogo``: subtipos de costo con cuenta de gasto activa en la matriz contable."""
     facturas: dict[tuple, list[CostoFactura]] = {}
     for costo in costos:
         if not (costo.tercero_nit and costo.tercero_razon_social and costo.factura_numero and costo.fecha_factura):
             raise AaefError("MAPPER_FALLIDO", f"El costo {costo.id_registro_costo} no tiene completos los datos de la "
-                            "factura del proveedor.", "Header", {"mapper": MAPPER_COMPRAS})
+                            "factura del proveedor.", "Header",
+                            {"mapper": MAPPER_COMPRAS, "id_registro_costo": costo.id_registro_costo})
         clave = (costo.tercero_nit, costo.factura_prefijo or "", costo.factura_numero)
         facturas.setdefault(clave, []).append(costo)
     documentos = []
@@ -157,7 +182,16 @@ def mapear_compras(costos: Iterable[CostoFactura]) -> list[dict]:
         document_id = f"COS-{primero.id_registro_costo}-{primero.fecha_factura:%Y%m%d}"
         lineas = []
         for costo in registros:
+            _exigir_catalogo(costo.subtipo_costo, catalogo, ETIQUETA_SUBTIPO, document_id, MAPPER_COMPRAS)
             valor = truncar2(costo.monto_costo)
+            if valor <= 0:
+                raise AaefError(
+                    "MAPPER_FALLIDO",
+                    f"La factura de compra {prefijo}{numero} tiene una línea por debajo de 0,01 COP. "
+                    "Revise el costo asociado a esa línea en Finanzas.",
+                    "Value",
+                    {"mapper": MAPPER_COMPRAS, "documento": document_id},
+                )
             lineas.append({
                 "Code": costo.subtipo_costo,
                 "Name": ETIQUETA_SUBTIPO.get(costo.subtipo_costo, costo.subtipo_costo).capitalize(),
@@ -183,28 +217,35 @@ def mapear_compras(costos: Iterable[CostoFactura]) -> list[dict]:
     return documentos
 
 
-def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titular) -> list[dict]:
-    """Mapper de Comprobante NIC 41 (``06``): una línea por par de cuentas (RF-AE02 5.4)."""
+def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titular,
+                        catalogo: Optional[frozenset] = None) -> list[dict]:
+    """Mapper de Comprobante NIC 41 (``06``): una línea por par de cuentas (RF-AE02 5.4).
+
+    ``Value`` siempre es positivo y el sentido lo dan las cuentas (CA-4): un neto negativo (una
+    pérdida) invierte débito y crédito. ``catalogo``: hechos con cuenta activa en la matriz contable."""
     documentos = []
     prefijo_codigo = f"NIC-{titular.nit}-"
     for comprobante in comprobantes:
         if not comprobante.codigo.startswith(prefijo_codigo):
             raise AaefError("MAPPER_FALLIDO", f"El comprobante {comprobante.codigo} no pertenece al productor consultado.",
-                            "DocumentId", {"mapper": MAPPER_COMPROBANTE_NIC41})
+                            "DocumentId", {"mapper": MAPPER_COMPROBANTE_NIC41, "documento": comprobante.codigo})
         fecha = comprobante.fecha_comprobante.isoformat()
+        _exigir_catalogo(comprobante.tipo_hecho, catalogo, ETIQUETA_HECHO, comprobante.codigo, MAPPER_COMPROBANTE_NIC41)
         nombre = ETIQUETA_HECHO.get(comprobante.tipo_hecho, comprobante.tipo_hecho)
         lineas = []
         for par in comprobante.lineas:
             valor = truncar2(Decimal(str(par["valor"])))
-            if valor <= 0:
+            if valor == 0:
                 raise AaefError("MAPPER_FALLIDO", f"El comprobante {comprobante.codigo} tiene una línea sin valor.",
-                                "Value", {"mapper": MAPPER_COMPROBANTE_NIC41})
+                                "Value", {"mapper": MAPPER_COMPROBANTE_NIC41, "documento": comprobante.codigo})
+            debito, credito = par.get("cuenta_debito"), par.get("cuenta_credito")
+            if valor < 0:
+                debito, credito, valor = credito, debito, -valor
             lineas.append({
                 "Code": comprobante.tipo_hecho, "Name": nombre,
                 "Description": f"{comprobante.especie} · {comprobante.fecha_comprobante:%Y-%m}",
                 "LineType": comprobante.tipo_hecho,
-                "accounting_account": [_cuenta(par.get("cuenta_debito"), comprobante.codigo),
-                                       _cuenta(par.get("cuenta_credito"), comprobante.codigo)],
+                "accounting_account": [_cuenta(debito, comprobante.codigo), _cuenta(credito, comprobante.codigo)],
                 "Quantity": Decimal(1), "UnitPrice": valor, "Value": valor, "Taxes": [],
             })
         subtotal = sum((ln["Value"] for ln in lineas), CERO)
@@ -221,17 +262,32 @@ def mapear_comprobantes(comprobantes: Iterable[ComprobanteNic41], titular: Titul
 
 # --- RF-97: envelope, hash y tamaño ---------------------------------------------------------------
 
+def normalizar_nfc(valor):
+    """RNF-97.2/97.6: todo texto en Unicode NFC. Una «é» compuesta (U+00E9) y una «e» + tilde combinante
+    (U+0065 U+0301) se ven iguales pero son bytes distintos; sin normalizar darían hashes distintos."""
+    if isinstance(valor, str):
+        return unicodedata.normalize("NFC", valor)
+    if isinstance(valor, dict):
+        return {normalizar_nfc(k): normalizar_nfc(v) for k, v in valor.items()}
+    if isinstance(valor, (list, tuple)):
+        return [normalizar_nfc(v) for v in valor]
+    return valor
+
+
 def hash_contenido(invoices: list[dict]) -> str:
-    """SHA-256 de ``{invoices, transactions}`` canónico (claves ordenadas, importes de 2 decimales). RF-97 5.5."""
-    return hash_sha256({"invoices": invoices, "transactions": []})
+    """SHA-256 de ``{invoices, transactions}`` canónico (claves ordenadas, importes de 2 decimales, texto en
+    NFC). RF-97 5.5. La normalización va aquí y no en ``hash_sha256``, que M06 comparte con hashes ya guardados."""
+    return hash_sha256({"invoices": normalizar_nfc(invoices), "transactions": []})
 
 
 def construir_envelope(
     titular: Titular, desde: date, hasta: date, sistema: SistemaOrigen, generado_por: str, generado_en: date,
     compras: list[dict], comprobantes: list[dict],
 ) -> dict:
-    """Envelope con los nombres exactos que valida AgroFusion (RF-97 5.4)."""
-    invoices = sorted(compras + comprobantes, key=lambda d: d["Header"]["DocumentId"])
+    """Envelope con los nombres exactos que valida AgroFusion (RF-97 5.4). El texto sale en NFC, igual que el
+    que entra al hash de contenido."""
+    invoices = sorted(normalizar_nfc(compras + comprobantes), key=lambda d: d["Header"]["DocumentId"])
+    generado_por = normalizar_nfc(generado_por)
     bruto = sum((d["Totals"]["Subtotal"] for d in invoices), CERO)
     neto = sum((d["Totals"]["TotalPayment"] for d in invoices), CERO)
     return {
@@ -258,7 +314,23 @@ def verificar_cuadre(envelope: dict) -> None:
         suma = sum((ln["Value"] for ln in documento["Lines"]), CERO)
         totales = documento["Totals"]
         if not (suma == totales["Subtotal"] == totales["TotalPayment"]):
-            raise AaefError("MAPPER_FALLIDO", f"El documento {documento['Header']['DocumentId']} no cuadra.", "Totals")
+            mapper = MAPPER_COMPRAS if documento["Header"]["Type"]["Code"] == TIPO_COMPRA["Code"] else MAPPER_COMPROBANTE_NIC41
+            raise AaefError("MAPPER_FALLIDO", f"El documento {documento['Header']['DocumentId']} no cuadra.", "Totals",
+                            {"mapper": mapper, "documento": documento["Header"]["DocumentId"]})
+
+
+def verificar_cuadre_resumen(envelope: dict) -> None:
+    """RF-AE02 5.10: contrasta los conteos e importes del resumen con sus documentos."""
+    documentos = envelope["invoices"]
+    resumen = envelope["summary"]
+    esperados = {
+        "TotalInvoices": len(documentos),
+        "TotalDocuments": len(documentos),
+        "TotalGrossAmount": sum((d["Totals"]["Subtotal"] for d in documentos), CERO),
+        "TotalNet": sum((d["Totals"]["TotalPayment"] for d in documentos), CERO),
+    }
+    if any(resumen[campo] != valor for campo, valor in esperados.items()):
+        raise AaefError("MAPPER_FALLIDO", "El resumen del documento contable no cuadra.", "summary")
 
 
 def serializar(envelope: dict) -> bytes:

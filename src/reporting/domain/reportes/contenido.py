@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: contenido de un reporte, independiente del formato  |
+# | 2026-11-19 | Arekkazu | M08 RF-104: parámetros, indicadores y autor como en las plantillas V1.1 |
 """Contenido de un reporte, igual para PDF, Excel y la vista previa (RF-104).
 
 - ``encabezado``: pares etiqueta/valor (finca, NIT, período…).
@@ -9,6 +10,9 @@
 - ``secciones``: reportes por secciones (ficha del animal, ejecutivo): en el Excel, una hoja cada una.
 - ``finales``: tablas que van al final del cuerpo en el PDF (totales, alertas de retiro, sensores sin calibrar);
   en el Excel, en el resumen.
+- ``parametros``: los filtros con que se generó, legibles («Especie: Todas»), como «Parámetros de selección».
+- ``indicadores``: las tarjetas de «Resumen ejecutivo de indicadores» de cada plantilla (total, valor, conteos).
+- ``generado_por`` y ``generado``: quién lo pidió (nombre y rol) y cuándo, para la línea bajo el título.
 
 Cada columna declara su tipo: el Excel guarda montos y números como NUMBER con 2 decimales y fechas como
 DATE; el PDF y la vista previa los formatean. Ninguna celda se muestra vacía: quien arma el reporte pone el
@@ -17,6 +21,7 @@ texto que corresponde («Sin registro SINIGAN») y lo que quede en ``None`` sale
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Optional
 
 TEXTO, ENTERO, NUMERO, MONEDA, PORCENTAJE, FECHA, FECHA_HORA = (
@@ -39,6 +44,13 @@ class Tabla:
     nota: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class Indicador:
+    etiqueta: str
+    valor: Any
+    tipo: str = TEXTO
+
+
 @dataclass
 class Seccion:
     titulo: str
@@ -57,6 +69,10 @@ class ContenidoReporte:
     advertencias: list[str] = field(default_factory=list)
     aclaraciones: list[str] = field(default_factory=list)
     firma: Optional[str] = None
+    parametros: list[tuple[str, str]] = field(default_factory=list)
+    indicadores: list[Indicador] = field(default_factory=list)
+    generado_por: str = ""
+    generado: Optional[datetime] = None
     # Secciones que entran en la vista previa (la ficha del animal muestra solo las dos primeras).
     secciones_vista_previa: Optional[int] = None
 

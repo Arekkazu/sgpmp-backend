@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-102 4.1/FA-1, RF-98 FA-5: alertas internas al Administrador (RF-14) |
+# | 2026-11-19 | Leandro | INC-M07-371-G58 RF-102: permitir avisos críticos de archivado visibles por destinatario. |
 """Alertas de M07 en la bandeja interna (RF-14), mismo patrón que M06: el aviso cuelga de un evento de
 ``modulo1.eventos``. Los destinatarios son quienes pueden leer la auditoría de integración (por permiso,
 no por rol fijo). Hace su propio ``commit``, no repite la misma alerta en 10 minutos y nunca propaga errores."""
@@ -29,25 +30,31 @@ _SQL_DESTINATARIOS = text("""
 
 def alertador_administrador(session_factory: Callable[[], Session]) -> Callable[[str, dict], None]:
     def alertar(mensaje: str, detalle: dict) -> None:
-        db = session_factory()
+        db = None
         try:
+            db = session_factory()
             id_tipo = db.execute(text("SELECT id_tipo_evento FROM modulo1.tipos_eventos WHERE nombre = 'ALERTA_INTEGRACION_CONTABLE'")).scalar()
+            if id_tipo is None:
+                return
             notificaciones = SqlAlchemyNotificacionRepository(db)
             destinatarios = [f.id_usuario for f in db.execute(_SQL_DESTINATARIOS)
                              if not notificaciones.verificar_anti_spam(f.id_usuario, id_tipo, _ID_CANAL_INTERNO, _VENTANA_MINUTOS)]
-            if id_tipo is None or not destinatarios:
+            if not destinatarios:
                 return
-            SqlAlchemyEventoRepository(db).registrar(tipo_evento=id_tipo, exitoso=False, id_usuario=destinatarios[0],
-                                                     detalle=detalle, descripcion=mensaje[:255], modulo="MODULO7")
-            id_evento = notificaciones.buscar_ultimo_evento_id(id_usuario=destinatarios[0], tipo_evento=id_tipo)
+            eventos = SqlAlchemyEventoRepository(db)
             for id_usuario in destinatarios:
+                # La bandeja aplica RLS también sobre el evento del aviso.
+                id_evento = eventos.registrar(tipo_evento=id_tipo, exitoso=False, id_usuario=id_usuario,
+                                              detalle=detalle, descripcion=mensaje[:255], modulo="MODULO7")
                 notificaciones.registrar(id_evento=id_evento, id_usuario=id_usuario, id_canal=_ID_CANAL_INTERNO,
                                          mensaje=mensaje, estado="en_cola")
             db.commit()
         except Exception:
-            db.rollback()
+            if db is not None:
+                db.rollback()
             logger.exception("No se pudo alertar al Administrador: %s", mensaje)
         finally:
-            db.close()
+            if db is not None:
+                db.close()
 
     return alertar
