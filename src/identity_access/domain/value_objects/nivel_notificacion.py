@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel por tipo de evento, módulo de origen y destino |
 # | 2026-11-18 | Arekkazu | M08 RF-104..106: nivel de avisos de reportes y degradación; canales por defecto (R6) |
+# | 2026-11-19 | Arekkazu | M8-05 RF-105: los inicios de sesión no entran a la bandeja                |
 """Nivel, módulo de origen y pantalla de destino de una notificación (RF-105).
 
 El nivel decide los canales: CRÍTICA va por la bandeja, push y correo; ADVERTENCIA por la bandeja y
@@ -28,6 +29,10 @@ PUSH, EMAIL = "PUSH", "EMAIL"
 CANALES_EXTERNOS = (PUSH, EMAIL)
 CANALES_POR_DEFECTO = {CRITICA: {PUSH, EMAIL}, ADVERTENCIA: {PUSH}, INFORMATIVA: set()}
 VENTANA_AGRUPACION_POR_DEFECTO = 5  # minutos (RF-105 Fase 2.1)
+
+# Avisos de inicio de sesión (``LOGIN_EXITOSO``, ``LOGIN_SSO_EXITOSO``): van por correo y quedan en la
+# auditoría, pero no entran a la bandeja; ahí llenaban la lista y no piden ninguna acción (M8-05).
+TIPOS_FUERA_DE_BANDEJA = (3, 20)
 
 
 def canal_por_defecto(nivel: str, canal: str) -> bool:

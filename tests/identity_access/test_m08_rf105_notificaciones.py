@@ -2,6 +2,7 @@
 # |------------|----------|---------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: ciclo de vida, niveles, entrega con reintentos y agrupación |
 # | 2026-11-18 | Arekkazu | M08 RF-105: los falsos responden preferencias por defecto y ventana de M09 |
+# | 2026-11-19 | Arekkazu | M8-05 RF-105: los inicios de sesión no entran a la bandeja |
 """RF-105 — ciclo de vida de las notificaciones, nivel por tipo, entrega en segundo plano y agrupación.
 
 Sin BD: entidad y casos de uso con falsos. Los CHECK de la BD (crítica no descartable, acción de
@@ -290,5 +291,14 @@ def test_push_de_alerta_lleva_destino_y_nivel_y_se_reintenta_si_falla(monkeypatc
 def test_aviso_de_cuenta_sin_nivel_sigue_como_antes_aunque_el_push_falle(monkeypatch):
     monkeypatch.setattr(service_module, "send_push", lambda **d: False)
     port = PortServicioFake()
-    NotificacionService(port=port, db=DbFake()).notificar(tipo_evento=3, id_usuario=7)
+    NotificacionService(port=port, db=DbFake()).notificar(tipo_evento=6, id_usuario=7)
     assert port.estados[1] == "enviado"
+
+
+def test_inicio_de_sesion_va_solo_por_correo_y_no_entra_a_la_bandeja(monkeypatch):
+    pushes = []
+    monkeypatch.setattr(service_module, "send_push", lambda **d: pushes.append(d) or True)
+    port = PortServicioFake()
+    for tipo in (3, 20):  # LOGIN_EXITOSO y LOGIN_SSO_EXITOSO (M8-05)
+        NotificacionService(port=port, db=DbFake()).notificar(tipo_evento=tipo, id_usuario=7)
+    assert [r["id_canal"] for r in port.registros] == [1, 1] and pushes == []
