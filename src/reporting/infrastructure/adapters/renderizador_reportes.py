@@ -1,19 +1,21 @@
 # | Fecha      | Nombre   | Que se hizo                                                           |
 # |------------|----------|-----------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: PDF carta (ReportLab) y Excel tipado (openpyxl) de reportes |
+# | 2026-11-19 | Arekkazu | M08 RF-104 M8-12/M8-13: diseño de las plantillas V1.1, columnas sin partir palabras y fechas reales |
 """Render de un :class:`ContenidoReporte` a PDF o Excel (RF-104 Fase 3, CA-4, CA-11).
 
-PDF (ReportLab): tamaño carta (horizontal si la tabla es ancha), letra de 10 puntos o más, encabezado con logo,
-razón social, NIT, finca, período y fecha; «Página N de M» en cada página y, en la última, el sello del sistema
-(y la firma del Contador en la valoración NIC 41). Las secciones van separadas por una línea con su nombre.
+PDF (ReportLab): tamaño carta (horizontal si la tabla es ancha), letra de 10 puntos o más y la estructura de las
+plantillas V1.1 (ver ``_pdf``); el sello del sistema y «Página N de M» en el pie de cada página y la firma del
+Contador en la valoración NIC 41.
 
-Excel (openpyxl): hoja «Resumen Ejecutivo» (encabezado, totales, tablas finales y advertencias) y «Datos
-Detallados»; la ficha del animal y el ejecutivo llevan una hoja por sección. Montos y números como NUMBER con 2
+Excel (openpyxl): hoja «Resumen Ejecutivo» (Campo | Valor | Tipo / Unidad | Observación: encabezado, parámetros e
+indicadores; luego totales, tablas finales y advertencias) y «Datos Detallados»; la ficha del animal y el ejecutivo llevan una hoja por sección. Montos y números como NUMBER con 2
 decimales, fechas como DATE, sin celdas combinadas y la primera fila de cada hoja con los encabezados.
 """
 from __future__ import annotations
 
 import io
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from functools import partial
@@ -33,7 +35,7 @@ from src.reporting.domain.reportes.contenido import (
     Tabla,
 )
 from src.reporting.domain.reportes.solicitud import EXCEL, PDF
-from src.shared.fechas import en_zona_usuario
+from src.shared.fechas import en_zona_usuario, etiqueta_zona
 
 SELLO = "Generado por Sistema de Gestión Pecuaria Multiespecie — Universidad Surcolombiana"
 _TIPOS = {PDF: "application/pdf", EXCEL: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
@@ -86,21 +88,70 @@ class RenderizadorReportes(RenderizadorReportePort):
 
 
 # --- PDF ---------------------------------------------------------------------------------------
+# Estructura de las plantillas V1.1: marca, título, línea de autor, datos del titular en una fila, recuadro gris con
+# datos de la exportación, «Parámetros de selección», avisos, «Análisis detallado de registros», tarjetas de
+# «Resumen ejecutivo de indicadores», tablas finales, firma y pie con el sello y «Página N de M» en cada hoja.
+
+_VERDE, _TINTA, _GRIS = "#2e8634", "#1f2a22", "#5f6d62"
+_BORDE, _FONDO, _CABECERA = "#d9dfda", "#f4f6f4", "#eef2ee"
+_AVISO_FONDO, _AVISO_BORDE = "#fff8e1", "#d9a400"
+_EN_FILA = ("Razón social", "NIT", "Finca", "Rango de fechas", "Período contable", "Período base",
+            "Período de comparación", "Fecha de corte")
+_RENOMBRE_FILA = {"Rango de fechas": "Período"}
+_PADDING = 3
+_HOLGURA = 3  # redondeo de ReportLab: sin esto una cifra del ancho exacto baja de línea
+
+
+def _palabras(texto: str) -> list[str]:
+    return texto.split(" ")  # el espacio duro de «$ 1.000» no corta: va con su número
+
+
+def _texto_pdf(valor: Any, tipo: str) -> str:
+    return texto_celda(valor, tipo).replace("$ ", "$ ")
+
+
+_NUMERICOS = (ENTERO, NUMERO, MONEDA, PORCENTAJE, FECHA, FECHA_HORA)
+_PALABRA_TEXTO_MAXIMA = 70  # un código largo (QA-M06-G52-SANITARIO, una huella) sí puede bajar de línea
+
 
 def _anchos_pdf(t: Tabla, ancho_util: float) -> list[float]:
-    """Ancho de cada columna según su palabra más larga del título y lo típico de su contenido, para no partir
-    palabras del encabezado."""
-    pesos = []
+    """Cada columna mide al menos la palabra más larga de su título y, si es de números o fechas, la cifra más larga
+    (así no se parten, M8-12); lo que sobra se reparte según lo largo del contenido. Solo si ni así cabe, se encoge
+    todo en proporción."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    minimos, ajustados, extras, faltantes = [], [], [], []
     for c in t.columnas:
-        palabra = max((len(p) for p in c.titulo.split()), default=4)
-        contenido = [len(texto_celda(f.get(c.clave), c.tipo)) for f in t.filas[:50]]
-        tipico = sorted(contenido)[len(contenido) // 2] if contenido else 4
-        pesos.append(max(palabra + 1, min(tipico, 28), 5))
-    total = sum(pesos)
-    return [ancho_util * p / total for p in pesos]
+        textos = [_texto_pdf(f.get(c.clave), c.tipo) for f in t.filas[:200]]
+        titulo = max((stringWidth(p, "Helvetica-Bold", _FUENTE) for p in _palabras(c.titulo)), default=0)
+        palabra = max((stringWidth(p, "Helvetica", _FUENTE) for x in textos for p in _palabras(x)), default=0)
+        numerica = c.tipo in _NUMERICOS
+        minimo = max(titulo, palabra if numerica else min(palabra, max(titulo, _PALABRA_TEXTO_MAXIMA))) + 2 * _PADDING \
+            + _HOLGURA
+        largos = sorted(stringWidth(x, "Helvetica", _FUENTE) for x in textos)
+        tipico = largos[len(largos) // 2] if largos else 0
+        minimos.append(minimo)
+        # Si la tabla no cabe, una columna de texto se conforma con la palabra de su título.
+        ajustados.append(minimo if numerica else max(titulo, 28) + 2 * _PADDING + _HOLGURA)
+        extras.append(max(min(tipico, 220) + 2 * _PADDING - minimo, 0))
+        faltantes.append(max(min(palabra, 150) + 2 * _PADDING + _HOLGURA - ajustados[-1], 0))
+    if sum(minimos) > ancho_util:
+        # Lo que sobre va primero a que quepa la palabra más larga del contenido de cada columna.
+        minimos, extras = ajustados, faltantes
+    sobra = ancho_util - sum(minimos)
+    if sobra <= 0:
+        return [ancho_util * m / sum(minimos) for m in minimos]
+    total_extra = sum(extras)
+    if total_extra == 0:
+        return [m + sobra / len(minimos) for m in minimos]
+    reparto = min(sobra, total_extra)
+    anchos = [m + reparto * e / total_extra for m, e in zip(minimos, extras)]
+    resto = (sobra - reparto) / len(anchos)
+    return [a + resto for a in anchos]
 
 
-def _lienzo(pie_final: list[str]):
+def _lienzo(sello: str):
+    from reportlab.lib import colors
     from reportlab.pdfgen import canvas
 
     class _Lienzo(canvas.Canvas):
@@ -119,15 +170,63 @@ def _lienzo(pie_final: list[str]):
             for numero, estado in enumerate(self._paginas, start=1):
                 self.__dict__.update(estado)
                 ancho, _ = self._pagesize
+                self.setStrokeColor(colors.HexColor(_BORDE))
+                self.line(36, 36, ancho - 36, 36)
+                self.setFillColor(colors.HexColor(_GRIS))
                 self.setFont("Helvetica", _FUENTE)
+                self.drawString(36, 22, sello)
                 self.drawRightString(ancho - 36, 22, f"Página {numero} de {total}")
-                if numero == total:
-                    for i, linea in enumerate(reversed(pie_final)):
-                        self.drawString(36, 22 + i * 13, linea)
                 super().showPage()
             super().save()
 
     return _Lienzo
+
+
+def _marca():
+    """El ícono de SIGAB (el mismo del favicon del front) y el nombre del sistema."""
+    from reportlab.lib import colors
+    from reportlab.platypus import Flowable
+
+    class _Marca(Flowable):
+        def wrap(self, ancho, alto):
+            return ancho, 26
+
+        def draw(self):
+            c, verde = self.canv, colors.HexColor(_VERDE)
+            escala = 22 / 32
+            c.saveState()
+            c.translate(0, 24)
+            c.scale(escala, -escala)  # coordenadas del SVG (y hacia abajo)
+            c.setFillColor(verde)
+            c.roundRect(0, 0, 32, 32, 7, stroke=0, fill=1)
+            c.setStrokeColor(colors.white)
+            c.setLineCap(1)
+            c.setLineWidth(2.2)
+            camino = c.beginPath()
+            camino.moveTo(8, 22)
+            camino.curveTo(8, 16, 12, 11, 16, 11)
+            camino.curveTo(20, 11, 24, 16, 24, 22)
+            c.drawPath(camino, stroke=1, fill=0)
+            c.setFillColor(colors.white)
+            c.circle(12, 17, 2.2, stroke=0, fill=1)
+            c.circle(20, 17, 2.2, stroke=0, fill=1)
+            c.setLineWidth(1.6)
+            boca = c.beginPath()
+            boca.moveTo(13, 21)
+            boca.curveTo(13, 19.5, 14.3, 18.5, 16, 18.5)
+            boca.curveTo(17.7, 18.5, 19, 19.5, 19, 21)
+            c.drawPath(boca, stroke=1, fill=0)
+            c.setStrokeColor(colors.HexColor("#a8d8a8"))
+            c.line(10, 11, 8, 8)
+            c.line(22, 11, 24, 8)
+            c.restoreState()
+            c.setFont("Helvetica-Bold", 12)
+            c.setFillColor(colors.HexColor(_TINTA))
+            c.drawString(30, 8, "SIGAB")
+            c.setFillColor(verde)
+            c.drawString(30 + c.stringWidth("SIGAB ", "Helvetica-Bold", 12), 8, "Gestión Pecuaria Multiespecie")
+
+    return _Marca()
 
 
 def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
@@ -142,71 +241,135 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
     ancha = max((len(t.columnas) for t in tablas), default=0) > _COLUMNAS_VERTICAL
     pagina = landscape(letter) if ancha else letter
     estilos = getSampleStyleSheet()
-    normal = ParagraphStyle("normal", parent=estilos["Normal"], fontSize=_FUENTE, leading=_FUENTE + 2)
-    celda = ParagraphStyle("celda", parent=normal)
-    cabecera = ParagraphStyle("cabecera", parent=normal, fontName="Helvetica-Bold", textColor=colors.white)
-    titulo = ParagraphStyle("titulo", parent=estilos["Title"], fontSize=16)
-    subtitulo = ParagraphStyle("subtitulo", parent=estilos["Heading2"], fontSize=12)
-    seccion = ParagraphStyle("seccion", parent=estilos["Heading2"], fontSize=13, spaceBefore=10)
+    normal = ParagraphStyle("normal", parent=estilos["Normal"], fontSize=_FUENTE, leading=_FUENTE + 3,
+                            textColor=colors.HexColor(_TINTA))
+    gris = ParagraphStyle("gris", parent=normal, textColor=colors.HexColor(_GRIS))
+    cabecera = ParagraphStyle("cabecera", parent=normal, fontName="Helvetica-Bold", textColor=colors.HexColor(_GRIS))
+    titulo = ParagraphStyle("titulo", parent=normal, fontName="Helvetica-Bold", fontSize=17, leading=21, spaceBefore=8,
+                            spaceAfter=4)
+    seccion = ParagraphStyle("seccion", parent=normal, fontName="Helvetica-Bold", fontSize=12, leading=15,
+                             spaceBefore=12, spaceAfter=6, keepWithNext=1)
+    subtitulo = ParagraphStyle("subtitulo", parent=normal, fontName="Helvetica-Bold", spaceBefore=6, spaceAfter=4,
+                               keepWithNext=1)
+    derecha = ParagraphStyle("derecha", parent=normal, alignment=2)
+    cabecera_derecha = ParagraphStyle("cabecera_derecha", parent=cabecera, alignment=2)
+    cifra = ParagraphStyle("cifra", parent=normal, fontName="Courier-Bold", fontSize=14, leading=17,
+                           textColor=colors.HexColor(_VERDE))
     ancho_util = pagina[0] - 72
 
     def parrafo(texto: str, estilo=normal) -> Paragraph:
         return Paragraph(escape(texto), estilo)
 
-    def tabla(t: Tabla) -> list:
-        elementos: list = [parrafo(t.titulo, subtitulo)]
-        datos = [[parrafo(c.titulo, cabecera) for c in t.columnas]]
-        datos += [[parrafo(texto_celda(f.get(c.clave), c.tipo), celda) for c in t.columnas] for f in t.filas]
+    def caja(contenido_caja, fondo: str, borde: str) -> Table:
+        recuadro = Table([[contenido_caja]], colWidths=[ancho_util], cornerRadii=[5, 5, 5, 5])
+        recuadro.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(fondo)),
+                                      ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor(borde)),
+                                      ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                                      ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
+        return recuadro
+
+    def tabla(t: Tabla, con_titulo: bool = True) -> list:
+        elementos: list = [parrafo(t.titulo, subtitulo)] if con_titulo else []
         if not t.filas:
-            elementos.append(parrafo("Sin registros para los filtros elegidos."))
+            elementos.append(parrafo("Sin registros para los filtros elegidos.", gris))
         else:
+            montos = [c.tipo in (ENTERO, NUMERO, MONEDA, PORCENTAJE) for c in t.columnas]
+            datos = [[parrafo(c.titulo, cabecera_derecha if m else cabecera) for c, m in zip(t.columnas, montos)]]
+            datos += [[Paragraph(escape(_texto_pdf(f.get(c.clave), c.tipo)),
+                                 derecha if m and not isinstance(f.get(c.clave), str) else normal)
+                       for c, m in zip(t.columnas, montos)] for f in t.filas]
             grilla = Table(datos, colWidths=_anchos_pdf(t, ancho_util), repeatRows=1)
             grilla.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2f5d3a")),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#9aa79c")),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(_CABECERA)),
+                ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor(_BORDE)),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f1f4f1")]),
+                ("LEFTPADDING", (0, 0), (-1, -1), _PADDING), ("RIGHTPADDING", (0, 0), (-1, -1), _PADDING),
+                ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
             ]))
             elementos.append(grilla)
         if t.nota:
-            elementos.append(parrafo(t.nota))
-        elementos.append(Spacer(1, 10))
+            elementos.append(parrafo(t.nota, gris))
+        elementos.append(Spacer(1, 8))
         return elementos
 
-    historia: list = []
+    def tarjetas() -> list:
+        por_fila = 4 if len(contenido.indicadores) % 4 == 0 else 3
+        ancho = (ancho_util - 10 * (por_fila - 1)) / por_fila
+        celdas = []
+        for ind in contenido.indicadores:
+            tarjeta = Table([[parrafo(ind.etiqueta.upper(), gris)], [parrafo(texto_celda(ind.valor, ind.tipo), cifra)]],
+                            colWidths=[ancho - 2], cornerRadii=[6, 6, 6, 6])
+            tarjeta.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor(_BORDE)),
+                                         ("LEFTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, 0), 9),
+                                         ("BOTTOMPADDING", (0, -1), (-1, -1), 10)]))
+            celdas.append(tarjeta)
+        filas = [celdas[i:i + por_fila] for i in range(0, len(celdas), por_fila)]
+        filas[-1] += [""] * (por_fila - len(filas[-1]))
+        rejilla = Table(filas, colWidths=[ancho + 10] * por_fila, hAlign="LEFT")
+        rejilla.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                                     ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        return [parrafo("Resumen ejecutivo de indicadores", seccion), rejilla, Spacer(1, 8)]
+
+    datos = dict(contenido.encabezado)
+    marca: Any = _marca()
     if ruta_logo:
         try:
-            historia.append(Image(ruta_logo, width=1.2 * inch, height=0.6 * inch, kind="proportional"))
+            marca = Table([[marca, Image(ruta_logo, width=1.2 * inch, height=0.5 * inch, kind="proportional")]],
+                          colWidths=[ancho_util - 1.3 * inch, 1.3 * inch])
+            marca.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                                       ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
         except Exception:
-            pass  # un logo dañado no impide el reporte
-    historia.append(parrafo("SIGAB · " + contenido.titulo, titulo))
-    encabezado = Table([[parrafo(k, ParagraphStyle("k", parent=normal, fontName="Helvetica-Bold")), parrafo(v)]
-                        for k, v in contenido.encabezado], colWidths=[ancho_util * 0.3, ancho_util * 0.7])
-    encabezado.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
-    historia += [encabezado, Spacer(1, 8)]
-    historia += [parrafo(a) for a in contenido.aclaraciones]
-    for t in contenido.resumen:
-        historia += tabla(t)
+            marca = _marca()  # un logo dañado no impide el reporte
+    historia: list = [marca, parrafo(contenido.titulo, titulo)]
+    meta = [f"Fecha de generación: {datos['Fecha de generación']}"] if "Fecha de generación" in datos else []
+    if contenido.generado_por:
+        meta.append(f"Generado por: {contenido.generado_por}")
+    meta.append("Estado: Generado")
+    historia.append(parrafo(" · ".join(meta), gris))
+    en_fila = [(k, v) for k, v in contenido.encabezado if k in _EN_FILA]
+    aparte = [(k, v) for k, v in contenido.encabezado if k not in _EN_FILA and k != "Fecha de generación"]
+    historia += [Spacer(1, 6), Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;".join(
+        f'<font color="{_GRIS}">{escape(_RENOMBRE_FILA.get(k, k))}</font> {escape(v)}' for k, v in en_fila), normal)]
+    if aparte:
+        celdas = [Paragraph(f'<font color="{_GRIS}">{escape(k)}</font><br/>{escape(v)}', normal) for k, v in aparte]
+        recuadro = Table([celdas], colWidths=[(ancho_util - 20) / len(celdas)] * len(celdas))
+        recuadro.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        historia += [Spacer(1, 8), caja(recuadro, _FONDO, _BORDE)]
+    for texto in contenido.aclaraciones:
+        historia += [Spacer(1, 8), caja(parrafo(texto, gris), _FONDO, _BORDE)]
+    if contenido.parametros:
+        historia.append(parrafo("Parámetros de selección", seccion))
+        lista = Table([[Paragraph(f'<font color="{_VERDE}">•</font>&nbsp;&nbsp;<font color="{_GRIS}">'
+                                  f'{escape(k)}:</font> <b>{escape(v)}</b>', normal)] for k, v in contenido.parametros],
+                      colWidths=[ancho_util])
+        lista.setStyle(TableStyle([("LINEBELOW", (0, 0), (-1, -2), 0.4, colors.HexColor(_BORDE)),
+                                   ("LEFTPADDING", (0, 0), (-1, -1), 2), ("TOPPADDING", (0, 0), (-1, -1), 3),
+                                   ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        historia.append(lista)
+    for aviso in contenido.advertencias:
+        historia += [Spacer(1, 8), caja(Paragraph(f"<b>Advertencia:</b> {escape(aviso)}", normal),
+                                        _AVISO_FONDO, _AVISO_BORDE)]
     if contenido.detalle:
-        historia += tabla(contenido.detalle)
+        historia.append(parrafo("Análisis detallado de registros", seccion))
+        historia += tabla(contenido.detalle, con_titulo=False)
     for s in contenido.secciones:
-        historia += [HRFlowable(width="100%", thickness=1.2, color=colors.HexColor("#2f5d3a")), parrafo(s.titulo, seccion)]
+        historia.append(parrafo(s.titulo, seccion))
         historia += [parrafo(texto) for texto in s.textos]
         for t in s.tablas:
-            historia += tabla(t)
-    for t in contenido.finales:
+            historia += tabla(t, con_titulo=len(s.tablas) > 1)
+    if contenido.indicadores:
+        historia += tarjetas()
+    for t in contenido.resumen + [t for t in contenido.finales if t not in contenido.resumen]:
         historia += tabla(t)
-    if contenido.advertencias:
-        historia.append(parrafo("Advertencias", subtitulo))
-        historia += [parrafo(f"• {a}") for a in contenido.advertencias]
     if contenido.firma:
-        historia.append(KeepTogether([Spacer(1, 18), parrafo("Firma electrónica", subtitulo),
-                                      parrafo(contenido.firma)]))
+        historia.append(KeepTogether([
+            Spacer(1, 26), HRFlowable(width=2.4 * inch, thickness=0.8, color=colors.HexColor(_TINTA), hAlign="LEFT"),
+            parrafo("Firma electrónica del Contador", gris), parrafo(contenido.firma)]))
 
     salida = io.BytesIO()
-    documento = SimpleDocTemplate(salida, pagesize=pagina, leftMargin=36, rightMargin=36, topMargin=36,
-                                  bottomMargin=60, title=contenido.titulo, author="SIGAB")
-    documento.build(historia, canvasmaker=partial(_lienzo([SELLO])))
+    documento = SimpleDocTemplate(salida, pagesize=pagina, leftMargin=36, rightMargin=36, topMargin=30,
+                                  bottomMargin=54, title=contenido.titulo, author="SIGAB")
+    documento.build(historia, canvasmaker=partial(_lienzo(SELLO)))
     return salida.getvalue()
 
 
@@ -267,6 +430,38 @@ def _nombre_hoja(titulo: str, usados: set[str]) -> str:
     return nombre
 
 
+_UNIDAD = {MONEDA: "COP", PORCENTAJE: "%", ENTERO: "Número", NUMERO: "Número", FECHA: "Fecha",
+           FECHA_HORA: "Fecha y hora"}
+_RANGO = re.compile(r"^(\d{2}/\d{2}/\d{4}) a (\d{2}/\d{2}/\d{4})")
+
+
+def _filas_resumen(contenido: ContenidoReporte) -> list[list[Any]]:
+    """Hoja «Resumen Ejecutivo» como la plantilla: Campo | Valor | Tipo / Unidad | Observación. La fecha de
+    generación y los extremos de cada período van como fechas de Excel, no como texto (CA-4, M8-13)."""
+    filas: list[list[Any]] = [["Campo", "Valor", "Tipo / Unidad", "Observación"],
+                              ["Reporte", contenido.titulo, "Texto", ""]]
+    if contenido.generado is not None:
+        local = en_zona_usuario(contenido.generado)
+        filas.append(["Fecha de generación", local.replace(tzinfo=None), "Fecha y hora",
+                      f"Hora local ({etiqueta_zona(local)})"])
+    if contenido.generado_por:
+        filas.append(["Generado por", contenido.generado_por, "Texto", "Usuario que pidió el reporte"])
+    filas.append(["Estado del reporte", "Generado", "Texto", ""])
+    for campo, valor in contenido.encabezado:
+        if campo == "Fecha de generación" and contenido.generado is not None:
+            continue
+        rango = _RANGO.match(valor)
+        if rango:
+            inicio, fin = (datetime.strptime(x, "%d/%m/%Y").date() for x in rango.groups())
+            filas += [[f"{campo} (inicio)", inicio, "Fecha", valor], [f"{campo} (fin)", fin, "Fecha", ""]]
+        else:
+            filas.append([campo, valor, "Texto", ""])
+    filas += [[campo, valor, "Texto", "Parámetro de selección"] for campo, valor in contenido.parametros]
+    filas += [[i.etiqueta, _valor_excel(i.valor, i.tipo), _UNIDAD.get(i.tipo, "Texto") if not isinstance(i.valor, str)
+               else "Texto", "Indicador"] for i in contenido.indicadores]
+    return filas
+
+
 def _excel(contenido: ContenidoReporte) -> bytes:
     from openpyxl import Workbook
     from openpyxl.styles import Font
@@ -275,12 +470,15 @@ def _excel(contenido: ContenidoReporte) -> bytes:
     resumen = libro.worksheets[0]
     resumen.title = "Resumen Ejecutivo"
     usados = {resumen.title}
-    resumen.append(["Dato", "Valor"])
+    for fila_campo in _filas_resumen(contenido):
+        resumen.append(fila_campo)
+        _, valor, unidad, _ = fila_campo
+        formato = {"Fecha": "yyyy-mm-dd", "Fecha y hora": "yyyy-mm-dd hh:mm", "COP": "#,##0.00", "%": "0.00",
+                   "Número": "#,##0.##"}.get(unidad)
+        if formato and not isinstance(valor, str):
+            resumen.cell(row=resumen.max_row, column=2).number_format = formato
     for celda in resumen[1]:
         celda.font = Font(bold=True)
-    resumen.append(["Reporte", contenido.titulo])
-    for k, v in contenido.encabezado:
-        resumen.append([k, v])
     fila = resumen.max_row + 2
     for texto in contenido.aclaraciones:
         resumen.cell(row=fila, column=1, value=texto)

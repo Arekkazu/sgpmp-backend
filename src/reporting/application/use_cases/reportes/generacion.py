@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                             |
 # |------------|----------|-------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: validación común, armado y partición en archivos de 50 MB   |
+# | 2026-11-19 | Arekkazu | M08 RF-104: autor, rol y parámetros de selección como en las plantillas |
 """Pasos comunes de RF-104 que comparten la vista previa, la generación inmediata y el proceso en segundo plano.
 
 1. Permiso por tipo de reporte (Fase 1, 403) — ``Solicitante.permitidos`` sale de ``modulo1.permisos``.
@@ -25,8 +26,12 @@ from src.reporting.domain.repositories.solicitud_reporte_repository import Rende
 from src.reporting.domain.reportes.catalogo import (
     CATALOGO,
     ETIQUETAS,
+    FECHA,
     FINCA,
+    LISTA,
     PERIODO,
+    SIN_ELEGIR,
+    TEXTO_VALORES,
     DefinicionReporte,
     filtros_serializables,
     validar_filtros,
@@ -52,6 +57,7 @@ class Solicitante:
     permitidos: set[str]
     fincas: Optional[list[int]]
     zona_horaria: str = "UTC"
+    rol: str = ""
 
 
 @dataclass
@@ -120,6 +126,28 @@ def _validar_periodos(fuente: FuenteReportesRepository, definicion: DefinicionRe
     return periodos
 
 
+def _parametros(fuente: FuenteReportesRepository, definicion: DefinicionReporte, filtros: dict[str, Any],
+                periodos: dict[str, dict[str, Any]]) -> list[tuple[str, str]]:
+    """Los filtros como se leen en «Parámetros de selección»: nombres en vez de ids y «Todas» si no se eligió."""
+    salida = []
+    for filtro in definicion.filtros:
+        valor = filtros.get(filtro.nombre)
+        if filtro.tipo == PERIODO and filtro.nombre in periodos:
+            p = periodos[filtro.nombre]
+            texto = (f"{p['fecha_inicio']:%d/%m/%Y} a {p['fecha_fin']:%d/%m/%Y} "
+                     f"({'cerrado' if p['estado'] == 'CERRADO' else 'abierto'})")
+        elif valor is None:
+            texto = SIN_ELEGIR.get(filtro.nombre, "Todos")
+        elif filtro.tipo == FECHA:
+            texto = f"{valor:%d/%m/%Y}"
+        elif filtro.tipo == LISTA:
+            texto = TEXTO_VALORES.get(valor, valor)
+        else:
+            texto = fuente.nombre_referencia(filtro.tipo, valor) or "Elemento seleccionado"
+        salida.append((ETIQUETAS[filtro.nombre], texto))
+    return salida
+
+
 def preparar(fuente: FuenteReportesRepository, tipo: str, crudos: Optional[dict[str, Any]],
              solicitante: Solicitante, ahora: Optional[datetime] = None) -> Preparado:
     """Valida todo y arma el contenido. Corre dentro de la instantánea (``fuente``)."""
@@ -136,6 +164,9 @@ def preparar(fuente: FuenteReportesRepository, tipo: str, crudos: Optional[dict[
     if ahora is not None:
         ctx.generado = ahora
     contenido = ARMADORES[tipo](ctx)
+    contenido.parametros = _parametros(fuente, definicion, filtros, periodos)
+    contenido.generado = ctx.generado
+    contenido.generado_por = f"{solicitante.nombre} ({solicitante.rol})" if solicitante.rol else solicitante.nombre
     if contenido.firma:
         # Firma del Contador: nombre, rol, fecha y huella del contenido firmado (no hay certificados digitales).
         huella = sha256(repr([(t.titulo, t.filas) for t in contenido.resumen + ([contenido.detalle]
