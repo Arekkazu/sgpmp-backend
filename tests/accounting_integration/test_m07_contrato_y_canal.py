@@ -1,7 +1,9 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-SSO02: ciclo de vida del contrato y token de canal (sin BD) |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01: comprobar que el log de acceso no exponga la query AAEF. |
 """Contrato AAEF (RF-98) y token de canal (RF-SSO02) sin base de datos."""
+import logging
 from datetime import date, datetime, timedelta, timezone
 
 import pytest
@@ -15,6 +17,7 @@ from src.accounting_integration.domain.entities.contrato import (
     versiones_a_deprecar,
 )
 from src.accounting_integration.domain.entities.evento_integracion import EventoIntegracion
+from src.accounting_integration.infrastructure.gateway_aaef import ocultar_query_aaef_en_log
 from src.shared import jwt as jwt_module
 from src.shared.errors import AppError
 
@@ -91,3 +94,18 @@ def test_token_de_canal_no_sirve_para_la_web_y_al_reves(monkeypatch):
     with pytest.raises(AppError) as e:
         jwt_module.verify_token_canal(web)
     assert e.value.code == "NO_AUTENTICADO"
+
+
+def test_log_de_acceso_aaef_conserva_ruta_y_estado_sin_parametros():
+    logger = logging.getLogger("uvicorn.access")
+    formato = '%s - "%s %s HTTP/%s" %d'
+    ruta = "/api-sgpmp-test/integracion/aaef/productores/900000001"
+    args = ("203.0.113.10:1", "GET", ruta + "?Password=valor-sintetico", "1.1", 400)
+    registro = logger.makeRecord(logger.name, logging.INFO, __file__, 0, formato, args, None)
+    assert ocultar_query_aaef_en_log(registro)
+    assert registro.getMessage() == f'203.0.113.10:1 - "GET {ruta} HTTP/1.1" 400'
+
+    args = ("203.0.113.10:1", "GET", "/integracion/anexos?pagina=2", "1.1", 200)
+    registro = logger.makeRecord(logger.name, logging.INFO, __file__, 0, formato, args, None)
+    assert ocultar_query_aaef_en_log(registro)
+    assert registro.args == args

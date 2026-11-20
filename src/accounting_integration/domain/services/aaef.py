@@ -5,6 +5,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: todo MAPPER_FALLIDO dice el Mapper y el documento |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-382 RF-97: el envelope y su hash de contenido usan texto Unicode NFC |
 # | 2026-11-19 | Arekkazu | TC-M07-G016/G019 RF-96: neto negativo invierte las cuentas y LineType contra la matriz |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE02: verificar los cuatro totales del resumen contra los documentos. |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -307,6 +308,20 @@ def verificar_cuadre(envelope: dict) -> None:
             mapper = MAPPER_COMPRAS if documento["Header"]["Type"]["Code"] == TIPO_COMPRA["Code"] else MAPPER_COMPROBANTE_NIC41
             raise AaefError("MAPPER_FALLIDO", f"El documento {documento['Header']['DocumentId']} no cuadra.", "Totals",
                             {"mapper": mapper, "documento": documento["Header"]["DocumentId"]})
+
+
+def verificar_cuadre_resumen(envelope: dict) -> None:
+    """RF-AE02 5.10: contrasta los conteos e importes del resumen con sus documentos."""
+    documentos = envelope["invoices"]
+    resumen = envelope["summary"]
+    esperados = {
+        "TotalInvoices": len(documentos),
+        "TotalDocuments": len(documentos),
+        "TotalGrossAmount": sum((d["Totals"]["Subtotal"] for d in documentos), CERO),
+        "TotalNet": sum((d["Totals"]["TotalPayment"] for d in documentos), CERO),
+    }
+    if any(resumen[campo] != valor for campo, valor in esperados.items()):
+        raise AaefError("MAPPER_FALLIDO", "El resumen del documento contable no cuadra.", "summary")
 
 
 def serializar(envelope: dict) -> bytes:

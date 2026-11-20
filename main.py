@@ -34,6 +34,7 @@
 # | 2026-11-18 | Arekkazu | M08 RF-104..107: router de reportes, generación en fondo y vencimiento a las 48 h |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: router del período de gracia del contrato contable en M09 |
 # | 2026-11-19 | Leandro | INC-M07-371-G58 RF-102: iniciar la tarea periódica de archivado de M07. |
+# | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01: instalar el filtro de query para los accesos a AAEF. |
 import asyncio
 import logging
 import os
@@ -123,6 +124,7 @@ from src.supplies.infrastructure.routers.batch_historial_suministros_router impo
 from src.supplies.infrastructure.routers.costeo_suministros_router import router as costeo_suministros_router
 from src.supplies.infrastructure.routers.provision_nic41_router import router as provision_nic41_router
 from src.financial_valuation.infrastructure.routers.m06_router import router as m06_router
+from src.accounting_integration.infrastructure.gateway_aaef import ocultar_query_aaef_en_log
 from src.accounting_integration.infrastructure.routers.m07_router import router as m07_router
 from src.reporting.infrastructure.routers.dashboard_router import router as dashboard_router
 from src.reporting.infrastructure.routers.reportes_router import router as reportes_router
@@ -1098,6 +1100,8 @@ TAGS_OPENAPI = [
     {"name": "Configuración - Dashboard Layout (RF-28)", "description": "M09 · Dashboard personalizable por usuario: grilla, catálogo de widgets y datos."},
     {"name": "Configuración - Preferencia de Idioma (RF-29)", "description": "M09 · Idioma de la interfaz (`es-CO` / `en-US`), personal y global."},
 ]
+
+logging.getLogger("uvicorn.access").addFilter(ocultar_query_aaef_en_log)
 
 app = FastAPI(
     lifespan=lifespan,
