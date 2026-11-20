@@ -1,3 +1,11 @@
+## [1.4.0-rc.82](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.81...v1.4.0-rc.82) (2026-11-20)
+
+### Bug Fixes
+
+* **rf102-mod7:** desde y hasta de la auditoria en el dia del usuario, no en UTC ([e4cfa13](https://github.com/Arekkazu/sgpmp-backend/commit/e4cfa13900dbbf3e1e8ebdbe98f69c4c45e474db))
+* **rf98-mod7:** cada bloqueo de activacion avisa al administrador con su motivo ([af37202](https://github.com/Arekkazu/sgpmp-backend/commit/af372025871dae0aea13ba09421d89232732b38a))
+* **rf98-mod7:** el limite de versiones no manda a retirar una que ya esta en retiro ([bb425bf](https://github.com/Arekkazu/sgpmp-backend/commit/bb425bf103300f151cf418106acf78d73b0099e0))
+
 ## [1.4.0-rc.81](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.80...v1.4.0-rc.81) (2026-11-20)
 
 ### Bug Fixes
