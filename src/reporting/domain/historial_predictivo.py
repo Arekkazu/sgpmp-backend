@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                                  |
 # |------------|----------|------------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: TVCO, conflictos, correspondencias, colisiones y pendientes       |
+# | 2026-11-20 | Arekkazu | QA-M08 CU04 H-01 RF-106: pendientes con el mismo criterio que la bandeja de retroalimentación |
 """Reglas del historial clínico predictivo de un animal (RF-106), sin E/S.
 
 - **TVCO** (tasa de validación clínica observada) = CORRECTO / inferencias con retroalimentación sin conflicto.
@@ -104,7 +105,20 @@ def correspondencias(predicciones: list[Marcador], eventos: list[Marcador], vent
     return pares
 
 
+def evaluables(inferencias: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Las predicciones que la bandeja de retroalimentación ofrece para evaluar (RF-72): las que abren un episodio de
+    riesgo moderado o alto (cambian de nivel respecto de la anterior del rango; la primera cuenta como cambio) y las
+    que generaron alerta. Una que continúa el episodio no se evalúa aparte, así que tampoco es pendiente."""
+    salida, anterior = [], None
+    for i in sorted(inferencias, key=lambda x: x["fecha_inferencia"]):
+        nivel = i["nivel_riesgo"]
+        if (nivel is not None and nivel >= 2 and nivel != anterior) or i.get("tiene_alerta_generada"):
+            salida.append(i)
+        anterior = nivel
+    return salida
+
+
 def pendientes(inferencias: list[dict[str, Any]], con_retro: set, ahora: datetime) -> list[dict[str, Any]]:
-    viejas = [i for i in inferencias
+    viejas = [i for i in evaluables(inferencias)
               if i["id_resultado_inferencia"] not in con_retro and ahora - i["fecha_inferencia"] > ANTIGUEDAD_PENDIENTE]
     return sorted(viejas, key=lambda i: (i["nivel_riesgo"] or 0, i["fecha_inferencia"]), reverse=True)

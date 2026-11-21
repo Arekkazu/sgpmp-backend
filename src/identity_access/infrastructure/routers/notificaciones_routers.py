@@ -2,6 +2,8 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: filtros de la bandeja, atender y descartar notificaciones |
 # | 2026-11-18 | Arekkazu | M08 RF-105 R6: preferencias de canal del usuario |
+# | 2026-11-21 | destroyerban | INC-M08-382-G013 RF-105: sin tamano la bandeja trae 50 por página |
+# | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: notificación ajena → 403 con el mensaje del RF |
 """Router de la bandeja de notificaciones internas del usuario (RF-14, RF-105)."""
 from typing import Literal, Optional
 
@@ -9,6 +11,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.notificaciones.listar_notificaciones_use_case import (
+    TAMANO_PAGINA_BANDEJA,
     ListarNotificacionesUseCase,
 )
 from src.identity_access.application.use_cases.notificaciones.marcar_notificacion_leida_use_case import (
@@ -55,7 +58,8 @@ ModuloFiltro = Literal["cuentas", "activos", "telemetria", "prediccion", "sumini
 )
 def listar_notificaciones(
     pagina: int = Query(1, ge=1),
-    tamano: int = Query(20, ge=1, le=50),
+    tamano: int = Query(TAMANO_PAGINA_BANDEJA, ge=1, le=TAMANO_PAGINA_BANDEJA,
+                        description="Notificaciones por página: 50 por defecto y como máximo"),
     solo_no_leidas: bool = Query(False),
     nivel: Optional[NivelFiltro] = Query(None),
     estado: Optional[EstadoFiltro] = Query(None, description="Sin estado: nuevas y leídas (panel principal)"),
@@ -113,6 +117,7 @@ def marcar_todas_leidas(
     response_model=NotificacionInternaResponse,
     responses={
         401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
     },
 )
@@ -123,7 +128,7 @@ def marcar_notificacion_leida(
 ):
     """Marca como leída una notificación propia.
 
-    **Acceso:** autenticado. Una notificación ajena responde 404.
+    **Acceso:** autenticado. Una notificación de otro usuario responde 403 y una inexistente 404.
     """
     return MarcarNotificacionLeidaUseCase(
         notificaciones_repo=SqlAlchemyNotificacionRepository(db),
@@ -135,7 +140,7 @@ def marcar_notificacion_leida(
     "/{id_notificacion}/atendida",
     summary="Marcar una notificación como atendida (RF-105)",
     response_model=NotificacionInternaResponse,
-    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse},
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse},
                404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
 )
 def marcar_notificacion_atendida(
@@ -147,7 +152,7 @@ def marcar_notificacion_atendida(
     """Cierra una notificación propia con lo que se hizo.
 
     **Acceso:** autenticado. En una alerta crítica `accion_documentada` es obligatoria (20+ caracteres
-    con contenido; si no, 400). Ya atendida o descartada → 422. Ajena → 404.
+    con contenido; si no, 400). Ya atendida o descartada → 422. De otro usuario → 403; inexistente → 404.
     """
     return AtenderNotificacionUseCase(
         notificaciones_repo=SqlAlchemyNotificacionRepository(db),
@@ -159,7 +164,8 @@ def marcar_notificacion_atendida(
     "/{id_notificacion}/descartada",
     summary="Descartar una notificación (RF-105)",
     response_model=NotificacionInternaResponse,
-    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse},
+               422: {"model": ErrorResponse}},
 )
 def descartar_notificacion(
     id_notificacion: int,
@@ -168,7 +174,8 @@ def descartar_notificacion(
 ):
     """Saca una advertencia o informativa del panel principal; sigue en el historial.
 
-    **Acceso:** autenticado. Una alerta crítica no se descarta (422: se cierra atendiéndola). Ajena → 404.
+    **Acceso:** autenticado. Una alerta crítica no se descarta (422: se cierra atendiéndola). De otro
+    usuario → 403; inexistente → 404.
     """
     return DescartarNotificacionUseCase(
         notificaciones_repo=SqlAlchemyNotificacionRepository(db),
