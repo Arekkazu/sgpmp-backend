@@ -57,19 +57,21 @@ class TestSubCasoNingunRouterExponeLosMappersDirectamenteConfirmadoCorrecto:
             assert 'mapear_compras' not in texto and 'mapear_comprobantes' not in texto
 
 
-class TestSubCasoExisteUnaSegundaRutaInternaLegitimaHallazgo:
+class TestSubCasoExisteUnaSegundaRutaInternaLegitimaDocumentacion:
     def test_rf98_invoca_los_mappers_directamente_para_autoprobar_el_anexo(self):
+        """HALLAZGO ya resuelto como documentacion (no como bug), confirmado por el equipo
+        2026-11-20: validar_con_datos_de_prueba() (RF-AE02 5.10) invoca mapear_compras() y
+        mapear_comprobantes() directamente con datos sinteticos fijos, sin pasar por RF-97 --
+        contradice la letra de las Precondiciones de RF-96 ("invocacion exclusivamente desde
+        RF-97"). No es una brecha de seguridad (es una autoprueba interna del anexo antes de
+        poner en revision, sin ningun endpoint HTTP que la exponga) ni un defecto de codigo --
+        el equipo decidio que Analisis actualiza las Precondiciones de RF-96 para reconocer esta
+        segunda via legitima, en vez de cambiar el codigo. Se deja esta prueba en verde,
+        documentando el hecho real, no bloqueando el pipeline por una decision ya tomada."""
         archivo = REPO_ROOT / (
             'src/accounting_integration/application/use_cases/contratos/gestionar_anexos_use_case.py')
         texto = archivo.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO: validar_con_datos_de_prueba() (RF-AE02 5.10) invoca mapear_compras() y "
-            "mapear_comprobantes() directamente con datos sinteticos fijos, sin pasar por "
-            "RF-97 -- contradice la letra de las Precondiciones de RF-96 ('invocacion "
-            "exclusivamente desde RF-97'). No es una brecha de seguridad (es un autoprueba "
-            "interna del anexo antes de pasar a revision, sin ningun endpoint HTTP que la "
-            "exponga), pero el RF deberia reconocer esta segunda via legitima."
-        ) if 'mapear_compras(' in texto and 'mapear_comprobantes(' in texto else None
+        assert 'mapear_compras(' in texto and 'mapear_comprobantes(' in texto
 
 
 class TestSubCasoGobiernoDelAnexoConfirmadoCorrecto:
