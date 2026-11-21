@@ -1,0 +1,332 @@
+{
+  "grupo": "TC-M09-G132",
+  "casos": [
+    "TC-M09-261",
+    "TC-M09-262"
+  ],
+  "run_id": "run-20261007-042408",
+  "ambiente": "TEST",
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "prueba_local": false,
+  "post_planificados": 4,
+  "post_ejecutados": 4,
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "",
+    "diff_cached_stat": "",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi": {
+    "fuente": "https://api.inmero.co/back-sigab-test/openapi.json",
+    "endpoints": {
+      "calibrar": true,
+      "calibraciones": true
+    },
+    "valor_referencia": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Valor Referencia"
+    },
+    "modo_calibracion_declarado": false
+  },
+  "actor": {
+    "id_usuario": 4,
+    "correo": "ingeniero@pecuaria.co",
+    "rol": "Ingeniero de Campo",
+    "estado": "Activo",
+    "permisos_calibracion": [
+      1,
+      2,
+      3
+    ],
+    "actor_auxiliar_get": "administador.dev@gmail.com",
+    "intentos_admin": [
+      {
+        "correo": "admin.dev@gmail.com",
+        "resultado": "La cuenta admin.dev@gmail.com no autentica (HTTP 401)."
+      },
+      {
+        "correo": "administador.dev@gmail.com",
+        "login": 200,
+        "get_dispositivo_3": 200
+      }
+    ]
+  },
+  "fixture": {
+    "preferido": {
+      "ids": "sensor 6 / dispositivo 3 / área 3",
+      "error": null,
+      "valido": true
+    },
+    "error_ingeniero": "No existe fixture verificable por GET que admita 22.1234. Preferido: GET /configuracion/dispositivos-iot/3: Ingeniero HTTP 404; requiere actor auxiliar GET..",
+    "sensor": 6,
+    "dispositivo": 3,
+    "area": 3,
+    "categoria": "TEMPERATURA",
+    "rango": {
+      "min": "0.0000",
+      "max": "45.0000"
+    },
+    "asociacion": 6,
+    "activo": {
+      "dispositivo": true,
+      "sensor": true,
+      "area": true
+    },
+    "fuente": "GET en TEST"
+  },
+  "TC-M09-262": {
+    "pre": {
+      "total": 7,
+      "ids": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ]
+    },
+    "request": {
+      "ruta": "/configuracion/sensores/6/calibrar",
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.1234,
+        "observaciones": "QA TC-M09-262",
+        "fecha_calibracion": "2026-10-07T09:24:13.117Z"
+      }
+    },
+    "http": 201,
+    "mensaje": "",
+    "id_calibracion": 17,
+    "valor_respuesta": "22.1234",
+    "assertions_newman": [
+      {
+        "name": "Éxito 2xx e id_calibracion",
+        "error": null
+      }
+    ],
+    "post": {
+      "total": 8,
+      "ids": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ]
+    },
+    "registro_encontrado": true,
+    "valor_recuperado": "22.1234",
+    "ids_creados": [
+      17
+    ],
+    "respuesta_exacta": true,
+    "get_exacto": true,
+    "resultado": "APROBADO",
+    "motivo": "HTTP 201, ID 17; respuesta y GET conservan exactamente 22.1234."
+  },
+  "TC-M09-261": {
+    "NaN": {
+      "pre": {
+        "total": 8,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ]
+      },
+      "request": {
+        "ruta": "/configuracion/sensores/6/calibrar",
+        "body": {
+          "modo_calibracion": "SENSOR",
+          "id_dispositivo_iot": 3,
+          "id_infraestructura": 3,
+          "valor_referencia": "NaN",
+          "observaciones": "QA TC-M09-261",
+          "fecha_calibracion": "2026-10-07T09:24:15.696Z"
+        }
+      },
+      "mensaje_esperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'NaN'.",
+      "http": 500,
+      "mensaje": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+      "id_calibracion": null,
+      "valor_respuesta": null,
+      "assertions_newman": [
+        {
+          "name": "HTTP 400 y mensaje exacto de formato",
+          "error": "expected 500 to deeply equal 400"
+        }
+      ],
+      "post": {
+        "total": 8,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ]
+      },
+      "ids_creados": [],
+      "resultado": "RECHAZADO",
+      "motivo": "HTTP 500 en vez de 400; mensaje \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\" distinto del texto de formato exigido."
+    },
+    "Infinity": {
+      "pre": {
+        "total": 8,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ]
+      },
+      "request": {
+        "ruta": "/configuracion/sensores/6/calibrar",
+        "body": {
+          "modo_calibracion": "SENSOR",
+          "id_dispositivo_iot": 3,
+          "id_infraestructura": 3,
+          "valor_referencia": "Infinity",
+          "observaciones": "QA TC-M09-261",
+          "fecha_calibracion": "2026-10-07T09:24:16.200Z"
+        }
+      },
+      "mensaje_esperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'Infinity'.",
+      "http": 400,
+      "mensaje": "El ajuste de Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+      "id_calibracion": null,
+      "valor_respuesta": null,
+      "assertions_newman": [
+        {
+          "name": "HTTP 400 y mensaje exacto de formato",
+          "error": "expected 'El ajuste de Infinity excede los rang…' to deeply equal 'Error de formato: El valor de referen…'"
+        }
+      ],
+      "post": {
+        "total": 8,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ]
+      },
+      "ids_creados": [],
+      "resultado": "RECHAZADO",
+      "motivo": "mensaje \"El ajuste de Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.\" distinto del texto de formato exigido."
+    },
+    "-Infinity": {
+      "pre": {
+        "total": 8,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ]
+      },
+      "request": {
+        "ruta": "/configuracion/sensores/6/calibrar",
+        "body": {
+          "modo_calibracion": "SENSOR",
+          "id_dispositivo_iot": 3,
+          "id_infraestructura": 3,
+          "valor_referencia": "-Infinity",
+          "observaciones": "QA TC-M09-261",
+          "fecha_calibracion": "2026-10-07T09:24:16.695Z"
+        }
+      },
+      "mensaje_esperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada '-Infinity'.",
+      "http": 400,
+      "mensaje": "El ajuste de -Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+      "id_calibracion": null,
+      "valor_respuesta": null,
+      "assertions_newman": [
+        {
+          "name": "HTTP 400 y mensaje exacto de formato",
+          "error": "expected 'El ajuste de -Infinity excede los ran…' to deeply equal 'Error de formato: El valor de referen…'"
+        }
+      ],
+      "post": {
+        "total": 8,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ]
+      },
+      "ids_creados": [],
+      "resultado": "RECHAZADO",
+      "motivo": "mensaje \"El ajuste de -Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.\" distinto del texto de formato exigido."
+    },
+    "resultado": "RECHAZADO"
+  },
+  "stop_all": false,
+  "resultado_general": "RECHAZADO",
+  "motivo_general": "El oráculo incumplido se detalla en TC-M09-261/NaN, TC-M09-261/Infinity, TC-M09-261/-Infinity.",
+  "incidencias": [
+    {
+      "titulo": "Valores especiales no rechazados como formato decimal inválido",
+      "grupo_responsable": "Desarrollo",
+      "casos": [
+        "TC-M09-261"
+      ],
+      "motivo": "NaN: HTTP 500 en vez de 400; mensaje \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\" distinto del texto de formato exigido. Infinity: mensaje \"El ajuste de Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.\" distinto del texto de formato exigido. -Infinity: mensaje \"El ajuste de -Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.\" distinto del texto de formato exigido.",
+      "esperado": "NaN: 400, mensaje exacto y sin persistencia. Infinity: 400, mensaje exacto y sin persistencia. -Infinity: 400, mensaje exacto y sin persistencia.",
+      "obtenido": "NaN: HTTP 500, mensaje \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\", PRE {\"total\":8,\"ids\":[10,11,12,13,14,15,16,17]}, POST {\"total\":8,\"ids\":[10,11,12,13,14,15,16,17]}. Infinity: HTTP 400, mensaje \"El ajuste de Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.\", PRE {\"total\":8,\"ids\":[10,11,12,13,14,15,16,17]}, POST {\"total\":8,\"ids\":[10,11,12,13,14,15,16,17]}. -Infinity: HTTP 400, mensaje \"El ajuste de -Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.\", PRE {\"total\":8,\"ids\":[10,11,12,13,14,15,16,17]}, POST {\"total\":8,\"ids\":[10,11,12,13,14,15,16,17]}.",
+      "causa_raiz": "Validación o manejo de valores no finitos en la aplicación; mecanismo exacto del despliegue por confirmar.",
+      "type": "bug",
+      "severity": "Important",
+      "priority": "High"
+    }
+  ]
+}

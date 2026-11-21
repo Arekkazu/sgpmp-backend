@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G102 — preparación</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 980px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    code { font-family: Consolas, monospace; }
+    .b { display: inline-block; background: #fff4d6; border: 1px solid #e0c36a; border-radius: 4px; padding: .1rem .45rem; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-89 · Caso TC-M06-G102</p>
+  <h1>Preparación de los subcasos 16, 17 y 18</h1>
+  <p>Identificador vigente TC-M06-G102. Nombre histórico G74. Issues #976 y #977. Entorno TEST. 2026-11-10. America/Bogota. Usuario Contador.</p>
+  <p><span class="b">BLOQUEADO</span> No se envió <code>POST /finanzas/precios</code>. Los subcasos no quedan aprobados.</p>
+
+  <h2>Diseño actualizado con el issue #976</h2>
+  <p><code>evidencia_documental</code> es un texto obligatorio de 1 a 500 caracteres. Sirve como referencia verificable: URL de un boletín UPRA, número de acta, número de resolución o descripción del mercado. No se adjunta un archivo.</p>
+  <p>Para la fuente <code>ESTIMADA</code>, <code>justificacion_estimacion</code> es obligatoria y debe tener al menos 50 caracteres. El texto del subcaso 18 explica por qué no se usa <code>MERCADO_ACTIVO</code>, por qué no se usa <code>UPRA</code> y qué comparables se tomaron.</p>
+  <p>RF-89 v1.1 y RFC-024 C24.5 piden HTTP 400 cuando la justificación es insuficiente. En la rama <code>laura</code> el caso de uso todavía lanza un error de regla de negocio, que el API publica como HTTP 422. El cambio a HTTP 400 está en el PR #1024, que sigue abierto. No se comprobó el código desplegado en TEST y no se provocó el error con un POST. Una respuesta 422 no se tomará como conforme a la ficha v1.1. El subcaso 18 preparado usa una justificación suficiente, así que su resultado esperado sigue siendo HTTP 201.</p>
+
+  <h2>Especie 424 leída el 10 de noviembre</h2>
+  <p>El catálogo confirma la especie activa «Ovino Qa Precios». La configuración financiera la tiene como producción y categoría <code>POR_CABEZA</code>. El umbral de desviación es 50,00. Hay dos precios y no hay duplicados.</p>
+  <table>
+    <tr><th>Id</th><th>Fuente</th><th>Precio</th><th>Vigencia</th><th>Estado</th><th>Aplicado</th></tr>
+    <tr><td>436</td><td>MERCADO_ACTIVO</td><td>4.000.000,00</td><td>2026-11-01</td><td>ACTIVO</td><td>Sí</td></tr>
+    <tr><td>437</td><td>UPRA</td><td>3.900.000,00</td><td>2026-11-09</td><td>ACTIVO</td><td>No</td></tr>
+  </table>
+  <p>El UPRA de 3.900.000 ya no está programado. Su vigencia empezó el 9 de noviembre y hoy está activo. No es el precio aplicado: entre fuentes gana <code>MERCADO_ACTIVO</code>. No hay un precio <code>ESTIMADA</code>.</p>
+  <p>De 22 activos reconocidos, ninguno pertenece a la especie 424. El listado biológico por especie respondió 403 para el Contador, así que esta lectura no cuenta activos que todavía no tengan reconocimiento. El issue #977 los declara inexistentes.</p>
+
+  <h2>Referencia de cada subcaso</h2>
+  <table>
+    <tr><th>Subcaso</th><th>Comparación de la misma fuente</th><th>¿Pide confirmación?</th></tr>
+    <tr><td>TC-M06-16</td><td>5.000.000 frente a 4.000.000: 25 %</td><td>No. 25 no supera 50.</td></tr>
+    <tr><td>TC-M06-17</td><td>4.800.000 frente al UPRA ya activo de 3.900.000: 23,08 %</td><td>No. 23,08 no supera 50.</td></tr>
+    <tr><td>TC-M06-18</td><td>No hay ESTIMADA anterior.</td><td>No hay desviación que confirmar.</td></tr>
+  </table>
+  <p>La comparación del 8 de noviembre, que trataba el UPRA como programado y sin referencia vigente, ya no describe el catálogo.</p>
+
+  <h2>TC-M06-32 y TC-M06-33</h2>
+  <p>Son los subcasos de TC-M06-G108, issue #983. Validan la confirmación de una desviación sobre la referencia <code>MERCADO_ACTIVO</code> de 4.000.000: 6.500.000 equivale a 62,5 % y debe responder 409; 6.000.000 equivale a 50 % y no pide confirmación. Su evidencia del 8 de noviembre está bloqueada y no tiene POST. En el repositorio no aparecen como una suite de regresión. La regresión sigue suspendida, así que no se ejecutan ni se prepara su corrida.</p>
+  <p>El subcaso 16 no debe enviarse todavía. Al registrarse, reemplaza esa referencia de 4.000.000. Los subcasos 17 y 18 comparan solo contra su propia fuente y no cambian el precio de mercado activo. Pueden ejecutarse, cuando haya autorización, sin esperar al subcaso 16 ni a TC-M06-32/33.</p>
+
+  <h2>Cuerpos preparados y no enviados</h2>
+  <p><code>unidad_medida</code> no forma parte de <code>PrecioDTO</code>. Con categoría <code>POR_CABEZA</code> el servicio guarda «cabeza». <code>fecha_vigencia</code> es 2026-11-10 para que el precio quede activo en esta fecha. <code>confirmar_desviacion</code> va en falso porque ninguna variación supera el umbral.</p>
+  <p>Si el POST se autoriza otro día, el ejecutor usa la fecha de Bogotá de esa ejecución. Un precio igual, de la misma fuente, que ya exista, detiene el envío.</p>
+
+  <h2>Protección del ejecutor</h2>
+  <p><code>preparar_tc_m06_g102.py</code> quedó en solo lectura. Una corrida de comprobación leyó dos precios y no envió el alta. El POST exige <code>TC_AUTORIZAR_POST</code> en 17 o 18. El 16 además exige <code>TC_G108_EJECUTADO=424</code>. Solo acepta la especie 424, un solo POST por invocación y no lo reintenta si la espera agota los 90 segundos. No abre base de datos ni cierra períodos. El script oficial conserva los rechazos 19, 20 y 21 y no se ejecutó.</p>
+  <ul>
+    <li><a href="resumen_preparacion_TC-M06-G102.json">resumen_preparacion_TC-M06-G102.json</a></li>
+    <li><a href="evidencias_preparacion_TC-M06-G102.json">evidencias_preparacion_TC-M06-G102.json</a></li>
+  </ul>
+</body>
+</html>

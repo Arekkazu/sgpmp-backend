@@ -1,0 +1,16 @@
+TC-M09-179 investigación + corrida rev3 TEST
+Fecha: 2026-09-25
+NO incidente. Git: sin commit/push/add.
+
+CANDIDATO: productor@pecuaria.co id=2 Productor Activo
+Finca activa (vw_rf25 ORDER BY id_finca): 1 El Remanso
+Identidad 1 primary #1A6B3C secondary #A8D5B5
+GET contexto browser: id_finca=1 identidad y accesibilidad no null
+
+PATCH temporal finca 1 primary=#FFFFFF (admin API, RF-26)
+Contexto DESPUES (browser, misma finca 1): primary=#FFFFFF claro ratio=1 cumple_aa=false color_ajustado=#757575
+
+Asercion CSS: data-theme era null al leer (timing GET tema / C7). No se concluye defecto.
+RESTORE python: identidad #1A6B3C/#A8D5B5 version 3; theme_mode productor=2. GET contexto final finca 1 #1A6B3C.
+
+Bundle TEST index-DxP-cOjm.js: QR()+j7() setProperty --brand-500 = accesibilidad.primary_color.{claro|oscuro}.color_ajustado segun data-theme.

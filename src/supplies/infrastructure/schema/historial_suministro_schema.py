@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: 202, nivel de volumen y archivos   |
 """Schemas de respuesta de RF-81 — Historial/Trazabilidad de Suministros."""
 from __future__ import annotations
 
@@ -68,6 +71,7 @@ class ResumenHistorialResponse(BaseModel):
     datos_contexto_no_disponibles: bool
     datos_actualizados_hasta: datetime.datetime
     nivel_volumen: int
+    mensaje: Optional[str] = None
 
     @classmethod
     def desde_entidad(cls, r: ResumenConsultaHistorial) -> "ResumenHistorialResponse":
@@ -81,7 +85,27 @@ class ResumenHistorialResponse(BaseModel):
             datos_contexto_no_disponibles=r.datos_contexto_no_disponibles,
             datos_actualizados_hasta=r.datos_actualizados_hasta,
             nivel_volumen=r.nivel_volumen,
+            mensaje=r.mensaje,
         )
+
+
+class InfoNivelVolumenResponse(BaseModel):
+    """CA-17: por qué la consulta pasó a modo asíncrono."""
+
+    nivel: int
+    modo_procesamiento: str = "ASINCRONO"
+    tiempo_estimado_segundos: int
+    total_registros_activo: int
+
+
+class ConsultaAsincronaResponse(BaseModel):
+    """RF-81 E3/E7: 202 con el id del trabajo asíncrono."""
+
+    id_consulta_asincrona: Optional[int] = None
+    id_exportacion: Optional[int] = None
+    estado: str
+    mensaje: str
+    info_nivel_volumen: Optional[InfoNivelVolumenResponse] = None
 
 
 class HistorialSuministroListResponse(BaseModel):
@@ -117,6 +141,8 @@ class EstadoTrabajoHistorialResponse(BaseModel):
     fecha_procesado: Optional[datetime.datetime]
     intento: Optional[int]
     total_registros: Optional[int] = None
+    resultado: Optional[dict] = None
+    url_descarga: Optional[str] = None
 
     @classmethod
     def desde_entidades(
@@ -130,4 +156,10 @@ class EstadoTrabajoHistorialResponse(BaseModel):
             fecha_procesado=trabajo.fecha_procesado,
             intento=ejecucion.intento if ejecucion else None,
             total_registros=ejecucion.total_registros if ejecucion else None,
+            resultado=ejecucion.resultado_json if ejecucion else None,
+            url_descarga=(
+                f"/suministros/historial/trabajos/{trabajo.id_cola}/descargar"
+                if trabajo.tipo_trabajo == "EXPORTACION" and trabajo.estado.value == "COMPLETADO"
+                else None
+            ),
         )

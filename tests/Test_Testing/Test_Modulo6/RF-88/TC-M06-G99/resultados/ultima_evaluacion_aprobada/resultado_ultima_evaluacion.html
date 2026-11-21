@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G99 — evaluación aprobada</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 920px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    code { font-family: Consolas, monospace; }
+    .ok { display: inline-block; background: #e5f6ea; border: 1px solid #8bc79a; border-radius: 4px; padding: .1rem .45rem; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-87, RF-88 y RF-93 · Caso TC-M06-G99</p>
+  <h1>Cierre del período 219 y depreciación del activo 1567</h1>
+  <p>Identificador vigente TC-M06-G99. Issue histórico #972. Entorno TEST. 2026-11-10. America/Bogota.</p>
+  <p><span class="ok">APROBADO</span> 2/2. No es un BUG.</p>
+
+  <h2>Objetivo</h2>
+  <p>Comprobar que el cierre del período 219 calcula la depreciación del activo al costo, registra la línea <code>DEPRECIACION_ACTIVO_COSTO</code> y el evento <code>DEPRECIACION_REGISTRADA</code>, y que un segundo cierre responde 409 <code>PERIODO_CERRADO</code> sin duplicar esos registros.</p>
+
+  <h2>Dependencia TC-M06-G111</h2>
+  <p>TC-M06-41 se ejecutó antes del cierre, sobre el mismo período aislado. Se registró el costo 1690, subtipo OTRO, por 100.00, en el activo 1568 y con fecha 2026-11-10. La prevalidación quedó en <code>puede_cerrar: false</code> por <code>COSTOS_PENDIENTE_CLASIFICACION</code>.</p>
+  <p><code>POST /finanzas/periodos/219/cierre</code> respondió 422 <code>CIERRE_BLOQUEADO</code> a las 2026-11-10T06:16:55Z. El período permaneció ABIERTO. Después se clasificó el costo como MANTENIMIENTO y se generó la línea 2625, <code>MANO_OBRA_PROPIA</code>, por 100.00. La prevalidación volvió a <code>puede_cerrar: true</code>, sin bloqueos ni autorización pendiente.</p>
+  <p>TC-M06-37 no se repitió: ya estaba aprobado el 2026-11-08 y su activo es el 951, fuera de este escenario.</p>
+
+  <h2>Precondiciones leídas antes del cierre</h2>
+  <table>
+    <tr><th>Elemento</th><th>Lectura</th></tr>
+    <tr><td>Titular</td><td>QA M06 Cierre SAS, NIT 900000002, finca 466. Solo los activos 1567 y 1568.</td></tr>
+    <tr><td>Período 219</td><td>ABIERTO, 2026-11-01 a 2026-11-30. Único período de ese NIT antes del cierre.</td></tr>
+    <tr><td>Activo 1567</td><td>QA-M06C-COSTO-01. Costo 4500000.0000. Vida útil 120 meses. Depreciación acumulada 0. Fecha de ingreso 2026-07-31.</td></tr>
+    <tr><td>Activo 1568</td><td>QA-M06C-VR-01. Valor razonable. Sin valoración por costo.</td></tr>
+    <tr><td>Prevalidación</td><td>HTTP 200. <code>puede_cerrar: true</code>. Sin bloqueos, sin activos sin precio y sin líneas sin trazabilidad.</td></tr>
+    <tr><td>Depreciación previa</td><td>0 líneas <code>DEPRECIACION_ACTIVO_COSTO</code> y 0 eventos <code>DEPRECIACION_REGISTRADA</code>.</td></tr>
+  </table>
+
+  <h2>Cálculo</h2>
+  <p>La fecha confirmada del activo 1567 es 2026-07-31. El cierre usa esa fecha de adquisición y el día menor entre el fin del período y el día de la operación. La línea quedó con fecha 2026-11-10.</p>
+  <p>De julio a noviembre hay 4 meses de calendario. El día 10 es anterior al día 31 y no es el último día de noviembre, así que la regla resta un mes y quedan 3. El importe es 4.500.000 × 3 / 120 = 112.500,00. La expectativa informada por el equipo coincide con este resultado; el 1 de agosto no es la fecha registrada.</p>
+
+  <h2>Primer cierre</h2>
+  <p><code>POST /finanzas/periodos/219/cierre</code> con <code>autorizar_exclusiones: false</code> e <code>incluir_activos_sin_precio: false</code>. HTTP 200 a las 2026-11-10T06:18:00Z. Identificador de cierre 43. Estado CERRADO. Activos procesados: 2. Excluidos: ninguno.</p>
+  <table>
+    <tr><th>Registro</th><th>Resultado</th></tr>
+    <tr><td>Línea 2628</td><td><code>DEPRECIACION_ACTIVO_COSTO</code>, 112500.00, activo 1567, estado REGISTRADA, fecha 2026-11-10.</td></tr>
+    <tr><td>Comprobante 78</td><td>NIC-900000002-202611-DEPRECIACION_ACTIVO_COSTO-423. Total 112500.00. Cuentas 516005 y 159205.</td></tr>
+    <tr><td>Evento 9614</td><td><code>DEPRECIACION_REGISTRADA</code>, activo 1567, período 219, referencia 43, monto 112500.0000.</td></tr>
+    <tr><td>Valoración 24</td><td>Depreciación acumulada 112500.0000. Valor contable 4387500.0000.</td></tr>
+    <tr><td>Activo 1568</td><td>Sin valoración por costo y sin línea de depreciación.</td></tr>
+    <tr><td>Evento 9615</td><td><code>MEDICION_PENDIENTE</code>, advertencia NIC 41 ¶30. Es el aviso previsto porque la especie ya tiene precio. No es un defecto.</td></tr>
+  </table>
+  <p>El cierre abrió el período 260, diciembre de 2026, para el mismo NIT 900000002. El período 220 no se consultó ni se cerró.</p>
+
+  <h2>Segundo cierre</h2>
+  <p>La misma solicitud se envió a las 2026-11-10T06:18:03Z. HTTP 409 <code>PERIODO_CERRADO</code>. El mensaje indica que el período 2026-11 ya fue cerrado el 2026-11-10.</p>
+  <p>Después del segundo intento siguen existiendo una sola línea de depreciación, la 2628, y un solo evento <code>DEPRECIACION_REGISTRADA</code>.</p>
+
+  <h2>Validaciones</h2>
+  <table>
+    <tr><th>Validación</th><th>Resultado</th></tr>
+    <tr><td>Registro de la depreciación en el cierre</td><td>APROBADO</td></tr>
+    <tr><td>Prevención de un segundo registro</td><td>APROBADO</td></tr>
+  </table>
+  <p>Resultado del caso: 2/2.</p>
+
+  <h2>Evidencias</h2>
+  <ul>
+    <li><a href="resumen_ultima_evaluacion.json">resumen_ultima_evaluacion.json</a></li>
+    <li><a href="evidencias_ultima_evaluacion.json">evidencias_ultima_evaluacion.json</a></li>
+    <li><a href="../comparacion_evaluaciones.html">Comparación</a></li>
+  </ul>
+</body>
+</html>

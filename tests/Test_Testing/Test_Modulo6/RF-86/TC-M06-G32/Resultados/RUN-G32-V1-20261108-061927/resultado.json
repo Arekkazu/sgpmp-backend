@@ -1,0 +1,1098 @@
+{
+  "grupo": "G32",
+  "run_id": "RUN-G32-V1-20261108-061927",
+  "version": 1,
+  "intento": 7,
+  "casos": {
+    "TC-M06-001": {
+      "activo": 943,
+      "periodo": 8,
+      "precio_rf89_id": 18,
+      "estado_al_pesaje": "ACTIVO",
+      "estado_al_procesar": "ACTIVO",
+      "evento_m02_id": 832,
+      "variaciones_observadas": [
+        {
+          "id": 152,
+          "tipo": "GANANCIA_PRECIO_MERCADO",
+          "monto": "97290.00",
+          "valor_razonable_anterior": "3015990.00",
+          "valor_razonable_nuevo": "3175545.60",
+          "evento_origen_id": null,
+          "id_precio_mercado": null,
+          "estado": "VERIFICACION_PENDIENTE",
+          "fecha": "2026-11-08T06:19:29.439585Z",
+          "origen_fuente": "GET /finanzas/lineas/{id}/cadena tras POST RF-91"
+        },
+        {
+          "id": 151,
+          "tipo": "GANANCIA_TRANSFORMACION_BIOLOGICA",
+          "monto": "62265.60",
+          "valor_razonable_anterior": "3015990.00",
+          "valor_razonable_nuevo": "3175545.60",
+          "evento_origen_id": null,
+          "id_precio_mercado": null,
+          "estado": "VERIFICACION_PENDIENTE",
+          "fecha": "2026-11-08T06:19:29.439585Z",
+          "origen_fuente": "GET /finanzas/lineas/{id}/cadena tras POST RF-91"
+        }
+      ],
+      "medicion_rf83": {
+        "id": 102,
+        "estado": "COMPLETADO",
+        "transformacion": "62265.6000",
+        "precio_mercado": "97290.0000",
+        "total": "159555.6000",
+        "valor_razonable_anterior": "3015990.0000",
+        "valor_razonable_nuevo": "3175545.6000"
+      },
+      "valores_esperados_calculados": {
+        "transformacion": 62265.6,
+        "precio_mercado": 97290,
+        "total": 159555.6,
+        "valor_razonable_anterior": 3015990,
+        "valor_razonable_nuevo": 3175545.6,
+        "magnitud_anterior": 345,
+        "magnitud_nueva": 351.9
+      },
+      "oraculo_inicial": {
+        "estado": "APROBADO",
+        "motivo": "Tipos, montos, período y estado inicial conformes; origen pendiente de cadena RF-91."
+      },
+      "hallazgos": [
+        "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+      ],
+      "oraculo": {
+        "estado": "RECHAZADO",
+        "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+      },
+      "preparacion": "activo 943, período 8, evento 832, precio 18",
+      "observado": "2 variaciones: GANANCIA_PRECIO_MERCADO=97290.00, GANANCIA_TRANSFORMACION_BIOLOGICA=62265.60",
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "estado": "RECHAZADO",
+      "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+    },
+    "TC-M06-002": {
+      "activo": 945,
+      "periodo": 8,
+      "precio_rf89_id": 18,
+      "estado_al_pesaje": "ACTIVO",
+      "estado_al_procesar": "EN_TRATAMIENTO",
+      "evento_m02_id": 833,
+      "variaciones_observadas": [
+        {
+          "id": 153,
+          "tipo": "PERDIDA_TRANSFORMACION_BIOLOGICA",
+          "monto": "-55226.88",
+          "valor_razonable_anterior": "2761344.00",
+          "valor_razonable_nuevo": "2706117.12",
+          "evento_origen_id": null,
+          "id_precio_mercado": null,
+          "estado": "VERIFICACION_PENDIENTE",
+          "fecha": "2026-11-08T06:19:29.439585Z",
+          "origen_fuente": "GET /finanzas/lineas/{id}/cadena tras POST RF-91"
+        }
+      ],
+      "medicion_rf83": {
+        "id": 103,
+        "estado": "COMPLETADO",
+        "transformacion": "-55226.8800",
+        "precio_mercado": "0.0000",
+        "total": "-55226.8800",
+        "valor_razonable_anterior": "2761344.0000",
+        "valor_razonable_nuevo": "2706117.1200"
+      },
+      "valores_esperados_calculados": {
+        "transformacion": -55226.88,
+        "precio_mercado": 0,
+        "total": -55226.88,
+        "valor_razonable_anterior": 2761344,
+        "valor_razonable_nuevo": 2706117.12,
+        "magnitud_anterior": 306,
+        "magnitud_nueva": 299.88
+      },
+      "oraculo_inicial": {
+        "estado": "APROBADO",
+        "motivo": "Tipos, montos, período y estado inicial conformes; origen pendiente de cadena RF-91."
+      },
+      "hallazgos": [
+        "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+      ],
+      "oraculo": {
+        "estado": "RECHAZADO",
+        "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+      },
+      "preparacion": "activo 945, período 8, evento 833, precio 18",
+      "observado": "1 variaciones: PERDIDA_TRANSFORMACION_BIOLOGICA=-55226.88",
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "estado": "RECHAZADO",
+      "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+    },
+    "TC-M06-003": {
+      "activo": 944,
+      "periodo": 8,
+      "precio_rf89_id": 172,
+      "estado_al_pesaje": "ACTIVO",
+      "estado_al_procesar": "ACTIVO",
+      "evento_m02_id": 834,
+      "variaciones_observadas": [
+        {
+          "id": 155,
+          "tipo": "PERDIDA_PRECIO_MERCADO",
+          "monto": "-53805.60",
+          "valor_razonable_anterior": "2779956.00",
+          "valor_razonable_nuevo": "2998765.44",
+          "evento_origen_id": null,
+          "id_precio_mercado": null,
+          "estado": "VERIFICACION_PENDIENTE",
+          "fecha": "2026-11-08T06:19:29.439585Z",
+          "origen_fuente": "GET /finanzas/lineas/{id}/cadena tras POST RF-91"
+        },
+        {
+          "id": 154,
+          "tipo": "GANANCIA_TRANSFORMACION_BIOLOGICA",
+          "monto": "272615.04",
+          "valor_razonable_anterior": "2779956.00",
+          "valor_razonable_nuevo": "2998765.44",
+          "evento_origen_id": null,
+          "id_precio_mercado": null,
+          "estado": "VERIFICACION_PENDIENTE",
+          "fecha": "2026-11-08T06:19:29.439585Z",
+          "origen_fuente": "GET /finanzas/lineas/{id}/cadena tras POST RF-91"
+        }
+      ],
+      "medicion_rf83": {
+        "id": 104,
+        "estado": "COMPLETADO",
+        "transformacion": "272615.0400",
+        "precio_mercado": "-53805.6000",
+        "total": "218809.4400",
+        "valor_razonable_anterior": "2779956.0000",
+        "valor_razonable_nuevo": "2998765.4400"
+      },
+      "valores_esperados_calculados": {
+        "transformacion": 272615.04,
+        "precio_mercado": -53805.6,
+        "total": 218809.44,
+        "valor_razonable_anterior": 2779956,
+        "valor_razonable_nuevo": 2998765.44,
+        "magnitud_anterior": 318,
+        "magnitud_nueva": 349.8
+      },
+      "oraculo_inicial": {
+        "estado": "APROBADO",
+        "motivo": "Tipos, montos, período y estado inicial conformes; origen pendiente de cadena RF-91."
+      },
+      "hallazgos": [
+        "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+      ],
+      "oraculo": {
+        "estado": "RECHAZADO",
+        "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+      },
+      "preparacion": "activo 944, período 8, evento 834, precio 172",
+      "observado": "2 variaciones: PERDIDA_PRECIO_MERCADO=-53805.60, GANANCIA_TRANSFORMACION_BIOLOGICA=272615.04",
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "estado": "RECHAZADO",
+      "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+    },
+    "TC-M06-004": {
+      "activo": 946,
+      "periodo": 8,
+      "precio_rf89_id": 173,
+      "estado_al_pesaje": "ACTIVO",
+      "estado_al_procesar": "ACTIVO",
+      "evento_m02_id": 835,
+      "variaciones_observadas": [
+        {
+          "id": 156,
+          "tipo": "GANANCIA_PRECIO_MERCADO",
+          "monto": "241956.00",
+          "valor_razonable_anterior": "2884860.00",
+          "valor_razonable_nuevo": "3126816.00",
+          "evento_origen_id": null,
+          "id_precio_mercado": null,
+          "estado": "VERIFICACION_PENDIENTE",
+          "fecha": "2026-11-08T06:19:29.439585Z",
+          "origen_fuente": "GET /finanzas/lineas/{id}/cadena tras POST RF-91"
+        }
+      ],
+      "medicion_rf83": {
+        "id": 105,
+        "estado": "COMPLETADO",
+        "transformacion": "0.0000",
+        "precio_mercado": "241956.0000",
+        "total": "241956.0000",
+        "valor_razonable_anterior": "2884860.0000",
+        "valor_razonable_nuevo": "3126816.0000"
+      },
+      "valores_esperados_calculados": {
+        "transformacion": 0,
+        "precio_mercado": 241956,
+        "total": 241956,
+        "valor_razonable_anterior": 2884860,
+        "valor_razonable_nuevo": 3126816,
+        "magnitud_anterior": 330,
+        "magnitud_nueva": 330
+      },
+      "oraculo_inicial": {
+        "estado": "APROBADO",
+        "motivo": "Tipos, montos, período y estado inicial conformes; origen pendiente de cadena RF-91."
+      },
+      "hallazgos": [
+        "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+      ],
+      "oraculo": {
+        "estado": "RECHAZADO",
+        "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+      },
+      "preparacion": "activo 946, período 8, evento 835, precio 173",
+      "observado": "1 variaciones: GANANCIA_PRECIO_MERCADO=241956.00",
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "estado": "RECHAZADO",
+      "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO."
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-001",
+      "fuente": "API",
+      "id": "G32-API-001-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-002",
+      "fuente": "API",
+      "id": "G32-API-002-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-003",
+      "fuente": "API",
+      "id": "G32-API-003-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-004",
+      "fuente": "API",
+      "id": "G32-API-004-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO.",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "duracion_ms": 1193,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "duracion_ms": 668,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "duracion_ms": 251,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "duracion_ms": 517,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "duracion_ms": 280,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "duracion_ms": 224,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 245,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "http": 200,
+      "duracion_ms": 184,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "duracion_ms": 167,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/946",
+      "http": 200,
+      "duracion_ms": 164,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/947",
+      "http": 200,
+      "duracion_ms": 164,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "duracion_ms": 202,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/944/ficha-integral",
+      "http": 200,
+      "duracion_ms": 193,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/ficha-integral",
+      "http": 200,
+      "duracion_ms": 254,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/946/ficha-integral",
+      "http": 200,
+      "duracion_ms": 295,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/947/ficha-integral",
+      "http": 200,
+      "duracion_ms": 182,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 145,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/943/eventos/crecimiento",
+      "http": 201,
+      "duracion_ms": 187,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "duracion_ms": 224,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 150,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 252,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 144,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 158,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/945/eventos/crecimiento",
+      "http": 201,
+      "duracion_ms": 188,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "PATCH",
+      "ruta": "/activos-biologicos/945/estado",
+      "http": 200,
+      "duracion_ms": 169,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "duracion_ms": 200,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 254,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "duracion_ms": 241,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 146,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 144,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "http": 201,
+      "duracion_ms": 154,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/944/eventos/crecimiento",
+      "http": 201,
+      "duracion_ms": 177,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "duracion_ms": 176,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 229,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "http": 200,
+      "duracion_ms": 172,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 191,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 156,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "http": 201,
+      "duracion_ms": 163,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/946/eventos/crecimiento",
+      "http": 201,
+      "duracion_ms": 254,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "duracion_ms": 209,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 161,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/946",
+      "http": 200,
+      "duracion_ms": 229,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 151,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/8/trazabilidad",
+      "http": 500,
+      "duracion_ms": 177,
+      "eco": true,
+      "codigo": "ERROR_INTERNO",
+      "cuerpo_saneado": "{\"error_code\":\"ERROR_INTERNO\",\"message\":\"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\",\"fields\":[],\"timestamp\":\"2026-11-08T06:19:37.646675+00:00\"}"
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 166,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas/391/cadena",
+      "http": 200,
+      "duracion_ms": 157,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas/390/cadena",
+      "http": 200,
+      "duracion_ms": 145,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 150,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 160,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas/392/cadena",
+      "http": 200,
+      "duracion_ms": 142,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 147,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 232,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas/394/cadena",
+      "http": 200,
+      "duracion_ms": 146,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas/393/cadena",
+      "http": 200,
+      "duracion_ms": 142,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 153,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 247,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas/395/cadena",
+      "http": 200,
+      "duracion_ms": 161,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 154,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-001",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/variaciones",
+      "http": 200,
+      "duracion_ms": 600,
+      "herramienta": "Newman"
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-002",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/variaciones",
+      "http": 200,
+      "duracion_ms": 228,
+      "herramienta": "Newman"
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/variaciones",
+      "http": 200,
+      "duracion_ms": 227,
+      "herramienta": "Newman"
+    },
+    {
+      "caso": "TC-M06-G32 / TC-M06-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/variaciones",
+      "http": 200,
+      "duracion_ms": 162,
+      "herramienta": "Newman"
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G32-V1-20261108-061927",
+      "http": 200,
+      "duracion_ms": 134,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "duracion_ms": 168,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 229,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/eventos",
+      "http": 200,
+      "duracion_ms": 206,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/eventos",
+      "http": 200,
+      "duracion_ms": 181,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/944/eventos",
+      "http": 200,
+      "duracion_ms": 192,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/946/eventos",
+      "http": 200,
+      "duracion_ms": 179,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/ficha-integral",
+      "http": 200,
+      "duracion_ms": 266,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "duracion_ms": 188,
+      "eco": null,
+      "codigo": ""
+    }
+  ],
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "TC-M06-G32_resultado.md",
+    "newman/newman-G32.json",
+    "newman/newman-G32.html"
+  ],
+  "incidencias": [
+    {
+      "id": "INC-M06-G32-01",
+      "caso": "TC-M06-G32 / TC-M06-001, TC-M06-G32 / TC-M06-002, TC-M06-G32 / TC-M06-003, TC-M06-G32 / TC-M06-004",
+      "clave": "ORIGEN",
+      "discrepancia": "Origen no consultable por cadena RF-91: POST /finanzas/periodos/8/trazabilidad HTTP 500, código ERROR_INTERNO.",
+      "severidad": "ALTA",
+      "equipo_inicial": "Desarrollo",
+      "certeza": "CONFIRMADA",
+      "causa_raiz": "CONFIRMADA por log: trigger TGR-M06-26 (RF-91 R4) rechaza la cadena de la variación 4 de un período CERRADO y el caso de uso aborta la verificación del período",
+      "descripcion": "POST de trazabilidad del período 8 devolvió HTTP 500 ERROR_INTERNO; el rechazo de una cadena de período cerrado abortó la verificación y las cadenas del RUN quedaron sin origen consultable.",
+      "dato_a_revisar": "Origen no confirmado de una línea del período 8 ABIERTO ligada a la variación 4 de un período CERRADO.",
+      "justificacion": "La trazabilidad NIC 41 obligatoria para el Contador y auditores no es consultable por la cadena RF-91; funcionalidad relevante sin alternativa pública observada."
+    }
+  ],
+  "problemas_tecnicos": [],
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 4,
+      "fallos": 0,
+      "codigo": 0
+    },
+    "newman_preflight_version": "6.2.2"
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "efectos_persistentes_declarados": {
+    "tipo": "ALERTA_FINANCIERA_NIC41",
+    "precios_registrados": 2,
+    "id_precio_mercado": [
+      172,
+      173
+    ],
+    "alcance": "Evento M01 y aviso interno por Contador; fuera del sandbox.",
+    "referencia_revertida": true,
+    "registros_sin_id": 0,
+    "bandeja_contador_qa": {
+      "estado": "OBSERVADO",
+      "avisos_observados": 0,
+      "metodo": "Bandeja pública propia; IDs posteriores a la línea base y mensaje NIC41."
+    }
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200,
+      "cuerpo_saneado": null
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "DELETE 200 y ausencia pública poscierre de los registros del RUN; estado M02 restaurado si se preparó."
+    }
+  },
+  "impedimentos_precios": [],
+  "observaciones_auxiliares": [],
+  "verificaciones_trazabilidad": [
+    {
+      "periodo": 8,
+      "ruta": "/finanzas/periodos/8/trazabilidad",
+      "http": 500,
+      "codigo": "ERROR_INTERNO",
+      "cuerpo_saneado": "{\"error_code\":\"ERROR_INTERNO\",\"message\":\"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\",\"fields\":[],\"timestamp\":\"2026-11-08T06:19:37.646675+00:00\"}",
+      "eco": true
+    }
+  ],
+  "consultas_cadena": [
+    {
+      "caso": "TC-M06-001",
+      "variacion_id": 152,
+      "linea_id": 391,
+      "http": 200,
+      "codigo": null,
+      "cuerpo_saneado": "{\"id_linea_asiento_nic41\":391,\"tipo_hecho\":\"VARIACION_VR_PM\",\"sentido\":\"GANANCIA\",\"valor\":\"97290.00\",\"tabla_origen\":\"variaciones_valor_razonable\",\"id_origen\":152,\"tipo_evidencia\":\"VARIACION_PRECIO\",\"estado_trazabilidad\":\"VERIFICACION_PENDIENTE\",\"id_activo_biologico\":943,\"fecha_hecho\":\"2026-11-08\",\"cuenta_debito\":\"158405\",\"cuenta_credito\":\"424805\",\"estado_verificacion\":null,\"nivel_fallo\":null,\"fecha_verificacion\":null,\"eslabones_faltantes\":null,\"eslabones\":null}",
+      "ids_observados": {
+        "id_evento": null,
+        "id_precio_mercado": null
+      }
+    },
+    {
+      "caso": "TC-M06-001",
+      "variacion_id": 151,
+      "linea_id": 390,
+      "http": 200,
+      "codigo": null,
+      "cuerpo_saneado": "{\"id_linea_asiento_nic41\":390,\"tipo_hecho\":\"VARIACION_VR_TB\",\"sentido\":\"GANANCIA\",\"valor\":\"62265.60\",\"tabla_origen\":\"variaciones_valor_razonable\",\"id_origen\":151,\"tipo_evidencia\":\"IOT_DIRECTO\",\"estado_trazabilidad\":\"VERIFICACION_PENDIENTE\",\"id_activo_biologico\":943,\"fecha_hecho\":\"2026-11-08\",\"cuenta_debito\":\"158405\",\"cuenta_credito\":\"424805\",\"estado_verificacion\":null,\"nivel_fallo\":null,\"fecha_verificacion\":null,\"eslabones_faltantes\":null,\"eslabones\":null}",
+      "ids_observados": {
+        "id_evento": null,
+        "id_precio_mercado": null
+      }
+    },
+    {
+      "caso": "TC-M06-002",
+      "variacion_id": 153,
+      "linea_id": 392,
+      "http": 200,
+      "codigo": null,
+      "cuerpo_saneado": "{\"id_linea_asiento_nic41\":392,\"tipo_hecho\":\"VARIACION_VR_TB\",\"sentido\":\"PERDIDA\",\"valor\":\"55226.88\",\"tabla_origen\":\"variaciones_valor_razonable\",\"id_origen\":153,\"tipo_evidencia\":\"REGISTRO_MANUAL\",\"estado_trazabilidad\":\"VERIFICACION_PENDIENTE\",\"id_activo_biologico\":945,\"fecha_hecho\":\"2026-11-08\",\"cuenta_debito\":\"539505\",\"cuenta_credito\":\"158405\",\"estado_verificacion\":null,\"nivel_fallo\":null,\"fecha_verificacion\":null,\"eslabones_faltantes\":null,\"eslabones\":null}",
+      "ids_observados": {
+        "id_evento": null,
+        "id_precio_mercado": null
+      }
+    },
+    {
+      "caso": "TC-M06-003",
+      "variacion_id": 155,
+      "linea_id": 394,
+      "http": 200,
+      "codigo": null,
+      "cuerpo_saneado": "{\"id_linea_asiento_nic41\":394,\"tipo_hecho\":\"VARIACION_VR_PM\",\"sentido\":\"PERDIDA\",\"valor\":\"53805.60\",\"tabla_origen\":\"variaciones_valor_razonable\",\"id_origen\":155,\"tipo_evidencia\":\"VARIACION_PRECIO\",\"estado_trazabilidad\":\"VERIFICACION_PENDIENTE\",\"id_activo_biologico\":944,\"fecha_hecho\":\"2026-11-08\",\"cuenta_debito\":\"539505\",\"cuenta_credito\":\"158405\",\"estado_verificacion\":null,\"nivel_fallo\":null,\"fecha_verificacion\":null,\"eslabones_faltantes\":null,\"eslabones\":null}",
+      "ids_observados": {
+        "id_evento": null,
+        "id_precio_mercado": null
+      }
+    },
+    {
+      "caso": "TC-M06-003",
+      "variacion_id": 154,
+      "linea_id": 393,
+      "http": 200,
+      "codigo": null,
+      "cuerpo_saneado": "{\"id_linea_asiento_nic41\":393,\"tipo_hecho\":\"VARIACION_VR_TB\",\"sentido\":\"GANANCIA\",\"valor\":\"272615.04\",\"tabla_origen\":\"variaciones_valor_razonable\",\"id_origen\":154,\"tipo_evidencia\":\"IOT_DIRECTO\",\"estado_trazabilidad\":\"VERIFICACION_PENDIENTE\",\"id_activo_biologico\":944,\"fecha_hecho\":\"2026-11-08\",\"cuenta_debito\":\"158405\",\"cuenta_credito\":\"424805\",\"estado_verificacion\":null,\"nivel_fallo\":null,\"fecha_verificacion\":null,\"eslabones_faltantes\":null,\"eslabones\":null}",
+      "ids_observados": {
+        "id_evento": null,
+        "id_precio_mercado": null
+      }
+    },
+    {
+      "caso": "TC-M06-004",
+      "variacion_id": 156,
+      "linea_id": 395,
+      "http": 200,
+      "codigo": null,
+      "cuerpo_saneado": "{\"id_linea_asiento_nic41\":395,\"tipo_hecho\":\"VARIACION_VR_PM\",\"sentido\":\"GANANCIA\",\"valor\":\"241956.00\",\"tabla_origen\":\"variaciones_valor_razonable\",\"id_origen\":156,\"tipo_evidencia\":\"VARIACION_PRECIO\",\"estado_trazabilidad\":\"VERIFICACION_PENDIENTE\",\"id_activo_biologico\":946,\"fecha_hecho\":\"2026-11-08\",\"cuenta_debito\":\"158405\",\"cuenta_credito\":\"424805\",\"estado_verificacion\":null,\"nivel_fallo\":null,\"fecha_verificacion\":null,\"eslabones_faltantes\":null,\"eslabones\":null}",
+      "ids_observados": {
+        "id_evento": null,
+        "id_precio_mercado": null
+      }
+    }
+  ],
+  "diagnostico_candidatos": {
+    "medido": true,
+    "total_recibido": 9,
+    "bovino": 6,
+    "individual": 6,
+    "estado": 5,
+    "sin_costo": 5,
+    "valor_positivo": 5,
+    "precio_vigente": 5,
+    "periodo_destino": 5,
+    "peso_kg": 5,
+    "calculo_previo": 5,
+    "primera_condicion_fallida": null
+  },
+  "oficial": true,
+  "consume_version": true,
+  "estado_ejecucion": "OFICIAL"
+}

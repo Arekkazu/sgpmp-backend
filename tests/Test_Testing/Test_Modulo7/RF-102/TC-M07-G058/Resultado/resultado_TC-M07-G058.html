@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"/>
+<title>TC-M07-G058 — RF-102 — RECHAZADO</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#f7f7f5;color:#1a1a1a}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{border:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}
+th{background:#e8eef5} .note{background:#eef6ff;border-left:4px solid #2563eb;padding:10px;margin:12px 0}
+.lim{background:#fff8e6;border-left:4px solid #9a6b00;padding:10px;margin:12px 0}
+.warn{background:#fde8e8;border-left:4px solid #b00020;padding:10px;margin:12px 0}
+</style></head><body>
+<h1>TC-M07-G058 — Retención y conservación de registros históricos</h1>
+<div class="card">
+  <strong>RF-102 · CU07 · TC-M07-102-015</strong> ·
+  Estado <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#b00020;color:#fff;font-weight:600">RECHAZADO</span> · UTC 2026-11-18T03:31:32.363431+00:00
+</div>
+<div class="note">Tabla objetivo: <code>modulo7.eventos_integracion</code>.
+Hash: SHA-256 por registro. Inmutabilidad por trigger. Retención 5/10 años y archivado automático:
+inspeccionados y <strong>no implementados</strong> en M07.</div>
+<div class="warn">La existencia de <code>hash_integridad</code> NO implica sistema de retención/archivado.</div>
+<div class="card"><h2>Escenarios</h2>
+<table><thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Validación</th><th>Evidencia</th></tr></thead>
+<tbody><tr><td>E1</td><td>Políticas de retención 5 y 10 años</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#b00020;color:#fff;font-weight:600">RECHAZADO</span></td><td>Existencia de políticas 5y/10y implementadas</td><td>evidencia_e1_retencion_TC-M07-G058.json</td></tr><tr><td>E2</td><td>Archivado automático</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#b00020;color:#fff;font-weight:600">RECHAZADO</span></td><td>Proceso automático de archivado M07</td><td>evidencia_e2_archivado_TC-M07-G058.json</td></tr><tr><td>E3</td><td>Conservación / verificación de hash_integridad</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Hash presente, SHA-256, verificación en consulta actual</td><td>evidencia_e3_hash_TC-M07-G058.json</td></tr><tr><td>E4</td><td>Disponibilidad de registros históricos archivados</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#b00020;color:#fff;font-weight:600">RECHAZADO</span></td><td>Almacenamiento histórico + consulta de archivados</td><td>evidencia_e4_historicos_TC-M07-G058.json</td></tr><tr><td>E5</td><td>Pruebas de antigüedad 5 y 10 años</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#9a6b00;color:#fff;font-weight:600">BLOQUEADO</span></td><td>Registros reales ge 5y / AAEF ge 10y consultables</td><td>evidencia_e5_antiguedad_TC-M07-G058.json</td></tr><tr><td>E6</td><td>Comportamiento ante fallos de archivado</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#555;color:#fff;font-weight:600">NO APLICA</span></td><td>Fallos de escritura/hash/reintento en archivado</td><td>evidencia_e6_fallos_archivado_TC-M07-G058.json</td></tr></tbody></table></div>
+<div class='card'><h3>E1: Políticas de retención 5 y 10 años <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#b00020;color:#fff;font-weight:600">RECHAZADO</span></h3><p><strong>Esperado:</strong> Política ejecutables: 5 años generales, 10 años AAEF</p><p><strong>Obtenido:</strong> Solo requisito/caso de prueba; sin configuración, columnas de vencimiento, procedimientos ni reglas de eliminación/exclusión AAEF en M07</p><p><strong>Evidencia:</strong> <code>evidencia_e1_retencion_TC-M07-G058.json</code></p><ul><li>Escaneo src/accounting_integration + migración 94b14a6931d6</li><li>Coincidencias retención/archivado filtradas: 0</li><li>DDL: hash_integridad NOT NULL + triggers inmutabilidad; sin retencion_hasta / fecha_expiracion</li><li>SQL local: sin jobs cron M07 de retención</li></ul><p><strong>Observaciones:</strong> Clasificado RECHAZADO: RF-102 exige retención y no está implementada. No es NO APLICA (el requisito sí corresponde al alcance).</p></div><div class='card'><h3>E2: Archivado automático <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#b00020;color:#fff;font-weight:600">RECHAZADO</span></h3><p><strong>Esperado:</strong> Job/worker/servicio que archive registros según política</p><p><strong>Obtenido:</strong> No hay workers/cron/tareas M07 de archivado; repositorio solo INSERT/SELECT; pg_cron local=False; jobs filtrados vacíos/no aplicables</p><p><strong>Evidencia:</strong> <code>evidencia_e2_archivado_TC-M07-G058.json</code></p><ul><li>Búsqueda archiv* / retention en accounting_integration → vacío útil</li><li>Catálogo SQL modulo7: vistas rf102 pero sin tabla de archivo</li><li>Contraste: modulo1.eventos_archivados existe (otro módulo, no RF-102)</li></ul><p><strong>Observaciones:</strong> Archivado M07 ausente → RECHAZADO respecto al requisito obligatorio del caso.</p></div><div class='card'><h3>E3: Conservación / verificación de hash_integridad <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><strong>Esperado:</strong> Hash en registros; verificable; conservación tras archivado si existe</p><p><strong>Obtenido:</strong> algoritmo_ok=True; api_n=160; integridad INTEGRO=160 CORRUPTO=0; pct_integro=100.0; conservación en archivado: NO EVALUABLE (no hay archivado)</p><p><strong>Evidencia:</strong> <code>evidencia_e3_hash_TC-M07-G058.json</code></p><ul><li>Propiedad EventoIntegracion.hash_integridad = SHA-256 de campos (sin el hash)</li><li>Migración: hash_integridad varchar(64) NOT NULL + CHECK ^[0-9a-f]{64}$</li><li>Use case consulta marca integridad INTEGRO/CORRUPTO al leer</li><li>Muestra TEST: 160 registros, corrupto=0</li><li>No se alteraron registros reales para forzar corrupción</li></ul><p><strong>Observaciones:</strong> APROBADO por integridad de registros actuales y algoritmo. No se afirma conservación durante archivado (mecanismo inexistente).</p></div><div class='card'><h3>E4: Disponibilidad de registros históricos archivados <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#b00020;color:#fff;font-weight:600">RECHAZADO</span></h3><p><strong>Esperado:</strong> Repositorio histórico consultable con ids/fechas/hashes</p><p><strong>Obtenido:</strong> Solo existe consulta de registros actuales (GET /integracion/auditoria). No hay endpoint/tabla de archivados M07. Confundir actual≠histórico.</p><p><strong>Evidencia:</strong> <code>evidencia_e4_historicos_TC-M07-G058.json</code></p><ul><li>Router M07: GET /auditoria y /auditoria/exportar sobre la misma tabla</li><li>Sin rutas /historico ni /archivo</li><li>SQL: sin tablas eventos_integracion_archivo/historico en catálogo esperado</li></ul><p><strong>Observaciones:</strong> RECHAZADO: requisito de histórico archivado no implementado.</p></div><div class='card'><h3>E5: Pruebas de antigüedad 5 y 10 años <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#9a6b00;color:#fff;font-weight:600">BLOQUEADO</span></h3><p><strong>Esperado:</strong> Existencia y recuperacion de registros con esa antiguedad</p><p><strong>Obtenido:</strong> Registros API=160; min=2026-11-14 01:48:57.742013+00:00; max=2026-11-18 03:30:49.026617+00:00; ge_5y=0; aaef_ge_10y=0. Sin evidencia de plazos cumplidos (ausencia de vencidos ≠ retención implementada).</p><p><strong>Evidencia:</strong> <code>evidencia_e5_antiguedad_TC-M07-G058.json</code></p><ul><li>Export/consulta TEST sin modificar fechas</li><li>Conteo ge_5y=0, aaef_ge_10y=0</li><li>No se simularon fechas en BD compartida</li></ul><p><strong>Observaciones:</strong> BLOQUEADO por falta de registros suficientemente antiguos en TEST. No se inventó histórico. Distinto de E1 (ausencia de implementación).</p></div><div class='card'><h3>E6: Comportamiento ante fallos de archivado <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#555;color:#fff;font-weight:600">NO APLICA</span></h3><p><strong>Esperado:</strong> Manejo de fallos del proceso de archivado</p><p><strong>Obtenido:</strong> No existe proceso de archivado M07 que pueda fallar</p><p><strong>Evidencia:</strong> <code>evidencia_e6_fallos_archivado_TC-M07-G058.json</code></p><ul><li>Confirmada ausencia de archivado en E2</li><li>No se construyó proceso ficticio ni mocks de un flujo inexistente</li></ul><p><strong>Observaciones:</strong> NO APLICA: sin proceso de archivado no hay superficie de fallo que probar. La ausencia del proceso en sí está en E2=RECHAZADO.</p></div>
+<div class="card"><h2>Diagnóstico</h2>
+<pre>{
+  &quot;retencion_5y_10y&quot;: &quot;NO_IMPLEMENTADA&quot;,
+  &quot;archivado_automatico&quot;: &quot;NO_IMPLEMENTADO&quot;,
+  &quot;hash_pct_integro&quot;: 100.0,
+  &quot;hash_algoritmo&quot;: &quot;SHA-256&quot;,
+  &quot;almacenamiento_historico&quot;: false,
+  &quot;registros_api&quot;: 160,
+  &quot;min_fecha&quot;: &quot;2026-11-14T01:48:57.742013+00:00&quot;,
+  &quot;max_fecha&quot;: &quot;2026-11-18T03:30:49.026617+00:00&quot;,
+  &quot;ge_5y&quot;: 0,
+  &quot;aaef_ge_10y&quot;: 0,
+  &quot;sql_local&quot;: false
+}</pre></div>
+<div class="lim"><h3>Limitaciones</h3><pre>[
+  &quot;SQL Docker local: rc=0; existe_eventos_integracion_local=False&quot;,
+  &quot;Docker local sgpmp no tiene aplicada la migración RF-102 (sin eventos_integracion); SQL estructural/cron sí.&quot;,
+  &quot;Datos de antigüedad/hash tomados de API TEST (solo lectura).&quot;,
+  &quot;No se modificó backend ni G052–G057.&quot;,
+  &quot;modulo1.eventos_archivados no se usa como evidencia de RF-102.&quot;
+]</pre></div>
+<div class="card"><h3>Resumen</h3><pre>{
+  &quot;aprobados&quot;: 1,
+  &quot;rechazados&quot;: 3,
+  &quot;bloqueados&quot;: 1,
+  &quot;no_aplica&quot;: 1,
+  &quot;estado_final&quot;: &quot;RECHAZADO&quot;
+}</pre></div>
+</body></html>

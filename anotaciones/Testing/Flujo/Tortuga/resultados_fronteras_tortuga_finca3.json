@@ -1,0 +1,678 @@
+{
+ "ejecutado": "2026-11-02T23:54:50",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "finca": 3,
+ "umbrales_dev": {
+  "2": {
+   "min": "5.00",
+   "max": "10.00",
+   "niveles": [
+    [
+     "critico",
+     "5.00",
+     "6.50"
+    ],
+    [
+     "normal",
+     "6.50",
+     "8.50"
+    ],
+    [
+     "precaucion",
+     "8.50",
+     "10.00"
+    ]
+   ],
+   "sync": "PENDIENTE"
+  },
+  "3": {
+   "min": "0.00",
+   "max": "15.00",
+   "niveles": [
+    [
+     "critico",
+     "0.00",
+     "5.00"
+    ],
+    [
+     "precaucion",
+     "5.00",
+     "6.00"
+    ],
+    [
+     "normal",
+     "6.00",
+     "15.00"
+    ]
+   ],
+   "sync": "PENDIENTE"
+  }
+ },
+ "fixture": {
+  "lotes": {
+   "QA-PH": 39,
+   "QA-O2": 40
+  },
+  "infra": 25,
+  "disp": 20,
+  "serial": "QA-TORTUGA-LECT-045352",
+  "sensores": {
+   "QA-PH": 42,
+   "QA-O2": 43
+  },
+  "codigo_variable_usado": {
+   "QA-PH": "PH_AGUA",
+   "QA-O2": "OXIGENO_DISUELTO"
+  },
+  "alertas": {
+   "QA-PH": [],
+   "QA-O2": [
+    {
+     "id": 277,
+     "severidad": "CRITICO",
+     "estado": "ACTIVA",
+     "valor": "0.0000"
+    }
+   ]
+  }
+ },
+ "pasos": [
+  {
+   "id": "U0",
+   "descripcion": "Umbral vigente de la variable 2",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "[[\"critico\", \"5.00\", \"6.50\"], [\"normal\", \"6.50\", \"8.50\"], [\"precaucion\", \"8.50\", \"10.00\"]] sync=PENDIENTE"
+  },
+  {
+   "id": "U0",
+   "descripcion": "Umbral vigente de la variable 3",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "[[\"critico\", \"0.00\", \"5.00\"], [\"precaucion\", \"5.00\", \"6.00\"], [\"normal\", \"6.00\", \"15.00\"]] sync=PENDIENTE"
+  },
+  {
+   "id": "F1",
+   "descripcion": "Crear area QA de Tortuga",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=25"
+  },
+  {
+   "id": "F3",
+   "descripcion": "Registrar dispositivo QA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=20"
+  },
+  {
+   "id": "F2",
+   "descripcion": "Lote de 1 tortuga para QA-PH",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=39"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-PH",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=42"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-PH",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-PH al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-PH",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 41, \"id_dispositivo_iot\": 20, \"id_sensor\": 42, \"valor_referencia\": 7.0, \"ganancia"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-PH a su lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 26, \"id_activo_biologico\": 39, \"tipo_activo\": \"LOTE\", \"tipo_asociaci"
+  },
+  {
+   "id": "F2",
+   "descripcion": "Lote de 1 tortuga para QA-O2",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=40"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Sensor QA-O2",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=43"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especie compatible de QA-O2",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-O2 al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-O2",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 42, \"id_dispositivo_iot\": 20, \"id_sensor\": 43, \"valor_referencia\": 8.0, \"ganancia"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-O2 a su lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 27, \"id_activo_biologico\": 40, \"tipo_activo\": \"LOTE\", \"tipo_asociaci"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-lote",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "baja del lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-lote",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "baja del lote",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar dispositivo",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  }
+ ],
+ "lecturas": [
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 4.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "4.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 5.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "5.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 6.49,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "6.4900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 6.5,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "frontera critico/normal",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "6.5000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 6.51,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "6.5100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 8.49,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "8.4900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 8.5,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "frontera normal/precaucion",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "8.5000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 8.51,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "8.5100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 9.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "9.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 10.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "10.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-PH",
+   "id_variable": 2,
+   "tipo_variable": "PH_AGUA",
+   "valor": 10.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "id_umbral": 8,
+    "valor_ajustado": "10.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 0.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "0.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 4.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "4.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 5.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "frontera critico/precaucion",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "5.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 5.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "5.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 5.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "5.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 6.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "frontera precaucion/normal",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "6.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 6.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "6.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 14.99,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "14.9900",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 15.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "15.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 15.01,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "15.0100",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 20.0,
+   "http": 201,
+   "error_code": null,
+   "message": "",
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "ROJO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "id_umbral": 9,
+    "valor_ajustado": "20.0000",
+    "tipo_activo": "POBLACIONAL",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-O2",
+   "id_variable": 3,
+   "tipo_variable": "OXIGENO_DISUELTO",
+   "valor": 20.5,
+   "http": 422,
+   "error_code": "ERROR_SENSOR",
+   "message": "El valor excede los límites físicos del sensor.",
+   "verificacion": {
+    "esperado": "fuera",
+    "resultado": "INFO",
+    "observado": "rechazada 422 ERROR_SENSOR"
+   }
+  }
+ ]
+}

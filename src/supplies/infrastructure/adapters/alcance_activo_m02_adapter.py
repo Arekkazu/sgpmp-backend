@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
 """Adaptador de alcance de activos por rol contra ``modulo2`` (RF-81 / CU-04).
 
 Aísla la deuda de que no existe un modelo real de "unidad productiva asignada
@@ -35,11 +38,14 @@ class AlcanceActivoM02Adapter(AlcanceActivoPort):
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def listar_ids_activos_permitidos(self, id_usuario: int, id_rol: int) -> Optional[list[int]]:
+    def listar_ids_activos_permitidos(
+        self, id_usuario: int, id_rol: int, id_finca: Optional[int] = None
+    ) -> Optional[list[int]]:
         alcance_finca = AlcanceFincaAdapter(self.db)
-        if alcance_finca.es_global(id_rol):
-            return None
-        ids_fincas = alcance_finca.listar_ids_fincas_permitidas(id_usuario, id_rol)
+        ids_fincas = None if alcance_finca.es_global(id_rol) else alcance_finca.listar_ids_fincas_permitidas(
+            id_usuario, id_rol)
+        if id_finca is not None:  # el filtro se combina con el alcance: una finca ajena no devuelve nada
+            ids_fincas = [id_finca] if ids_fincas is None or id_finca in ids_fincas else []
         if ids_fincas is None:
             return None
         filas = self.db.execute(_SQL_ACTIVOS_POR_FINCA, {"ids_fincas": ids_fincas}).fetchall()

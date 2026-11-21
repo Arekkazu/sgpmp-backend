@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-12 | Arekkazu | USAB-M05-M06 N-05 RF-74: fallos persistentes con el nombre del activo |
 """Router FastAPI del motor batch ICA (RF-74, Flujo C — panel de administración).
 
   POST /suministros/eficiencia-alimenticia/batch/ejecutar               — Disparar/reactivar
@@ -17,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
+from src.shared.nombre_activo import nombres_activos
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.supplies.infrastructure.dto.calcular_ica_dto import EjecutarBatchDTO, InterrumpirBatchDTO
@@ -166,5 +170,6 @@ def consultar_fallos(
     db: Session = Depends(get_db),
 ) -> FallosICAResponse:
     fallos = SqlAlchemyFalloCalculoICARepository(db).listar_no_resueltos()
-    items = [FalloICAResponse.desde_entidad(f) for f in fallos]
+    nombres = nombres_activos(db, (f.id_activo_biologico for f in fallos))  # N-05: el activo por su código, no «#159»
+    items = [FalloICAResponse.desde_entidad(f, nombres.get(f.id_activo_biologico)) for f in fallos]
     return FallosICAResponse(total=len(items), items=items)

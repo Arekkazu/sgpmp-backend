@@ -1,0 +1,35 @@
+{
+  "tc": "TC-M05-G40",
+  "summary": {
+    "total": 4,
+    "ok": 3,
+    "falla": 1,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Admin Conteo inicial, creacion de activo y muestreo de latencia (20 peticiones)",
+      "esperado": "HTTP 200 en auditoria base, HTTP 201 en activo QA y 20 suministros exitosos con medicion de latencia",
+      "obtenido": "HTTP 200 en auditoria base, HTTP 201 en activo QA y 20 suministros exitosos con medicion de latencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Presencia de cola persistente M05-M12 con capacidad para 100.000 eventos (TC-M05-095 / 031)",
+      "esperado": "Cola persistente o outbox implementada para desacoplamiento y resiliencia ante caidas de M12 (CA-9 / RNF-08)",
+      "obtenido": "AssertionError: DEFECTO_PRODUCTO (RF-80 Restr. 3 / CA-9 / RNF-08 / TC-M05-095 / 031): La especificacion exige una cola persistente entre M05 y M12 con capacidad configurable de hasta 100.000 eventos para garantizar la resiliencia ante caidas de M12. El backend carece de cola/buffer persistente o tabla outbox (la persistencia es directa y sincronica en modulo5.auditorias_suministros).",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "T98 Admin Cierre ordenado de sandbox Administrador y rollback",
+      "esperado": "HTTP 200 con confirmacion de rollback exitoso",
+      "obtenido": "HTTP 200 con confirmacion de rollback exitoso",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Admin Verificacion de inocuidad tras corrida Administrador",
+      "esperado": "Conteo final de auditoria identico al conteo inicial",
+      "obtenido": "Conteo final de auditoria identico al conteo inicial",
+      "estado": "OK"
+    }
+  ]
+}

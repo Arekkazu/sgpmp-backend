@@ -1,0 +1,46 @@
+TC-M09-G97 — ejecución oficial rev1 DEV (Newman/API) — re-corrida
+Fecha: 2026-09-14
+API: https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp
+Usuario: admin.dev@gmail.com
+Herramienta: Newman tc_m09_g97_dev.json. Cypress no ejecutado. Sin POST /sesiones/refresh.
+TLS: --insecure (cadena sslip.io).
+
+Newman: 16 requests, 32 assertions, 0 fallos.
+
+Rol JWT (claim "rol"): 1 (Administrador). Default comparado = seed id_rol 1.
+
+TC-M09-186: APROBADO
+TC-M09-188: APROBADO
+RESTORE FINAL: OK
+Resultado global G97: APROBADO
+
+PRECHECK
+- Login A POST /sesiones/ HTTP 200.
+- Snapshot inicial (5 visibles, coincide con default admin):
+  6@(1,1) span2, 9@(1,3) span1, 15@(1,4) span1, 14@(2,1) span2, 7@(2,3) span1
+  active_widget: estado_iot, alertas_crit, cfg_pendiente, fincas_estado, cal_sensores
+- GET widgets 200. Marcador: id_widget=1 clave=temp_galpon (preferido del catálogo).
+
+TC-M09-186
+- PATCH snapshot + widget 1 @ fila 3 col 4 span 1. HTTP 200.
+- GET: layout distinto al snapshot; marcador 3,4 persistido.
+- POST /restaurar (sin body) HTTP 200. Sin error_code.
+  grid y active_widget = default Admin rol 1.
+- GET posterior = mismo default.
+
+TC-M09-188
+- PATCH marcador: 1 @ 3,4 span1, active_widget=[temp_galpon]. HTTP 200.
+- GET token A: marcador presente.
+- DELETE /sesiones/ HTTP 200.
+- GET token A: HTTP 401 (esperado PASS).
+- POST /sesiones/ login B HTTP 200 (nueva sesión, no reintento).
+- GET token B: marcador 3,4 y clave temp_galpon persisten.
+
+RESTORE
+- GET version_perfil actual.
+- PATCH layout_config=snapshot.grid + active_widget snapshot. HTTP 200.
+- GET coincide con snapshot (id, fila, col, span, visible, active_widget).
+- No se usó POST /restaurar para el cierre.
+
+No password ni JWT en evidencias.
+Históricos no sobrescritos.

@@ -1,0 +1,293 @@
+{
+  "info": {
+    "name": "TC-M09-G26 - integridad referencial, unicidad y catalogo predefinido (RF-17)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M09-57",
+      "item": [
+        {
+          "name": "TC-M09-57 POST umbral",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Variante declarada y referencia de especie demostrada',()=>{pm.expect(c.variante).to.be.oneOf(['inexistente','inactiva']);if(c.variante==='inexistente'){pm.expect(c.especie.existe,'la especie no debe existir').to.eql(false);pm.expect(c.catalogoEspecies.ids,'ID ausente del catalogo completo').to.not.include(p.id_especie);}else{pm.expect(c.especie.existe,'la especie debe existir').to.eql(true);pm.expect(c.especie.es_activo,'es_activo debe ser false').to.eql(false);pm.expect(c.catalogoEspecies.inactivas).to.include(p.id_especie);}pm.expect(c.especie.id).to.eql(p.id_especie);});",
+                  "pm.test('Variable valida, activa y perteneciente al catalogo',()=>{pm.expect(c.catalogoVariables.ids).to.include(p.id_variable_ambiental);pm.expect(c.variable.catalogoActivo).to.eql(true);});",
+                  "pm.test('Rango dentro de los limites fisicos de la variable',()=>{pm.expect(num(p.valor_min)).to.be.at.least(num(c.variable.fisicoMin));pm.expect(num(p.valor_max)).to.be.at.most(num(c.variable.fisicoMax));});",
+                  "pm.test('Resto del payload estructuralmente valido',()=>{pm.expect(num(p.valor_min)).to.be.below(num(p.valor_max));pm.expect(p.niveles).to.have.lengthOf(3);pm.expect(p.niveles.map(n=>n.nivel).sort()).to.eql(['critico','normal','precaucion']);const o=ord(p.niveles);o.forEach(n=>pm.expect(num(n.limite_inferior),n.nivel).to.be.below(num(n.limite_superior)));pm.expect(num(o[0].limite_inferior)).to.eql(num(p.valor_min));pm.expect(num(o[0].limite_superior)).to.eql(num(o[1].limite_inferior));pm.expect(num(o[1].limite_superior)).to.eql(num(o[2].limite_inferior));pm.expect(num(o[2].limite_superior)).to.eql(num(p.valor_max));});",
+                  "pm.test('HTTP exactamente 422',()=>pm.response.to.have.status(422));",
+                  "pm.test('Rechazo por referencia de especie invalida',()=>{pm.expect(b.error_code).to.eql('ESPECIE_INACTIVA');pm.expect(b.message).to.include('especie');pm.expect(b.message.toLowerCase()).to.include('inactiva');pm.expect(b.fields.map(f=>f.field)).to.include('id_especie');});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-17',()=>{pm.expect(b.error_code).to.not.be.oneOf([\"VAL_ENTRADA\",\"VARIABLE_AMBIENTAL_NO_ENCONTRADA\",\"RANGO_FISICO_INVALIDO\",\"NIVEL_FUERA_DE_RANGO\",\"SOLAPAMIENTO_NIVELES\",\"UMBRAL_DUPLICADO\",\"ERROR_INTERNO\"]);pm.expect(pm.response.code).to.not.be.oneOf([400,404,409,500]);});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-57 GET umbrales de la especie",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('No se creo ninguna configuracion para la combinacion probada',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_variable_ambiental===p.id_variable_ambiental)).to.have.lengthOf(0);});",
+                  "pm.test('Los umbrales previos de la especie siguen intactos',()=>{const ids=b.items.map(u=>u.id_umbral_ambiental).sort((x,y)=>x-y);pm.expect(ids).to.eql(c.umbralesPrevios.map(u=>u.id).sort((x,y)=>x-y));});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-58",
+      "item": [
+        {
+          "name": "TC-M09-58 POST umbral",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Existe una configuracion ACTIVA previa para la combinacion',()=>{pm.expect(c.configuracionExistente.es_activo,'la configuracion previa debe estar activa').to.eql(true);pm.expect(c.configuracionExistente.id).to.be.a('number');pm.expect(c.configuracionExistente.id_especie).to.eql(p.id_especie);pm.expect(c.configuracionExistente.id_variable_ambiental).to.eql(p.id_variable_ambiental);});",
+                  "pm.test('El POST repite exactamente la misma especie y la misma variable',()=>{pm.expect(c.especie.id).to.eql(p.id_especie);pm.expect(c.especie.es_activo).to.eql(true);pm.expect(c.variable.id).to.eql(p.id_variable_ambiental);pm.expect(c.catalogoVariables.ids).to.include(p.id_variable_ambiental);});",
+                  "pm.test('Rango dentro de los limites fisicos de la variable',()=>{pm.expect(num(p.valor_min)).to.be.at.least(num(c.variable.fisicoMin));pm.expect(num(p.valor_max)).to.be.at.most(num(c.variable.fisicoMax));});",
+                  "pm.test('Resto del payload estructuralmente valido',()=>{pm.expect(num(p.valor_min)).to.be.below(num(p.valor_max));pm.expect(p.niveles).to.have.lengthOf(3);pm.expect(p.niveles.map(n=>n.nivel).sort()).to.eql(['critico','normal','precaucion']);const o=ord(p.niveles);o.forEach(n=>pm.expect(num(n.limite_inferior),n.nivel).to.be.below(num(n.limite_superior)));pm.expect(num(o[0].limite_inferior)).to.eql(num(p.valor_min));pm.expect(num(o[0].limite_superior)).to.eql(num(o[1].limite_inferior));pm.expect(num(o[1].limite_superior)).to.eql(num(o[2].limite_inferior));pm.expect(num(o[2].limite_superior)).to.eql(num(p.valor_max));});",
+                  "pm.test('HTTP exactamente 409',()=>pm.response.to.have.status(409));",
+                  "pm.test('Rechazo por umbral duplicado en la misma combinacion',()=>{pm.expect(b.error_code).to.eql('UMBRAL_DUPLICADO');pm.expect(b.message).to.include('Ya existe');pm.expect(b.message).to.include(c.variable.nombre);});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-17',()=>{pm.expect(b.error_code).to.not.be.oneOf([\"VAL_ENTRADA\",\"ESPECIE_INACTIVA\",\"VARIABLE_AMBIENTAL_NO_ENCONTRADA\",\"RANGO_FISICO_INVALIDO\",\"NIVEL_FUERA_DE_RANGO\",\"SOLAPAMIENTO_NIVELES\",\"ERROR_INTERNO\"]);pm.expect(pm.response.code).to.not.be.oneOf([400,404,422,500]);});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-58 GET umbrales de la especie",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Sigue existiendo exactamente una configuracion para la combinacion',()=>{const m=b.items.filter(u=>u.id_variable_ambiental===p.id_variable_ambiental&&u.id_especie===p.id_especie);pm.expect(m,'una sola configuracion').to.have.lengthOf(1);pm.expect(m[0].id_umbral_ambiental,'es la original, no una nueva').to.eql(c.configuracionExistente.id);});",
+                  "pm.test('La configuracion original conserva su estado activo',()=>{const u=b.items.find(x=>x.id_umbral_ambiental===c.configuracionExistente.id);pm.expect(u.es_activo).to.eql(true);pm.expect(String(u.valor_min)).to.eql(String(c.configuracionExistente.valor_min));pm.expect(String(u.valor_max)).to.eql(String(c.configuracionExistente.valor_max));});",
+                  "pm.test('No aparecio ningun umbral nuevo en la especie',()=>{const ids=b.items.map(u=>u.id_umbral_ambiental).sort((x,y)=>x-y);pm.expect(ids).to.eql(c.umbralesPrevios.map(u=>u.id).sort((x,y)=>x-y));});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-65",
+      "item": [
+        {
+          "name": "TC-M09-65 POST umbral",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('La variable enviada NO pertenece al catalogo predefinido',()=>{pm.expect(c.catalogoVariables.ids,'ID ausente del catalogo').to.not.include(p.id_variable_ambiental);pm.expect(c.variable.perteneceAlCatalogo).to.eql(false);pm.expect(c.variable.id).to.eql(p.id_variable_ambiental);});",
+                  "pm.test('El valor respeta el tipo del DTO: entero, sin error de schema',()=>{pm.expect(p.id_variable_ambiental).to.be.a('number');pm.expect(Number.isInteger(p.id_variable_ambiental)).to.eql(true);pm.expect(p.id_variable_ambiental).to.be.above(0);});",
+                  "pm.test('Especie valida y activa: ninguna otra invalidez',()=>{pm.expect(c.especie.es_activo).to.eql(true);pm.expect(c.catalogoEspecies.activas).to.include(p.id_especie);});",
+                  "pm.test('Resto del payload estructuralmente valido',()=>{pm.expect(num(p.valor_min)).to.be.below(num(p.valor_max));pm.expect(p.niveles).to.have.lengthOf(3);pm.expect(p.niveles.map(n=>n.nivel).sort()).to.eql(['critico','normal','precaucion']);const o=ord(p.niveles);o.forEach(n=>pm.expect(num(n.limite_inferior),n.nivel).to.be.below(num(n.limite_superior)));pm.expect(num(o[0].limite_inferior)).to.eql(num(p.valor_min));pm.expect(num(o[0].limite_superior)).to.eql(num(o[1].limite_inferior));pm.expect(num(o[1].limite_superior)).to.eql(num(o[2].limite_inferior));pm.expect(num(o[2].limite_superior)).to.eql(num(p.valor_max));});",
+                  "pm.test('HTTP exactamente 404 (NotFoundError VARIABLE_AMBIENTAL_NO_ENCONTRADA, contrato real y declarado en OpenAPI)',()=>pm.response.to.have.status(404));",
+                  "pm.test('Rechazo especifico por variable fuera del catalogo',()=>{pm.expect(b.error_code).to.eql('VARIABLE_AMBIENTAL_NO_ENCONTRADA');pm.expect(b.message).to.include(String(p.id_variable_ambiental));pm.expect(b.message.toLowerCase()).to.include('variable ambiental');pm.expect(b.fields.map(f=>f.field)).to.include('id_variable_ambiental');});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-17',()=>{pm.expect(b.error_code).to.not.be.oneOf([\"VAL_ENTRADA\",\"ESPECIE_INACTIVA\",\"RANGO_FISICO_INVALIDO\",\"NIVEL_FUERA_DE_RANGO\",\"SOLAPAMIENTO_NIVELES\",\"UMBRAL_DUPLICADO\",\"ERROR_INTERNO\"]);pm.expect(pm.response.code).to.not.be.oneOf([201,409,500]);});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-65 GET umbrales de la especie",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('No se creo ninguna configuracion para la combinacion probada',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_variable_ambiental===p.id_variable_ambiental)).to.have.lengthOf(0);});",
+                  "pm.test('Los umbrales previos de la especie siguen intactos',()=>{const ids=b.items.map(u=>u.id_umbral_ambiental).sort((x,y)=>x-y);pm.expect(ids).to.eql(c.umbralesPrevios.map(u=>u.id).sort((x,y)=>x-y));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-65 GET catalogo de variables ambientales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/variables-ambientales"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "pm.test('GET catalogo HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('El modulo NO creo la variable ambiental enviada',()=>{const ids=b.items.map(v=>v.id_variable_ambiental);pm.expect(ids,'la variable invalida no debe existir').to.not.include(p.id_variable_ambiental);});",
+                  "pm.test('El catalogo predefinido quedo sin cambios',()=>{const ids=b.items.map(v=>v.id_variable_ambiental).sort((x,y)=>x-y);pm.expect(b.items).to.have.lengthOf(c.catalogoVariables.total);pm.expect(ids).to.eql(c.catalogoVariables.ids);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

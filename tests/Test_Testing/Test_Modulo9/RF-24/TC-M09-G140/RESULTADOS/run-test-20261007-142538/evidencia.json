@@ -1,0 +1,164 @@
+{
+  "grupo": "TC-M09-G140",
+  "casos": [
+    "TC-M09-284",
+    "TC-M09-285"
+  ],
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo F",
+  "ambiente": "TEST",
+  "prueba_local": false,
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "run_id": "run-test-20261007-142538",
+  "fecha": "2026-10-07T14:25:40.750207+00:00",
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G133/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G134/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G135/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G139/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G140/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G141/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G142/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "(vacio)",
+    "diff_cached_stat": "(vacio)",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi_vision": {
+    "rutas_totales": 210,
+    "ocurrencias_de_VISION_como_palabra": 0,
+    "coincidencias_por_subcadena": [
+      "consultar_provision_suministros_nic41__id_provision__get",
+      "corregir_provision_suministros_nic41__id_provision__correccion_post",
+      "corregirprovisiondto",
+      "id_provision",
+      "listar_versiones_provision_suministros_nic41_ciclo__id_gestion_fases__versiones_get",
+      "listaversionesprovisionresponse",
+      "monto_provision",
+      "naprovisionada",
+      "provision",
+      "provisionnic41response"
+    ],
+    "nota_subcadena": "Las coincidencias de 'vision' provienen de 'provisión'/'revisión'. Se cuenta la palabra como token para no producir un falso positivo.",
+    "rutas_candidatas": [
+      "/suministros/nic41/{id_provision}",
+      "/suministros/nic41/{id_provision}/correccion"
+    ],
+    "registrar_calibracion_dto": {
+      "properties": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "observaciones"
+      ],
+      "required": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "fecha_calibracion"
+      ],
+      "declara_modo_calibracion": false
+    },
+    "enums_con_VISION": []
+  },
+  "fuente_vectores": {
+    "schemas_con_apto_para_ia": [
+      "TelemetriaCalidadSchema"
+    ],
+    "endpoints_que_exponen_apto_para_ia": [],
+    "entidad_de_observacion_vision": null,
+    "nota": "apto_para_ia solo aparece en el schema de calidad de telemetría de sensores. No se asume que sea el vector de comportamiento VISION solo por llevar ese campo: el caso exige una entidad con cámara, área, timestamp y componentes."
+  },
+  "configuracion_algoritmo": {
+    "linea_base": false,
+    "baseline": false,
+    "ventana_observacion": false,
+    "vector_comportamiento": false,
+    "p5": false,
+    "p95": false,
+    "winsoriz": false,
+    "percentil": false,
+    "epsilon": false,
+    "max_iter": false,
+    "refinamiento": false,
+    "convergencia": false,
+    "mediana_iterativa": false
+  },
+  "N": null,
+  "epsilon": null,
+  "max_iter": null,
+  "compuerta_ejecutabilidad": {
+    "puntos": {
+      "1_operacion_vision_publicada": false,
+      "2_fuente_formal_de_vectores_vision": false,
+      "3_componentes_numericos_del_vector": false,
+      "4_vinculo_camara_area_observacion": false,
+      "5_apto_para_ia_consultable_por_flujo_formal": false,
+      "6_minimo_N_consultable": false,
+      "7_persistencia_de_linea_base_verificable": false,
+      "8_epsilon_consultable": false,
+      "9_max_iteraciones_consultable": false,
+      "10_regla_de_refinamiento_definida": false
+    },
+    "cumplidos": 0,
+    "total": 10,
+    "criterio": "Los 10 puntos de la sección 3 del paquete. Sin fuente formal VISION no se crean K, M ni áreas gemelas y no se ejecuta ningún POST."
+  },
+  "TC-M09-284": {
+    "ambiente": "TEST",
+    "resultado": "BLOQUEADO / NO VERIFICABLE",
+    "motivo": "TEST no publica ninguna operación VISION: 'VISION' no aparece como palabra en todo el contrato (las coincidencias son 'provisión'/'revisión'), el DTO del registro de calibración no declara modo_calibracion, y no existe entidad ni ruta de vector de comportamiento VISION, ni configuración de ε, máximo de iteraciones, p5/p95 ni persistencia de línea base.",
+    "posts_vision_ejecutados": 0,
+    "K": null,
+    "M": null,
+    "baseline_K": null,
+    "baseline_KM": null,
+    "comparacion": null,
+    "impedimento_areas_gemelas": {
+      "tipo_modelo_asignado": {
+        "schema": "EditarInfraestructuraDTO",
+        "definicion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "MODELO_AVES",
+                "MODELO_PORCINOS",
+                "MODELO_ACUICULTURA",
+                "MODELO_ESPECIES_MEDIANAS",
+                "MODELO_ESPECIES_GRANDES",
+                "MODELO_RIESGO_CONTAGIO"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tipo Modelo Asignado"
+        }
+      },
+      "admite_POBLACIONAL": false,
+      "nota": "El caso pide áreas gemelas con tipo_modelo_asignado POBLACIONAL. El contrato no admite ese valor para infraestructuras; POBLACIONAL es el tipo de activo biológico, no el modelo asignado al área."
+    }
+  },
+  "TC-M09-285": {
+    "ambiente": "TEST",
+    "resultado": "BLOQUEADO / NO VERIFICABLE",
+    "motivo": "TEST no publica ninguna operación VISION: 'VISION' no aparece como palabra en todo el contrato (las coincidencias son 'provisión'/'revisión'), el DTO del registro de calibración no declara modo_calibracion, y no existe entidad ni ruta de vector de comportamiento VISION, ni configuración de ε, máximo de iteraciones, p5/p95 ni persistencia de línea base.",
+    "posts_vision_ejecutados": 0,
+    "dataset": null,
+    "oracle_descartar": null,
+    "oracle_winsorizar": null,
+    "baseline_producto": null,
+    "interpretacion_observada": null
+  },
+  "presupuesto": {
+    "postVisionPlanificadosTest": 3,
+    "postVisionEjecutados": 0,
+    "nota": "No se ejecuta ningún POST VISION mientras la operación no exista."
+  },
+  "resultado": "BLOQUEADO / NO VERIFICABLE",
+  "motivo": "TEST no publica ninguna operación VISION: 'VISION' no aparece como palabra en todo el contrato (las coincidencias son 'provisión'/'revisión'), el DTO del registro de calibración no declara modo_calibracion, y no existe entidad ni ruta de vector de comportamiento VISION, ni configuración de ε, máximo de iteraciones, p5/p95 ni persistencia de línea base.",
+  "seguridad": {
+    "limpio": true,
+    "criterio": "Esta compuerta solo consulta el contrato público; no usa credenciales."
+  }
+}

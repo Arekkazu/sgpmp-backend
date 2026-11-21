@@ -1,0 +1,368 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "074ed892-30d2-41d9-b1ea-1ea458db3c35",
+        "name": "G037-N-01 Contratos",
+        "request": {
+          "url": {
+            "path": [
+              "integracion",
+              "contratos"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "69732e39-513e-4a33-a348-b96e4bb22203",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Contratos HTTP 200',()=>pm.response.to.have.status(200));",
+                "pm.test('Contratos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+                "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+              ],
+              "_lastExecutionId": "df975139-71d8-4340-aead-597f1900c544"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ce105015-1952-43bf-9f7e-a580162e69d7",
+        "name": "G037-N-02 Gracia M09",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "parametros-integracion-contable"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "06dbf8db-8d1e-4479-b1ca-130ba9b3c2cd",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Gracia HTTP 200',()=>pm.response.to.have.status(200));",
+                "pm.test('Mínimo y defecto',()=>{const b=pm.response.json();pm.expect(b).to.be.an('array');for(const n of ['aaef_gracia_minima_dias','aaef_gracia_defecto_dias']){const p=b.find(x=>x.nombre===n);pm.expect(p).to.be.an('object');pm.expect(/^[0-9]+$/.test(String(p.valor))&&Number.isSafeInteger(Number(p.valor))).to.eql(true);pm.expect(['VALOR_BASE','CONFIGURADO']).to.include(p.fuente)}});",
+                "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+              ],
+              "_lastExecutionId": "c842115c-5c83-41f3-8b36-88fa667c3545"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "d3974de5-8f4e-4af1-8872-cba224e58db3",
+      "name": "G037 RF-98 lecturas de contraste",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "7f69b664-9923-4067-9743-d1f1114b2b6f",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "[JWT]",
+        "key": "admin_token"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G037-V2-20261120-210522",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[RESERVADO]",
+        "key": "sandbox_secret"
+      }
+    ]
+  },
+  "globals": {
+    "id": "19a51565-51e2-469c-b623-73668b41f9d0",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 565,
+      "responseMin": 125,
+      "responseMax": 1005,
+      "responseSd": 440,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1795208734702,
+      "completed": 1795208736038
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 2,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "7b4b33fb-8710-4341-b35d-64a232cd3fb9",
+          "httpRequestId": "0e0b2e64-0ec5-45b9-8aad-7c54981ac162"
+        },
+        "item": {
+          "id": "074ed892-30d2-41d9-b1ea-1ea458db3c35",
+          "name": "G037-N-01 Contratos",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "contratos"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "69732e39-513e-4a33-a348-b96e4bb22203",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Contratos HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Contratos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "df975139-71d8-4340-aead-597f1900c544"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "contratos"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "964fe132-1327-4c66-b7e6-e0dd3f7d85a3",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": "[RESERVADO]",
+          "responseTime": 1005,
+          "responseSize": 9203
+        },
+        "id": "074ed892-30d2-41d9-b1ea-1ea458db3c35",
+        "assertions": [
+          {
+            "assertion": "Contratos HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Contratos lista",
+            "skipped": false
+          },
+          {
+            "assertion": "Sandbox eco",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "761f0a6a-0c61-41af-84a3-276df527f5fc",
+          "length": 2,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "f9555150-8abd-46ef-8101-7e0505bd46bc"
+        },
+        "item": {
+          "id": "ce105015-1952-43bf-9f7e-a580162e69d7",
+          "name": "G037-N-02 Gracia M09",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "parametros-integracion-contable"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "06dbf8db-8d1e-4479-b1ca-130ba9b3c2cd",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gracia HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Mínimo y defecto',()=>{const b=pm.response.json();pm.expect(b).to.be.an('array');for(const n of ['aaef_gracia_minima_dias','aaef_gracia_defecto_dias']){const p=b.find(x=>x.nombre===n);pm.expect(p).to.be.an('object');pm.expect(/^[0-9]+$/.test(String(p.valor))&&Number.isSafeInteger(Number(p.valor))).to.eql(true);pm.expect(['VALOR_BASE','CONFIGURADO']).to.include(p.fuente)}});",
+                  "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "c842115c-5c83-41f3-8b36-88fa667c3545"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "parametros-integracion-contable"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "8409d8f9-9841-403e-861e-edd8f45d7112",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": "[RESERVADO]",
+          "responseTime": 125,
+          "responseSize": 481
+        },
+        "id": "ce105015-1952-43bf-9f7e-a580162e69d7",
+        "assertions": [
+          {
+            "assertion": "Gracia HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Mínimo y defecto",
+            "skipped": false
+          },
+          {
+            "assertion": "Sandbox eco",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 9684
+    },
+    "failures": [],
+    "error": null
+  }
+}

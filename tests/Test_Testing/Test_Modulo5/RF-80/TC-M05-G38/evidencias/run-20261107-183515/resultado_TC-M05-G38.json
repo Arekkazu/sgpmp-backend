@@ -1,0 +1,77 @@
+{
+  "tc": "TC-M05-G38",
+  "summary": {
+    "total": 11,
+    "ok": 7,
+    "falla": 4,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Admin Conteo inicial de eventos y creacion de activo con operaciones",
+      "esperado": "HTTP 200 en auditoria base, HTTP 201 en activo QA y HTTP 200 en suministros",
+      "obtenido": "HTTP 200 en auditoria base, HTTP 201 en activo QA y HTTP 200 en suministros",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Cadena de custodia cronologica con doble timestamp visible",
+      "esperado": "Secuencia completa de eventos del activo ordenada cronologicamente con fecha_evento y fecha_emision visibles",
+      "obtenido": "Secuencia completa de eventos del activo ordenada cronologicamente con fecha_evento y fecha_emision visibles",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Exportacion de bitacora en CSV, XLSX y PDF con filtro de activo",
+      "esperado": "HTTP 200 con archivo valido segun formato (CSV, XLSX, PDF); HTTP 400 ante formato no soportado",
+      "obtenido": "AssertionError: assert 'VAL_ENTRADA' == 'FORMATO_EXPORTACION_INVALIDO'",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B01 Validacion de filtros invalidos (formato de fecha y rango invertido)",
+      "esperado": "HTTP 4xx con mensaje explicativo ante formato invalido o fecha_desde > fecha_hasta",
+      "obtenido": "AssertionError: DEFECTO_PRODUCTO (TC-M05-044.1 / RNF Validacion): La especificacion requiere que la combinacion invalida fecha_desde > fecha_hasta retorne HTTP 4xx con mensaje explicativo. Obtenido HTTP 200 (el endpoint retorno 200 con lista vacia sin validar la coherencia temporal de los filtros).",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B02 Consulta sin coincidencias (200 lista vacia) y registro de consulta en bitacora",
+      "esperado": "HTTP 200 con lista vacia y registro de la consulta (+1 evento) segun CU06 FA-02",
+      "obtenido": "AssertionError: DEFECTO_PRODUCTO / CONFLICTO DE DISENO (CU06 FA-02 vs Catalogo / TC-M05-044.2): La especificacion CU06 FA-02 establece que la ejecucion de consultas a la bitacora debe auditarse (+1 evento). El conteo total se mantuvo en 52731 (sin incremento), ya que ConsultarAuditoriaSuministrosUseCase no implementa auto-auditoria al no haberse definido un evento de negocio para consultas a la bitacora de M05.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "T98 Admin Cierre ordenado de sandbox Administrador y rollback",
+      "esperado": "HTTP 200 con confirmacion de rollback exitoso",
+      "obtenido": "HTTP 200 con confirmacion de rollback exitoso",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Admin Verificacion de inocuidad y reversion de datos fuera de sandbox",
+      "esperado": "Conteo final de auditoria identico al conteo inicial",
+      "obtenido": "Conteo final de auditoria identico al conteo inicial",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 Vet Restriccion de acceso RBAC a endpoints de auditoria para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO en lista, detalle y exportar sin fuga de datos en la respuesta",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en lista, detalle y exportar sin fuga de datos en la respuesta",
+      "estado": "OK"
+    },
+    {
+      "paso": "C02 Vet Registro de evento de seguridad ante intento de acceso denegado",
+      "esperado": "Incremento (+1) en eventos de seguridad/rechazo tras intentos denegados",
+      "obtenido": "AssertionError: DEFECTO_PRODUCTO (RF-80 / TC-M05-044.3): La especificacion de seguridad requiere que los intentos de acceso denegados a la bitacora de auditoria registren un evento de seguridad. El backend respondio HTTP 403 ACCESO_DENEGADO ante las 3 solicitudes del Veterinario pero registro 0 eventos con resultado RECHAZADO en modulo5.auditorias_suministros.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "C98 Vet Cierre ordenado de sandbox Veterinario y rollback",
+      "esperado": "HTTP 200 con confirmacion de rollback exitoso",
+      "obtenido": "HTTP 200 con confirmacion de rollback exitoso",
+      "estado": "OK"
+    },
+    {
+      "paso": "C99 Vet Verificacion de inocuidad tras corrida Veterinario",
+      "esperado": "Conteo final de auditoria identico al conteo inicial",
+      "obtenido": "Conteo final de auditoria identico al conteo inicial",
+      "estado": "OK"
+    }
+  ]
+}

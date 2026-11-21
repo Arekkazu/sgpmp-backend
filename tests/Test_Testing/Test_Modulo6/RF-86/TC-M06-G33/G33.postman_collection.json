@@ -1,0 +1,76 @@
+{
+  "info": {
+    "name": "TC-M06-G33 RF-86",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "G33-API-005-01",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/periodos/{{periodo_id}}/variaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+              "pm.test('Sin variacion nueva del activo', () => { const base = JSON.parse(pm.environment.get('ids_variaciones_base')); const nuevas = pm.response.json().filter(v => String(v.id_activo_biologico) === pm.environment.get('activo_id') && !base.includes(String(v.id_variacion_valor_razonable))); pm.expect(nuevas).to.have.length(0); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G33-API-005-02",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/finanzas/auditoria?id_activo_biologico={{activo_id}}&id_periodo_contable={{periodo_id}}&tipo_evento=MEDICION_SIN_VARIACION&formato=TECNICO&tamano=500&orden=DESC"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+              "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+              "pm.test('Auditoria unica de medicion sin variacion', () => { const j = pm.response.json(); const e = j.eventos.filter(x => String(x.id_referencia) === pm.environment.get('evento_id') && x.tipo_evento === 'MEDICION_SIN_VARIACION' && x.severidad_evento === 'INFO' && String(x.id_activo_biologico) === pm.environment.get('activo_id') && String(x.id_periodo_contable) === pm.environment.get('periodo_id')); pm.expect(e).to.have.length(1); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

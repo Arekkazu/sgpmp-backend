@@ -1,0 +1,97 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G89",
+  "run_id": "RUN-G89-V1-20261025-045219",
+  "contrato": {
+    "operacion": "reintentar",
+    "version": 1,
+    "intento": 2,
+    "contexto_validado": true
+  },
+  "variables": [
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "fuente": "ambiente autorizado (.env.qa o inyección local)",
+      "presente": true
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "fuente": "ambiente autorizado (.env.qa o inyección local)",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_EMAIL",
+      "fuente": "ambiente autorizado (.env.qa o inyección local)",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_PASSWORD",
+      "fuente": "ambiente autorizado (.env.qa o inyección local)",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "fuente": "ambiente autorizado (.env.qa o inyección local)",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "fuente": "ambiente autorizado (.env.qa o inyección local)",
+      "presente": true
+    },
+    {
+      "nombre": "BROKER_SERVICE_TOKEN",
+      "fuente": "ambiente autorizado (.env.qa o inyección local)",
+      "presente": true
+    },
+    {
+      "nombre": "QA_G88_169_171_SERIAL",
+      "fuente": "ambiente autorizado (.env.qa o inyección local)",
+      "presente": true
+    },
+    {
+      "nombre": "QA_AUTORIZADO",
+      "fuente": "proceso",
+      "presente": true
+    }
+  ],
+  "casos": [
+    "TC-M03-173",
+    "TC-M03-174"
+  ],
+  "ejecutables": [
+    "TC-M03-173",
+    "TC-M03-174"
+  ],
+  "semilla_candidata": {
+    "finca": 184,
+    "area": 349,
+    "especie": 126,
+    "dispositivo": 357,
+    "sensor": 552,
+    "valor": 25,
+    "unidad": "°C",
+    "verificacion_en_run": "relaciones, calibración, umbral y alertas por GET"
+  },
+  "plan_temporal": {
+    "calculable": true,
+    "marcas": 3,
+    "ancla_anterior_al_inicio": true
+  },
+  "limites": {
+    "solicitudes": 70,
+    "ingestas": 3,
+    "alertas": 3,
+    "transiciones": 5,
+    "newman": 8
+  },
+  "lista_blanca": [
+    "POST /iot/telemetria",
+    "POST /iot/alertas",
+    "PATCH /iot/alertas/{id}/estado",
+    "DELETE /test-control/runs/{id}"
+  ],
+  "barreras": [],
+  "motivos": [],
+  "ok": true
+}

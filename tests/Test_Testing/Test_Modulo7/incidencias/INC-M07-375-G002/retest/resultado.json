@@ -1,0 +1,21 @@
+{
+  "incidencia": "INC-M07-375-G002",
+  "caso": "TC-M07-G002",
+  "caso_individual": "TC-95-005",
+  "run": "RUN-G002-V2-20261120-105634",
+  "ambiente": "TEST",
+  "fecha": "2026-11-20",
+  "version_probada": "backend 1.4.0-rc.80 (PR #1202, integra #1190 y #1189)",
+  "evaluador": "Julian Badillo",
+  "peticiones": {
+    "ejecutadas": 14,
+    "fallidas": 0
+  },
+  "comprobaciones": {
+    "ejecutadas": 62,
+    "fallidas": 0
+  },
+  "veredicto": "Corregida: retest aprobado",
+  "correccion": "Todo error trae `field` (el primer campo de `fields`, o `null`), además de `error_code`, `message`, `fields` y `timestamp` (#1169, dentro de #1190/#1189, rc.80).",
+  "verificacion": "Las 3 solicitudes inválidas devuelven `error_code`, `field`, `fields`, `message` y `timestamp` (verificacion_cuerpo_error.json). El caso TC-M07-G002 pasa 62 de 62; la comprobación «el cuerpo trae field» ya aprueba."
+}

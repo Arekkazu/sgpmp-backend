@@ -1,0 +1,308 @@
+{
+  "info": {
+    "_postman_id": "m09-g100-rf29",
+    "name": "TC-M09-G100 - Validación de código de idioma y fallback",
+    "description": "Caso consolidado para validar el rechazo de locales no soportados y la configuración del idioma permitido en RF-29.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "idiomaAnterior",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Login - Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Login exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.expect(body.token).to.exist;",
+              "pm.collectionVariables.set(\"token\", body.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-192 - Consultar idioma actual",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/idioma",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "idioma"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-M09-192 - Consulta de idioma actual exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "console.log(\"IDIOMA ACTUAL:\", body);",
+              "",
+              "pm.expect(body.locale_code).to.be.oneOf([\"es-CO\", \"en-US\"]);",
+              "pm.collectionVariables.set(\"idiomaAnterior\", body.locale_code);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-192 - Rechazar locale fr-FR",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"locale_code\": \"fr-FR\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/idioma",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "idioma"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-M09-192 - fr-FR rechazado con HTTP 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "console.log(\"FR-FR RESPONSE:\", body);",
+              "",
+              "pm.test(\"TC-M09-192 - Código IDIOMA_NO_DISPONIBLE\", function () {",
+              "    pm.expect(body.error_code).to.eql(\"IDIOMA_NO_DISPONIBLE\");",
+              "});",
+              "",
+              "pm.test(\"TC-M09-192 - El error corresponde a locale_code\", function () {",
+              "    pm.expect(body.fields).to.be.an(\"array\");",
+              "    pm.expect(body.fields[0].field).to.eql(\"locale_code\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-192 - Rechazar locale it-IT",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"locale_code\": \"it-IT\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/idioma",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "idioma"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-M09-192 - it-IT rechazado con HTTP 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "console.log(\"IT-IT RESPONSE:\", body);",
+              "",
+              "pm.test(\"TC-M09-192 - Código IDIOMA_NO_DISPONIBLE\", function () {",
+              "    pm.expect(body.error_code).to.eql(\"IDIOMA_NO_DISPONIBLE\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-193 - Configurar en-US",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"locale_code\": \"en-US\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/idioma",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "idioma"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-M09-193 - en-US aceptado\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "console.log(\"EN-US RESPONSE:\", body);",
+              "",
+              "pm.test(\"TC-M09-193 - Idioma configurado como en-US\", function () {",
+              "    pm.expect(body.locale_code).to.eql(\"en-US\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-193 - Verificar idioma resuelto",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/idioma",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "idioma"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const body = pm.response.json();",
+              "console.log(\"IDIOMA RESUELTO:\", body);",
+              "",
+              "pm.test(\"TC-M09-193 - GET idioma resuelto exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"TC-M09-193 - Persistencia de en-US\", function () {",
+              "    pm.expect(body.locale_code).to.eql(\"en-US\");",
+              "});",
+              "",
+              "pm.test(\"TC-M09-193 - Fuente personal\", function () {",
+              "    pm.expect(body.fuente).to.eql(\"personal\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

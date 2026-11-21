@@ -1,0 +1,175 @@
+{
+  "matriz": [
+    {
+      "id": "39-B1",
+      "criterio": "Baseline activo 1573 costos/valor",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "antes": {
+          "identificador": "QA-M06O-COSTO-02",
+          "estado": "ACTIVO",
+          "id_especie": 423,
+          "id_finca": 467,
+          "costos_adquisicion": "4000000.0000",
+          "valor_contable_por_costo": "4000000.0000",
+          "es_activa": true,
+          "lineas_count": 0
+        }
+      }
+    },
+    {
+      "id": "39-B2",
+      "criterio": "Baseline sin inversión previa del caso",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "total_antes": 0
+      }
+    },
+    {
+      "id": "39-B3",
+      "criterio": "Matriz MOP/CAPITALIZACION → 158405/250505 (asig 36)",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "asignacion": 36,
+        "debito": "158405",
+        "credito": "250505",
+        "nota": "Confirmado en prevalidación 2026-11-15"
+      }
+    },
+    {
+      "id": "39-B4",
+      "criterio": "Período 220 ABIERTO (no cerrar)",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "estado": "ABIERTO"
+      }
+    },
+    {
+      "id": "39-E1",
+      "criterio": "POST HTTP 201",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "http": 201,
+        "ambiguo": false,
+        "verificacion_ambigua": null
+      }
+    },
+    {
+      "id": "39-E2",
+      "criterio": "id_registro_costo presente",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "id_registro_costo": 4498
+      }
+    },
+    {
+      "id": "39-E3",
+      "criterio": "id_linea_asiento presente (ASIENTO_NIC41)",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "id_linea_asiento": 7121,
+        "vehiculo": "ASIENTO_NIC41"
+      }
+    },
+    {
+      "id": "39-V1",
+      "criterio": "Costo persistido CAPITALIZAR / INVERSION / monto",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "politica": "CAPITALIZAR",
+        "naturaleza": "INVERSION",
+        "monto": "100000.0000",
+        "estado": "REGISTRADO"
+      }
+    },
+    {
+      "id": "39-V2",
+      "criterio": "Delta costo histórico = monto",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "delta_costos_adquisicion": "100000.0000",
+        "delta_valor_contable": "100000.0000",
+        "esperado": "100000.0000",
+        "despues": {
+          "identificador": "QA-M06O-COSTO-02",
+          "estado": "ACTIVO",
+          "id_especie": 423,
+          "id_finca": 467,
+          "costos_adquisicion": "4100000.0000",
+          "valor_contable_por_costo": "4100000.0000",
+          "es_activa": true,
+          "lineas_count": 1
+        }
+      }
+    },
+    {
+      "id": "39-V3",
+      "criterio": "Línea MOP/CAPITALIZACION D158405 C250505",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "id_linea_asiento": 7121,
+        "tipo_hecho": "MANO_OBRA_PROPIA",
+        "sentido": "CAPITALIZACION",
+        "cuenta_debito": "158405",
+        "cuenta_credito": "250505",
+        "estado_linea": "REGISTRADA",
+        "monto": null
+      }
+    },
+    {
+      "id": "39-V4",
+      "criterio": "Auditoría COSTO_REGISTRADO con política CAPITALIZAR",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "id_evento": 28938,
+        "tipo_evento": "COSTO_REGISTRADO",
+        "id_referencia": 4498,
+        "monto_afectado": "100000.0000",
+        "politica_en_payload": null,
+        "nota": "Política confirmada en GET costos (CAPITALIZAR); evento COSTO_REGISTRADO presente"
+      }
+    },
+    {
+      "id": "39-V5",
+      "criterio": "Comprobante de cierre no exigido (período abierto)",
+      "resultado": "CUMPLE",
+      "evidencia": "Línea contable basta; no se exige comprobante post-cierre"
+    },
+    {
+      "id": "39-X1",
+      "criterio": "RF-93 / cerrar 220 (excluido del alcance G112)",
+      "resultado": "NO VERIFICABLE",
+      "evidencia": "Criterio eliminado / prohibido cerrar 220 en G112"
+    },
+    {
+      "id": "39-S1",
+      "criterio": "Activo 1573 permanece ACTIVO",
+      "resultado": "CUMPLE",
+      "evidencia": "ACTIVO"
+    },
+    {
+      "id": "39-S2",
+      "criterio": "Período 220 permanece ABIERTO",
+      "resultado": "CUMPLE",
+      "evidencia": "ABIERTO"
+    },
+    {
+      "id": "39-S3",
+      "criterio": "Sin afectación colateral a activo 2552 / período 629 por este POST",
+      "resultado": "CUMPLE",
+      "evidencia": {
+        "activo_2552_estado": "ACTIVO",
+        "activo_2552_costos": "3000000.0000",
+        "periodo_629": "ABIERTO",
+        "nota": "Solo lectura; no se espera cambio por capitalización de 1573"
+      }
+    }
+  ],
+  "resumen": {
+    "cumple": 15,
+    "no_cumple": 0,
+    "no_verificable": 1,
+    "total": 16
+  },
+  "dictamen": "APROBADO"
+}

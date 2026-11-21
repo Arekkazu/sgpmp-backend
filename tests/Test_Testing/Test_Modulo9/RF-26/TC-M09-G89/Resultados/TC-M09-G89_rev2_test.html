@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>TC-M09-G89 / TC-M09-169 rev2 TEST</title>
+<style>body{font-family:sans-serif;margin:2rem;color:#222} .pass{color:#0a7} .fail{color:#c00} code{background:#f4f4f4;padding:0 .25rem}</style>
+</head><body>
+<h1>TC-M09-G89 — Segunda revisión (TEST)</h1>
+<p>TC-M09-169 RF-26 — Registrar cambios de identidad visual en auditoría.</p>
+<p>Ambiente: TEST · <code>https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test</code></p>
+<p>Usuario: admin@pecuaria.co (id=1, Administrador). JWT: [REDACTED]</p>
+<h2>Resultado — <span class="fail">RECHAZADO</span></h2>
+<p>OpenAPI TEST no declara GET de <code>auditorias_visuales</code>. Código en <code>laura</code>: el repositorio solo <code>registrar()</code>.</p>
+<h2>Cambio controlado</h2>
+<p><code>PATCH /configuracion/identidad-visual/4</code> HTTP 200 · 2026-09-19T02:53:28Z</p>
+<ul>
+<li>nombre: Granja La Esperanza → QA-G89-rev2-169</li>
+<li>primary: #4A7C2F → #4A7C2E</li>
+<li>logo sin cambio: /assets/logos/esperanza.png</li>
+<li>version 1 → 2</li>
+</ul>
+<h2>Consulta de auditoría</h2>
+<ul>
+<li><code>GET /auditoria/?id_usuario=1</code> 200 — no aparece el marcador QA-G89 ni identidad_visual. Eventos nuevos: CONSULTA_AUDITORIA.</li>
+<li><code>GET /configuracion/identidad-visual/4/auditoria</code> <strong>404</strong> Not Found</li>
+<li><code>GET /configuracion/identidad-visual/auditoria</code> 400 VAL_ENTRADA (path no es id_finca entero)</li>
+</ul>
+<p>No hay registro recuperable por API con usuario, fecha, operación y valores anterior/nuevo.</p>
+<h2>Restauración</h2>
+<p>GET final: nombre Granja La Esperanza · #4A7C2F · #B4D49A · logo original · version 3 (incremento por dos PATCH).</p>
+<p>Histórico Newman/rev1_dev no modificado.</p>
+</body></html>

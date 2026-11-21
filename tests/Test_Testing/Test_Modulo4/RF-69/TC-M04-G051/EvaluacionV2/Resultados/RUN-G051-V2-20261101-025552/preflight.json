@@ -1,0 +1,30 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G051",
+  "run_id": "RUN-G051-V2-20261101-025552",
+  "version": 2,
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "logins_antes_run": 2,
+    "catalogos": 1,
+    "listados": 2,
+    "posts": 23,
+    "get_aceptados": 4,
+    "delete_run": 1,
+    "total": 33,
+    "duracion_segundos": 1800,
+    "timeout_ms": 30000,
+    "timeout_post_ms": 120000,
+    "timeout_newman_ms": 1500000,
+    "inactividad_maxima_segundos": 180
+  },
+  "efectos_declarados": [
+    "4_versiones_aceptadas_segun_oraculo_BD_sujetas_a_rollback_externo",
+    "version_adicional_posible_si_fecha_futura_se_acepta_indebidamente",
+    "archivos_ONNX_en_MODELOS_STORAGE_PATH_no_verificables_por_API_ni_revertidos_por_sandbox",
+    "posible_respaldo_local_RF73_no_revertido",
+    "aviso_correo_Veterinarios_por_f1_0_0_RECHAZADO_despues_commit",
+    "login_fuera_RUN_puede_persistir"
+  ]
+}

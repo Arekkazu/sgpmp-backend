@@ -1,0 +1,32 @@
+{
+  "id": "E2",
+  "nombre": "Archivado automático",
+  "caso_original": "TC-M07-102-015",
+  "estado": "APROBADO",
+  "validacion": "Proceso real de archivado ejecutable",
+  "esperado": "Worker/lote traslada elegibles al histórico sin pérdida ni duplicados",
+  "obtenido": "worker=True; aislado={'ejecutar_archivado_ok': True, 'n_activos': 5, 'n_historicos': 4, 'viejos_en_historico': True, 'vigentes_siguen_activos': True, 'sin_aviso': True, 'idempotente': True}",
+  "evidencia": "evidencia_reevaluacion_e2_archivado_TC-M07-G058.json",
+  "pasos": [
+    "Worker archivo_auditoria_worker (1h / reintento 15m)",
+    "Ejecución ejecutar_archivado() en BD aislada",
+    "Verificación idempotencia segundo pase"
+  ],
+  "observaciones": "Proceso verificado en BD aislada; en TEST el worker corre al lifespan del backend desplegado.",
+  "referencia_original": "Resultado/evidencia_e2_archivado_TC-M07-G058.json",
+  "fecha_utc": "2026-11-21T00:27:47.742251+00:00",
+  "ambiente": {
+    "api_test": "https://api.inmero.co/api-sgpmp-test",
+    "codigo": "origin/test (inspección RF-102 #1165)",
+    "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+  },
+  "evidencia_tecnica": {
+    "ejecutar_archivado_ok": true,
+    "n_activos": 5,
+    "n_historicos": 4,
+    "viejos_en_historico": true,
+    "vigentes_siguen_activos": true,
+    "sin_aviso": true,
+    "idempotente": true
+  }
+}

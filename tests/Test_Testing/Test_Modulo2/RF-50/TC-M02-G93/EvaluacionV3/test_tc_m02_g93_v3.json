@@ -1,0 +1,321 @@
+{
+  "info": {
+    "name": "TC-M02-G93 REEVALUACION V3 — RF-50 reglas negativas de datos consolidados (CU12)",
+    "description": "TC-M02-155 (403 por scope granular de tipo_dato), TC-M02-156-A y B (400 por rango invertido y por rango futuro) y TC-M02-157 (422 por insuficiencia de metricas PESO segun NIC-41), ejecutados con la identidad tecnica M06. Incluye control positivo previo, para que ningun rechazo sea atribuible a autenticacion, permiso general o alcance, y la verificacion complementaria de la advertencia de peso fuera del rango.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - Login M06",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"integracion.m06.test@pecuaria.co\",\n  \"contrasena\": \"{{m06_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('00: la identidad tecnica M06 autentica', () => pm.response.to.have.status(200));",
+              "const t = pm.response.json().token;",
+              "pm.expect(Boolean(t), 'token emitido').to.eql(true);",
+              "pm.collectionVariables.set('token_consumidor', t);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Actor y rol del consumidor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_consumidor}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('01: /usuarios/me 200', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test('01: el consumidor es la identidad tecnica M06', () => pm.expect(b.correo_electronico).to.eql(pm.collectionVariables.get('m06_email')));",
+              "pm.test('01: el rol es Integracion M06', () => pm.expect(norm(b.nombre_rol)).to.include('integracion m06'));",
+              "pm.test('01: la cuenta esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Control positivo M06 + metricas",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_consumidor}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=metricas"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('02: HTTP 200 — token valido, activo visible, permiso general y scope metricas', () => pm.expect(pm.response.code).to.eql(200));",
+              "const b = pm.response.json();",
+              "pm.test('02: responde el activo solicitado', () => pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo'))));",
+              "pm.test('02: devuelve JSON de exito con la seccion de metricas', () => pm.expect(b).to.have.property('metricas_actuales'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - TC-M02-155 - tipo_dato sin scope autorizado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_consumidor}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=eventos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('TC-M02-155: HTTP 403', () => pm.expect(pm.response.code).to.eql(403));",
+              "const b = cuerpo();",
+              "pm.test('TC-M02-155: el rechazo proviene del scope granular por tipo_dato', () => pm.expect(b.error_code).to.eql('SCOPE_TIPO_DATO_NO_AUTORIZADO'));",
+              "pm.test('TC-M02-155: el mensaje identifica el tipo_dato solicitado', () => pm.expect(norm(b.message)).to.include('eventos'));",
+              "pm.test('TC-M02-155: el mensaje indica falta de autorizacion del modulo solicitante', () => pm.expect(norm(b.message)).to.include('no tiene autorizacion'));",
+              "pm.test('TC-M02-155: la respuesta no expone datos consolidados del activo', () => {",
+              "  const b = cuerpo();",
+              "  ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada'].forEach((campo) => {",
+              "    pm.expect(b, 'la respuesta incluye ' + campo).to.not.have.property(campo);",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - TC-M02-156-A - fecha_inicio posterior a fecha_fin",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_consumidor}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-09-18&fecha_fin=2026-08-29"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('TC-M02-156-A: HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+              "const b = cuerpo();",
+              "pm.test('TC-M02-156-A: error_code PARAMETROS_INVALIDOS', () => pm.expect(b.error_code).to.eql('PARAMETROS_INVALIDOS'));",
+              "pm.test('TC-M02-156-A: el motivo funcional se refiere al orden del rango', () => {",
+              "  const m = norm(b.message) + ' ' + norm(JSON.stringify(b.fields || []));",
+              "  pm.expect(/inicio|posterior|mayor|rango/.test(m), 'mensaje: ' + m).to.eql(true);",
+              "});",
+              "pm.test('TC-M02-156-A: la respuesta no expone datos consolidados del activo', () => {",
+              "  const b = cuerpo();",
+              "  ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada'].forEach((campo) => {",
+              "    pm.expect(b, 'la respuesta incluye ' + campo).to.not.have.property(campo);",
+              "  });",
+              "});",
+              "pm.test('TC-M02-156-A (#393): el error no expone detalles internos de validacion', () => {",
+              "  const texto = pm.response.text();",
+              "  ['DatosConsolidadosDTO', 'validation error', 'type=value_error', 'input_value', 'pydantic.dev'].forEach((f) => {",
+              "    pm.expect(texto, 'la respuesta contiene ' + f).to.not.include(f);",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - TC-M02-156-B - rango de fechas futuro",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_consumidor}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-09-29&fecha_fin=2026-09-30"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('TC-M02-156-B: HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+              "const b = cuerpo();",
+              "pm.test('TC-M02-156-B: error_code PARAMETROS_INVALIDOS', () => pm.expect(b.error_code).to.eql('PARAMETROS_INVALIDOS'));",
+              "pm.test('TC-M02-156-B: el motivo se refiere a la condicion temporal futura', () => {",
+              "  const m = norm(b.message) + ' ' + norm(JSON.stringify(b.fields || []));",
+              "  pm.expect(/futur|posterior a la fecha actual|hoy/.test(m), 'mensaje: ' + m).to.eql(true);",
+              "});",
+              "pm.test('TC-M02-156-B: la respuesta no expone datos consolidados del activo', () => {",
+              "  const b = cuerpo();",
+              "  ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada'].forEach((campo) => {",
+              "    pm.expect(b, 'la respuesta incluye ' + campo).to.not.have.property(campo);",
+              "  });",
+              "});",
+              "pm.test('TC-M02-156-B (#393): el error no expone detalles internos de validacion', () => {",
+              "  const texto = pm.response.text();",
+              "  ['DatosConsolidadosDTO', 'validation error', 'type=value_error', 'input_value', 'pydantic.dev'].forEach((f) => {",
+              "    pm.expect(texto, 'la respuesta contiene ' + f).to.not.include(f);",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - TC-M02-157 - NIC-41 sin metricas de PESO en el rango",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_consumidor}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-06-01&fecha_fin=2026-09-08"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('TC-M02-157: HTTP 422', () => pm.expect(pm.response.code).to.eql(422));",
+              "const b = cuerpo();",
+              "pm.test('TC-M02-157: error_code METRICAS_PESO_INSUFICIENTES', () => pm.expect(b.error_code).to.eql('METRICAS_PESO_INSUFICIENTES'));",
+              "pm.test('TC-M02-157: el mensaje identifica la insuficiencia de PESO en el rango', () => {",
+              "  const m = norm(b.message);",
+              "  pm.expect(m).to.include('peso');",
+              "  pm.expect(/rango de fechas|periodo/.test(m), 'mensaje: ' + m).to.eql(true);",
+              "});",
+              "pm.test('TC-M02-157: no es un 422 generico de validacion de entrada', () => pm.expect(b.error_code).to.not.eql('VAL_ENTRADA'));",
+              "pm.test('TC-M02-157: la respuesta no expone datos consolidados del activo', () => {",
+              "  const b = cuerpo();",
+              "  ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada'].forEach((campo) => {",
+              "    pm.expect(b, 'la respuesta incluye ' + campo).to.not.have.property(campo);",
+              "  });",
+              "});",
+              "pm.test('TC-M02-157 (#393): el error no expone detalles internos de validacion', () => {",
+              "  const texto = pm.response.text();",
+              "  ['DatosConsolidadosDTO', 'validation error', 'type=value_error', 'input_value', 'pydantic.dev'].forEach((f) => {",
+              "    pm.expect(texto, 'la respuesta contiene ' + f).to.not.include(f);",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Verificacion complementaria - advertencia de peso fuera del rango",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_consumidor}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-09-09&fecha_fin=2026-09-18"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('#392: HTTP 200 — existe al menos un PESO en el rango, no aplica el 422', () => pm.expect(pm.response.code).to.eql(200));",
+              "const b = cuerpo();",
+              "pm.test('#392: metricas_actuales sigue visible', () => pm.expect(b).to.have.property('metricas_actuales'));",
+              "const plano = JSON.stringify(b);",
+              "pm.test('#392: la respuesta incluye advertencia_peso_fuera_de_rango', () => pm.expect(plano).to.include('advertencia_peso_fuera_de_rango'));",
+              "pm.test('#392: la advertencia aclara que el peso mostrado no pertenece al periodo solicitado', () => {",
+              "  const m = b.metricas_actuales || {};",
+              "  const a = norm(m.advertencia_peso_fuera_de_rango || (plano.match(/\"advertencia_peso_fuera_de_rango\"\\s*:\\s*\"([^\"]*)\"/) || [])[1] || '');",
+              "  pm.expect(/fuera|no pertenece|posterior|rango|periodo/.test(a), 'advertencia: ' + a).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "id_activo",
+      "value": "279"
+    },
+    {
+      "key": "m06_email",
+      "value": "integracion.m06.test@pecuaria.co"
+    }
+  ]
+}

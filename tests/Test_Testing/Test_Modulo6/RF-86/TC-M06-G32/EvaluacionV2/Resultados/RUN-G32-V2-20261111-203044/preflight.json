@@ -1,0 +1,112 @@
+{
+  "grupo": "G32",
+  "run_id": "RUN-G32-V2-20261111-203044",
+  "fase": "PREFLIGHT_VIVO",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 150,
+    "logins_fuera_run": 2,
+    "escrituras_preparacion": 1,
+    "eventos_m02": 6,
+    "precios": 2,
+    "disparos": 6,
+    "trazabilidades": 2,
+    "lecturas": 130,
+    "deletes": 1,
+    "timeout_login_ms": 120000,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 2400
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2"
+  },
+  "efectos": [
+    "Login de Contador y Administrador fuera del RUN",
+    "Eventos de crecimiento M02 y eventual cambio de estado",
+    "Dos precios RF-89 con notificación M01 fuera de la sesión sandbox",
+    "Procesamiento M06, líneas y auditoría dentro de la sesión sandbox; cadena por GET tras una verificacion RF-91 por periodo",
+    "DELETE de RUN intenta rollback; el HTTP 200 no prueba reversión de efectos externos"
+  ],
+  "requisitos": [
+    {
+      "requisito": "periodo_actual_abierto",
+      "esperado": "titular con período que contiene hoy ABIERTO",
+      "observado": [
+        241,
+        241,
+        "período que contiene hoy CERRADO",
+        "período que contiene hoy CERRADO",
+        "período que contiene hoy CERRADO",
+        "período que contiene hoy CERRADO",
+        "período que contiene hoy CERRADO",
+        241,
+        241,
+        241
+      ],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "cuatro_bovinos_elegibles",
+      "esperado": "4 bovinos individuales reconocidos, distintos, sin costo activo y con cálculo/peso",
+      "observado": {
+        "seleccionados": 4,
+        "diagnostico": {
+          "medido": true,
+          "total_recibido": 23,
+          "bovino": 12,
+          "individual": 12,
+          "estado": 11,
+          "sin_costo": 10,
+          "valor_positivo": 10,
+          "precio_vigente": 10,
+          "periodo_destino": 5,
+          "peso_kg": 5,
+          "calculo_previo": 5,
+          "primera_condicion_fallida": null
+        }
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "precio_peso_kg_vigente",
+      "esperado": "precio PESO_KG vigente para los 4 activos",
+      "observado": [
+        18,
+        18,
+        18,
+        18
+      ],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "matriz_tb_pm_activa",
+      "esperado": "asignaciones activas VARIACION_VR_TB y VARIACION_VR_PM",
+      "observado": {
+        "http": 200,
+        "tipos": [
+          "VARIACION_VR_TB",
+          "VARIACION_VR_PM"
+        ]
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_8_linea_conflictiva",
+      "esperado": "período 8 ABIERTO y línea no verificada de variación CERRADA",
+      "observado": {
+        "estado_periodo": "EN_CIERRE",
+        "existe": false,
+        "motivo": "Condición ausente: período 8 en estado EN_CIERRE; se requiere ABIERTO."
+      },
+      "cumple": false,
+      "bloqueante": false
+    }
+  ]
+}

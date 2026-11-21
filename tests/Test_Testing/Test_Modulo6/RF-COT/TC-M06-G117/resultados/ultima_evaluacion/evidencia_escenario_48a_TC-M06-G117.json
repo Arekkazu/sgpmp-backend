@@ -1,0 +1,177 @@
+{
+  "caso": "TC-M06-G117",
+  "escenario_id": "48a",
+  "subcaso": "TC-M06-48",
+  "nombre": "Valor propuesto cero",
+  "activo": 1569,
+  "esperado": {
+    "http": 422,
+    "code": "VALOR_COTIZACION_INVALIDO"
+  },
+  "estado": "RECHAZADO",
+  "motivo": "Esperado HTTP 422 VALOR_COTIZACION_INVALIDO; recibido HTTP 400 VAL_ENTRADA.",
+  "request": {
+    "activos_cotizados": [
+      1569
+    ],
+    "valor_cotizacion_propuesto": 0
+  },
+  "post": {
+    "http": 400,
+    "code": "VAL_ENTRADA",
+    "respuesta": {
+      "error_code": "VAL_ENTRADA",
+      "message": "Errores de validacion en la solicitud",
+      "fields": [
+        {
+          "field": "valor_cotizacion_propuesto",
+          "message": "Input should be greater than 0"
+        }
+      ],
+      "timestamp": "2026-11-13T03:43:49.142767+00:00"
+    },
+    "en": "2026-11-13T03:43:50.963706+00:00"
+  },
+  "verificaciones": {
+    "checks": {
+      "http_esperado": false,
+      "code_esperado": false,
+      "sin_cotizacion_nueva": true,
+      "sin_evento_nuevo": true,
+      "reservadas_intactas": true,
+      "activo_sin_cambio": true,
+      "periodo_220_abierto": true
+    },
+    "http": 400,
+    "code": "VAL_ENTRADA",
+    "cotizaciones_antes": 7,
+    "cotizaciones_despues": 7,
+    "ids_nuevos": [],
+    "eventos_antes": 5,
+    "eventos_despues": 5,
+    "activo_antes": {
+      "http": 200,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "razon_social": "QA M06 Operaciones SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE"
+    },
+    "activo_despues": {
+      "http": 200,
+      "estado": "ACTIVO",
+      "id_finca": 467,
+      "razon_social": "QA M06 Operaciones SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE"
+    },
+    "periodo_220_antes": {
+      "encontrado": true,
+      "id_periodo_contable": 220,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS"
+    },
+    "periodo_220_despues": {
+      "encontrado": true,
+      "id_periodo_contable": 220,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS"
+    },
+    "reservadas_antes": {
+      "9": {
+        "id_cotizacion": 9,
+        "fecha_emision": "2026-11-12",
+        "id_periodo_contable": 220,
+        "activos_cotizados": [
+          1569
+        ],
+        "valor_razonable_referencia": "3760000.0000",
+        "valor_cotizacion_propuesto": "1000.0000",
+        "condiciones": "TC-M06-G115 / TC-M06-44 Contador — cotización de prueba QA aislada activo 1569",
+        "estado": "COTIZADO",
+        "estado_al_cierre": null,
+        "fecha_vencimiento": null,
+        "motivo_anulacion": null,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-13T02:24:46.425401Z",
+        "version": 1,
+        "fecha_actualizacion": null,
+        "estado_periodo": "ABIERTO"
+      },
+      "10": {
+        "id_cotizacion": 10,
+        "fecha_emision": "2026-11-12",
+        "id_periodo_contable": 220,
+        "activos_cotizados": [
+          1569
+        ],
+        "valor_razonable_referencia": "3760000.0000",
+        "valor_cotizacion_propuesto": "1000.0000",
+        "condiciones": "TC-M06-G115 / TC-M06-44 Administrador — cotización de prueba QA aislada activo 1569",
+        "estado": "COTIZADO",
+        "estado_al_cierre": null,
+        "fecha_vencimiento": null,
+        "motivo_anulacion": null,
+        "id_usuario": 137,
+        "fecha_registro": "2026-11-13T02:31:20.440127Z",
+        "version": 1,
+        "fecha_actualizacion": null,
+        "estado_periodo": "ABIERTO"
+      }
+    },
+    "reservadas_despues": {
+      "9": {
+        "id_cotizacion": 9,
+        "fecha_emision": "2026-11-12",
+        "id_periodo_contable": 220,
+        "activos_cotizados": [
+          1569
+        ],
+        "valor_razonable_referencia": "3760000.0000",
+        "valor_cotizacion_propuesto": "1000.0000",
+        "condiciones": "TC-M06-G115 / TC-M06-44 Contador — cotización de prueba QA aislada activo 1569",
+        "estado": "COTIZADO",
+        "estado_al_cierre": null,
+        "fecha_vencimiento": null,
+        "motivo_anulacion": null,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-13T02:24:46.425401Z",
+        "version": 1,
+        "fecha_actualizacion": null,
+        "estado_periodo": "ABIERTO"
+      },
+      "10": {
+        "id_cotizacion": 10,
+        "fecha_emision": "2026-11-12",
+        "id_periodo_contable": 220,
+        "activos_cotizados": [
+          1569
+        ],
+        "valor_razonable_referencia": "3760000.0000",
+        "valor_cotizacion_propuesto": "1000.0000",
+        "condiciones": "TC-M06-G115 / TC-M06-44 Administrador — cotización de prueba QA aislada activo 1569",
+        "estado": "COTIZADO",
+        "estado_al_cierre": null,
+        "fecha_vencimiento": null,
+        "motivo_anulacion": null,
+        "id_usuario": 137,
+        "fecha_registro": "2026-11-13T02:31:20.440127Z",
+        "version": 1,
+        "fecha_actualizacion": null,
+        "estado_periodo": "ABIERTO"
+      }
+    }
+  },
+  "discrepancia": {
+    "id": "DISC-G117-01",
+    "escenario": "48a",
+    "matriz": "HTTP 422 VALOR_COTIZACION_INVALIDO",
+    "real": "HTTP 400 VAL_ENTRADA",
+    "confirmado": true,
+    "nota": "DTO Field(gt=0) intercepta antes de FA-6; expectativa matriz conservada → RECHAZADO"
+  }
+}

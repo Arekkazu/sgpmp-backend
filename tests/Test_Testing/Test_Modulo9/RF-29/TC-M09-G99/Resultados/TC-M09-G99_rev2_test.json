@@ -1,0 +1,145 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 3,
+    "passes": 3,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-09-25T07:44:26.127Z",
+    "end": "2026-09-25T07:44:37.072Z",
+    "duration": 10945,
+    "testsRegistered": 3,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "b7b29c91-d1b8-4c1b-9fa3-4a26cd4d3860",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-29\\TC-M09-G99\\tc_m09_g99_rev2_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-29\\TC-M09-G99\\tc_m09_g99_rev2_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "1c4d5768-eee0-4084-bf57-2b2e9829c656",
+          "title": "TC-M09-G99 rev2 TEST - Cambio de idioma de la interfaz",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-189 - Cambiar interfaz a español Colombia (es-CO)",
+              "fullTitle": "TC-M09-G99 rev2 TEST - Cambio de idioma de la interfaz TC-M09-189 - Cambiar interfaz a español Colombia (es-CO)",
+              "timedOut": null,
+              "duration": 9435,
+              "state": "passed",
+              "speed": "medium",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "if (!flujoListo) {\n  this.skip();\n}\nregistrarPaso('TC-M09-189: seleccionar Español / Colombia en Mi preferencia y guardar');\nguardarPreferenciaPersonal('es-CO');\ncy.wait('@patchIdioma', {\n  timeout: 20000\n}).then(interception => {\n  notas.patch189 = resumenIntercept(interception);\n  const status = notas.patch189.status;\n  const req = interception.request && interception.request.body || {};\n  const res = interception.response && interception.response.body || {};\n  registrarPaso(`PATCH personal es-CO status=${status} locale_req=${req.locale_code}`);\n  expect(status, 'PATCH es-CO HTTP').to.eq(200);\n  expect(req.locale_code, 'body locale_code es-CO').to.eq('es-CO');\n  expect(res.locale_code, 'respuesta locale_code es-CO').to.eq('es-CO');\n  if (res.version_perfil != null) {\n    versionPerfilActual = res.version_perfil;\n  }\n});\ncy.get('html').should('have.attr', 'lang', 'es-CO');\ncy.contains('h2', /^Idioma$/).scrollIntoView().should('exist');\ncy.contains('button', /^Guardar idioma$/).should('exist');\ncy.contains('div', /^Mi preferencia$/).should('exist');\ncy.contains('Bienvenido al sistema').should('exist');\ncy.contains('Panel principal').should('exist');\ncy.contains('Activos biológicos').should('exist');\ncy.contains('Mi perfil').should('exist');\ncy.url().then(url => {\n  notas.url189 = url;\n  expect(url, '189 no va a login').to.not.include('/login');\n  expect(url, '189 permanece en configuración').to.include('/configuracion');\n});\ncy.get('html').invoke('attr', 'lang').then(lang => {\n  notas.lang189 = lang;\n});\ncy.window().then(win => {\n  notas.ls189 = win.localStorage.getItem(LS_LOCALE);\n  expect(notas.ls189, 'localStorage sgpmp-locale es-CO').to.eq('es-CO');\n  expect(win.__g99DocumentMarker, '189 mismo documento').to.eq(MARKER);\n});\ncy.get('body').then($body => {\n  notas.textosEs = ['Idioma', 'Guardar idioma', 'Mi preferencia', 'Bienvenido al sistema', 'Panel principal', 'Activos biológicos', 'Mi perfil'].filter(t => $body.text().includes(t)).join(', ');\n});\ncy.get('@login.all').then(calls => {\n  expect(calls.length, 'un solo login').to.eq(1);\n});\ncy.get('@patchIdiomaGlobal.all').then(calls => {\n  notas.patchGlobalCount = calls.length;\n  expect(calls.length, 'no se toca idioma global').to.eq(0);\n  notas.resultado189 = 'APROBADO';\n  registrarPaso('TC-M09-189 APROBADO');\n});\ncy.screenshot('G99-03-es-CO');",
+              "err": {},
+              "uuid": "2c2bf062-34ef-48f9-902e-41862af97d08",
+              "parentUUID": "1c4d5768-eee0-4084-bf57-2b2e9829c656",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "TC-M09-190 - Cambiar interfaz a inglés Estados Unidos (en-US)",
+              "fullTitle": "TC-M09-G99 rev2 TEST - Cambio de idioma de la interfaz TC-M09-190 - Cambiar interfaz a inglés Estados Unidos (en-US)",
+              "timedOut": null,
+              "duration": 645,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "if (!flujoListo || notas.resultado189 !== 'APROBADO') {\n  if (notas.resultado190 === 'PENDIENTE') notas.resultado190 = 'BLOQUEADO';\n  this.skip();\n}\ncy.window().then(win => {\n  notas.markerAntes190 = win.__g99DocumentMarker;\n  notas.timeOriginAntes = win.performance.timeOrigin;\n  expect(win.__g99DocumentMarker, 'marcador intacto antes de 190').to.eq(MARKER);\n});\ncy.url().then(url => {\n  notas.urlAntes190 = url;\n});\nregistrarPaso('TC-M09-190: seleccionar English / United States en Mi preferencia y guardar');\nguardarPreferenciaPersonal('en-US');\ncy.wait('@patchIdioma', {\n  timeout: 20000\n}).then(interception => {\n  notas.patch190 = resumenIntercept(interception);\n  const status = notas.patch190.status;\n  const req = interception.request && interception.request.body || {};\n  const res = interception.response && interception.response.body || {};\n  registrarPaso(`PATCH personal en-US status=${status} locale_req=${req.locale_code}`);\n  expect(status, 'PATCH en-US HTTP').to.eq(200);\n  expect(req.locale_code, 'body locale_code en-US').to.eq('en-US');\n  expect(res.locale_code, 'respuesta locale_code en-US').to.eq('en-US');\n  if (res.version_perfil != null) {\n    versionPerfilActual = res.version_perfil;\n  }\n});\ncy.get('html').should('have.attr', 'lang', 'en-US');\ncy.contains('h2', /^Language$/).scrollIntoView().should('exist');\ncy.contains('button', /^Save language$/).should('exist');\ncy.contains('div', /^My preference$/).should('exist');\ncy.contains('Welcome to the system').should('exist');\ncy.contains('Biological assets').should('exist');\ncy.contains('My profile').should('exist');\ncy.contains('Settings').should('exist');\ncy.url().then(url => {\n  notas.urlDespues190 = url;\n  expect(url, '190 no va a login').to.not.include('/login');\n  expect(url, '190 permanece en configuración').to.include('/configuracion');\n  expect(url, '190 misma URL').to.eq(notas.urlAntes190);\n});\ncy.get('html').invoke('attr', 'lang').then(lang => {\n  notas.lang190 = lang;\n});\ncy.window().then(win => {\n  notas.ls190 = win.localStorage.getItem(LS_LOCALE);\n  expect(notas.ls190, 'localStorage sgpmp-locale en-US').to.eq('en-US');\n  notas.markerDespues190 = win.__g99DocumentMarker;\n  notas.timeOriginDespues = win.performance.timeOrigin;\n  notas.htmlRefIgual = win.document.documentElement === win.__g99HtmlRef;\n  const nav = win.performance.getEntriesByType('navigation')[0];\n  notas.navTypeDespues = nav ? nav.type : null;\n  expect(win.__g99DocumentMarker, '190 mismo documento').to.eq(MARKER);\n});\ncy.get('body').then($body => {\n  notas.textosEn = ['Language', 'Save language', 'My preference', 'Welcome to the system', 'Biological assets', 'My profile', 'Settings'].filter(t => $body.text().includes(t)).join(', ');\n});\ncy.get('@login.all').then(calls => {\n  expect(calls.length, '190 sin nuevo POST /sesiones').to.eq(0);\n});\ncy.get('@patchIdiomaGlobal.all').then(calls => {\n  notas.patchGlobalCount = calls.length;\n  expect(calls.length, 'no se toca idioma global').to.eq(0);\n  notas.resultado190 = 'APROBADO';\n  registrarPaso('TC-M09-190 APROBADO');\n});\ncy.screenshot('G99-04-en-US');",
+              "err": {},
+              "uuid": "5c6c1184-f05d-4aa6-8877-e2fe8ea82709",
+              "parentUUID": "1c4d5768-eee0-4084-bf57-2b2e9829c656",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "TC-M09-191 - Aplicar cambio de idioma sin recargar la sesión",
+              "fullTitle": "TC-M09-G99 rev2 TEST - Cambio de idioma de la interfaz TC-M09-191 - Aplicar cambio de idioma sin recargar la sesión",
+              "timedOut": null,
+              "duration": 739,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "if (!flujoListo || notas.resultado189 !== 'APROBADO' || notas.resultado190 !== 'APROBADO') {\n  if (notas.resultado191 === 'PENDIENTE') notas.resultado191 = 'BLOQUEADO';\n  this.skip();\n}\nregistrarPaso('TC-M09-191: mismo documento tras es-CO → en-US (sin cy.visit ni logout)');\ncy.window().then(win => {\n  expect(win.__g99DocumentMarker, 'marcador idéntico').to.eq(MARKER);\n  expect(notas.markerAntes190, 'marcador antes 190').to.eq(MARKER);\n  expect(notas.markerDespues190, 'marcador después 190').to.eq(MARKER);\n  expect(win.document.documentElement === win.__g99HtmlRef, 'misma referencia html').to.eq(true);\n  expect(win.performance.timeOrigin, 'timeOrigin no cambió').to.eq(notas.timeOriginAntes);\n  expect(notas.navTypeDespues, 'navigation.type estable').to.eq(notas.navTypeAntes);\n});\ncy.url().then(url => {\n  expect(url, '191 no login').to.not.include('/login');\n  expect(url, '191 misma ruta').to.include('/configuracion');\n  expect(url, '191 URL igual a antes de 190').to.eq(notas.urlAntes190);\n});\ncy.get('html').should('have.attr', 'lang', 'en-US');\ncy.contains('h2', /^Language$/).scrollIntoView().should('exist');\ncy.contains('button', /^Save language$/).should('exist');\ncy.contains('div', /^My preference$/).should('exist');\ncy.get('@login.all').then(calls => {\n  expect(calls.length, '191 sin nuevo POST /sesiones').to.eq(0);\n  notas.resultado191 = 'APROBADO';\n  registrarPaso('TC-M09-191 APROBADO: cambio visible en el mismo document, sin reload/logout');\n});\ncy.screenshot('G99-05-sin-recarga');\nregistrarPaso(`Restaurar locale original ${notas.localeOriginal} vía UI (misma sesión)`);\nguardarPreferenciaPersonal(notas.localeOriginal);\ncy.wait('@patchIdioma', {\n  timeout: 20000\n}).then(interception => {\n  notas.patchRestaurar = resumenIntercept(interception);\n  const status = notas.patchRestaurar.status;\n  const res = interception.response && interception.response.body || {};\n  registrarPaso(`PATCH restaurar UI status=${status} locale=${res.locale_code}`);\n  expect(status, 'PATCH restaurar').to.eq(200);\n  expect(res.locale_code, 'locale restaurado').to.eq(notas.localeOriginal);\n  restaurado = true;\n  notas.restauracion = `OK UI locale_code=${res.locale_code}`;\n});\ncy.get('html').should('have.attr', 'lang', notas.localeOriginal);\ncy.screenshot('G99-06-restaurado');",
+              "err": {},
+              "uuid": "b710f108-762e-4fcc-91c1-f18ed91956a4",
+              "parentUUID": "1c4d5768-eee0-4084-bf57-2b2e9829c656",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "2c2bf062-34ef-48f9-902e-41862af97d08",
+            "5c6c1184-f05d-4aa6-8877-e2fe8ea82709",
+            "b710f108-762e-4fcc-91c1-f18ed91956a4"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 10819,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G99_rev2_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-29\\TC-M09-G99\\Resultados",
+        "reportFilename": "TC-M09-G99_rev2_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

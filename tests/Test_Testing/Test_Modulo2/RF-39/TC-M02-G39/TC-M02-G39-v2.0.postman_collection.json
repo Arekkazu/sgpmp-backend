@@ -1,0 +1,336 @@
+{
+  "info": {
+    "name": "TC-M02-G39 v2.0 - Eventos permitidos segun estado operativo (ACTIVO, EN_TRATAMIENTO, AISLADO) usando BAJA parcial de lote (RF-45)",
+    "description": "Nota v2.0: especie 5 (Mojarra Plateada) e infraestructura 9 porque es la unica especie con densidad_maxima configurada en TEST (2026-10-02); para un POBLACIONAL el registro exige densidad maxima (DENSIDAD_MAXIMA_NO_CONFIGURADA). v2.0: RF-40/41/42/43 exigen estado ACTIVO; el unico tipo de evento sin esa restriccion es BAJA (RF-45, solo prohibe estado BAJA). Se usa baja PARCIAL (cantidad_afectada=1) porque no cambia el estado del lote. CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-072 (ACTIVO), TC-M02-073 (EN_TRATAMIENTO) y TC-M02-074 (AISLADO). Usa eventos sanitarios (RF-41) como tipo representativo porque usa el gate compartido validar_estado_permite_eventos() y no depende de una fase productiva activa (a diferencia de crecimiento/RF-40 y productivo/RF-43, bloqueados hoy por INC-M02-37-01). Se pasa 'fecha' explicita en cada evento para evitar el defecto ya reportado INC-M02-41-01 (fecha por defecto rechazada por trg_fn_evento_fecha_coherente).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "5"
+    },
+    {
+      "key": "id_infraestructura",
+      "value": "9"
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Setup - Registrar activo POBLACIONAL de prueba (nace ACTIVO; GET /eventos solo aplica a lotes)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"cantidad_inicial\": 100,\n  \"peso_promedio_inicial\": 0.05\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  pm.collectionVariables.set('id_activo', body.id_activo_biologico);",
+              "  pm.test('Nace en estado ACTIVO', function () { pm.expect(body.nombre_estado).to.eql('ACTIVO'); });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M02-072 - Registrar BAJA parcial sobre lote ACTIVO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"perdida\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-072: baja parcial sobre lote ACTIVO\",\n  \"cantidad_afectada\": 1\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-072] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-39: ACTIVO permite el registro de BAJA parcial (201, no bloquea)', function () { pm.response.to.have.status(201); });",
+              "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+              "pm.test('La baja queda registrada con cantidad_afectada=1', function () { pm.expect(r).to.not.equal(null); pm.expect(r.baja.cantidad_afectada).to.equal(1); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Transicion a EN_TRATAMIENTO (RF-44, para la precondicion de TC-M02-073)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"EN_TRATAMIENTO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy}}\",\n  \"motivo_cambio\": \"QA-G39: precondicion TC-M02-073\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Transicion a EN_TRATAMIENTO aceptada (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M02-073 - Registrar BAJA parcial sobre lote EN_TRATAMIENTO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"perdida\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-073: baja parcial sobre lote EN_TRATAMIENTO\",\n  \"cantidad_afectada\": 1\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-073] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-39: EN_TRATAMIENTO permite el registro de BAJA parcial (201, no bloquea)', function () { pm.response.to.have.status(201); });",
+              "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+              "pm.test('La baja queda registrada con cantidad_afectada=1', function () { pm.expect(r).to.not.equal(null); pm.expect(r.baja.cantidad_afectada).to.equal(1); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Transicion a AISLADO (RF-44, para la precondicion de TC-M02-074)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"AISLADO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy}}\",\n  \"motivo_cambio\": \"QA-G39: precondicion TC-M02-074\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Transicion a AISLADO aceptada (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. TC-M02-074 - Registrar BAJA parcial sobre lote AISLADO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"perdida\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-074: baja parcial sobre lote AISLADO\",\n  \"cantidad_afectada\": 1\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-074] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-39: AISLADO permite el registro de BAJA parcial (201, no bloquea)', function () { pm.response.to.have.status(201); });",
+              "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+              "pm.test('La baja queda registrada con cantidad_afectada=1', function () { pm.expect(r).to.not.equal(null); pm.expect(r.baja.cantidad_afectada).to.equal(1); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Verificacion - GET activo: cantidad_actual=97 y estado AISLADO (la baja parcial no cambia el estado)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[VERIFICACION] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('GET activo responde 200', function () { pm.response.to.have.status(200); });",
+              "const b = pm.response.json();",
+              "pm.test('cantidad_actual = 100 - 3 = 97', function () { pm.expect(Number(b.detalle_poblacional.cantidad_actual)).to.eql(97); });",
+              "pm.test('El estado se mantiene AISLADO (baja parcial no cambia el estado)', function () { pm.expect(b.nombre_estado).to.eql('AISLADO'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Verificacion - bitacora de auditoria registra las 3 bajas parciales exitosas (RF45)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF45&id_activo_biologico={{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[AUDITORIA] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La bitacora responde 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Existen 3 registros exitosos de RF45 para este activo', function () {",
+              "  const ex = (body.registros || []).filter((r) => r.resultado === 'EXITOSO' && /BAJA/.test(String(r.tipo_evento)));",
+              "  pm.expect(ex.length).to.eql(3);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

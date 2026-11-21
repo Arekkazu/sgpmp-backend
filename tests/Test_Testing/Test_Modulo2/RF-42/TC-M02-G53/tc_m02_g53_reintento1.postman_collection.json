@@ -1,0 +1,219 @@
+{
+  "info": {
+    "name": "TC-M02-G53 - Re-verificacion 2026-09-15 - Eventos reproductivos (servicio/diagnostico/parto)",
+    "description": "Re-ejecucion de TC-M02-G53 (RF-42, CU08) contra TEST el 2026-09-15, una semana despues del hallazgo original (2026-09-08). La coleccion original (tc_m02_g53.postman_collection.json) queda intacta como evidencia historica del bug original; esta version documenta el estado ACTUAL.\n\nRESULTADO: el bug original (500 ERROR_INTERNO incondicional en el primer evento reproductivo, causado por un ERRCODE custom de trigger no mapeado por db_error_translator.py) esta CORREGIDO para categoria=servicio y categoria=diagnostico -- ambos ahora devuelven 201 con id_padre valido.\n\nPERO se encontraron 2 hallazgos nuevos al reverificar:\n\n(1) BUG NUEVO: si no se envia el campo 'fecha' en el body, el endpoint usa `dto.fecha or datetime.now(timezone.utc)` (registrar_evento_reproductivo_use_case.py:52) y luego valida contra OTRO datetime.now(timezone.utc) capturado unos milisegundos despues en validar_fecha_evento (_event_validations.py:32) -- como el segundo 'ahora' siempre es post-posterior en microsegundos/milisegundos al 'fecha' generado antes, la comparacion `fecha_utc > ahora` da FALSO... pero en vivo se observa el efecto CONTRARIO: la fecha del evento queda 6-9ms POR DELANTE del 'ahora' de validacion, y el request es rechazado 100% de las veces con error_code=FECHA_INVALIDA (no coincide con el codigo/mensaje `FECHA_FUTURA` de este checkout local -- otro caso mas del patron ya documentado de TEST corriendo codigo mas nuevo/distinto al checkout local). Confirmado reproducible 4/4 intentos seguidos, y confirmado que el campo del body para la fecha es literalmente `fecha` (un intento anterior con el nombre equivocado `fecha_evento` fue ignorado silenciosamente por Pydantic extra=ignore, causando el mismo fallback a datetime.now() y el mismo error). WORKAROUND: enviar siempre un `fecha` explicito en el pasado -- con eso el registro funciona.\n\n(2) BUG NUEVO Y AISLADO: categoria='parto' con cualquier numero_crias (probado 1 y 3) SIGUE devolviendo 500 ERROR_INTERNO, incluso con fecha explicita valida y una secuencia previa completa (servicio+diagnostico exitoso). Categoria='aborto' con los MISMOS datos (numero_crias incluido) SI funciona (201) -- esto aisla el bug especificamente a categoria=parto, descartando que sea un problema generico de numero_crias o de las relaciones madre-cria. Root cause no confirmado esta sesion (sin acceso a logs/DB) pero el patron sugiere otro trigger o rama de codigo especifica de 'parto' con un ERRCODE custom no mapeado, misma familia que el bug original.\n\nUsa activos INDIVIDUAL ya existentes en TEST (creados 2026-09-10, sin historial reproductivo previo) en vez de crear frescos, porque POST /activos-biologicos sigue devolviendo 500 incondicional en TEST (hallazgo de TC-M02-G66/G69, no relacionado a este RF).\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () { pm.expect(respuesta).to.have.property('token'); });",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Confirmar que la madre fixture no tiene historial reproductivo previo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: la consulta del historial responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const reproductivos = respuesta ? (respuesta.registros || []).filter(function(r){ return r.categoria === 'REPRODUCTIVO'; }) : [];",
+              "pm.test('Precondicion: la madre fixture (id 304) no tiene eventos reproductivos previos (fixture limpio)', function () { pm.expect(reproductivos.length).to.equal(0); });",
+              "if (reproductivos.length !== 0) { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/historial", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "historial" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Hallazgo NUEVO - Sin campo fecha explicito, se rechaza como FECHA_INVALIDA (BUG)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Hallazgo nuevo: sin fecha explicita, race entre dos datetime.now() causa rechazo espurio ---');",
+              "console.log(pm.response.text());",
+              "pm.test('BUG: sin fecha explicita, el evento se rechaza con 422/400 FECHA_INVALIDA en vez de usar la fecha actual como 201', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+              "});",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('BUG: codigo de negocio FECHA_INVALIDA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('FECHA_INVALIDA');",
+              "});",
+              "console.log('CONCLUSION: confirma que el 2026-09-15 este es un bug NUEVO, distinto del 500 original ya corregido. Workaround: enviar fecha explicita en el pasado (ver siguiente request).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre}}\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-098) - Servicio con fecha explicita (CORREGIDO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: servicio con id_padre e fecha explicita ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1 CORREGIDO: el evento de servicio se registra correctamente (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta && respuesta.evento) {",
+              "    pm.test('Sub-caso 1: el evento queda registrado con el padre correcto', function () {",
+              "        pm.expect(respuesta.evento.reproductivo.categoria).to.equal('servicio');",
+              "        pm.expect(respuesta.evento.reproductivo.id_padre).to.equal(Number(pm.collectionVariables.get('id_padre')));",
+              "    });",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre}},\n  \"fecha\": \"2026-09-14T10:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-099) - Diagnostico de gestacion exitoso (CORREGIDO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: diagnostico de gestacion exitoso ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2 CORREGIDO: el diagnostico se registra correctamente (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta && respuesta.evento) {",
+              "    pm.test('Sub-caso 2: el diagnostico queda registrado con resultado exitoso', function () {",
+              "        pm.expect(respuesta.evento.reproductivo.categoria).to.equal('diagnostico');",
+              "        pm.expect(respuesta.evento.reproductivo.resultado).to.equal('exitoso');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"diagnostico\",\n  \"resultado\": \"exitoso\",\n  \"fecha\": \"2026-09-14T11:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3 (TC-M02-103) - Parto con numero_crias=3 (BUG NUEVO, sigue en 500)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 3: parto con numero_crias=3 (requiere el diagnostico positivo del sub-caso 2) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('BUG NUEVO: parto sigue respondiendo 500 ERROR_INTERNO en vez de 201, aislado a esta categoria (aborto con los mismos datos SI funciona)', function () {",
+              "    pm.expect(pm.response.code).to.equal(500);",
+              "});",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('BUG NUEVO: codigo de negocio ERROR_INTERNO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ERROR_INTERNO');",
+              "});",
+              "console.log('CONCLUSION: el bug original (cualquier evento reproductivo 500) esta corregido, pero parto especificamente sigue roto -- root cause no confirmado sin logs/DB, pero el aislamiento (aborto funciona con numero_crias, parto no) descarta que sea un problema generico de numero_crias.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 3,\n  \"fecha\": \"2026-09-14T12:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Control - Aborto con numero_crias (aisla el bug de parto: esto SI funciona)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Control: aborto con numero_crias=1, mismos datos que el parto fallido salvo la categoria ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Control: aborto SI se registra correctamente (HTTP 201) -- confirma que el bug de parto no es un problema generico de numero_crias', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta && respuesta.evento) {",
+              "    pm.test('Control: el aborto queda registrado con numero_cria=1', function () {",
+              "        pm.expect(respuesta.evento.reproductivo.categoria).to.equal('aborto');",
+              "        pm.expect(respuesta.evento.reproductivo.numero_cria).to.equal(1);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"aborto\",\n  \"resultado\": \"fallido\",\n  \"numero_crias\": 1,\n  \"fecha\": \"2026-09-14T13:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_madre", "value": "255" },
+    { "key": "id_padre", "value": "254" }
+  ]
+}

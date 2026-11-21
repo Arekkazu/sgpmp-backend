@@ -1,0 +1,30 @@
+{
+  "grupo": "G036",
+  "version": 2,
+  "intento": 3,
+  "run_id": "RUN-G036-V2-20261120-160721",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G036-V2-20261120",
+  "casos": [
+    "TC-M07-01",
+    "TC-M07-02",
+    "TC-M07-03",
+    "TC-M07-04",
+    "TC-M07-05"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M07-01",
+      "TC-M07-02",
+      "TC-M07-03",
+      "TC-M07-04",
+      "TC-M07-05"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 del grupo completo tras la corrección informada de INC-M07-G036-01. Ejecutor adaptado a la V2, a los datos actuales de TEST (versiones libres y anexos elegidos en vivo) y al frontend actual (Activar según el motivo del servidor), con las lecciones de G039-G041. Ensayo Windows: verificar.mjs OK en los 11 pasos con Cypress real, 16 escenarios, RED 0. g036.mjs 78c2002c8141779b766f612027c8ca1b0a98500f7d829fba2469a5b18e59bb06.",
+    "incumplimientos_previos": "V1 OFICIAL RUN-G036-V1-20261118-040435 (AUT-G036-V1-R2-20261117): 01, 02, 03 y 05 APROBADO; 04 RECHAZADO BAJA por INC-M07-G036-01 (Mappers vacíos o fuera del catálogo rechazados con 400 VAL_ENTRADA en lugar de MAPPERS_INVALIDOS, FA-3).",
+    "correcciones_informadas": "5baa6e1f (#1166, INC-M07-372-G36) en origin/test: la validación de los Mappers pasa del DTO al caso de uso y responde MAPPERS_INVALIDOS. Cambios asociados: 20b5f701 (listado con motivo_no_activable, auditoría con nombre de quien actuó), 756a04d9 (campo field en el error) y frontend b42b421d (Activar deshabilitado con el motivo del servidor).",
+    "resultado_esperado": "Oráculos de la fila G036 con las decisiones de estado/ANALISIS-G036-V2.md: 01 versión libre en PENDIENTE completa y auditada; 02 VERSION_DUPLICADA con la ACTIVO del momento; 03 ANEXO_MAPEO_INVALIDO con anexo inexistente o BORRADOR y alta con anexo EN_REVISION (RFC-030); 04 MAPPERS_INVALIDOS en las dos variantes; 05 alta desde la pantalla y acciones por estado (Activar según motivo_no_activable)."
+  },
+  "version_anterior": 1
+}

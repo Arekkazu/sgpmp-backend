@@ -1,0 +1,19 @@
+{
+  "info":{"name":"G072 RF-72 conflictos entre veterinarios","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json","description":"Nueve POST y cinco lecturas intercaladas del historial en una ejecución Newman por RUN."},
+  "item":[
+    {"name":"230a-A","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_230a_A}}"}}},
+    {"name":"230a-B","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_230a_B}}"}}},
+    {"name":"historial_tras_230a","request":{"method":"GET","url":"{{historial_url}}"}},
+    {"name":"230b-A","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_230b_A}}"}}},
+    {"name":"230b-B","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_230b_B}}"}}},
+    {"name":"historial_tras_230b","request":{"method":"GET","url":"{{historial_url}}"}},
+    {"name":"226-A","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_226_A}}"}}},
+    {"name":"226-B","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_226_B}}"}}},
+    {"name":"historial_tras_226","request":{"method":"GET","url":"{{historial_url}}"}},
+    {"name":"227-A","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_227_A}}"}}},
+    {"name":"227-B","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_227_B}}"}}},
+    {"name":"historial_tras_227_parcial","request":{"method":"GET","url":"{{historial_url}}"}},
+    {"name":"227-C","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_227_C}}"}}},
+    {"name":"historial_tras_227_final","request":{"method":"GET","url":"{{historial_url}}"}}
+  ]
+}

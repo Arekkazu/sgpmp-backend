@@ -1,0 +1,44 @@
+{
+  "grupo": "TC-M09-G138",
+  "casos": [
+    "TC-M09-278",
+    "TC-M09-279",
+    "TC-M09-280",
+    "TC-M09-281"
+  ],
+  "runId": "run-20261010-115458",
+  "herramienta": "API - Postman / Newman",
+  "nota": "Artefactos finales de la SEGUNDA EVALUACION. Los ejecutables viven unicamente en EvaluacionV2/; no se copian scripts dentro de RESULTADOS.",
+  "newmanHtmlPersistentes": 1,
+  "automationDentroDeResultados": "NO",
+  "artefactos": [
+    {
+      "archivo": "run-g138-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/EvaluacionV2/automation/run-g138-v2.cjs",
+      "funcion": "Runner unico de la reevaluacion, con los modos precheck (Newman de solo lectura sin HTML ni archivos, mas el descubrimiento dinamico de la finca compartida, la especie AVES y el tipo de area), run (RUN funcional oficial con el setup del fixture, los 4 POST de calibracion VISION, la restauracion y el unico HTML) y close (oraculo por caso, verificacion final de solo lectura, red de seguridad de la restauracion, diagnostico de BD solo SELECT y consolidacion de evidencia). No obtiene ni inyecta tokens en Newman, no ejecuta PUT, DELETE ni DML, y aborta si la coleccion intentara cargar observaciones M03.",
+      "sha256": "cbe86cbedd09b33308682844d6d2aa645608327b68200d867a75b2d29749e848",
+      "bytes": 76595
+    },
+    {
+      "archivo": "TC-M09-G138.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/EvaluacionV2/TC-M09-G138.postman_collection.json",
+      "funcion": "Coleccion de EvaluacionV2. La original solo consultaba /openapi.json porque TEST no publicaba VISION; esta ejercita los cuatro rechazos de precondicion y es duena de sus sesiones (logins dentro de Newman, tokens en engineer_session y admin_session). Crea un area distinta por caso con una sola precondicion invalida aislada, envia los 4 POST con el mensaje esperado construido con el ID real del area, verifica linea base e historial antes y despues, aplica STOP_ALL si un rechazo publicara linea base y revierte todo el fixture por desactivacion.",
+      "sha256": "5a6d4b5d7c72d6265de7eb227f9538b1ae6527d842b5e62f543048fee990c1cb",
+      "bytes": 95209
+    },
+    {
+      "archivo": "TC-M09-G138.postman_collection.json (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/TC-M09-G138.postman_collection.json",
+      "funcion": "Coleccion de la primera evaluacion: un unico GET de /openapi.json para el preflight contractual. Reutilizada en solo lectura como fuente del criterio del preflight; no fue modificada.",
+      "sha256": "efb72a8334ce38f1c7e63c0ce4c228e5fe5742823f8875f79ca26d9780016396",
+      "bytes": 844
+    },
+    {
+      "archivo": "run-newman.cjs (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/run-newman.cjs",
+      "funcion": "Runner de la primera evaluacion, que decidia el oraculo fuera de Newman ante la ausencia de contrato VISION. NO se utiliza en esta reevaluacion: se registra por trazabilidad del baseline.",
+      "sha256": "05b16e7db25a9d7cc27d1e50720518a917e0d90713a705a2009cbdce55c99081",
+      "bytes": 14743
+    }
+  ]
+}

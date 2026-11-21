@@ -1,0 +1,29 @@
+{
+  "grupo": "G37",
+  "run_id": "RUN-G37-V1-20261108-233956",
+  "ok": true,
+  "fase": "PREFLIGHT",
+  "barreras": [],
+  "precondicion_iot_sha256": "e237ae446d71212466d9aefee3ad0c4b4f30f078ec3a0ac448aee65b9c59de89",
+  "presupuesto": {
+    "solicitudes_totales": 150,
+    "duracion_segundos": 1800,
+    "logins_fuera_run": 2,
+    "eventos_m02": 5,
+    "precios": 2,
+    "procesamientos": 5,
+    "cambios_estado": 1,
+    "estados_resultados": 2,
+    "verificaciones_rf91": 1
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2"
+  },
+  "efectos_externos": [
+    "Cada precio RF-89 vigente puede enviar fuera del sandbox un aviso ALERTA_FINANCIERA_NIC41 a la bandeja interna de cada Contador: hasta 2 avisos por Contador, con referencia a precios que DELETE revierte; se informa aparte y no altera la oficialidad.",
+    "Los 2 logins y su auditoría son efectos persistentes previstos.",
+    "La bitácora RF-52 de eventos M02 puede escribir en logs/audit_buffer_M02.jsonl del servidor TEST si falla o hay carga, fuera del rollback; puede existir bitácora de consulta M02.",
+    "Procesar eventos M06 puede atender eventos pendientes ajenos dentro del sandbox. DELETE y lecturas poscierre verifican solo los datos del sandbox; no se esperan correos."
+  ]
+}

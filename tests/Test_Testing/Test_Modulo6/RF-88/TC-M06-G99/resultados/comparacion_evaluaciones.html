@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Comparación — TC-M06-G99</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 980px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    a { color: #0b4f8a; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-87, RF-88 y RF-93 · TC-M06-G99</p>
+  <h1>Comparación de evaluaciones</h1>
+  <p>La primera evaluación es la ejecución del 2026-11-08. La última es el cierre real del período 219, el 2026-11-10, después de TC-M06-G111.</p>
+  <table>
+    <tr><th>Punto</th><th>Primera evaluación</th><th>Última evaluación</th></tr>
+    <tr><td>Identificador</td><td>TC-M06-G99. El issue #972 lo llama TC-M06-G71.</td><td>TC-M06-G99.</td></tr>
+    <tr><td>Estado</td><td>BLOQUEADO</td><td>APROBADO</td></tr>
+    <tr><td>Resultado</td><td>0/2</td><td>2/2</td></tr>
+    <tr><td>Datos</td><td>Titular compartido. El cierre no se envió.</td><td>Titular 900000002, finca 466, período 219, activos 1567 y 1568.</td></tr>
+    <tr><td>Dependencia</td><td>No había un período aislado.</td><td>TC-M06-41 se ejecutó. El cierre pendiente respondió 422 y el período siguió abierto hasta clasificar el costo.</td></tr>
+    <tr><td>Fecha del activo 1567</td><td>No se leyó en esa ejecución.</td><td>2026-07-31.</td></tr>
+    <tr><td>Depreciación</td><td>No comprobada.</td><td>112500.00, línea 2628, evento 9614.</td></tr>
+    <tr><td>Segundo cierre</td><td>No enviado.</td><td>HTTP 409 PERIODO_CERRADO. Sin línea ni evento duplicado.</td></tr>
+    <tr><td>Período 219</td><td>No se cerró.</td><td>CERRADO el 2026-11-10. El período siguiente del mismo titular es el 260.</td></tr>
+  </table>
+  <h2>Bloqueo resuelto</h2>
+  <p>La primera evaluación se detuvo porque cerrar un período del titular compartido habría afectado datos ajenos al caso. El equipo preparó después el titular 900000002. Esta ejecución esperó a TC-M06-G111, comprobó el bloqueo por el costo pendiente y solo entonces cerró el período 219.</p>
+  <p><a href="primera_evaluacion/resultado_primera_evaluacion.html">Primera evaluación</a> · <a href="ultima_evaluacion_aprobada/resultado_ultima_evaluacion.html">Última evaluación</a></p>
+</body>
+</html>

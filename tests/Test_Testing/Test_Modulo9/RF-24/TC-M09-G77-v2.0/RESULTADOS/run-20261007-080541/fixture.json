@@ -1,0 +1,38 @@
+{
+  "origen": "oficial sensor 6 / dispositivo 3 / infraestructura 3",
+  "dispositivo": {
+    "id": 3,
+    "serial": "IOT-ALE01-HLA-003",
+    "es_activo": true
+  },
+  "sensor": {
+    "id": 6,
+    "nombre": "Sensor temperatura alevinera-01",
+    "categoria": "TEMPERATURA",
+    "es_activo": true,
+    "id_dispositivo_iot": 3
+  },
+  "area": {
+    "id_infraestructura": 3,
+    "tiene_estado": true,
+    "fecha_finalizacion": null
+  },
+  "rango": {
+    "categoria": "TEMPERATURA",
+    "min": "0.0000",
+    "max": "45.0000"
+  },
+  "valor": "22.5000",
+  "getsConAdministrador": [
+    {
+      "endpoint": "/configuracion/dispositivos-iot/3",
+      "statusConIngeniero": 404,
+      "motivo": "fuera del alcance del Ingeniero"
+    },
+    {
+      "endpoint": "/configuracion/sensores/6/asociaciones",
+      "statusConIngeniero": 404,
+      "motivo": "fuera del alcance del Ingeniero"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "grupo": "TC-M09-G76-v2.0",
+  "runId": "run-20261009-213814",
+  "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+  "nota": "Artefactos finales de la SEGUNDA EVALUACION. Los ejecutables viven unicamente en EvaluacionV2/; no se copia automation dentro de RESULTADOS.",
+  "artefactos": [
+    {
+      "archivo": "run-g76-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/automation/run-g76-v2.cjs",
+      "funcion": "Runner unico de la reevaluacion, con los modos precheck (Newman de solo lectura, sin HTML ni archivos), run (RUN funcional oficial con los 2 POST y el unico HTML) y close (consolidacion de evidencia y manifiesto, sin red). Nunca autentica con el correo del actor y no ejecuta PATCH.",
+      "sha256": "8653bc9874fcebceb517f9ddee153a2f9bb58c942032fe1dacdcfedfdfb20434",
+      "bytes": 52429,
+      "sha256_durante_el_run": "55eeed14ad091e6a057142bc622b02a75841328cb943a93b58eaf4b8e72d99cc",
+      "cambio_posterior_al_run": "Ajuste posterior al RUN, sin efecto sobre el oraculo: (1) el escaneo de secretos pasa a evaluar los archivos .cjs solo por VALORES de secreto, porque el propio codigo del escaner contiene su vocabulario (set-cookie, password) y se marcaba a si mismo con credencialesEnClaro = 0; (2) el modo close se hizo idempotente para poder recalcular seguridad, git y manifiesto sin volver a la red ni reejecutar ningun POST. No se modifico ninguna assertion, valor, codigo ni mensaje esperado, y no se reejecuto el RUN."
+    },
+    {
+      "archivo": "TC-M09-G76-v2.0.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/TC-M09-G76-v2.0.postman_collection.json",
+      "funcion": "Copia de la coleccion funcional para EvaluacionV2. Unico cambio autorizado: los 6 GET de precondicion usan {{session_value}} en lugar de un token externo. Items, metodos, URLs, bodies, assertions, orden, codigos y mensajes esperados y los 2 POST de calibracion son los de la primera evaluacion.",
+      "sha256": "0015c25268842ca2b4b872f410643d037748408f521d2583636222183c2aeeb1",
+      "bytes": 26384
+    },
+    {
+      "archivo": "TC-M09-G76-v2.0.postman_collection.json (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/TC-M09-G76-v2.0.postman_collection.json",
+      "funcion": "Coleccion funcional de la primera evaluacion. Reutilizada como fuente, en solo lectura; no fue modificada.",
+      "sha256": "6770d8013c6ba6327b305d0f2ec10b733ba8347a87865e9ad9cbd26651c119d8",
+      "bytes": 26289
+    },
+    {
+      "archivo": "helpers.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/helpers.cjs",
+      "funcion": "Reutilizado en solo lectura para las constantes del grupo y los constructores de los mensajes exigidos por RF-24 v2.0 (mensaje146 y mensaje147). No se usan sus funciones de login ni de discovery.",
+      "sha256": "0e9899dabed436e1b36bec382821cb436f88acd1dd2f55122cc4c2748748e358",
+      "bytes": 17003
+    }
+  ],
+  "newmanHtmlPersistentes": 1,
+  "automationDentroDeResultados": "NO",
+  "cambiosPosterioresAlRun": [
+    {
+      "archivo": "run-g76-v2.cjs",
+      "motivo": "Ajuste posterior al RUN, sin efecto sobre el oraculo: (1) el escaneo de secretos pasa a evaluar los archivos .cjs solo por VALORES de secreto, porque el propio codigo del escaner contiene su vocabulario (set-cookie, password) y se marcaba a si mismo con credencialesEnClaro = 0; (2) el modo close se hizo idempotente para poder recalcular seguridad, git y manifiesto sin volver a la red ni reejecutar ningun POST. No se modifico ninguna assertion, valor, codigo ni mensaje esperado, y no se reejecuto el RUN."
+    }
+  ],
+  "integridadDeLaColeccionEjecutada": "OK: la coleccion ejecutada y la original no cambiaron desde el RUN"
+}

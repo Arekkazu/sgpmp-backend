@@ -1,0 +1,517 @@
+{
+  "info": {
+    "_postman_id": "test-tc-m02-g28-suite-consolidada",
+    "name": "TC-M02-G28 - Gestión Poblacional y Transferencia Interna (RF-36 / RF-48)",
+    "description": "Suite consolidada de pruebas para RF-36 y RF-48: Validación de frontera territorial (Fix #333) y recálculo automático de densidad zootécnica (Fix #334) con teardown formal.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_origen_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_inactiva_id",
+      "value": "10",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_otra_finca_id",
+      "value": "4",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_destino_valida",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "superficie_destino",
+      "value": "500",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "0.1. Setup Precondición: Obtener infraestructura actual del lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Setup Precondición - Obtener infraestructura actual (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    var origen = res.id_infraestructura;",
+              "    pm.collectionVariables.set('infraestructura_origen_id', String(origen));",
+              "    var destino = (origen === 1 ? 3 : 1);",
+              "    var sup = (origen === 1 ? 500 : 2500);",
+              "    pm.collectionVariables.set('infraestructura_destino_valida', String(destino));",
+              "    pm.collectionVariables.set('superficie_destino', String(sup));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M02-200: Transferencia a infraestructura inactiva (ID 10)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_origen_id}},\n  \"infraestructura_destino_id\": {{infraestructura_inactiva_id}},\n  \"fecha_transferencia\": \"2026-09-19\",\n  \"motivo_transferencia\": \"Prueba rechazo infraestructura inactiva TC-M02-200\",\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/transferencias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "transferencias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M02-200 - Código HTTP esperado: 422 (o 400)', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('TC-M02-200 - Error indica INFRAESTRUCTURA_DESTINO_INVALIDA', function () {",
+              "    var resJson = {};",
+              "    try { resJson = pm.response.json(); } catch(e) {}",
+              "    var resText = pm.response.text();",
+              "    var isValid = resJson.error_code === 'INFRAESTRUCTURA_DESTINO_INVALIDA' ||",
+              "                  resText.includes('inactiva') ||",
+              "                  resText.includes('no existe o no está activa');",
+              "    pm.expect(isValid).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1.1. TC-M02-200 Check: Verificar que el lote permanece intacto",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M02-200 Check - Código HTTP 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('TC-M02-200 Check - Lote permanece en infraestructura origen', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_infraestructura).to.eql(parseInt(pm.collectionVariables.get('infraestructura_origen_id')));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M02-201: Transferencia a infraestructura de otra finca (ID 4)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_origen_id}},\n  \"infraestructura_destino_id\": {{infraestructura_otra_finca_id}},\n  \"fecha_transferencia\": \"2026-09-19\",\n  \"motivo_transferencia\": \"Prueba rechazo infraestructura otra finca TC-M02-201\",\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/transferencias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "transferencias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M02-201 - Código HTTP esperado: 422 (o 400, 403)', function () {",
+              "    pm.expect([400, 403, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('TC-M02-201 - Error indica DESTINO_OTRA_FINCA (Fix #333 activo)', function () {",
+              "    var resJson = {};",
+              "    try { resJson = pm.response.json(); } catch(e) {}",
+              "    var resText = pm.response.text();",
+              "    var isBlocked = resJson.error_code === 'DESTINO_OTRA_FINCA' ||",
+              "                    resText.includes('distinta a la del activo') ||",
+              "                    resText.includes('otra finca');",
+              "    pm.expect(isBlocked).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2.1. TC-M02-201 Check: Verificar que el lote no fue transferido",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M02-201 Check - Código HTTP 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('TC-M02-201 Check - Lote permanece en infraestructura original', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_infraestructura).to.eql(parseInt(pm.collectionVariables.get('infraestructura_origen_id')));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M02-202: Transferencia válida hacia infraestructura destino",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_origen_id}},\n  \"infraestructura_destino_id\": {{infraestructura_destino_valida}},\n  \"fecha_transferencia\": \"2026-09-19\",\n  \"motivo_transferencia\": \"Transferencia válida con recálculo densidad TC-M02-202\",\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/transferencias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "transferencias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M02-202 - Código HTTP esperado: 201 Created', function () {",
+              "    pm.expect([200, 201]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('TC-M02-202 - Respuesta confirma traslado exitoso', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_activo_biologico).to.eql(parseInt(pm.collectionVariables.get('id_lote')));",
+              "    pm.expect(res.infraestructura_destino).to.be.a('string');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3.1. TC-M02-202 Check: Verificar recálculo automático de densidad",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M02-202 Check - Código HTTP 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('TC-M02-202 Check - Lote asignado a infraestructura destino', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_infraestructura).to.eql(parseInt(pm.collectionVariables.get('infraestructura_destino_valida')));",
+              "});",
+              "",
+              "pm.test('TC-M02-202 Check - Densidad recalculada automáticamente según nueva superficie (Fix #334)', function () {",
+              "    var res = pm.response.json();",
+              "    var cantidadActual = (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual) || res.cantidad_actual || 3;",
+              "    var densidad = res.detalle_poblacional ? parseFloat(res.detalle_poblacional.densidad) : parseFloat(res.densidad);",
+              "    var sup = parseFloat(pm.collectionVariables.get('superficie_destino'));",
+              "    var densidadEsperada = cantidadActual / sup;",
+              "    pm.expect(densidad).to.be.closeTo(densidadEsperada, 0.0001);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Teardown: Revertir lote a su infraestructura original",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_destino_valida}},\n  \"infraestructura_destino_id\": {{infraestructura_origen_id}},\n  \"fecha_transferencia\": \"2026-09-19\",\n  \"motivo_transferencia\": \"Teardown formal V3 - revertir a infraestructura original\",\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/transferencias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "transferencias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Teardown - Reversión exitosa (HTTP 201 Created)', function () {",
+              "    pm.expect([200, 201]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4.1. Teardown Check: Confirmar restauración completa del lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Teardown Check - Código HTTP 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Teardown Check - Lote restaurado en infraestructura original', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_infraestructura).to.eql(parseInt(pm.collectionVariables.get('infraestructura_origen_id')));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

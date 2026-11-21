@@ -1,0 +1,249 @@
+================================================================================
+INFORME FASE 3 (RONDA 2), ETAPA 1 - CORREGIR + DIFF — TC-M05-G18 (RF-76)
+================================================================================
+Carpeta fase3r2 : tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\evidencias\fase3r2-20261110-203613
+Archivo archivado: tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\evidencias\run-20261110-202406 [INTACTO]
+resultados/      : ['.gitkeep'] [SOLO .gitkeep]
+Backend / Git    : Sin cambios en backend; sin git add / git commit.
+
+--------------------------------------------------------------------------------
+1. SHA-256 INICIAL
+--------------------------------------------------------------------------------
+test_tc_m05_g18.py      : 199F1A17D46CABFB0D58898287D5E238533232C5BF4E876DC6BDC8A1D07887DF
+ejecutar_tc_m05_g18.ps1 : BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0
+Respaldo original/      : test_tc_m05_g18.py y ejecutar_tc_m05_g18.ps1 copiados antes de editar.
+
+--------------------------------------------------------------------------------
+2. HALLAZGOS EN BACKEND Y CAMBIOS APLICADOS (F1 - F5)
+--------------------------------------------------------------------------------
+F1) Reloj de S1
+  - Hallazgo [LECTURA DE CODIGO]:
+    * main.py:29-39 no importa `datetime` a nivel de modulo.
+    * main.py:357-385 (`_revertir_retiros_vencidos_diariamente`): en main.py:364 ejecuta
+      `from datetime import datetime, time as dtime, timedelta`. Usa `dtime(3, 0)` (linea 371),
+      `ahora = datetime.now()` (linea 374), `proximo = ahora.replace(...)` (linea 375) y
+      `timedelta(days=1)` (linea 377) UNICAMENTE para calcular los segundos hasta las 03:00
+      pasados a `await asyncio.sleep((proximo - ahora).total_seconds())` (linea 378).
+    * La fecha que evalua el job no proviene de `main.py` sino de `hoy = hoy_usuario()` en
+      src/supplies/application/use_cases/suministros/revertir_retiros_vencidos_use_case.py:23,46
+      y la comparacion `vigente.fecha_fin_retiro > hoy` en linea 65.
+  - Cambio aplicado en test_tc_m05_g18.py:
+    * Como la espera hasta 03:00 ya la cubre `_FakeAsyncioEnMain` y el reloj de main.py no
+      define la fecha de negocio, se elimino la clase `_FakeDateTimeMain` (antes lineas 438-445)
+      y la linea `monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)` (antes linea 496),
+      actualizando el comentario en las lineas 485-487 y manteniendo `hoy_usuario` fijado en
+      `shared_fechas` y `rev_uc_mod` (lineas 489-490).
+
+F2) `_UseCaseS1ConSesionFalsa`
+  - Hallazgo [LECTURA DE CODIGO]:
+    * main.py:367-369 importa localmente dentro de `_revertir_retiros_vencidos_diariamente`:
+      `from src.supplies.application.use_cases.suministros.revertir_retiros_vencidos_use_case import RevertirRetirosVencidosUseCase`
+      (no existe import a nivel de modulo en main.py).
+    * main.py:381 instancia con argumento NOMINAL (keyword):
+      `use_case = RevertirRetirosVencidosUseCase(session_factory=sesion_sistema)`.
+    * El `__init__(self, _session_factory: Any)` previo habria lanzado `TypeError` al recibir `session_factory=...`.
+  - Cambio aplicado en test_tc_m05_g18.py:
+    * Lineas 477-480: `_UseCaseS1ConSesionFalsa.__init__(self, *_args: Any, **_kwargs: Any) -> None`
+      acepta firma posicional o nominal (`session_factory=...`), nunca invoca la factory recibida
+      y pasa `lambda: _FakeSession(store, es_sesion_peticion=False)` a `super().__init__`.
+    * Linea 491: mantiene `monkeypatch.setattr(rev_uc_mod, "RevertirRetirosVencidosUseCase", _UseCaseS1ConSesionFalsa)`,
+      namespace exacto donde `main.py:367-369` busca la clase.
+
+F3) Usuario falso (`id_estado_cuenta`)
+  - Hallazgo [LECTURA DE CODIGO]:
+    * src/identity_access/domain/entities/cuenta.py:40-41 define `ESTADO_PENDIENTE = 1` y
+      `ESTADO_ACTIVO = 2`.
+    * src/shared/rbac.py:147-154 (`_exigir_permiso`) rechaza con HTTP 403 `CUENTA_NO_ACTIVA`
+      cuando `usuario_actual.id_estado_cuenta != Cuenta.ESTADO_ACTIVO`.
+  - Cambio aplicado en test_tc_m05_g18.py:
+    * Linea 49: importa `from src.identity_access.domain.entities.cuenta import Cuenta`.
+    * Linea 523: cambia `id_estado_cuenta=1` a `id_estado_cuenta=Cuenta.ESTADO_ACTIVO`.
+    * Linea 17: actualiza el docstring del modulo (`id_estado_cuenta=Cuenta.ESTADO_ACTIVO`).
+
+F4) `sesion_sistema` en el manejo de errores
+  - Hallazgo [LECTURA DE CODIGO]:
+    * `src/shared/db_error_translator.py:1-442` NO importa ni llama `sesion_sistema` ni registra auditoria.
+    * `src/shared/error_handlers.py` NO registra auditoria en NINGUN 5xx (ni en todos ni en algunos):
+      - `app_error_handler` (lineas 76-105): solo `logger.error` en 5xx y `_respuesta_error`.
+      - `db_no_disponible_handler` (lineas 327-347, HTTP 503): solo `logger.error` y `_respuesta_error`.
+      - `error_no_controlado_handler` (lineas 350-371, HTTP 500): solo `logger.exception` y `_respuesta_error`.
+      - `rechazo_trigger_handler` (lineas 374-383): traduce trigger o delega a 500 sin auditoria.
+    * En `src/shared/error_handlers.py`, `sesion_sistema` SOLO aparece en dos imports locales por nombre
+      para `RequestValidationError` (400/422) en rutas IoT:
+      - `_auditar_evento_edge_rechazado`: linea 136 `from src.shared.database import sesion_sistema` -> linea 145 `sesion_sistema()`.
+      - `_auditar_evento_alerta_rechazado`: linea 163 `from src.shared.database import sesion_sistema` -> linea 175 `sesion_sistema()`.
+      (Ademas `_auditar_validacion_rechazada_m02` en linea 220 usa `from src.shared.database import SessionLocal`
+      exclusivamente para rutas `/activos-biologicos`).
+    * Al ser imports locales dentro de funciones, el namespace donde se busca `sesion_sistema` es
+      el modulo `src.shared.database` (`shared_database`).
+  - Cambio aplicado en test_tc_m05_g18.py:
+    * Lineas 540-544 (en `_configurar_cliente_api_en_proceso`, comun a TODOS los tests de API
+      `S2_01..S3_03`): sustituye `shared_database.sesion_sistema` por
+      `lambda: _FakeSession(store, es_sesion_peticion=False)` (registra en `_FakeStore` sin lanzar).
+    * Lineas 1099-1126 (`test_g18_s3_03_incidente_auditoria_sobrevive_rollback`): se eliminaron
+      los `monkeypatch` duplicados en `mp_a`/`mp_b` porque `_configurar_cliente_api_en_proceso` ya lo aplica.
+    * En `_proteger_entorno_en_proceso` (lineas 249-250), `SessionLocal` y `sqlalchemy.create_engine`
+      siguen bloqueados con guard; y en S1 (que no llama `_configurar_cliente_api_en_proceso`),
+      `shared_database.sesion_sistema` permanece bloqueado con guard (linea 251) mientras
+      `_UseCaseS1ConSesionFalsa` inyecta su factory falsa.
+
+F5) Host de TEST
+  - Hallazgo [HECHO OBSERVADO] y [LECTURA DE CODIGO]:
+    * Host configurado en `TEST_BASE_URL` (`.env.test`): `www.api.inmero.co`.
+    * Smoke de Fase 1 (`evidencias/analisis-20261110-194514/smoke_g18.py:28,104`) leyo `TEST_BASE_URL`
+      desde la misma raiz `.env.test`; por lo tanto, el host COINCIDE (`www.api.inmero.co`).
+    * No se modifico el codigo de `test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad`.
+
+--------------------------------------------------------------------------------
+3. DIFF COMPLETO (diff_tc_m05_g18_r2.patch)
+--------------------------------------------------------------------------------
+--- original/test_tc_m05_g18.py
++++ corregido/test_tc_m05_g18.py
+@@ -14,7 +14,7 @@
+   (fecha hoy y D-6) e inocuidad total tras rollback.
+ 
+ Nota de alcance RBAC: los tests en proceso (S2 y S3) inyectan un `UsuarioActual`
+-Veterinario activo (`id_rol=3`, `id_estado_cuenta=1`) con permiso `(48, 1)` sobre
++Veterinario activo (`id_rol=3`, `id_estado_cuenta=Cuenta.ESTADO_ACTIVO`) con permiso `(48, 1)` sobre
+ `medicamentos`, porque la autorizacion por roles esta fuera del alcance de G18 y
+ ya fue verificada en TEST durante la Fase 1 (hallazgo B1).
+ """
+@@ -46,6 +46,7 @@
+ os.environ["ENV"] = "test"
+ 
+ import main
++from src.identity_access.domain.entities.cuenta import Cuenta
+ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+ import src.shared.database as shared_database
+ import src.shared.fechas as shared_fechas
+@@ -435,15 +436,6 @@
+         return getattr(self._real, name)
+ 
+ 
+-class _FakeDateTimeMain(datetime):
+-    """Hereda de `datetime` y fija `now(tz)` a las 02:59 del dia simulado para S1 (C6)."""
+-
+-    @classmethod
+-    def now(cls, tz: Any = None) -> datetime:
+-        base = datetime(FECHA_SIMULADA_S1.year, FECHA_SIMULADA_S1.month, FECHA_SIMULADA_S1.day, 2, 59, 0)
+-        return base.replace(tzinfo=tz) if tz is not None else base
+-
+-
+ def _ejecutar_scheduler_s1_con_dobles(store: _FakeStore, monkeypatch: pytest.MonkeyPatch) -> _FakeAsyncioEnMain:
+     """Invoca directamente `main._revertir_retiros_vencidos_diariamente` una sola iteracion."""
+     fake_asyncio = _FakeAsyncioEnMain()
+@@ -483,17 +475,17 @@
+             self.db.staged_estado = ESTADO_ACTIVO
+ 
+     class _UseCaseS1ConSesionFalsa(orig_rev_cls):
+-        def __init__(self, _session_factory: Any) -> None:
+-            # C5: acepta la factory sin compararla ni invocarla.
++        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
++            # F2: acepta la firma real de `main.py:381` (`session_factory=...`) o posicional sin invocarla.
+             super().__init__(session_factory=lambda: _FakeSession(store, es_sesion_peticion=False))
+ 
+     def _spy_send_email(*, to: str, subject: str, html_body: str) -> None:
+         store.correos_enviados.append({"to": to, "subject": subject, "html_body": html_body})
+ 
+-    # Parcheo exactamente en los modulos donde se buscan los simbolos (C4):
+-    # - `main` busca asyncio, datetime e importa RevertirRetirosVencidosUseCase desde `rev_uc_mod`.
++    # Parcheo exactamente en los modulos donde se buscan los simbolos (C4 / F1 / F2):
++    # - `main.py:378` busca asyncio (y F1: datetime/dtime/timedelta solo calculan la espera hasta 03:00).
++    # - `main.py:367-369` importa RevertirRetirosVencidosUseCase desde `rev_uc_mod`.
+     monkeypatch.setattr(main, "asyncio", fake_asyncio)
+-    monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+     monkeypatch.setattr(shared_fechas, "hoy_usuario", lambda: FECHA_SIMULADA_S1)
+     monkeypatch.setattr(rev_uc_mod, "hoy_usuario", lambda: FECHA_SIMULADA_S1)
+     monkeypatch.setattr(rev_uc_mod, "RevertirRetirosVencidosUseCase", _UseCaseS1ConSesionFalsa)
+@@ -528,7 +520,7 @@
+         id_usuario=VET_USER_ID,
+         id_token=99,
+         id_rol=3,
+-        id_estado_cuenta=1,
++        id_estado_cuenta=Cuenta.ESTADO_ACTIVO,
+     )
+ 
+     def _fake_get_db() -> Iterator[_FakeSession]:
+@@ -543,6 +535,13 @@
+     # C1: `medicamento_router.py:65-66` y `rbac.py:105-106` guardaron las referencias originales en `Depends(...)`.
+     main.app.dependency_overrides[_GET_DB_ORIGINAL] = _fake_get_db
+     main.app.dependency_overrides[_GET_CURRENT_USER_ORIGINAL] = lambda: vet
++    # F4: en todos los tests en proceso de API (S2_01..S3_03), `sesion_sistema` entrega una
++    # sesion independiente no-peticion (en `error_handlers.py:136,163` se resuelve desde `src.shared.database`).
++    monkeypatch.setattr(
++        shared_database,
++        "sesion_sistema",
++        lambda: _FakeSession(store, es_sesion_peticion=False),
++    )
+     # `rbac.py:110` busca `tiene_permiso` en el namespace de `src.shared.rbac`.
+     monkeypatch.setattr(
+         shared_rbac,
+@@ -1097,13 +1096,8 @@
+     def _verificar() -> str:
+         _assert_sin_violaciones_guard()
+ 
+-        # Escenario A: falla calculando fecha_fin_retiro (sesion_sistema liberada para registro independiente C9)
++        # Escenario A: falla calculando fecha_fin_retiro (`_configurar_cliente_api_en_proceso` ya provee sesion_sistema F4)
+         with monkeypatch.context() as mp_a:
+-            mp_a.setattr(
+-                shared_database,
+-                "sesion_sistema",
+-                lambda: _FakeSession(store, es_sesion_peticion=False),
+-            )
+             client_a, _ = _configurar_cliente_api_en_proceso(store, mp_a, fallar_rf44=False)
+ 
+             def _fallar_td(*_a: Any, **_kw: Any) -> Any:
+@@ -1120,15 +1114,10 @@
+         assert store.timedelta_calls >= 1
+         audit_post_a = list(store.auditorias_persistidas)
+ 
+-        # Escenario B: falla real de BD en guardar() (sesion_sistema liberada para registro independiente C9)
++        # Escenario B: falla real de BD en guardar() (`_configurar_cliente_api_en_proceso` ya provee sesion_sistema F4)
+         pg_err = psycopg2.OperationalError("connection to PostgreSQL server lost during flush")
+         sa_err = OperationalError("INSERT INTO modulo5.registros_medicamentos ...", {}, pg_err)
+         with monkeypatch.context() as mp_b:
+-            mp_b.setattr(
+-                shared_database,
+-                "sesion_sistema",
+-                lambda: _FakeSession(store, es_sesion_peticion=False),
+-            )
+             client_b, fake_db_b = _configurar_cliente_api_en_proceso(
+                 store,
+                 mp_b,
+
+--------------------------------------------------------------------------------
+4. RESULTADO DE --collect-only
+--------------------------------------------------------------------------------
+Comando: .venv\Scripts\python.exe -m pytest tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py --collect-only -q
+Codigo de salida: 0 (10 tests collected in 10.84s; 0 errores de recoleccion; 2 warnings conocidos)
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_01_falla_calculo_fecha_fin_retiro
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_s3_03_incidente_auditoria_sobrevive_rollback
+tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py::test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad
+10 tests collected in 10.84s
+
+--------------------------------------------------------------------------------
+5. SHA-256 FINAL
+--------------------------------------------------------------------------------
+test_tc_m05_g18.py      : 789C21DA45A93BA564FA419DCD49C3B81A4E165D83DD72CE8F4DE16CE6F1AE4A
+ejecutar_tc_m05_g18.ps1 : BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0  [SIN CAMBIOS]
+
+--------------------------------------------------------------------------------
+6. ESCANEO DE SECRETOS DE ARTEFACTOS NUEVOS
+--------------------------------------------------------------------------------
+Carpeta escaneada: tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\evidencias\fase3r2-20261110-203613 (todos los archivos nuevos: diff_tc_m05_g18_r2.patch, original/*, este informe .txt) y test_tc_m05_g18.py:
+0 coincidencias
+
+--------------------------------------------------------------------------------
+7. DUDAS
+--------------------------------------------------------------------------------
+Ninguna duda sobre los ajustes F1-F5. Nota operativa para la siguiente ejecucion: `G18_R_01`
+depende de la latencia/disponibilidad de `www.api.inmero.co`, y `S1_03` / `S3_03` mantienen los
+esperados de la especificacion (notificar tambien al Veterinario en fin de retiro y persistir
+incidente de auditoria sobreviviente al rollback) documentados como brechas de producto desde Fase 1.

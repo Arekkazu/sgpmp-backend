@@ -1,0 +1,58 @@
+TC-M09-G90 rev2 TEST — RF-27 Temas Claro / Oscuro / Automático
+Fecha: 2026-09-25
+Ambiente: TEST
+Frontend: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: admin@pecuaria.co (id_usuario=1, Administrador)
+Navegador: Chrome 153 headless (Cypress 14.5.4)
+No se modificó tc_m09_g90.cy.js ni evidencia rev1 DEV.
+
+IMPLEMENTACIÓN (sin cambios de producto)
+theme_mode 1=CLARO, 2=OSCURO, 3=SISTEMA/Automático (src ThemeMode).
+Almacenamiento: modulo9 temas personales GET/PATCH /configuracion/personalizacion/tema
+GET resuelve personal → global → 1.
+Frontend TEST: pestaña Configuración > Personalización > Tema Visual (Claro/Oscuro/Automático, Guardar tema).
+html[data-theme]=light|dark. Automático: prefers-color-scheme (no se completó emulación estable en esta corrida).
+
+PASO SESIÓN (problema anterior POST /sesiones/refresh 500 en DEV)
+Tras login UI (200) y dashboard, al ir a /configuracion:
+POST /sesiones/refresh → HTTP 200 (G90-rev2-refresh.json, dos llamadas 200, sesionInestable=false).
+No hubo redirección a /login en el acceso inicial.
+El HTTP 500 de DEV NO se reprodujo en TEST.
+Un 401 posterior apareció solo cuando Cypress interceptaba/modificaba refresh o re-visitaba /configuracion (mensaje UI "No se pudo restaurar tu sesión"). Eso NO se usó para declarar defecto de RF-27.
+
+CONFIGURACIÓN INICIAL
+GET /configuracion/personalizacion/tema → 200 theme_mode=1 fuente=personal id_tema_visual=6
+No se asumió el valor; se midió.
+
+TC-M09-170 (theme_mode=1)
+PATCH personal vía UI Guardar tema. Toast: "Tema guardado / El tema se aplicó correctamente".
+html data-theme=light (G90-rev2-170-claro.json).
+Apariencia: panel principal claro, textos oscuros, cards, formulario de tema, navegación/sidebar operativos.
+Screenshot: G90-rev2-170-02-claro-aplicado.png
+Funcionalidad: se siguió en /configuracion, pestaña Personalización usable.
+Persistencia API inicial y restauración final theme_mode=1.
+Resultado: APROBADO (aplicación y apariencia). La assertion de luma sobre rgba(0,0,0,0) fue error de prueba, no del producto.
+
+TC-M09-171 (theme_mode=2)
+UI Oscuro + Guardar. Toast correcto.
+html data-theme=dark (G90-rev2-171-oscuro.json).
+Apariencia realmente oscura (fondos oscuros, texto claro) contrastada contra 170.
+Screenshot: G90-rev2-171-02-oscuro-aplicado.png
+Funcionalidad: navegación y configuración visibles en oscuro.
+Resultado: APROBADO (aplicación y apariencia).
+
+TC-M09-172 (theme_mode=3)
+UI Automático existe. No se obtuvo corrida estable de Emulation.setEmulatedMedia (light y dark) con GET theme_mode=3 persistente: las corridas Cypress se cortaron por 401 de token de prueba (JWT de login vs refresh) o por re-visita.
+No se declaró defecto de producto de automático.
+Resultado: BLOQUEADO (herramienta/sesión de prueba; UI presente).
+
+RESTAURACIÓN
+PATCH theme_mode=1 200. GET 200 theme_mode=1 fuente=personal id=6.
+
+Newman Mocha última corrida: no usar como único veredicto (fallos de hook/token). Evidencia visual y JSON de apariencia sí.
+
+RESULTADO GLOBAL G90: BLOQUEADO
+Lo determina TC-M09-172 (no ejecutado de punta a punta). 170 y 171 no bastan para APROBADO global.
+
+Password/JWT/Bearer: [REDACTED]

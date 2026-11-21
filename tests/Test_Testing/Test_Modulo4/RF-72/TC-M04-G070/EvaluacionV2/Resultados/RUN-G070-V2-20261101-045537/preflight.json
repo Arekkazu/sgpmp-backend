@@ -1,0 +1,31 @@
+{
+  "grupo": "G070",
+  "run_id": "RUN-G070-V2-20261101-045537",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 209,
+    "paginas_historial": 40,
+    "versiones_maximas": 8,
+    "posts_maximos": 15,
+    "dias_busqueda": 125,
+    "timeout_login_ms": 120000,
+    "timeout_ms": 30000,
+    "timeout_escritura_ms": 120000,
+    "duracion_segundos": 1800
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "efectos": [
+    "Dos logins, Veterinario A y Administrador; último acceso y auditoría de autenticación",
+    "Lecturas de activo, historial, modelos, OpenAPI, configuración y auditoría",
+    "Retroalimentaciones aceptadas y auditoría, revertidas mediante DELETE",
+    "PATCH global 7, 8, 365 y restauración a 90; ampliación puntual dentro del sandbox",
+    "POST/PATCH sin respuesta: conciliación por GET/historial, sin reintento de la misma operación",
+    "DELETE siempre; historial poscierre puede crear HISTORIAL_CONSULTADO fuera del sandbox"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": "E4",
+  "nombre": "Consulta y recuperación de registros históricos",
+  "caso_original": "TC-M07-102-015",
+  "estado": "APROBADO",
+  "validacion": "Recuperación real de archivados vía almacenamiento histórico",
+  "esperado": "Vista/consulta unificada activos+archivados con integridad",
+  "obtenido": "vista_test=True; aislado={'total_vista_historial': 9, 'esperado': 9, 'cubre_activos_y_archivados': True, 'consulta_dual_implementada': True}; api_http=200",
+  "evidencia": "evidencia_reevaluacion_e4_historicos_TC-M07-G058.json",
+  "pasos": [
+    "Confirmación v_historial_eventos_integracion en TEST",
+    "Repositorio consulta v_historial_*",
+    "BD aislada: count vista = activos + archivados del endpoint de prueba",
+    "API TEST responde GET /integracion/auditoria (contrato unificado)"
+  ],
+  "observaciones": "La API no expone flag 'archivado'; la recuperación se demuestra por la vista unificada.",
+  "referencia_original": "Resultado/evidencia_e4_historicos_TC-M07-G058.json",
+  "fecha_utc": "2026-11-21T00:27:47.742314+00:00",
+  "ambiente": {
+    "api_test": "https://api.inmero.co/api-sgpmp-test",
+    "codigo": "origin/test (inspección RF-102 #1165)",
+    "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+  },
+  "evidencia_tecnica": {
+    "total_vista_historial": 9,
+    "esperado": 9,
+    "cubre_activos_y_archivados": true,
+    "consulta_dual_implementada": true
+  }
+}

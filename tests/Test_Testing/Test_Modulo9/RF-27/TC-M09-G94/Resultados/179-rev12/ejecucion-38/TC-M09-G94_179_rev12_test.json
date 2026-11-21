@@ -1,0 +1,111 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 0,
+    "pending": 0,
+    "failures": 1,
+    "start": "2026-10-10T21:05:51.569Z",
+    "end": "2026-10-10T21:06:06.362Z",
+    "duration": 14793,
+    "testsRegistered": 1,
+    "passPercent": 0,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "631c675b-a98f-4526-a385-3ae202dd8bb2",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_179_rev12_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_179_rev12_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "d055f448-c5fa-4abb-a419-c4bff18123ab",
+          "title": "TC-M09-179 rev12 TEST",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-179 aplica color_ajustado #757575 en --brand-500 con data-theme=light",
+              "fullTitle": "TC-M09-179 rev12 TEST TC-M09-179 aplica color_ajustado #757575 en --brand-500 con data-theme=light",
+              "timedOut": null,
+              "duration": 13878,
+              "state": "failed",
+              "speed": null,
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "context": null,
+              "code": "const contrasena = pass();\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/interfaz\\/contexto\\/?$/\n}).as('ctx');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('loginProd');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/refresh\\/?$/\n}, req => {\n  req.continue(res => {\n    const body = res.body && typeof res.body === 'object' ? res.body : {};\n    refreshLog.push({\n      http: res.statusCode,\n      error_code: body.error_code || body.code || null\n    });\n  });\n}).as('refreshSesion');\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/personalizacion\\/tema\\/?$/\n}, req => {\n  req.continue(res => {\n    const body = res.body && typeof res.body === 'object' ? res.body : {};\n    temaBrowserLog.push({\n      http: res.statusCode,\n      error_code: body.error_code || body.code || null,\n      theme_mode: body.theme_mode != null ? body.theme_mode : null\n    });\n  });\n}).as('getTemaBrowser');\nloginApi(ADMIN).then(r => {\n  expect(r.status, 'login admin API un intento').to.eq(200);\n  tokenAdmin = r.body.token;\n  expect(tokenAdmin, 'token admin').to.be.a('string').and.not.empty;\n  lastStep = 'login_admin_api';\n});\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"]').clear().type(PRODUCTOR);\ncy.get('input[type=\"password\"]').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@loginProd').then(intc => {\n  expect(intc.response.statusCode, 'login productor UI un intento').to.eq(200);\n  tokenProd = intc.response.body.token;\n  lastStep = 'login_prod_ui';\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard').then(() => {\n  lastStep = 'dashboard';\n});\ncy.wait('@ctx').then(intc => {\n  const body = intc.response.body;\n  expect(body.id_finca, 'snapshot contexto finca').to.eq(FINCA);\n  expect(body.id_usuario, 'productor id').to.eq(2);\n  cy.writeFile(`${EVIDENCIA}/G94-rev12-179-contexto-antes.json`, {\n    id_usuario: body.id_usuario,\n    id_finca: body.id_finca,\n    finca_activa: body.finca_activa,\n    identidad_visual: body.identidad_visual,\n    accesibilidad: body.accesibilidad\n  });\n  lastStep = 'contexto_antes';\n});\napi('GET', `/configuracion/identidad-visual/${FINCA}`, 'admin').then(idRes => {\n  expect(idRes.status, 'GET identidad snapshot').to.eq(200);\n  expect(idRes.body, 'identidad snapshot objeto (no null)').to.be.an('object');\n  expect(idRes.body.id_finca, 'GET identidad id_finca').to.eq(FINCA);\n  snapId = {\n    id_identidad_visual: idRes.body.id_identidad_visual,\n    id_finca: idRes.body.id_finca,\n    id_usuario: idRes.body.id_usuario,\n    primary_color: idRes.body.primary_color,\n    secondary_color: idRes.body.secondary_color,\n    org_display_name: idRes.body.org_display_name,\n    version: idRes.body.version,\n    logo_path: idRes.body.logo_path,\n    fecha_creacion: idRes.body.fecha_creacion\n  };\n  expect(normColor(snapId.primary_color), 'baseline primary finca 1').to.eq(PRIMARY_BASELINE);\n  expect(hexValido(snapId.secondary_color), 'secondary_color hex para PATCH form').to.eq(true);\n  expect(snapId.org_display_name, 'org_display_name para PATCH form').to.be.a('string').and.not.empty;\n  expect(typeof snapId.version, 'version para restore').to.eq('number');\n  expect(camposRestoreCompletos(), 'snapshot cubre campos del DTO PATCH').to.eq(true);\n  cy.writeFile(`${EVIDENCIA}/G94-rev12-179-snapshot-identidad.json`, _objectSpread(_objectSpread({}, snapId), {}, {\n    accesibilidad: idRes.body.accesibilidad,\n    nota: 'logo_path no viaja en PATCH form; omitir archivo conserva el logo (actualizar_identidad_visual_use_case).'\n  }));\n  lastStep = 'snapshot_identidad';\n});\napi('GET', '/configuracion/personalizacion/tema', 'prod').then(tRes => {\n  expect(tRes.status, 'GET tema snapshot').to.eq(200);\n  snapTema = tRes.body.theme_mode;\n  snapTemaFuente = tRes.body.fuente;\n  cy.writeFile(`${EVIDENCIA}/G94-rev12-179-snapshot-tema.json`, {\n    theme_mode: tRes.body.theme_mode,\n    fuente: tRes.body.fuente,\n    id_tema_visual: tRes.body.id_tema_visual\n  });\n  lastStep = 'snapshot_tema';\n  cy.writeFile(`${EVIDENCIA}/G94-rev12-179-paquete-recuperacion.json`, {\n    generado: 'antes de cualquier PATCH',\n    snapshot_valido: camposRestoreCompletos() && snapTema != null,\n    campos_restore_completos: camposRestoreCompletos(),\n    finca: FINCA,\n    identidad_patch_form: {\n      path: `/configuracion/identidad-visual/${FINCA}`,\n      primary_color: snapId.primary_color,\n      secondary_color: snapId.secondary_color,\n      org_display_name: snapId.org_display_name,\n      version_en_snapshot: snapId.version,\n      nota_version: 'En recuperación manual usar la version del GET vigente, no necesariamente esta.',\n      logo: 'omitir campo logo para conservar logo_path del snapshot',\n      logo_path_esperado: snapId.logo_path\n    },\n    id_usuario_original_fila: snapId.id_usuario,\n    nota_id_usuario: 'El PATCH no envía id_usuario; ActualizarIdentidadVisualUseCase lo cambia al admin que escribe. No se revierte ese campo.',\n    estimulo_primary: COLOR_BAJO,\n    tema_patch_json: {\n      path: '/configuracion/personalizacion/tema',\n      theme_mode: snapTema\n    },\n    estimulo_theme_mode: TEMA_CLARO,\n    actores: {\n      admin: ADMIN,\n      productor: PRODUCTOR\n    }\n  });\n});\ncy.then(() => {\n  lastStep = 'preflight_restore';\n  const preflight = {\n    lectura_identidad: null,\n    lectura_tema: null,\n    login_admin_fresco: null,\n    login_prod_fresco: null,\n    apto: false\n  };\n  return loginApi(ADMIN).then(la => {\n    preflight.login_admin_fresco = {\n      http: la.status,\n      error_code: errorCode(la.body)\n    };\n    const tokA = la.body && la.body.token;\n    if (la.status !== 200 || !tokA) return preflight;\n    return reqConToken('GET', `/configuracion/identidad-visual/${FINCA}`, tokA).then(g => {\n      preflight.lectura_identidad = {\n        http: g.status,\n        objeto: !!(g.body && typeof g.body === 'object' && g.body.primary_color),\n        version: g.body && g.body.version,\n        primary_color: g.body && g.body.primary_color\n      };\n      return loginApi(PRODUCTOR).then(lp => {\n        preflight.login_prod_fresco = {\n          http: lp.status,\n          error_code: errorCode(lp.body)\n        };\n        const tokP = lp.body && lp.body.token;\n        if (lp.status !== 200 || !tokP) return preflight;\n        return reqConToken('GET', '/configuracion/personalizacion/tema', tokP).then(gt => {\n          preflight.lectura_tema = {\n            http: gt.status,\n            theme_mode: gt.body && gt.body.theme_mode,\n            fuente: gt.body && gt.body.fuente\n          };\n          preflight.apto = preflight.lectura_identidad && preflight.lectura_identidad.http === 200 && preflight.lectura_identidad.objeto === true && preflight.lectura_tema && preflight.lectura_tema.http === 200 && camposRestoreCompletos() && snapTema != null;\n          return preflight;\n        });\n      });\n    });\n  }).then(pf => {\n    preflightOk = !!(pf && pf.apto);\n    cy.writeFile(`${EVIDENCIA}/G94-rev12-179-preflight-restore.json`, _objectSpread(_objectSpread({}, pf), {}, {\n      nota: 'Solo lecturas y logins frescos. Sin PATCH. Si apto=false no hay escritura de estímulo.',\n      mecanismo_restore: {\n        identidad: `PATCH form /configuracion/identidad-visual/${FINCA} (admin, recurso 23) con snapshot + version vigente`,\n        tema: 'PATCH JSON /configuracion/personalizacion/tema (productor, recurso 24) con theme_mode del snapshot'\n      }\n    }));\n    expect(preflightOk, 'preflight: login fresco + GET identidad/tema HTTP 200').to.eq(true);\n  });\n});\napi('GET', '/configuracion/personalizacion/tema', 'prod').then(tRes => {\n  if (tRes.body.theme_mode === TEMA_CLARO) {\n    lastStep = 'tema_sin_patch';\n    cy.writeFile(`${EVIDENCIA}/G94-rev12-179-tema-sin-patch.json`, {\n      theme_mode: tRes.body.theme_mode,\n      nota: 'Ya estaba en claro; no se PATCH para no alterar innecesariamente.'\n    });\n    return;\n  }\n  escrituraTemaIniciada = true;\n  lastStep = 'tema_patch_enviando';\n  return api('PATCH', '/configuracion/personalizacion/tema', 'prod', {\n    theme_mode: TEMA_CLARO\n  }).then(pTema => {\n    expect(pTema.status, 'PATCH tema=1').to.eq(200);\n    patchedTema = true;\n    return api('GET', '/configuracion/personalizacion/tema', 'prod').then(gTema => {\n      expect(gTema.body.theme_mode, 'GET tema tras PATCH').to.eq(TEMA_CLARO);\n      lastStep = 'tema_tras_patch';\n      cy.writeFile(`${EVIDENCIA}/G94-rev12-179-tema-tras-patch.json`, {\n        theme_mode: gTema.body.theme_mode,\n        fuente: gTema.body.fuente\n      });\n    });\n  });\n});\napi('GET', `/configuracion/identidad-visual/${FINCA}`, 'admin').then(idRes => {\n  expect(idRes.status, 'GET identidad antes de estímulo').to.eq(200);\n  escrituraIdentidadIniciada = true;\n  lastStep = 'identidad_patch_enviando';\n  return api('PATCH', `/configuracion/identidad-visual/${FINCA}`, 'admin', {\n    primary_color: COLOR_BAJO,\n    secondary_color: snapId.secondary_color,\n    org_display_name: snapId.org_display_name,\n    version: idRes.body.version\n  });\n}).then(pId => {\n  expect(pId.status, 'PATCH primary #FFFFFF').to.be.oneOf([200, 201]);\n  patchedId = true;\n  lastStep = 'identidad_tras_patch';\n  const claro = pId.body.accesibilidad.primary_color.claro;\n  expect(claro.ratio).to.eq(1);\n  expect(claro.cumple_aa).to.eq(false);\n  expect(normColor(claro.color_ajustado)).to.eq(AJUSTADO);\n});\napi('GET', `/configuracion/identidad-visual/${FINCA}`, 'admin').then(gId => {\n  expect(normColor(gId.body.primary_color)).to.eq(COLOR_BAJO);\n  cy.writeFile(`${EVIDENCIA}/G94-rev12-179-identidad-despues.json`, {\n    primary_color: gId.body.primary_color,\n    secondary_color: gId.body.secondary_color,\n    version: gId.body.version,\n    accesibilidad_claro: gId.body.accesibilidad.primary_color.claro\n  });\n});\napi('GET', '/configuracion/interfaz/contexto', 'prod').then(ctx => {\n  expect(ctx.body.id_usuario).to.eq(2);\n  expect(ctx.body.id_finca).to.eq(FINCA);\n  expect(normColor(ctx.body.identidad_visual.primary_color)).to.eq(COLOR_BAJO);\n  const claro = ctx.body.accesibilidad.primary_color.claro;\n  expect(claro.ratio).to.eq(1);\n  expect(claro.cumple_aa).to.eq(false);\n  expect(normColor(claro.color_ajustado)).to.eq(AJUSTADO);\n  cy.writeFile(`${EVIDENCIA}/G94-rev12-179-contexto-api-despues.json`, {\n    id_usuario: ctx.body.id_usuario,\n    id_finca: ctx.body.id_finca,\n    identidad_visual: ctx.body.identidad_visual,\n    accesibilidad_primary_claro: claro\n  });\n  lastStep = 'contexto_api_despues';\n});\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/interfaz\\/contexto\\/?$/\n}).as('ctxPost');\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/personalizacion\\/tema\\/?$/\n}).as('temaPost');\ncy.visit(`${TEST_FRONT}/dashboard`);\ncy.url().should('include', '/dashboard');\ncy.wait('@temaPost', {\n  timeout: 20000\n}).then(intc => {\n  const mode = intc.response.body && intc.response.body.theme_mode;\n  cy.writeFile(`${EVIDENCIA}/G94-rev12-179-tema-browser.json`, {\n    http: intc.response.statusCode,\n    theme_mode: mode\n  });\n  expect(mode, 'GET tema navegador = 1').to.eq(TEMA_CLARO);\n  lastStep = 'tema_browser';\n});\nleerTokens().then(temprano => {\n  lastStep = 'diagnostico_temprano';\n  return cy.writeFile(`${EVIDENCIA}/G94-rev12-179-diagnostico-temprano.json`, _objectSpread(_objectSpread({}, temprano), {}, {\n    brand_wait_ms: BRAND_WAIT_MS,\n    esperado: AJUSTADO,\n    nota: `Snapshot antes de esperar --brand-500 === ${AJUSTADO} y data-theme=light (${BRAND_WAIT_MS} ms). No se fuerza CSS ni DOM.`\n  }));\n});\ncy.document({\n  timeout: BRAND_WAIT_MS\n}).should(doc => {\n  const observado = leerBrand500Computed(doc);\n  const theme = doc.documentElement.getAttribute('data-theme');\n  const url = `${doc.location.origin}${doc.location.pathname}`;\n  expect(theme, `data-theme debe ser light en ${BRAND_WAIT_MS}ms (observado=${theme === null ? 'null' : theme}, url=${url}). No se fuerza CSS.`).to.eq('light');\n  expect(observado, `--brand-500 debe ser ${AJUSTADO} en ${BRAND_WAIT_MS}ms (observado=${observado || '(vacío)'}, data-theme=${theme === null ? 'null' : theme}, url=${url}, timeout=${BRAND_WAIT_MS}ms). Ver diagnostico-temprano.json. No se fuerza CSS.`).to.eq(AJUSTADO);\n});\ncy.then(() => {\n  lastStep = 'brand_confirmado';\n});\ncy.location('pathname').then(pathname => {\n  return leerTokens().then(css => {\n    const aplicado = hexRenderizado(css['--brand-500'].inline || css['--brand-500'].computed);\n    const fondo = fondoRenderizado(css);\n    const ratioMarca = aplicado && fondo.hex ? ratioWcagHex(aplicado, fondo.hex) : null;\n    medicion = {\n      pathname,\n      data_theme: css.data_theme,\n      brand500_inline: css['--brand-500'].inline,\n      brand500_computed: css['--brand-500'].computed,\n      brand500_normalizado: aplicado,\n      fondo_normalizado: fondo.hex,\n      fondo_origen: fondo.origen,\n      ratio_brand_vs_fondo: ratioMarca,\n      ratio_minimo_aa: RATIO_MINIMO_AA,\n      primario_estimulo: COLOR_BAJO,\n      esperado_ajustado_claro: AJUSTADO,\n      snapshot_theme_mode: snapTema,\n      snapshot_theme_fuente: snapTemaFuente,\n      coincide_ajustado: aplicado === AJUSTADO,\n      axe_violations: null,\n      axe_es_criterio_aceptacion: false\n    };\n    lastStep = 'css_capturado';\n    return cy.writeFile(`${EVIDENCIA}/G94-rev12-179-diagnostico.json`, _objectSpread(_objectSpread({}, medicion), {}, {\n      css,\n      refresh_log: refreshLog,\n      tema_browser_log: temaBrowserLog\n    })).then(() => cy.writeFile(`${EVIDENCIA}/G94-rev12-179-css-despues.json`, _objectSpread(_objectSpread({}, css), {}, {\n      esperado: AJUSTADO,\n      brand500_normalizado: aplicado,\n      fondo_normalizado: fondo.hex,\n      fondo_origen: fondo.origen,\n      ratio_brand_vs_fondo: ratioMarca,\n      ratio_minimo_aa: RATIO_MINIMO_AA\n    }))).then(() => {\n      lastStep = 'diagnostico_persistido';\n    });\n  });\n});\ncy.screenshot('G94-rev12-179-dashboard-light-variante');\ncy.task('getAxeSource').then(src => {\n  cy.window().then(win => {\n    if (!win.axe) {\n      const script = win.document.createElement('script');\n      script.text = src;\n      win.document.documentElement.appendChild(script);\n    }\n  });\n});\ncy.window().should('have.property', 'axe');\ncy.window().then(win => win.axe.run(win.document, {\n  runOnly: {\n    type: 'rule',\n    values: ['color-contrast']\n  }\n})).then(results => {\n  const viol = (results.violations || []).filter(v => v.id === 'color-contrast');\n  const cc = (results.passes || []).find(p => p.id === 'color-contrast');\n  if (medicion) medicion.axe_violations = viol.length;\n  lastStep = 'axe_persistido';\n  return cy.writeFile(`${EVIDENCIA}/G94-rev12-179-axe.json`, {\n    ejecutado: true,\n    criterio_aceptacion: false,\n    violations: viol.length,\n    violation_ids: viol.map(v => v.id),\n    color_contrast_pass_nodes: cc ? (cc.nodes || []).length : 0,\n    violation_nodes: viol.length ? extraerNodosAxe(viol[0].nodes) : [],\n    nota: 'Diagnóstico. El oráculo de rev12 es --brand-500=#757575, no violations===0.'\n  }).then(() => {\n    axeEjecutado = true;\n  });\n});\ncy.writeFile(`${EVIDENCIA}/G94-rev12-179-refresh.json`, {\n  llamadas: refreshLog,\n  tema_browser: temaBrowserLog\n});\ncy.then(() => {\n  lastStep = 'aserciones';\n  expect(medicion, 'medición CSS persistida').to.be.an('object');\n  expect(medicion.data_theme, 'data-theme=light').to.eq('light');\n  expect(medicion.brand500_normalizado, '--brand-500 = color_ajustado #757575').to.eq(AJUSTADO);\n});",
+              "err": {
+                "message": "AssertionError: PATCH tema=1: expected 401 to equal 200",
+                "estack": "AssertionError: PATCH tema=1: expected 401 to equal 200\n    at Context.eval (webpack:///./tc_m09_g94_179_rev12_test.cy.js:780:50)\n    at getRet (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121066:20)\n    at tryCatcher (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:1777:23)\n    at Promise.attempt.Promise.try (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:4285:29)\n    at Context.thenFn (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121077:66)\n    at Context.then (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121328:21)",
+                "diff": "- 401\n+ 200\n"
+              },
+              "uuid": "793b3f7a-7c38-4a7e-a5d5-4b0d69c191b4",
+              "parentUUID": "d055f448-c5fa-4abb-a419-c4bff18123ab",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [],
+          "failures": [
+            "793b3f7a-7c38-4a7e-a5d5-4b0d69c191b4"
+          ],
+          "pending": [],
+          "skipped": [],
+          "duration": 13878,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G94_179_rev12_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\Resultados\\179-rev12",
+        "reportFilename": "TC-M09-G94_179_rev12_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

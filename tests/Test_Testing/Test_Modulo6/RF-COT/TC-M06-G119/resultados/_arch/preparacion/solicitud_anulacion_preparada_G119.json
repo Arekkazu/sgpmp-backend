@@ -1,0 +1,31 @@
+{
+  "endpoint": "POST /finanzas/cotizaciones/6/anulacion",
+  "headers": {
+    "Authorization": "Bearer <token Contador>",
+    "Content-Type": "application/json",
+    "X-Zona-Horaria": "America/Bogota"
+  },
+  "usuario_rol": "Contador (permiso cotizaciones desactivar)",
+  "body": {
+    "version": 1,
+    "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización."
+  },
+  "segundo_intento": {
+    "endpoint": "POST /finanzas/cotizaciones/6/anulacion",
+    "body": {
+      "version": 2,
+      "motivo_anulacion": "TC-M06-G119 / TC-M06-51 — anulación controlada de cotización 6 (activo 1571). Motivo de prueba QA; pendiente autorización. segundo intento"
+    },
+    "esperado": {
+      "http": 422,
+      "code": "COTIZACION_NO_MODIFICABLE"
+    },
+    "nota": "Usar version actualizada tras primera anulación; no ejecutar sin autorización"
+  },
+  "consultas_posteriores": [
+    "GET /finanzas/cotizaciones (filtrar id 6)",
+    "GET /finanzas/auditoria?tipo_evento=COTIZACION_ANULADA&id_referencia=6",
+    "GET /finanzas/activos/1571"
+  ],
+  "ejecutado": false
+}

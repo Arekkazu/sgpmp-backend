@@ -1,0 +1,145 @@
+================================================================================
+INFORME DE DIAGNOSTICO TECNICO: AUDITORIA EN TC-M05-G25 (RF-77)
+CA-11 Y POSTCONDICION 3: GENERACION Y EXPORTACION DE REPORTES DE GASTOS
+================================================================================
+
+1. TABLA DE EVALUACION DE HIPOTESIS
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Hipótesis                                | Evidencia                                                                 | Tipo           | Estado
+-----------------------------------------+---------------------------------------------------------------------------+----------------+----------------
+(A) Producto: RF-77 no audita            | GenerarReporteGastosUseCase no recibe ni invoca AuditoriaSuministroPort.  | INFERENCIA     | CONFIRMADA
+                                         | ExportarReporteGastosUseCase solo audita en fallo del motor PDF (E6a).    | (código) +     | (Causa Raíz)
+                                         | Al generar reporte y exportar CSV, el conteo en API M05 y en BD          | HECHO OBSERVADO|
+                                         | modulo5.auditorias_suministros no aumenta (permaneció en 52.728).         | (API / DB)     |
+-----------------------------------------+---------------------------------------------------------------------------+----------------+----------------
+(B) Producto: Audita en otro destino     | En M01 (/auditoria/), no se registra ningún evento de RF-77.              | HECHO OBSERVADO| PARCIALMENTE
+    no consultable                       | En BD existe trigger trg_auditoria en reporte_gastos_acumulados que       | INFERENCIA     | DESCARTADA /
+                                         | escribe en auditoria.logs_dml (tabla interna de DML para BDAs, sin API),  | (código / DB)  | ACLARADA
+                                         | pero archivos_exportacion_suministros no tiene trigger alguno.            |                |
+                                         | No cumple con auditoría de negocio accesible por API de M05.             |                |
+-----------------------------------------+---------------------------------------------------------------------------+----------------+----------------
+(C) Producto: Audita pero la bitácora lo | Se consultó GET /suministros/auditoria sin filtros, con filtro de         | HECHO OBSERVADO| DESCARTADA
+    oculta (filtro / paginación / RLS)   | entidad y filtro de usuario. El conteo total de la bitácora no aumentó    | (API / DB)     |
+                                         | y en BD el conteo de modulo5.auditorias_suministros no varió tras RF-77.  |                |
+-----------------------------------------+---------------------------------------------------------------------------+----------------+----------------
+(D) Producto: Audita con retraso         | Muestreos temporales a t=0s, t=5s, t=15s y t=60s mantuvieron conteo       | HECHO OBSERVADO| DESCARTADA
+                                         | idéntico (52.728 eventos) y 0 registros de RF-77 en todas las ventanas.   | (API)          |
+-----------------------------------------+---------------------------------------------------------------------------+----------------+----------------
+(E) Artefacto del sandbox / test         | CONTROL POSITIVO: En la misma transacción sandbox, el registro de 1      | HECHO OBSERVADO| DEFINITIVAMENTE
+                                         | medicamento RF-76 generó de inmediato 3 eventos observables en la         | (API / DB)     | DESCARTADA
+                                         | API M05 (52.725 -> 52.728) y en BD. El sandbox NO bloquea la auditoría.  |                |
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+2. CAUSA MAS PROBABLE Y CLASIFICACION
+-------------------------------------
+- Causa Raíz: (A) DEFECTO DE PRODUCTO (GAP normativo frente a RF-77 CA-11 / Postcondición 3 y Caso TC-M05-025).
+- Clasificación: DEFECTO DE PRODUCTO.
+- Explicación:
+  El backend no implementa la persistencia de eventos de auditoría de negocio para las operaciones exitosas de
+  generación y exportación de reportes de gastos acumulados en la bitácora de auditoría de M05 (modulo5.auditorias_suministros).
+  A diferencia de RF-75 y RF-76 (que cuentan con triggers de BD dedicados: trg_auditoria_consumo_alimento y
+  trg_auditoria_medicamento) y de RF-78/RF-79/RF-81 (que invocan AuditoriaSuministroPort.registrar desde sus casos de uso),
+  RF-77 carece de llamadas a auditoría en GenerarReporteGastosUseCase y en el flujo exitoso de ExportarReporteGastosUseCase.
+
+3. FUENTES CONSULTADAS Y RESULTADO DE CADA UNA
+----------------------------------------------
+1. Código fuente de use cases de RF-77 (INFERENCIA):
+   - src/supplies/application/use_cases/reporte_gastos/generar_reporte_gastos_use_case.py:
+     No importa, no recibe en su constructor y no invoca ningún puerto de auditoría.
+   - src/supplies/application/use_cases/reporte_gastos/exportar_reporte_gastos_use_case.py:
+     Recibe auditoria_port: AuditoriaSuministroPort (línea 69), pero únicamente lo utiliza en la línea 219
+     dentro del método auxiliar _auditar_fallo_pdf() cuando la generación de PDF lanza una excepción no controlada (E6a).
+     El método exportar() para CSV y PDF exitosos (líneas 98-140) NO invoca self.auditoria_port.registrar().
+   - src/supplies/infrastructure/factories/reporte_gastos_factory.py:
+     Línea 60: build_generar_reporte_gastos_use_case no inyecta AuditoriaSuministroRepository.
+
+2. Triggers de base de datos en schema modulo5 (INFERENCIA / HECHO OBSERVADO):
+   - modulo5.registros_medicamentos: posee trg_auditoria_medicamento -> ejecuta fn_trg_auditoria_medicamento()
+     que hace INSERT directo en modulo5.auditorias_suministros (CONTROL POSITIVO CONFIRMADO).
+   - modulo5.registros_consumo_alimentos: posee trg_auditoria_consumo_alimento -> ejecuta fn_trg_auditoria_consumo_alimento()
+     que hace INSERT directo en modulo5.auditorias_suministros.
+   - modulo5.reporte_gastos_acumulados: únicamente posee trg_auditoria -> ejecuta fn_auditoria_dml() que escribe
+     en auditoria.logs_dml (log técnico de DML de PostgreSQL, sin acceso por API de negocio).
+   - modulo5.archivos_exportacion_suministros: NO posee ningún trigger de auditoría.
+
+3. Endpoints de la API REST Staging (HECHO OBSERVADO):
+   - POST /suministros/medicamentos (RF-76): HTTP 201 Created. Dispara trigger e incrementa conteo en
+     GET /suministros/auditoria de 52.725 a 52.728 (+3 eventos visibles dentro del sandbox).
+   - POST /suministros/reportes-gastos (RF-77): HTTP 200 OK (id_reporte_gasto_acumulado=185).
+     Conteo en GET /suministros/auditoria permanece en 52.728 (+0 eventos).
+   - POST /suministros/reportes-gastos/185/exportacion (RF-77 CSV): HTTP 201 Created (id_archivo=dc40fe31-1a38-46d5-883c-69e1be6be195).
+     Conteo en GET /suministros/auditoria permanece en 52.728 (+0 eventos).
+   - GET /auditoria/ (M01 / RF-10): Retorna 0 eventos asociados a RF-77.
+
+4. Consultas directas a Base de Datos con rol_qa (HECHO OBSERVADO):
+   - SELECT count(*) FROM modulo5.auditorias_suministros:
+     Línea base: 52.725 -> Tras medicamento RF-76 en sandbox: 52.725 (la sesión directa de rol_qa fuera del sandbox
+     no ve la transacción uncommitted del sandbox, pero la API en sandbox sí la ve a través de su conexión).
+     Tras rollback DELETE /test-control/runs/{run_id}: 52.725 exactos (inocuidad 100%).
+   - SELECT count(*) FROM auditoria.logs_dml:
+     Falla con: psycopg2.errors.InsufficientPrivilege: permission denied for schema auditoria.
+     Declarado como limitación de ambiente de rol_qa.
+
+4. EFECTOS PERSISTIDOS E INOCUIDAD
+----------------------------------
+- Corrida Sandbox PASO 2: run_id = tc-m05-g25-diag-1fe499f3.
+- Cierre ordenado ejecutado vía DELETE /test-control/runs/tc-m05-g25-diag-1fe499f3 -> HTTP 200 {"status":"Rollback exitoso"}.
+- Inocuidad: Conteo en modulo5.auditorias_suministros antes = 52.725, después del rollback = 52.725.
+- Efectos persistidos fuera de sandbox: NINGUNO (0 filas persistidas, 0 archivos huérfanos).
+
+5. INTEGRIDAD Y SHA-256
+-----------------------
+- Suite G14 Script: a693e2df2229eb52501079e9bc9365b39e084c52c2c87699067db2f8079b680d (100% OK)
+- Suite G14 Runner: 01eea075baec9150e3683f18bcf84161c14dcf1e8497d3732e0e83045829d536 (100% OK)
+- Suite G15 Script: 8f4040b7c431305dcad8b46f59dbf7dcedb4bbc73fdfa6ed24fb2788992bf480 (100% OK)
+- Suite G15 Runner: b545084981ed1257a6be0ee3a88e08688ebcbbeea83f84e38124395137c7d1a7 (100% OK)
+- Suite G16 Script: ecbc14e9eedd17ea1cf29a4ab97476055dd47b7e2bf0dc2f3ded552ae8801112 (100% OK)
+- Suite G16 Runner: 546babddc7aad1bf388f2738bd6444e4482635fe0368ad74455733209012d3b0 (100% OK)
+- Suite G17 Script: 1aa0483d04df67e1f3e4339492cbcbd3537fd23c800e594531202931b91d4043 (100% OK)
+- Suite G17 Runner: 20bc7b89a6df37f14dbb57614d557f5106011dc4331a6014111bcd686b523497 (100% OK)
+- Suite G19 Script: 6a4496f457d044721a2bb2b19b7e348c467e142c49c333ca1259c7f0b049a92e (100% OK)
+- Suite G19 Runner: d22d89c2dedf3abd861255252a8df4ed79192364c082ce73b32a8ad0d65e09fd (100% OK)
+- Suite G24 Script: 03c5b78f5de799e5afb83f8ebb81702fe0248e5f349953a9183e089238e6a9ea (100% OK)
+- Suite G24 Runner: 76cce590aa76671a2ed8bd247203f4761393b7365b0bd27254f243ed269ab17f (100% OK)
+- Suite G25 Script: 6c58e9b4963b0aaa93b55be903117957afe6d235a2252f8ce3eefdb473127cbe (100% OK)
+- Suite G25 Runner: 429eb3c404ac5853498e2c5bdfc9e95b660062effc9ecb25afe8c5e1e6f54624 (100% OK)
+
+6. ESCANEO DE SEGURIDAD
+-----------------------
+- Secretos escaneados: contraseñas de cuentas de prueba (Admin, Producer, Vet), TEST_SANDBOX_SECRET, tokens JWT (Bearer), correos.
+- Resultados en staging: LIMPIO (0 secretos detectados).
+
+7. DATOS FORMALES PARA REDACCION DEL INCIDENTE (INC)
+----------------------------------------------------
+- Título Propuesto: [M05][RF-77] Falta registro de auditoría en la generación y exportación de reportes de gastos acumulados (CA-11 / Postcondición 3)
+- Módulo / Requerimiento: M05 Suministros / RF-77 (CU04 Reporte de Gastos Acumulados por Activo)
+- Criterios de Aceptación Incumplidos:
+  * CA-11: "La generación de cada reporte queda en auditoría con usuario y timestamp."
+  * Postcondición 3: "Registro inmutable en la bitácora de auditoría del sistema."
+  * Caso de Prueba: TC-M05-025 ("Cada acción [generar, exportar, fallo] con usuario y timestamp, registro en <= 2 s").
+- Endpoints Involucrados:
+  * POST /suministros/reportes-gastos
+  * POST /suministros/reportes-gastos/{id_reporte_gasto_acumulado}/exportacion
+  * GET /suministros/auditoria
+- Pasos de Reproducción:
+  1. Iniciar sesión con rol Administrador o Productor.
+  2. Consultar conteo inicial en GET /suministros/auditoria (ej. N eventos).
+  3. Ejecutar POST /suministros/reportes-gastos con parámetros válidos (retorna HTTP 200).
+  4. Ejecutar POST /suministros/reportes-gastos/{id}/exportacion con formato CSV o PDF (retorna HTTP 201).
+  5. Consultar nuevamente GET /suministros/auditoria.
+- Comportamiento Esperado:
+  El conteo de auditoría debe incrementarse registrando los eventos de generación y exportación con id_usuario,
+  fecha_evento (timestamp UTC) y entidad afectada ("reporte_gastos_acumulados" / "archivos_exportacion_suministros").
+- Comportamiento Obtenido:
+  El conteo permanece invariable (N eventos). Ningún evento es registrado en modulo5.auditorias_suministros.
+- Diagnóstico Técnico (Dónde falla):
+  * src/supplies/application/use_cases/reporte_gastos/generar_reporte_gastos_use_case.py: no tiene inyección ni llamadas a AuditoriaSuministroPort.
+  * src/supplies/application/use_cases/reporte_gastos/exportar_reporte_gastos_use_case.py: sólo invoca self.auditoria_port.registrar()
+    en el método _auditar_fallo_pdf (línea 219) ante un fallo técnico del motor PDF, pero omite auditar las exportaciones exitosas.
+- Solución Recomendada:
+  1. Agregar en TipoEventoAuditoriaSuministro (src/supplies/domain/value_objects/eventos_auditoria_suministro_enums.py)
+     los tipos de evento REPORTE_GASTOS_GENERADO y EXPORTACION_GASTOS_GENERADA (o reutilizar REPORTE_COSTOS_GENERADO).
+  2. Inyectar AuditoriaSuministroPort en GenerarReporteGastosUseCase a través de su fábrica
+     (src/supplies/infrastructure/factories/reporte_gastos_factory.py) e invocar registrar() al completar el reporte.
+  3. En ExportarReporteGastosUseCase.exportar(), invocar self.auditoria_port.registrar() antes del commit final de la exportación.
+================================================================================

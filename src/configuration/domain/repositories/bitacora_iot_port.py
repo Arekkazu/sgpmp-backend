@@ -45,3 +45,23 @@ class BitacoraIotPort(ABC):
         reporta como error (500) o si no hubo a quién/con qué enviarlo.
         """
         ...
+
+    @abstractmethod
+    def registrar_propagacion_tipo_modelo(
+        self,
+        *,
+        evento: str,
+        id_dispositivo_iot: int,
+        serial: str,
+        id_infraestructura: int,
+        id_usuario: int,
+        estado: str,
+        detalle: dict,
+    ) -> None:
+        """DEV-10: resultado de enviar el ``tipo_modelo_asignado`` de un área a UN Gateway Edge.
+
+        Un evento por Gateway, sobre la entidad DISPOSITIVO. ``estado`` es el
+        veredicto del broker (APLICADA / PENDIENTE / NO_CONF / SIN_INTEGRACION).
+        Best-effort: nunca lanza.
+        """
+        ...

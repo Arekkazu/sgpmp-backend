@@ -1,0 +1,27 @@
+{
+  "tc": "TC-M02-G31",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G31-REEVAL-V3-20260919-113300",
+  "veredicto": "Rechazado",
+  "nota_global": "V3 inválida por manipulación del entorno (watcher modificó fecha_creacion). Veredicto final refleja el defecto real detectado.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-196: Densidad en evento de crecimiento sobre lote 296",
+      "esperado": "HTTP 201 Created con actualización de densidad zootécnica y consulta de métricas HTTP 200",
+      "obtenido": "HTTP 201 Created, id_eventos=374 en lote 296",
+      "estado": "OK",
+      "fuente": "preflight_manual_2026-09-19 (POST /activos-biologicos/296/eventos/crecimiento -> HTTP 201 Created, id_eventos=374)",
+      "nota_qa": "Ejecución legítima de TC-M02-196 en Newman (cero artificios sobre lote 296, fix #262 y migración M09 verificados exitosamente)."
+    },
+    {
+      "paso": "TC-M02-197: Baja total con cantidad_actual=0 sobre lote dinámico",
+      "esperado": "HTTP 201 Created en baja total de lote poblacional recién aprovisionado",
+      "obtenido": "HTTP 400 FECHA_INVALIDA (persiste confirmado 2026-09-19)",
+      "estado": "FALLA",
+      "fuente": "preflight_manual_2026-09-19 (POST /activos-biologicos/472/eventos/baja con fecha_baja=2026-09-19 -> HTTP 400 FECHA_INVALIDA)",
+      "nota_qa": "Defecto del backend: trigger modulo2.trg_fn_evento_fecha_coherente rechaza bajas el mismo día de creación del lote (00:00:00 UTC < timestamp de creación). La ejecución en Newman que mostró 201 fue adulterada por un watcher que mutó fecha_creacion. QA invalida dicho artificio y clasifica formalmente como FALLA."
+    }
+  ]
+}

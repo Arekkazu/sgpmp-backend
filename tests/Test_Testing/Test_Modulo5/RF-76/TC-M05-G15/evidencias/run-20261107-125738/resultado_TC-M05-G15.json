@@ -1,0 +1,71 @@
+{
+  "tc": "TC-M05-G15",
+  "summary": {
+    "total": 10,
+    "ok": 10,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Línea base de activos",
+      "esperado": "HTTP 200 e inventario base registrado (medicamentos, estado, fases) para activos 2, 12, 10, 812, 853, 462",
+      "obtenido": "Línea base capturada para 6 activos (HTTP 200 en todas las consultas)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 INACTIVO (Activo 2)",
+      "esperado": "HTTP 422, mensaje contiene 'INACTIVO', medicamento y estado sin cambios",
+      "obtenido": "HTTP 422 (ACTIVO_ESTADO_INVALIDO), mensaje validado, sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 CERRADO (Activo 12)",
+      "esperado": "HTTP 422, mensaje contiene 'CERRADO', medicamento y estado sin cambios",
+      "obtenido": "HTTP 422 (ACTIVO_ESTADO_INVALIDO), mensaje validado, sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 BAJA (Activo 10)",
+      "esperado": "HTTP 422, mensaje contiene 'BAJA', medicamento y estado sin cambios",
+      "obtenido": "HTTP 422 (ACTIVO_ESTADO_INVALIDO), mensaje validado, sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 AISLADO (Activo 812)",
+      "esperado": "HTTP 422, mensaje contiene 'AISLADO', medicamento y estado sin cambios",
+      "obtenido": "HTTP 422 (ACTIVO_ESTADO_INVALIDO), mensaje validado, sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05 SIN CICLO (Activo 853)",
+      "esperado": "HTTP 422, mensaje contiene 'ciclo', medicamento y estado sin cambios",
+      "obtenido": "HTTP 422 (CICLO_NO_ABIERTO), mensaje validado, sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "A06 ID INEXISTENTE (999999999)",
+      "esperado": "HTTP 404, mensaje contiene 'no existe', sin persistencia",
+      "obtenido": "HTTP 404 (ACTIVO_NO_ENCONTRADO), mensaje validado, sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 POBLACIONAL cantidad NULL (Activo 462)",
+      "esperado": "Fase abierta (201), HTTP 422 (o 400), mensaje contiene 'cantidad', medicamento y estado sin cambios",
+      "obtenido": "Fase HTTP 201, POST medicamento HTTP 422 (error_code: POBLACIONAL_SIN_CANTIDAD), sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre de corrida",
+      "esperado": "DELETE /test-control/runs/<run_id> HTTP 200 Rollback exitoso",
+      "obtenido": "DELETE HTTP 200: {\"status\": \"Rollback exitoso\"}",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad final sin sandbox",
+      "esperado": "Conteos de medicamentos, estados y fases coinciden 100% con T00 fuera de sandbox",
+      "obtenido": "Conteos, estados y fases verificados 100% idénticos fuera de sandbox",
+      "estado": "OK"
+    }
+  ]
+}

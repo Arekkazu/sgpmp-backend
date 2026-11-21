@@ -1,0 +1,36 @@
+{
+  "grupo": "G067",
+  "run_id": "RUN-G067-V2-20261101-031801",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 287,
+    "paginas_activos": 4,
+    "activos_maximos": 32,
+    "paginas_historial_descubrimiento": 4,
+    "versiones_maximas": 8,
+    "paginas_historial_verificacion": 3,
+    "reemplazos_por_registro": 1,
+    "dias_busqueda": 88,
+    "timeout_login_ms": 120000,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "duracion_ms": 17,
+      "limite_ms": 30000
+    }
+  },
+  "efectos": [
+    "login Veterinario",
+    "lecturas descubrimiento, catálogo, historial y auditoría",
+    "4 retroalimentaciones válidas y sus auditorías",
+    "12 intentos de rechazo; posibles registros indebidos",
+    "DELETE sandbox siempre",
+    "lecturas poscierre con HISTORIAL_CONSULTADO fuera del sandbox"
+  ]
+}

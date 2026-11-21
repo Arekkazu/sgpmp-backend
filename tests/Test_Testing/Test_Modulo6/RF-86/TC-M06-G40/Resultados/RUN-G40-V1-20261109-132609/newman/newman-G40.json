@@ -1,0 +1,531 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "e7158ce1-fdb0-498b-8f6e-7e852331ffeb",
+        "name": "configuracion",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "configuracion"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "b215b11a-d6b7-4abc-90b9-cbcbbe471903",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200 y conteo',()=>{pm.response.to.have.status(200);pm.expect(pm.response.json().lineas_pendientes_cuenta).to.be.a('number')})",
+                "pm.test('eco RUN',()=>pm.expect(pm.response.headers.get('x-test-run-id')).to.eql(pm.environment.get('run_id')))"
+              ],
+              "_lastExecutionId": "b0dd49be-a471-4f7d-baa2-3049fdc52f57"
+            }
+          }
+        ]
+      },
+      {
+        "id": "cb5590ab-ed84-465f-9996-d4176fca5817",
+        "name": "lineas_pendientes",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "{{periodo}}"
+              },
+              {
+                "key": "estado",
+                "value": "PENDIENTE_CUENTA"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "d830da07-70f7-4a3e-8e6b-5df69dd989ea",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200 y lista pendiente',()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.be.an('array');pm.response.json().forEach(x=>pm.expect(x.estado).to.eql('PENDIENTE_CUENTA'))})",
+                "pm.test('eco RUN',()=>pm.expect(pm.response.headers.get('x-test-run-id')).to.eql(pm.environment.get('run_id')))"
+              ],
+              "_lastExecutionId": "2fd166c0-2de6-4f67-a538-549df197346e"
+            }
+          }
+        ]
+      },
+      {
+        "id": "753be0a5-5a53-4eb8-acbd-f46b5d4a7791",
+        "name": "bandeja",
+        "request": {
+          "url": {
+            "path": [
+              "notificaciones"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "5e904ab1-36c3-49c9-84f9-0b180fde1ec5",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200 y bandeja',()=>{pm.response.to.have.status(200);let x=pm.response.json();pm.expect(x.items).to.be.an('array');pm.expect(x.total).to.be.a('number')})",
+                "pm.test('eco RUN',()=>pm.expect(pm.response.headers.get('x-test-run-id')).to.eql(pm.environment.get('run_id')))"
+              ],
+              "_lastExecutionId": "2b36f880-8f67-49bd-a861-ade42bd540c4"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "125ce09c-0fbd-454a-a770-76ae446bc994",
+      "name": "TC-M06-G40 — lecturas posteriores",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "a7609968-fbe5-4bd8-91be-efb66fb31354",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G40-V1-20261109-132609",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "contador_token"
+      },
+      {
+        "type": "any",
+        "value": "8",
+        "key": "periodo"
+      }
+    ]
+  },
+  "globals": {
+    "id": "0fcba2e3-5f98-4ff6-bd39-a070211e1462",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 339.3333333333333,
+      "responseMin": 141,
+      "responseMax": 724,
+      "responseSd": 272.0445224999434,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1794230799208,
+      "completed": 1794230800516
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "58cde588-d29b-4066-8b4c-9a175bb2f99b",
+          "httpRequestId": "d5840c55-a996-4982-9793-d5406e845fa2"
+        },
+        "item": {
+          "id": "e7158ce1-fdb0-498b-8f6e-7e852331ffeb",
+          "name": "configuracion",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "configuracion"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "b215b11a-d6b7-4abc-90b9-cbcbbe471903",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 y conteo',()=>{pm.response.to.have.status(200);pm.expect(pm.response.json().lineas_pendientes_cuenta).to.be.a('number')})",
+                  "pm.test('eco RUN',()=>pm.expect(pm.response.headers.get('x-test-run-id')).to.eql(pm.environment.get('run_id')))"
+                ],
+                "_lastExecutionId": "b0dd49be-a471-4f7d-baa2-3049fdc52f57"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "configuracion"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "8fad57d4-f16f-4c16-a884-861bc73d4f39",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 724,
+          "responseSize": 61230
+        },
+        "id": "e7158ce1-fdb0-498b-8f6e-7e852331ffeb",
+        "assertions": [
+          {
+            "assertion": "HTTP 200 y conteo",
+            "skipped": false
+          },
+          {
+            "assertion": "eco RUN",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "53992a4c-f953-4686-9765-7e62f862ea89",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "9f79d2e3-212e-477f-824a-2b9f019c1ae7"
+        },
+        "item": {
+          "id": "cb5590ab-ed84-465f-9996-d4176fca5817",
+          "name": "lineas_pendientes",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "lineas"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_periodo_contable",
+                  "value": "{{periodo}}"
+                },
+                {
+                  "key": "estado",
+                  "value": "PENDIENTE_CUENTA"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "d830da07-70f7-4a3e-8e6b-5df69dd989ea",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 y lista pendiente',()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.be.an('array');pm.response.json().forEach(x=>pm.expect(x.estado).to.eql('PENDIENTE_CUENTA'))})",
+                  "pm.test('eco RUN',()=>pm.expect(pm.response.headers.get('x-test-run-id')).to.eql(pm.environment.get('run_id')))"
+                ],
+                "_lastExecutionId": "2fd166c0-2de6-4f67-a538-549df197346e"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "lineas"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "8"
+              },
+              {
+                "key": "estado",
+                "value": "PENDIENTE_CUENTA"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "690fd6b2-9977-43ad-bdff-337bb02c65f0",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 141,
+          "responseSize": 2
+        },
+        "id": "cb5590ab-ed84-465f-9996-d4176fca5817",
+        "assertions": [
+          {
+            "assertion": "HTTP 200 y lista pendiente",
+            "skipped": false
+          },
+          {
+            "assertion": "eco RUN",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "7732a69d-a79a-40b5-92f5-ebf1807bb0ae",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "bf8f9d8e-d771-4228-b4cb-9fcd77123e7d"
+        },
+        "item": {
+          "id": "753be0a5-5a53-4eb8-acbd-f46b5d4a7791",
+          "name": "bandeja",
+          "request": {
+            "url": {
+              "path": [
+                "notificaciones"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "5e904ab1-36c3-49c9-84f9-0b180fde1ec5",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 y bandeja',()=>{pm.response.to.have.status(200);let x=pm.response.json();pm.expect(x.items).to.be.an('array');pm.expect(x.total).to.be.a('number')})",
+                  "pm.test('eco RUN',()=>pm.expect(pm.response.headers.get('x-test-run-id')).to.eql(pm.environment.get('run_id')))"
+                ],
+                "_lastExecutionId": "2b36f880-8f67-49bd-a861-ade42bd540c4"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "notificaciones"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "2291922f-e76b-41f4-a345-28c827eb2ca7",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 153,
+          "responseSize": 8717
+        },
+        "id": "753be0a5-5a53-4eb8-acbd-f46b5d4a7791",
+        "assertions": [
+          {
+            "assertion": "HTTP 200 y bandeja",
+            "skipped": false
+          },
+          {
+            "assertion": "eco RUN",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 69949
+    },
+    "failures": [],
+    "error": null
+  }
+}

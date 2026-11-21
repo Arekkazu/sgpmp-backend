@@ -1,0 +1,127 @@
+{
+ "ejecutado": "2026-11-02T23:21:45",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "finca": 3,
+ "creados": {
+  "infra": 15,
+  "infra_extra": null,
+  "lotes": [
+   19,
+   20
+  ]
+ },
+ "pasos": [
+  {
+   "id": "P1",
+   "descripcion": "Crear area de 10.5 m2 con Porcino (densidad 1.0)",
+   "esperado": "201, capacidad_maxima=10",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=10 id=15"
+  },
+  {
+   "id": "P2",
+   "descripcion": "Un lote de 11 cerdos en area vacia (uno sobre el limite)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-CERDO-CAP-232139' superaría su capacidad efectiva (1"
+  },
+  {
+   "id": "P3",
+   "descripcion": "Lote de 9 cerdos (un animal bajo el limite)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=19"
+  },
+  {
+   "id": "P4",
+   "descripcion": "Segundo lote de 1 cerdo (total 10: limite exacto)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=20"
+  },
+  {
+   "id": "P5",
+   "descripcion": "Tercer lote de 1 cerdo (total 11)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-CERDO-CAP-232139' superaría su capacidad efectiva (1"
+  },
+  {
+   "id": "P6",
+   "descripcion": "Leer area: capacidad_maxima",
+   "esperado": "10",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=10"
+  },
+  {
+   "id": "P7",
+   "descripcion": "Reducir superficie a 10.0 m2 con 10 cerdos (capacidad 10)",
+   "esperado": "200 (limite)",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=10"
+  },
+  {
+   "id": "P8",
+   "descripcion": "Reducir superficie a 9.99 m2 (capacidad 9) con 10 cerdos",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-CERDO-CAP-232139' superaría su capacidad efectiva (9"
+  },
+  {
+   "id": "P9",
+   "descripcion": "La superficie no cambio tras el rechazo",
+   "esperado": "10.00",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "superficie=10.00"
+  },
+  {
+   "id": "P10",
+   "descripcion": "Area con Porcino + Bovino (PORCINOS + ESPECIES_GRANDES)",
+   "esperado": "422 GRUPOS_MANEJO_INCOMPATIBLES",
+   "status": 422,
+   "error_code": "GRUPOS_MANEJO_INCOMPATIBLES",
+   "resultado": "PASA",
+   "detalle": "Grupos de manejo incompatibles: el área 'QA-FLUJO-CERDO-MIX-232139' aloja especies del grupo 'PORCIN"
+  },
+  {
+   "id": "L-lote-19",
+   "descripcion": "Limpieza: baja del lote completo",
+   "status": 400,
+   "error_code": "FECHA_INVALIDA",
+   "resultado": "REVISAR"
+  },
+  {
+   "id": "L-lote-20",
+   "descripcion": "Limpieza: baja del lote completo",
+   "status": 400,
+   "error_code": "FECHA_INVALIDA",
+   "resultado": "REVISAR"
+  },
+  {
+   "id": "L-infra-15",
+   "descripcion": "Limpieza: desactivar area",
+   "status": 422,
+   "error_code": "INFRAESTRUCTURA_CON_DEPENDENCIAS",
+   "resultado": "REVISAR"
+  }
+ ],
+ "nota_limpieza": "En esta ejecucion la baja de los lotes 19 y 20 fallo (400 FECHA_INVALIDA: fecha local un dia antes que la UTC del servidor) y el area 15 no se pudo desactivar. Se limpio a mano con fecha UTC: baja de los lotes 19 y 20 y desactivar el area 15. El script ya usa fecha UTC."
+}

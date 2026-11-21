@@ -1,0 +1,35 @@
+{
+  "herramienta": "Newman",
+  "version": "6.2.2",
+  "caso": "TC-M04-205",
+  "metodo": "POST",
+  "ruta": "/prediccion/retroalimentacion",
+  "http": 422,
+  "eco": true,
+  "duracion_ms": 164,
+  "solicitudes": 1,
+  "aserciones": [
+    {
+      "nombre": "Código explícito por subcaso",
+      "aprobada": true,
+      "error": null
+    },
+    {
+      "nombre": "Eco de X-Test-Run-Id",
+      "aprobada": true,
+      "error": null
+    }
+  ],
+  "respuesta": {
+    "id_retroalimentacion": null,
+    "id_resultado_inferencia": null,
+    "estado_retroalimentacion": null,
+    "diagnosticos_reales": null,
+    "error_code": "ESTADO_RETROALIMENTACION_INVALIDO",
+    "field": "estado_retroalimentacion",
+    "mensaje": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+    "detalle_campo": "El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO."
+  },
+  "fallos": [],
+  "error": null
+}

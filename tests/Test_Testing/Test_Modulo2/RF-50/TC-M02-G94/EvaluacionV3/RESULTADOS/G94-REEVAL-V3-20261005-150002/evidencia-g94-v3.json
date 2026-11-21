@@ -1,0 +1,394 @@
+{
+  "grupo": "TC-M02-G94",
+  "nombre": "Seguridad de la API de datos analiticos",
+  "tipo": "TERCERA EVALUACION (V3)",
+  "runId": "G94-REEVAL-V3-20261005-150002",
+  "fecha": "2026-10-05T15:03:43.566131+00:00",
+  "rf": "RF-50 — Disponibilidad de datos para modulos analiticos",
+  "cu": "CU12 — Consultar indicadores y exponer datos",
+  "responsableQa": "Juan Esteban",
+  "ambienteDecisorio": "TEST",
+  "baseUrl": "https://api.inmero.co/back-sigab-test",
+  "urlUnica": true,
+  "notaUrl": "Se uso una sola URL TEST oficial. El dominio historico sslip.io no se ejercito: no se duplico la prueba contra dos dominios.",
+  "veredicto": {
+    "TC-M02-G94": "APROBADO",
+    "TC-M02-158": "APROBADO",
+    "TC-M02-164": "APROBADO",
+    "TC-M02-165": "APROBADO",
+    "escenario": "A — los tres subcasos cumplen"
+  },
+  "git": {
+    "inicial": null,
+    "final": {
+      "backend": {
+        "rama": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+        "head": "0371f2ec1d97ddfe7f3f33526d0db071d016e6ea",
+        "origin_test": "0371f2ec1d97ddfe7f3f33526d0db071d016e6ea",
+        "head_vs_origin_test": "0\t0",
+        "status_short": "?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G92/EvaluacionV4/\n?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G94/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G29/EvaluacionV4/",
+        "diff_stat": "(vacio)",
+        "diff_cached_stat": "(vacio)"
+      },
+      "frontend": {
+        "rama": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+        "head": "cd3af47c07302f7310b17e6800642aab2253f479",
+        "origin_test": "4e0c4ceb377d4eefe0120d2acd2dc2c6b3e8bf64",
+        "head_vs_origin_test": "2\t0",
+        "status_short": "?? testing/test_testing/Modulo9/RF-17/TC-M09-G31/EvaluacionV4/",
+        "diff_stat": "(vacio)",
+        "diff_cached_stat": "(vacio)"
+      }
+    }
+  },
+  "actores": {
+    "M04": {
+      "correo": "dev.m04.rf50@sgpmp-test.com",
+      "loginEstado": 200,
+      "id_usuario": 123,
+      "id_usuario_coincide": true,
+      "nombre_rol": "Integración M04",
+      "rol_coincide": true,
+      "estado_cuenta": "Activo",
+      "fincas": [],
+      "permisos_totales": 5,
+      "recursos_con_read": [
+        9,
+        29,
+        60,
+        61,
+        62
+      ],
+      "scopes": {
+        "eventos": true,
+        "fases": true,
+        "estado": true,
+        "metricas": false
+      }
+    },
+    "M06": {
+      "correo": "dev.m06.rf50@sgpmp-test.com",
+      "loginEstado": 200,
+      "id_usuario": 124,
+      "id_usuario_coincide": true,
+      "nombre_rol": "Integración M06",
+      "rol_coincide": true,
+      "estado_cuenta": "Activo",
+      "fincas": [],
+      "permisos_totales": 3,
+      "recursos_con_read": [
+        29,
+        63,
+        64
+      ],
+      "scopes": {
+        "eventos": false,
+        "fases": false,
+        "estado": false,
+        "metricas": true
+      }
+    },
+    "contrasenasPersistidas": false,
+    "tokensPersistidos": false,
+    "nota": "Las credenciales se pasaron por variables de entorno del proceso. No se persistieron contrasenas, JWT, refresh tokens, cookies ni encabezados Authorization."
+  },
+  "rbac": {
+    "modificadoPorQa": false,
+    "scopesAgregados": 0,
+    "permisosAgregados": 0,
+    "rolesModificados": 0,
+    "usuariosCreados": 0,
+    "contrasenasCambiadas": 0,
+    "fincasModificadas": 0,
+    "nota": "Las identidades entregadas por Desarrollo se probaron tal como estaban. M04 no tiene datos_analiticos_metricas y no se le concedio: G94 evalua el limitador por modulo, no la paridad de scopes."
+  },
+  "fixture": {
+    "id_activo_biologico": 279,
+    "consultaConM04": 200,
+    "identificador": "QAJE-CREC-OK",
+    "nombre_estado": "ACTIVO",
+    "tipo": "INDIVIDUAL",
+    "id_especie": 40,
+    "id_infraestructura": 48,
+    "infraestructura": {
+      "status": 403,
+      "nombre": null,
+      "id_finca": null
+    },
+    "reutilizadoDeV2": true,
+    "revalidacion": {
+      "existe": true,
+      "identificadorCoincide": true,
+      "estadoActivo": true,
+      "visiblePorM04": true,
+      "visiblePorM06": true,
+      "sinCambioDeFixture": true,
+      "notaFinca": "El detalle de la infraestructura 48 responde 403 a estas identidades tecnicas (no tienen ese scope), de modo que la finca no se leyo directamente. El alcance quedo demostrado empiricamente: ambos modulos obtienen 200 sobre el activo."
+    }
+  },
+  "implementacionRf50": {
+    "ramaInspeccionada": "origin/test",
+    "limitador": "rate_limit(100, 60, alcance=\"activos_datos_consolidados\", clave=_clave_consumidor_datos_consolidados)",
+    "ubicacion": "src/biological_assets/infrastructure/routers/activo_biologico_router.py:214-216, aplicado como dependencia en la linea 1804",
+    "claveDelContador": "identidad tecnica -> \"modulo:<n>\"; usuario humano -> \"usuario:<id>\"",
+    "resolucionDeModulo": "resolver_modulo_consumidor: el patron \"Integración M0<n>\" del nombre del rol produce \"modulo<n>\" (M04 -> modulo4, M06 -> modulo6)",
+    "contadorEnMemoriaDeProceso": true,
+    "metodosDeclaradosEnLaRuta": [
+      "get"
+    ],
+    "http429DeclaradoEnOpenapi": true,
+    "nota": "Verificado en codigo, pero el veredicto de TC-M02-158 se decidio por la ejecucion real en TEST, no por la lectura del codigo."
+  },
+  "controlPositivo": {
+    "M04": {
+      "tipo_dato": "eventos",
+      "http": 200,
+      "error_code": null,
+      "ms": 134,
+      "id_activo_devuelto": 279,
+      "identificador": "QAJE-CREC-OK"
+    },
+    "M06": {
+      "tipo_dato": "metricas",
+      "http": 200,
+      "error_code": null,
+      "ms": 128,
+      "id_activo_devuelto": 279,
+      "identificador": "QAJE-CREC-OK"
+    },
+    "instanteUltimoGetM04": "2026-10-05T14:59:40.417Z"
+  },
+  "TC-M02-164": {
+    "nombre": "Verificar que la API de exposicion sea de solo lectura",
+    "actor": "M04 autenticado",
+    "getPrevio": {
+      "metodo": "GET",
+      "http": 200,
+      "id_activo_devuelto": 279,
+      "identificador": "QAJE-CREC-OK",
+      "instante": "2026-10-05T15:01:01.790518+00:00"
+    },
+    "post": {
+      "metodo": "POST",
+      "http": 405,
+      "error_code": null,
+      "permitidos_cabecera_allow": "GET"
+    },
+    "put": {
+      "metodo": "PUT",
+      "http": 405,
+      "error_code": null,
+      "permitidos_cabecera_allow": "GET"
+    },
+    "integridad": {
+      "antes": {
+        "id_activo_biologico": 279,
+        "identificador": "QAJE-CREC-OK",
+        "tipo": "INDIVIDUAL",
+        "id_especie": 40,
+        "id_estado": 1,
+        "nombre_estado": "ACTIVO",
+        "id_infraestructura": 48,
+        "fecha_inicio_ciclo": "2026-06-01",
+        "fecha_actualizacion": null,
+        "atributos_dinamicos": null
+      },
+      "despues": {
+        "id_activo_biologico": 279,
+        "identificador": "QAJE-CREC-OK",
+        "tipo": "INDIVIDUAL",
+        "id_especie": 40,
+        "id_estado": 1,
+        "nombre_estado": "ACTIVO",
+        "id_infraestructura": 48,
+        "fecha_inicio_ciclo": "2026-06-01",
+        "fecha_actualizacion": null,
+        "atributos_dinamicos": null
+      },
+      "sin_cambios": true,
+      "fuente": "GET /activos-biologicos/{id} (endpoint sin el contador de RF-50)"
+    },
+    "escriturasDeDominioProducidas": 0,
+    "veredicto": "APROBADO"
+  },
+  "TC-M02-165": {
+    "nombre": "Verificar autenticacion obligatoria entre servicios internos",
+    "varianteA_sinAuthorization": {
+      "http": 401,
+      "error_code": "TOKEN_REQUERIDO",
+      "campos_sensibles_expuestos": [],
+      "menciona_el_identificador_del_activo": false,
+      "menciona_el_id_del_activo": false
+    },
+    "varianteB_bearerInvalido": {
+      "http": 401,
+      "error_code": "TOKEN_INVALIDO",
+      "campos_sensibles_expuestos": [],
+      "menciona_el_identificador_del_activo": false,
+      "menciona_el_id_del_activo": false
+    },
+    "exposicionDeDatos": false,
+    "distincion401vs403": "ambas variantes devolvieron 401 de autenticacion, no 403 de autorizacion",
+    "veredicto": "APROBADO"
+  },
+  "TC-M02-158": {
+    "nombre": "Verificar rate limiting de 100 solicitudes/minuto por modulo consumidor",
+    "herramienta": {
+      "solicitada": "k6",
+      "utilizada": "arnes equivalente en Node (fetch nativo)",
+      "motivo": "k6 no esta instalado en la estacion de QA y QA no instala software durante la ejecucion",
+      "equivalencia": "mismos 101 pedidos, misma concurrencia (5 trabajadores, shared-iterations), mismo oraculo por conteos globales, sin peticion de setup al endpoint RF-50",
+      "nodeVersion": "v22.15.1"
+    },
+    "configuracion": {
+      "base": "https://api.inmero.co/back-sigab-test",
+      "ruta_m04": "/activos-biologicos/279/datos-consolidados?tipo_dato=eventos&pagina=1&page_size=20",
+      "ruta_m06": "/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&pagina=1&page_size=20",
+      "solicitudes": 101,
+      "vus": 5,
+      "limite_declarado": 100,
+      "ventana_declarada_s": 60,
+      "peticion_de_setup_al_endpoint_rf50": 0
+    },
+    "ventana": {
+      "ancla_ultimo_get_m04_previo": "2026-10-05T15:01:01.790Z",
+      "espera_aplicada_s": 0,
+      "inicio_rafaga": "2026-10-05T15:02:30.649Z",
+      "fin_rafaga": "2026-10-05T15:02:33.518Z",
+      "duracion_ms": 2869,
+      "duracion_s": 2.869,
+      "dentro_de_60_s": true
+    },
+    "conteos": {
+      "total_solicitudes": 101,
+      "http_200": 100,
+      "http_429": 1,
+      "otros_total": 0,
+      "otros_detalle": [],
+      "por_codigo": {
+        "200": 100,
+        "429": 1
+      }
+    },
+    "primer429": {
+      "ordenLlegada": 100,
+      "ordenLanzamiento": 100,
+      "status": 429,
+      "error_code": "LIMITE_TASA_EXCEDIDO",
+      "message": "Demasiadas solicitudes en poco tiempo. Intenta de nuevo en unos momentos.",
+      "expone_datos_del_activo": false,
+      "cabeceras_de_cuota": {},
+      "instante": "2026-10-05T15:02:33.508Z"
+    },
+    "aislamiento": {
+      "m06_despues_de_saturar_m04": {
+        "tipo_dato": "metricas",
+        "http": 200,
+        "error_code": null,
+        "id_activo_devuelto": 279,
+        "ms": 124,
+        "instante": "2026-10-05T15:02:33.642Z"
+      },
+      "m04_reconfirmacion_en_el_mismo_instante": {
+        "tipo_dato": "eventos",
+        "http": 429,
+        "error_code": "LIMITE_TASA_EXCEDIDO",
+        "instante": "2026-10-05T15:02:33.739Z"
+      },
+      "contadores_independientes": true
+    },
+    "latencias_ms": {
+      "min": 110,
+      "max": 368,
+      "media": 139
+    },
+    "oraculo": {
+      "items": [
+        {
+          "descripcion": "las 101 solicitudes se completaron dentro de la ventana de 60 s",
+          "cumple": true
+        },
+        {
+          "descripcion": "se emitieron exactamente 101 solicitudes",
+          "cumple": true
+        },
+        {
+          "descripcion": "aparecio al menos una respuesta HTTP 429 al exceder el limite",
+          "cumple": true
+        },
+        {
+          "descripcion": "no aparecieron codigos inesperados (401/403/404/500)",
+          "cumple": true
+        },
+        {
+          "descripcion": "el numero de respuestas permitidas no excede el limite declarado",
+          "cumple": true
+        },
+        {
+          "descripcion": "el 429 no expone datos del activo",
+          "cumple": true
+        },
+        {
+          "descripcion": "el 429 trae un error funcional identificable",
+          "cumple": true
+        },
+        {
+          "descripcion": "M06 responde 200 inmediatamente despues de saturar M04",
+          "cumple": true
+        },
+        {
+          "descripcion": "M06 no recibe 429 por la rafaga de M04",
+          "cumple": true
+        },
+        {
+          "descripcion": "M04 sigue saturado en ese mismo instante (contadores independientes)",
+          "cumple": true
+        }
+      ],
+      "total": 10,
+      "superadas": 10,
+      "fallidas": 0
+    },
+    "veredicto": "APROBADO"
+  },
+  "escrituras": {
+    "deDominio": 0,
+    "sqlWrite": 0,
+    "cambiosRbac": 0,
+    "nota": "La ejecucion fue de lectura. Los GET exitosos de RF-50 pueden dejar registros tecnicos de auditoria por comportamiento normal del producto; eso no es manipulacion de datos por QA. Los intentos POST y PUT de TC-M02-164 fueron rechazados con 405 y no escribieron nada."
+  },
+  "oraculoTotal": {
+    "assertionsFuncionales": 16,
+    "detalle": {
+      "pytest_TC164_TC165": {
+        "pruebasEjecutadas": 7,
+        "funcionales": 6,
+        "fallidas": 0,
+        "nota": "la septima prueba solo transporta las observaciones a la evidencia"
+      },
+      "rafaga_TC158": {
+        "total": 10,
+        "superadas": 10,
+        "fallidas": 0
+      }
+    },
+    "fallidasTotales": 0
+  },
+  "seguridad": {
+    "contrasenaPersistida": false,
+    "jwtPersistido": false,
+    "bearerPersistido": false,
+    "cookiesPersistidas": false,
+    "refreshTokenPersistido": false,
+    "correosDocumentados": [
+      "dev.m04.rf50@sgpmp-test.com",
+      "dev.m06.rf50@sgpmp-test.com"
+    ],
+    "nota": "El Bearer ficticio de TC-M02-165 es una cadena inventada sin valor criptografico (\"qa-token-ficticio-invalido-g94-v3\"); no es un token real."
+  },
+  "incidencia": {
+    "referencia": "INC-M02-96-G94",
+    "nuevaIncidenciaCreada": false,
+    "estado": "VERIFICADA EN V3"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "tc": "TC-M05-G39",
+  "summary": {
+    "total": 8,
+    "ok": 5,
+    "falla": 3,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Admin Conteo inicial de eventos y creacion de activo con operacion RF-78",
+      "esperado": "HTTP 200 en auditoria base, HTTP 201 en activo QA y HTTP 200 en suministro registrado",
+      "obtenido": "HTTP 200 en auditoria base, HTTP 201 en activo QA y HTTP 200 en suministro registrado",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Consulta de evento incompleto y presencia de detalle_causa (TC-M05-092 / 028)",
+      "esperado": "HTTP 200 con registro_incompleto=true y detalle_causa no nulo detallando campos faltantes (CA-12 / CU06 FA-05)",
+      "obtenido": "AssertionError: DEFECTO_PRODUCTO (RF-80 CA-12 / CU06 FA-05 / TC-M05-092 / 028): La especificacion requiere que los eventos con registro_incompleto=true incluyan en detalle_causa la lista de campos faltantes (ej. 'Campos faltantes: ...'). El evento 87 tiene registro_incompleto=true pero detalle_causa es null.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B01 Superficie de escritura exclusiva GET en OpenAPI (TC-M05-093 / 029)",
+      "esperado": "0 metodos de modificacion (POST/PUT/PATCH/DELETE) expuestos bajo /suministros/auditoria* en OpenAPI",
+      "obtenido": "0 metodos de modificacion (POST/PUT/PATCH/DELETE) expuestos bajo /suministros/auditoria* en OpenAPI",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Inmutabilidad rechazo 405 y registro de evento de seguridad (TC-M05-093 / 029)",
+      "esperado": "HTTP 405 Method Not Allowed en PUT/PATCH/DELETE, hash inalterado y registro de evento de seguridad",
+      "obtenido": "AssertionError: DEFECTO_PRODUCTO (RF-80 Restr. 1 / CA-2 / RNF-05 / TC-M05-093 / 029): La especificacion de inmutabilidad exige que todo intento de modificacion no permitido (PUT/PATCH/DELETE) sea rechazado y registrado como evento de seguridad en la bitacora. El sistema respondio HTTP 405 pero registro 0 eventos con resultado RECHAZADO en modulo5.auditorias_suministros.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B03 Verificacion de integridad y recalculo determinista de hash SHA-256 (TC-M05-093 / 029)",
+      "esperado": "Coincidencia exacta (True) entre hash_integridad almacenado y digest SHA-256 de campos canonicos ordenados",
+      "obtenido": "Coincidencia exacta (True) entre hash_integridad almacenado y digest SHA-256 de campos canonicos ordenados",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 Presencia de id_evento_m05 para deduplicacion at-least-once (TC-M05-094 / 030)",
+      "esperado": "Campo 'id_evento_m05' (UUID unico) presente en la entidad de auditoria para deduplicacion",
+      "obtenido": "AssertionError: DEFECTO_PRODUCTO (RF-80 Restr. 9 / CA-14 / RNF-09 / TC-M05-094 / 030): La especificacion de deduplicacion exige que cada registro de auditoria contenga el campo 'id_evento_m05' (UUID unico emitido por el componente de M05 antes de publicar). La API y la tabla modulo5.auditorias_suministros carecen de esta columna/propiedad (solo disponen de id_auditoria_suministro de tipo entero).",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "T98 Admin Cierre ordenado de sandbox Administrador y rollback",
+      "esperado": "HTTP 200 con confirmacion de rollback exitoso",
+      "obtenido": "HTTP 200 con confirmacion de rollback exitoso",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Admin Verificacion de inocuidad tras corrida Administrador",
+      "esperado": "Conteo final de auditoria identico al conteo inicial",
+      "obtenido": "Conteo final de auditoria identico al conteo inicial",
+      "estado": "OK"
+    }
+  ]
+}

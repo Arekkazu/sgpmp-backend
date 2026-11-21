@@ -1,0 +1,757 @@
+{
+  "info": {
+    "name": "TC-M03-G111 - Validacion de los parametros de rango de fechas del historial (obligatoriedad, coherencia, orden y limite maximo de 90 dias)",
+    "description": "RF-59 Fase 2 / E2 / E4 / CA-1 / CA-12 / FA-09 sobre GET /iot/monitoreo/historial. Subcasos: (1) rango valido de 30 dias con orden=ASC, DESC y sin el parametro (DESC por defecto), mas un valor de orden no permitido; (2) falta fecha_inicio, fecha_fin o ambas (422 e indicacion del parametro); (3) fecha_inicio>fecha_fin y fecha_fin futura (400) frente a fecha_fin=hoy y fecha_inicio=fecha_fin (200); (4) rango maximo: 89 y 90 dias sin filtros (200), 91 dias sin filtros (422 RANGO_MAXIMO_EXCEDIDO) y 91 dias con tipo_variable (200). Solo lecturas (GET): no escribe nada en TEST, por eso NO usa el sandbox transaccional. Las fechas se calculan en UTC al correr (hoy, ayer, manana, hoy-30/89/90/91). Si el rango de 30 dias tiene menos de 2 lecturas, las aserciones de orden quedan como NO CONCLUYENTE (skip) y se anota en el log. Las claves no se guardan en este archivo: el script correr_newman.ps1 pide correo y contrasena del Administrador en la terminal. Ejecucion (desde tests\\Test_Testing): .\\correr_newman.ps1 -Caso G111 -Rf RF-59. Ambiente: solo TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo:",
+          "// se pasa al ejecutar:  newman run <coleccion> --env-var \"sandbox_secret=<secreto>\"",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (!secreto) {",
+          "  // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que",
+          "  // NADA llegue a TEST (sin sandbox el login dejaria una sesion permanente).",
+          "  console.error('Falta sandbox_secret: ejecutar con --env-var sandbox_secret=<secreto>. Peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  let runId = pm.variables.get('run_id');",
+          "  if (!runId || runId.trim() === '') { runId = 'test-' + pm.variables.replaceIn('{{$guid}}'); pm.collectionVariables.set('run_id', runId); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: runId });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "",
+          "// Fechas de referencia en UTC (sin cabecera X-Zona-Horaria el backend calcula 'hoy' en UTC).",
+          "(function () {",
+          "    const d = function (n) { const x = new Date(); x.setUTCHours(0, 0, 0, 0); x.setUTCDate(x.getUTCDate() - n); return x.toISOString().slice(0, 10); };",
+          "    pm.variables.set('hoy', d(0));",
+          "    pm.variables.set('ayer', d(1));",
+          "    pm.variables.set('manana', d(-1));",
+          "    pm.variables.set('hoy_m30', d(30));",
+          "    pm.variables.set('hoy_m89', d(89));",
+          "    pm.variables.set('hoy_m90', d(90));",
+          "    pm.variables.set('hoy_m91', d(91));",
+          "})();"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": ""
+    },
+    {
+      "key": "contrasena_admin",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "total_asc",
+      "value": ""
+    },
+    {
+      "key": "ids_asc",
+      "value": ""
+    },
+    {
+      "key": "ids_desc",
+      "value": ""
+    },
+    {
+      "key": "ids_def",
+      "value": ""
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. Rango valido y ordenamiento (TC-M03-214)",
+      "item": [
+        {
+          "name": "1.1 Rango de 30 dias con orden=ASC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m30}}&fecha_fin={{hoy}}&orden=ASC"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Respuesta con total, pagina, por_pagina, paginas_totales, filtros_aplicados y rango_real_datos', function () {",
+                  "    ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos'].forEach(function (k) {",
+                  "        pm.expect(J, 'falta ' + k + ' en ' + Object.keys(J).join(',')).to.have.property(k);",
+                  "    });",
+                  "    pm.expect(J.items, 'items').to.be.an('array');",
+                  "});",
+                  "pm.test('Coherencia de paginacion (paginas_totales = max(1, ceil(total / por_pagina)); items <= por_pagina)', function () {",
+                  "    pm.expect(J.paginas_totales).to.eql(Math.max(1, Math.ceil(J.total / J.por_pagina)));",
+                  "    pm.expect(J.items.length).to.be.at.most(J.por_pagina);",
+                  "});",
+                  "console.log('[G111][OBSERVADO] ' + JSON.stringify({total: J.total, pagina: J.pagina, por_pagina: J.por_pagina, paginas_totales: J.paginas_totales, filtros_aplicados: J.filtros_aplicados, rango_real_datos: J.rango_real_datos, n_items: (J.items || []).length}));",
+                  "",
+                  "const items = J.items || [];",
+                  "const ts = items.map(function (i) { return Date.parse(i.timestamp_captura); });",
+                  "pm.collectionVariables.set('ids_asc', JSON.stringify(items.map(function (i) { return i.id_telemetria; })));",
+                  "if (items.length < 2) {",
+                  "    pm.test.skip('Orden ASC por timestamp_captura (NO CONCLUYENTE: el rango tiene menos de 2 lecturas; total=' + J.total + ')');",
+                  "} else {",
+                  "    pm.test('Los items traen timestamp_captura valido', function () { pm.expect(ts.every(function (t) { return !isNaN(t); }), 'ejemplo: ' + JSON.stringify(items[0]).slice(0, 300)).to.be.true; });",
+                  "    pm.test('Ordenados por timestamp_captura ASC', function () {",
+                  "        for (let k = 1; k < ts.length; k++) { pm.expect(ts[k - 1] <= ts[k], 'posicion ' + k + ': ' + items[k - 1].timestamp_captura + ' vs ' + items[k].timestamp_captura).to.be.true; }",
+                  "    });",
+                  "}",
+                  "const ini = Date.parse(pm.variables.get('hoy_m30') + 'T00:00:00Z'), finx = Date.parse(pm.variables.get('hoy') + 'T00:00:00Z') + 86400000;",
+                  "if (items.length) {",
+                  "    pm.test('Todas las lecturas estan dentro del rango pedido (fecha_inicio a fecha_fin, UTC)', function () {",
+                  "        items.forEach(function (i) { const t = Date.parse(i.timestamp_captura); pm.expect(t >= ini && t < finx, 'id_telemetria=' + i.id_telemetria + ' ts=' + i.timestamp_captura).to.be.true; });",
+                  "    });",
+                  "}",
+                  "",
+                  "pm.collectionVariables.set('total_asc', String(J.total));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Rango de 30 dias con orden=DESC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m30}}&fecha_fin={{hoy}}&orden=DESC"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Respuesta con total, pagina, por_pagina, paginas_totales, filtros_aplicados y rango_real_datos', function () {",
+                  "    ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos'].forEach(function (k) {",
+                  "        pm.expect(J, 'falta ' + k + ' en ' + Object.keys(J).join(',')).to.have.property(k);",
+                  "    });",
+                  "    pm.expect(J.items, 'items').to.be.an('array');",
+                  "});",
+                  "pm.test('Coherencia de paginacion (paginas_totales = max(1, ceil(total / por_pagina)); items <= por_pagina)', function () {",
+                  "    pm.expect(J.paginas_totales).to.eql(Math.max(1, Math.ceil(J.total / J.por_pagina)));",
+                  "    pm.expect(J.items.length).to.be.at.most(J.por_pagina);",
+                  "});",
+                  "console.log('[G111][OBSERVADO] ' + JSON.stringify({total: J.total, pagina: J.pagina, por_pagina: J.por_pagina, paginas_totales: J.paginas_totales, filtros_aplicados: J.filtros_aplicados, rango_real_datos: J.rango_real_datos, n_items: (J.items || []).length}));",
+                  "",
+                  "const items = J.items || [];",
+                  "const ts = items.map(function (i) { return Date.parse(i.timestamp_captura); });",
+                  "pm.collectionVariables.set('ids_desc', JSON.stringify(items.map(function (i) { return i.id_telemetria; })));",
+                  "if (items.length < 2) {",
+                  "    pm.test.skip('Orden DESC por timestamp_captura (NO CONCLUYENTE: el rango tiene menos de 2 lecturas; total=' + J.total + ')');",
+                  "} else {",
+                  "    pm.test('Los items traen timestamp_captura valido', function () { pm.expect(ts.every(function (t) { return !isNaN(t); }), 'ejemplo: ' + JSON.stringify(items[0]).slice(0, 300)).to.be.true; });",
+                  "    pm.test('Ordenados por timestamp_captura DESC', function () {",
+                  "        for (let k = 1; k < ts.length; k++) { pm.expect(ts[k - 1] >= ts[k], 'posicion ' + k + ': ' + items[k - 1].timestamp_captura + ' vs ' + items[k].timestamp_captura).to.be.true; }",
+                  "    });",
+                  "}",
+                  "const ini = Date.parse(pm.variables.get('hoy_m30') + 'T00:00:00Z'), finx = Date.parse(pm.variables.get('hoy') + 'T00:00:00Z') + 86400000;",
+                  "if (items.length) {",
+                  "    pm.test('Todas las lecturas estan dentro del rango pedido (fecha_inicio a fecha_fin, UTC)', function () {",
+                  "        items.forEach(function (i) { const t = Date.parse(i.timestamp_captura); pm.expect(t >= ini && t < finx, 'id_telemetria=' + i.id_telemetria + ' ts=' + i.timestamp_captura).to.be.true; });",
+                  "    });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Rango de 30 dias sin parametro orden: se aplica DESC por defecto",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m30}}&fecha_fin={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Respuesta con total, pagina, por_pagina, paginas_totales, filtros_aplicados y rango_real_datos', function () {",
+                  "    ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos'].forEach(function (k) {",
+                  "        pm.expect(J, 'falta ' + k + ' en ' + Object.keys(J).join(',')).to.have.property(k);",
+                  "    });",
+                  "    pm.expect(J.items, 'items').to.be.an('array');",
+                  "});",
+                  "pm.test('Coherencia de paginacion (paginas_totales = max(1, ceil(total / por_pagina)); items <= por_pagina)', function () {",
+                  "    pm.expect(J.paginas_totales).to.eql(Math.max(1, Math.ceil(J.total / J.por_pagina)));",
+                  "    pm.expect(J.items.length).to.be.at.most(J.por_pagina);",
+                  "});",
+                  "console.log('[G111][OBSERVADO] ' + JSON.stringify({total: J.total, pagina: J.pagina, por_pagina: J.por_pagina, paginas_totales: J.paginas_totales, filtros_aplicados: J.filtros_aplicados, rango_real_datos: J.rango_real_datos, n_items: (J.items || []).length}));",
+                  "",
+                  "const items = J.items || [];",
+                  "const ts = items.map(function (i) { return Date.parse(i.timestamp_captura); });",
+                  "pm.collectionVariables.set('ids_def', JSON.stringify(items.map(function (i) { return i.id_telemetria; })));",
+                  "if (items.length < 2) {",
+                  "    pm.test.skip('Orden DESC por timestamp_captura (NO CONCLUYENTE: el rango tiene menos de 2 lecturas; total=' + J.total + ')');",
+                  "} else {",
+                  "    pm.test('Los items traen timestamp_captura valido', function () { pm.expect(ts.every(function (t) { return !isNaN(t); }), 'ejemplo: ' + JSON.stringify(items[0]).slice(0, 300)).to.be.true; });",
+                  "    pm.test('Ordenados por timestamp_captura DESC', function () {",
+                  "        for (let k = 1; k < ts.length; k++) { pm.expect(ts[k - 1] >= ts[k], 'posicion ' + k + ': ' + items[k - 1].timestamp_captura + ' vs ' + items[k].timestamp_captura).to.be.true; }",
+                  "    });",
+                  "}",
+                  "const ini = Date.parse(pm.variables.get('hoy_m30') + 'T00:00:00Z'), finx = Date.parse(pm.variables.get('hoy') + 'T00:00:00Z') + 86400000;",
+                  "if (items.length) {",
+                  "    pm.test('Todas las lecturas estan dentro del rango pedido (fecha_inicio a fecha_fin, UTC)', function () {",
+                  "        items.forEach(function (i) { const t = Date.parse(i.timestamp_captura); pm.expect(t >= ini && t < finx, 'id_telemetria=' + i.id_telemetria + ' ts=' + i.timestamp_captura).to.be.true; });",
+                  "    });",
+                  "}",
+                  "",
+                  "pm.test('Sin orden el resultado coincide con orden=DESC (mismos ids, mismo orden)', function () {",
+                  "    pm.expect(pm.collectionVariables.get('ids_def')).to.eql(pm.collectionVariables.get('ids_desc'));",
+                  "});",
+                  "pm.test('ASC y DESC devuelven el mismo total de lecturas (solo cambia el orden)', function () {",
+                  "    pm.expect(J.total).to.eql(Number(pm.collectionVariables.get('total_asc')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 orden con valor no permitido (ZIGZAG): solo se admite ASC o DESC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m30}}&fecha_fin={{hoy}}&orden=ZIGZAG"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('Se rechaza (HTTP 400 o 422), no se acepta ni se ignora', function () { pm.expect([400, 422], 'status=' + pm.response.code + ' body=' + TXT.slice(0, 300)).to.include(pm.response.code); });",
+                  "pm.test('Sin error 5xx', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.be.below(500); });",
+                  "console.log('[G111-1.4][OBSERVADO] orden=ZIGZAG -> ' + pm.response.code);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Parametros obligatorios (TC-M03-215)",
+      "item": [
+        {
+          "name": "2.1 Sin fecha_inicio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_fin={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code, TXT.slice(0, 400)).to.eql(422); });",
+                  "pm.test('Sin error 5xx', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.be.below(500); });",
+                  "pm.test('El mensaje identifica el parametro fecha_inicio', function () { pm.expect(TXT, TXT.slice(0, 300)).to.include('fecha_inicio'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Sin fecha_fin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m30}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code, TXT.slice(0, 400)).to.eql(422); });",
+                  "pm.test('Sin error 5xx', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.be.below(500); });",
+                  "pm.test('El mensaje identifica el parametro fecha_fin', function () { pm.expect(TXT, TXT.slice(0, 300)).to.include('fecha_fin'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Sin ninguna de las dos fechas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?pagina=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code, TXT.slice(0, 400)).to.eql(422); });",
+                  "pm.test('Sin error 5xx', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.be.below(500); });",
+                  "pm.test('El mensaje identifica al menos un parametro requerido (fecha_inicio o fecha_fin)', function () { pm.expect(/fecha_inicio|fecha_fin/.test(TXT), TXT.slice(0, 300)).to.be.true; });",
+                  "console.log('[G111-2.3][OBSERVADO] menciona fecha_inicio=' + TXT.includes('fecha_inicio') + ' fecha_fin=' + TXT.includes('fecha_fin'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Rangos temporales incoherentes (TC-M03-216)",
+      "item": [
+        {
+          "name": "3.1 fecha_inicio posterior a fecha_fin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy}}&fecha_fin={{hoy_m30}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code, TXT.slice(0, 400)).to.eql(422); });",
+                  "pm.test('Sin error 5xx', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.be.below(500); });",
+                  "pm.test('El mensaje identifica el parametro incorrecto (fecha_inicio o fecha_fin)', function () { pm.expect(/fecha_inicio|fecha_fin/.test(TXT), TXT.slice(0, 300)).to.be.true; });",
+                  "pm.test('Respuesta de error con error_code y message', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 fecha_fin en el futuro (manana)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m30}}&fecha_fin={{manana}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code, TXT.slice(0, 400)).to.eql(422); });",
+                  "pm.test('Sin error 5xx', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.be.below(500); });",
+                  "pm.test('El mensaje identifica el parametro fecha_fin', function () { pm.expect(TXT, TXT.slice(0, 300)).to.include('fecha_fin'); });",
+                  "pm.test('Respuesta de error con error_code y message', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 fecha_fin igual a hoy: se acepta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m30}}&fecha_fin={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 3.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Respuesta con total, pagina, por_pagina, paginas_totales, filtros_aplicados y rango_real_datos', function () {",
+                  "    ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos'].forEach(function (k) {",
+                  "        pm.expect(J, 'falta ' + k + ' en ' + Object.keys(J).join(',')).to.have.property(k);",
+                  "    });",
+                  "    pm.expect(J.items, 'items').to.be.an('array');",
+                  "});",
+                  "pm.test('Coherencia de paginacion (paginas_totales = max(1, ceil(total / por_pagina)); items <= por_pagina)', function () {",
+                  "    pm.expect(J.paginas_totales).to.eql(Math.max(1, Math.ceil(J.total / J.por_pagina)));",
+                  "    pm.expect(J.items.length).to.be.at.most(J.por_pagina);",
+                  "});",
+                  "console.log('[G111][OBSERVADO] ' + JSON.stringify({total: J.total, pagina: J.pagina, por_pagina: J.por_pagina, paginas_totales: J.paginas_totales, filtros_aplicados: J.filtros_aplicados, rango_real_datos: J.rango_real_datos, n_items: (J.items || []).length}));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.4 fecha_inicio igual a fecha_fin (ayer): se acepta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{ayer}}&fecha_fin={{ayer}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 3.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Respuesta con total, pagina, por_pagina, paginas_totales, filtros_aplicados y rango_real_datos', function () {",
+                  "    ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos'].forEach(function (k) {",
+                  "        pm.expect(J, 'falta ' + k + ' en ' + Object.keys(J).join(',')).to.have.property(k);",
+                  "    });",
+                  "    pm.expect(J.items, 'items').to.be.an('array');",
+                  "});",
+                  "pm.test('Coherencia de paginacion (paginas_totales = max(1, ceil(total / por_pagina)); items <= por_pagina)', function () {",
+                  "    pm.expect(J.paginas_totales).to.eql(Math.max(1, Math.ceil(J.total / J.por_pagina)));",
+                  "    pm.expect(J.items.length).to.be.at.most(J.por_pagina);",
+                  "});",
+                  "console.log('[G111][OBSERVADO] ' + JSON.stringify({total: J.total, pagina: J.pagina, por_pagina: J.por_pagina, paginas_totales: J.paginas_totales, filtros_aplicados: J.filtros_aplicados, rango_real_datos: J.rango_real_datos, n_items: (J.items || []).length}));",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Rango maximo de 90 dias sin filtros adicionales (TC-M03-228 / CA-12)",
+      "item": [
+        {
+          "name": "4.0 Borde inferior: 89 dias sin filtros se acepta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m89}}&fecha_fin={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 4.0] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Respuesta con total, pagina, por_pagina, paginas_totales, filtros_aplicados y rango_real_datos', function () {",
+                  "    ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos'].forEach(function (k) {",
+                  "        pm.expect(J, 'falta ' + k + ' en ' + Object.keys(J).join(',')).to.have.property(k);",
+                  "    });",
+                  "    pm.expect(J.items, 'items').to.be.an('array');",
+                  "});",
+                  "pm.test('Coherencia de paginacion (paginas_totales = max(1, ceil(total / por_pagina)); items <= por_pagina)', function () {",
+                  "    pm.expect(J.paginas_totales).to.eql(Math.max(1, Math.ceil(J.total / J.por_pagina)));",
+                  "    pm.expect(J.items.length).to.be.at.most(J.por_pagina);",
+                  "});",
+                  "console.log('[G111][OBSERVADO] ' + JSON.stringify({total: J.total, pagina: J.pagina, por_pagina: J.por_pagina, paginas_totales: J.paginas_totales, filtros_aplicados: J.filtros_aplicados, rango_real_datos: J.rango_real_datos, n_items: (J.items || []).length}));",
+                  "",
+                  "console.log('[G111-4.0][OBSERVADO] tiempo de respuesta ' + pm.response.responseTime + ' ms');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.1 90 dias sin filtros se acepta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m90}}&fecha_fin={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 4.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Respuesta con total, pagina, por_pagina, paginas_totales, filtros_aplicados y rango_real_datos', function () {",
+                  "    ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos'].forEach(function (k) {",
+                  "        pm.expect(J, 'falta ' + k + ' en ' + Object.keys(J).join(',')).to.have.property(k);",
+                  "    });",
+                  "    pm.expect(J.items, 'items').to.be.an('array');",
+                  "});",
+                  "pm.test('Coherencia de paginacion (paginas_totales = max(1, ceil(total / por_pagina)); items <= por_pagina)', function () {",
+                  "    pm.expect(J.paginas_totales).to.eql(Math.max(1, Math.ceil(J.total / J.por_pagina)));",
+                  "    pm.expect(J.items.length).to.be.at.most(J.por_pagina);",
+                  "});",
+                  "console.log('[G111][OBSERVADO] ' + JSON.stringify({total: J.total, pagina: J.pagina, por_pagina: J.por_pagina, paginas_totales: J.paginas_totales, filtros_aplicados: J.filtros_aplicados, rango_real_datos: J.rango_real_datos, n_items: (J.items || []).length}));",
+                  "",
+                  "console.log('[G111-4.1][OBSERVADO] tiempo de respuesta ' + pm.response.responseTime + ' ms');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 91 dias sin filtros: 422 RANGO_MAXIMO_EXCEDIDO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m91}}&fecha_fin={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 4.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 422', function () { pm.expect(pm.response.code, TXT.slice(0, 400)).to.eql(422); });",
+                  "pm.test('Sin error 5xx', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.be.below(500); });",
+                  "pm.test('error_code = RANGO_MAXIMO_EXCEDIDO', function () { pm.expect(J.error_code, TXT.slice(0, 300)).to.eql('RANGO_MAXIMO_EXCEDIDO'); });",
+                  "pm.test('El mensaje indica el limite (90) y pide aplicar filtros adicionales', function () { pm.expect(TXT, TXT.slice(0, 400)).to.match(/90/); pm.expect(TXT.toLowerCase(), TXT.slice(0, 400)).to.match(/filtro/); });",
+                  "pm.test('No se ejecuta la consulta: sin items en la respuesta', function () { pm.expect((J.items || []).length).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.3 91 dias con un filtro adicional (tipo_variable) se acepta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{hoy_m91}}&fecha_fin={{hoy}}&tipo_variable=TEMPERATURA_AMBIENTAL"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G111 4.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Respuesta con total, pagina, por_pagina, paginas_totales, filtros_aplicados y rango_real_datos', function () {",
+                  "    ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos'].forEach(function (k) {",
+                  "        pm.expect(J, 'falta ' + k + ' en ' + Object.keys(J).join(',')).to.have.property(k);",
+                  "    });",
+                  "    pm.expect(J.items, 'items').to.be.an('array');",
+                  "});",
+                  "pm.test('Coherencia de paginacion (paginas_totales = max(1, ceil(total / por_pagina)); items <= por_pagina)', function () {",
+                  "    pm.expect(J.paginas_totales).to.eql(Math.max(1, Math.ceil(J.total / J.por_pagina)));",
+                  "    pm.expect(J.items.length).to.be.at.most(J.por_pagina);",
+                  "});",
+                  "console.log('[G111][OBSERVADO] ' + JSON.stringify({total: J.total, pagina: J.pagina, por_pagina: J.por_pagina, paginas_totales: J.paginas_totales, filtros_aplicados: J.filtros_aplicados, rango_real_datos: J.rango_real_datos, n_items: (J.items || []).length}));",
+                  "",
+                  "console.log('[G111-4.3][OBSERVADO] tiempo de respuesta ' + pm.response.responseTime + ' ms');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+TC-M05-047 - Concurrencia del costeo directo, corrida FUERA del sandbox (autorizada por el DBA)
+Fecha: 2026-11-09 09:21 UTC | Ambiente: TEST | Usuario: Administrador | Activo A = 825 (ciclo 300)
+Cuerpo: SERVICIO_VETERINARIO, unidad servicio, precio_unitario 4321, fecha_aplicacion 2026-11-05
+Acumulado antes: 404 ACUMULADO_NO_ENCONTRADO (0, sin costos reales en el ciclo 300)
+
+== Rafaga 1: 20 POST simultaneos, UUID distinto y cantidad 1..20 ==
+peticion 1: HTTP 200 (0.400209 s) REGISTRADO
+peticion 2: HTTP 200 (0.359159 s) REGISTRADO
+peticion 3: HTTP 200 (0.343027 s) REGISTRADO
+peticion 4: HTTP 200 (0.369679 s) REGISTRADO
+peticion 5: HTTP 200 (0.400063 s) REGISTRADO
+peticion 6: HTTP 200 (0.358561 s) REGISTRADO
+peticion 7: HTTP 200 (0.362021 s) REGISTRADO
+peticion 8: HTTP 200 (0.365484 s) REGISTRADO
+peticion 9: HTTP 200 (0.382255 s) REGISTRADO
+peticion 10: HTTP 200 (0.376960 s) REGISTRADO
+peticion 11: HTTP 200 (0.347982 s) REGISTRADO
+peticion 12: HTTP 200 (0.340434 s) REGISTRADO
+peticion 13: HTTP 200 (0.402988 s) REGISTRADO
+peticion 14: HTTP 200 (0.388400 s) REGISTRADO
+peticion 15: HTTP 200 (0.348492 s) REGISTRADO
+peticion 16: HTTP 200 (0.363940 s) REGISTRADO
+peticion 17: HTTP 200 (0.365196 s) REGISTRADO
+peticion 18: HTTP 200 (0.352971 s) REGISTRADO
+peticion 19: HTTP 200 (0.353477 s) REGISTRADO
+peticion 20: HTTP 200 (0.414567 s) REGISTRADO
+Acumulado despues: 907410.0000 (esperado 4321 x 210 = 907410), version_acumulado 19 (0 a 19 = 20 estados)
+
+== Rafaga 2: 20 POST simultaneos identicos, mismo UUID 8469a9ce-0a52-47fd-9f72-753a6c0c8fb2, cantidad 21 ==
+peticion 1: HTTP 409 (0.511829 s) RECURSO_DUPLICADO - Ya existe un registro procesado con este id_idempotencia.
+peticion 2: HTTP 200 (0.500949 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 3: HTTP 200 (0.485383 s) REGISTRADO - Suministro registrado y acumulado en el ciclo productivo.
+peticion 4: HTTP 409 (0.474291 s) RECURSO_DUPLICADO - Ya existe un registro procesado con este id_idempotencia.
+peticion 5: HTTP 409 (0.464192 s) RECURSO_DUPLICADO - Ya existe un registro procesado con este id_idempotencia.
+peticion 6: HTTP 200 (0.608336 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 7: HTTP 200 (0.597097 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 8: HTTP 200 (0.584980 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 9: HTTP 200 (0.520017 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 10: HTTP 200 (0.560064 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 11: HTTP 200 (0.497235 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 12: HTTP 200 (0.533404 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 13: HTTP 200 (0.473121 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 14: HTTP 200 (0.509828 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 15: HTTP 200 (0.499174 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 16: HTTP 200 (0.486576 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 17: HTTP 200 (0.531252 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 18: HTTP 200 (0.457386 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 19: HTTP 200 (0.513285 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+peticion 20: HTTP 200 (0.503220 s) YA_PROCESADO - Operación ya procesada con este id_idempotencia. Se retorna el resultado original sin crear un nuevo registro.
+Acumulado despues: 998151.0000 (+90741 = 4321 x 21, una sola vez), version_acumulado 20
+
+== Verificacion en BD (/test-control/query) ==
+registro_suministro del 825 con precio 4321: 21 filas, 21 UUID distintos, 1 con el UUID de la rafaga 2, suma 998151
+outbox_provisiones_m06 del 825: 21 ENTREGADO, maximo 2.08 s (TC-M05-051 en corrida real)
+auditorias_suministros del 825: 21 SUMINISTRO_REGISTRADO, 21 ACUMULADO_ACTUALIZADO, 21 PRECIO_MANUAL_INGRESADO, 21 PROVISION_INCREMENTAL_ENTREGADA (todos EXITOSO)
+
+Resultado: rafaga 1 APROBADA. Rafaga 2: integridad correcta (1 registro, acumulado sube una vez), pero 3 de 20 respuestas son 409 RECURSO_DUPLICADO en lugar de 200 YA_PROCESADO -> INC-M05-341-G30.

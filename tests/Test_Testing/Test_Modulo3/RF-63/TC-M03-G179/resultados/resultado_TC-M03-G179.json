@@ -1,0 +1,101 @@
+{
+  "tc": "TC-M03-G179",
+  "summary": {
+    "total": 15,
+    "ok": 12,
+    "falla": 3,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "Status 200 - Login exitoso de ADMIN",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Tipo clasificacion_registro=NIC41 es NIC41 con retencion 5",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Tipo clasificacion_registro=TECNICO es TECNICO con retencion 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "E8 - Evento ambiguo (registro_incompleto=true) => NIC41",
+      "esperado": "PASSED",
+      "obtenido": "FAILED",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "Tipo EVALUACION_CALIDAD_COMPLETADA es NIC41 con retencion 5",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Tipo REEVALUACION_CALIDAD_SOLICITADA es NIC41 con retencion 5",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "RF-56 PAQUETE_INFERENCIA_GENERADO existe y es NIC41 ret 5",
+      "esperado": "PASSED",
+      "obtenido": "FAILED",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "RF-61 VINCULACION_AUTOMATICA es NIC41 ret 5",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Tipo TELEMETRIA_VALIDADA es NIC41 con retencion 5",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Tipo TRANSICION_MANTENIMIENTO_MANUAL es TECNICO con retencion 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Tipo BUFFER_ACTIVADO es TECNICO con retencion 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Tipo DESVIACION_DETECTADA es TECNICO con retencion 1",
+      "esperado": "PASSED",
+      "obtenido": "FAILED",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "Tipo ALERTA_GENERADA es TECNICO con retencion 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Tipo DISPOSITIVO_SIN_SEÑAL es TECNICO con retencion 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Rollback exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    }
+  ]
+}

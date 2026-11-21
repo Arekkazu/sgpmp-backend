@@ -1,7 +1,13 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M03-147-G191 RF-63 CA-13: registra eventos incompletos sin rechazarlos |
+# | 2026-11-19 | Arekkazu | SEG-M03-01 RF-63: el evento que no se pudo guardar se reintenta y su pérdida queda en ERROR |
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
+from collections import deque
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
@@ -18,6 +24,17 @@ from src.telemetry.domain.entities.evento_auditoria_iot import (
     clasificar_componente,
 )
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
+
+logger = logging.getLogger(__name__)
+
+# tipo_evento es NOT NULL: un evento recibido sin tipo se guarda con este valor.
+TIPO_EVENTO_NO_INFORMADO = 'TIPO_EVENTO_NO_INFORMADO'
+
+# SEG-M03-01: eventos que no se pudieron guardar; se reintentan tras el siguiente registro exitoso.
+# ponytail: vive en la memoria del proceso (se pierde al reiniciar y cada worker tiene la suya); el
+# evento completo queda además en el log ERROR. Pasar a un respaldo durable como M02 si hace falta.
+_PENDIENTES: deque[tuple[EventoAuditoriaIot, int]] = deque(maxlen=1000)
+_MAX_INTENTOS = 3
 
 
 def _calcular_hash(evento: EventoAuditoriaIot) -> str:
@@ -51,9 +68,9 @@ class RegistrarEventoAuditoriaIotUseCase:
 
     def execute(
         self,
-        tipo_evento: str,
+        tipo_evento: Optional[str],
         resultado: TipoResultado,
-        componente_origen: ComponenteOrigen,
+        componente_origen: Optional[ComponenteOrigen],
         severidad_log: SeveridadLog = SeveridadLog.INFO,
         descripcion: Optional[str] = None,
         entidad_afectada_tipo: Optional[EntidadAfectadaTipo] = None,
@@ -64,10 +81,23 @@ class RegistrarEventoAuditoriaIotUseCase:
         id_sesion: Optional[UUID] = None,
         direccion_ip: Optional[str] = None,
         registro_incompleto: bool = False,
+        fecha_evento: Optional[datetime] = None,
     ) -> None:
+        """``fecha_evento`` es el instante en que ocurrió el evento (por omisión, ahora).
+
+        RF-63 CA-13 / E3: si falta ``tipo_evento`` o el RF emisor el evento se
+        registra igual, con ``registro_incompleto=true`` y los campos faltantes en
+        ``accion_detallada.campos_faltantes``.
+        """
         try:
+            faltantes = [campo for campo, valor in (
+                ('tipo_evento', tipo_evento), ('rf_origen', componente_origen)) if not valor]
+            if faltantes:
+                registro_incompleto = True
+                accion_detallada = {**(accion_detallada or {}), 'campos_faltantes': faltantes}
+                tipo_evento = tipo_evento or TIPO_EVENTO_NO_INFORMADO
             clasificacion, retencion = clasificar_componente(componente_origen)
-            ahora = datetime.now(timezone.utc)
+            ahora = fecha_evento or datetime.now(timezone.utc)
 
             evento = EventoAuditoriaIot(
                 id_evento=None,
@@ -90,7 +120,40 @@ class RegistrarEventoAuditoriaIotUseCase:
             )
             evento.hash_integridad = _calcular_hash(evento)
 
-            self.auditoria_repo.registrar(evento)
+        except Exception:
+            logger.exception('RF-63: no se pudo armar el evento de auditoría (tipo=%s).', tipo_evento)
+            return
+        if self._guardar(evento):
+            self._reintentar_pendientes()
+        else:
+            self._encolar(evento, 1)
+
+    def _guardar(self, evento: EventoAuditoriaIot) -> bool:
+        """Guarda y confirma; ``False`` si falla (la transacción queda revertida)."""
+        try:
+            # El adaptador best-effort devuelve el evento sin ID si falla: no confirmar ni aparentar éxito.
+            if self.auditoria_repo.registrar(evento).id_evento is None:
+                raise RuntimeError('el repositorio no devolvió id_evento')
             self.db.commit()
+            return True
         except Exception:
             self.db.rollback()
+            return False
+
+    def _reintentar_pendientes(self) -> None:
+        for _ in range(len(_PENDIENTES)):
+            evento, intentos = _PENDIENTES.popleft()
+            if not self._guardar(evento):
+                self._encolar(evento, intentos + 1)
+                return  # la bitácora volvió a fallar: los demás esperan al siguiente registro
+
+    @staticmethod
+    def _encolar(evento: EventoAuditoriaIot, intentos: int) -> None:
+        if intentos > _MAX_INTENTOS:
+            logger.error('RF-63: evento de auditoría descartado tras %s intentos: %s', _MAX_INTENTOS, evento)
+            return
+        if len(_PENDIENTES) == _PENDIENTES.maxlen:
+            logger.error('RF-63: cola de reintentos llena, se descarta el evento más antiguo: %s', _PENDIENTES[0][0])
+        _PENDIENTES.append((evento, intentos))
+        logger.error('RF-63: no se pudo registrar el evento de auditoría (tipo=%s, intento %s); queda para reintento: %s',
+                     evento.tipo_evento, intentos, evento)

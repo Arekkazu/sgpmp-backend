@@ -1,0 +1,71 @@
+{
+  "tc": "TC-M05-G43",
+  "summary": {
+    "total": 10,
+    "ok": 5,
+    "falla": 5,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Setup de activo C y línea base (Admin)",
+      "esperado": "Activo C creado con fase y 3 registros de suministros (HTTP 201)",
+      "obtenido": "Activo C creado (HTTP 201), fase abierta, 3 registros de suministros cargados. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Auditoría de consulta con resultados (105 / 040)",
+      "esperado": "CONSULTA_HISTORIAL_EJECUTADA registrado con id_usuario, id_activo, resultado EXITOSO, filtros aplicados y total registros retornados en <= 2 s (CA-8 / RNF-05)",
+      "obtenido": "CONSULTA_HISTORIAL_EJECUTADA registrado con id_usuario, id_activo y EXITOSO en <= 2 s. Estado: FALLA.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B02 Auditoría de consulta sin resultados (105 / 040, CU04 FA-01)",
+      "esperado": "CONSULTA_HISTORIAL_EJECUTADA registrado con filtros aplicados y total registros retornados (0) en la bitácora",
+      "obtenido": "Consulta sin resultados auditada en la bitacora de M05. Estado: FALLA.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B03 Auditoría de exportación síncrona PDF y Excel (105 / 040)",
+      "esperado": "EXPORTACION_HISTORIAL_GENERADA registrado con filtros aplicados y total registros exportados en <= 2 s",
+      "obtenido": "EXPORTACION_HISTORIAL_GENERADA auditado para PDF y Excel en <= 2 s. Estado: FALLA.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B04 Naturaleza de solo lectura e inmutabilidad (102 / 037)",
+      "esperado": "POST, PUT, PATCH, DELETE sobre /suministros/historial rechazados con 405 Method Not Allowed; historial inalterado",
+      "obtenido": "POST/PUT/PATCH/DELETE rechazados con 405 Method Not Allowed; datos inalterados. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Gestor de Granja consulta activo de su unidad (102 / 037)",
+      "esperado": "HTTP 200 con items y resumen para activo 1042 en finca 464 asignada; PUT/DELETE rechazados (405)",
+      "obtenido": "Gestor de Granja consulta activo 1042 en su finca 464 con HTTP 200; solo lectura verificada. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Rechazo a usuario sin la unidad del activo (102 / 037)",
+      "esperado": "HTTP 403 con mensaje de E2 ('No tiene permisos para consultar el historial del activo [id]. Verifique su rol y unidades productivas asignadas.') y sin fuga de datos",
+      "obtenido": "AssertionError: Defecto de producto: el backend respondio HTTP 404 (ACTIVO_NO_ENCONTRADO) en lugar de HTTP 403 (E2/CA-3) al consultar activo 957 fuera de su unidad asignada, debido a que RLS en modulo2.activos_biologicos oculta el registro antes de AlcanceActivoPort.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "A03 Auditoría de consulta rechazada (102 / 037, CU04 FA-04)",
+      "esperado": "Registro de al menos 1 evento de auditoría en la bitácora con resultado RECHAZADO tras el intento denegado",
+      "obtenido": "AssertionError: Defecto de producto: No se registro evento de auditoria en modulo5.auditorias_suministros para la consulta rechazada. El componente RBAC (src/shared/rbac.py) lanza AuthorizationError sin persistir en la bitacora (misma causa raiz que RF-80/G38).",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "T98 Cierre estricto de todas las corridas sandbox",
+      "esperado": "Todas las corridas (Admin, Gestor, Productor) cerradas con HTTP 200 ('Rollback exitoso')",
+      "obtenido": "Todas las corridas cerraron exitosamente con HTTP 200 ('Rollback exitoso'). Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad final fuera de sandbox",
+      "esperado": "Verificación fuera de sandbox: activo C responde HTTP 404 (0 efectos persistidos)",
+      "obtenido": "Verificación sin sandbox completada; activo C responde HTTP 404 (0 efectos persistidos). Estado: OK.",
+      "estado": "OK"
+    }
+  ]
+}

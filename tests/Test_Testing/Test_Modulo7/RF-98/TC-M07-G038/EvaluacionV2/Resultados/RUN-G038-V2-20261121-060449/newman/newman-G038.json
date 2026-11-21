@@ -1,0 +1,580 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "fbdcf3ad-6da2-41fc-8ad2-ea7fec5fd0ae",
+        "name": "G038-N-01 Contratos",
+        "request": {
+          "url": {
+            "path": [
+              "integracion",
+              "contratos"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "4247a22f-c282-4420-ac88-57ad72417554",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Contratos HTTP 200',()=>pm.response.to.have.status(200));",
+                "pm.test('Contratos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+                "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+              ],
+              "_lastExecutionId": "b9517c7f-f4d5-4765-a896-2e3a7ebaef4a"
+            }
+          }
+        ]
+      },
+      {
+        "id": "1598e7cb-c59c-42ff-a686-e7447e64c168",
+        "name": "G038-N-02 Auditoría",
+        "request": {
+          "url": {
+            "path": [
+              "integracion",
+              "auditoria"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "tipo_evento",
+                "value": "CONTRATO_ACTIVADO"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "100"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "e1aec469-42a7-4bc1-b8b6-3909f38f9d73",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Auditoría HTTP 200',()=>pm.response.to.have.status(200));",
+                "pm.test('Auditoría paginada',()=>pm.expect(pm.response.json().items).to.be.an('array'));",
+                "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+              ],
+              "_lastExecutionId": "e54302cb-b529-4682-83fd-693f548a4dc7"
+            }
+          }
+        ]
+      },
+      {
+        "id": "aec153c2-984e-4c7e-a915-3ff6c9db63ac",
+        "name": "G038-N-03 Bandeja",
+        "request": {
+          "url": {
+            "path": [
+              "notificaciones"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "50"
+              },
+              {
+                "key": "modulo",
+                "value": "integracion"
+              },
+              {
+                "key": "nivel",
+                "value": "CRITICA"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "798f5a85-9859-4e36-baa9-d74ec7fa8189",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Bandeja HTTP 200',()=>pm.response.to.have.status(200));",
+                "pm.test('Bandeja paginada',()=>pm.expect(pm.response.json().items).to.be.an('array'));",
+                "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+              ],
+              "_lastExecutionId": "12024ff1-0d49-4b98-9cdc-bacb68eb3380"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "9a04e8a8-3156-453d-b147-970b47198457",
+      "name": "G038 RF-98 lecturas de contraste",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "257d9b9d-d887-4ee0-a0a3-44706171bf6f",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "[JWT]",
+        "key": "admin_token"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G038-V2-20261121-060449",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[RESERVADO]",
+        "key": "sandbox_secret"
+      }
+    ]
+  },
+  "globals": {
+    "id": "aa162d21-1d84-4e19-b675-b4a7d71f93a0",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 328.3333333333333,
+      "responseMin": 163,
+      "responseMax": 576,
+      "responseSd": 178.37476154309374,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1795241099612,
+      "completed": 1795241100862
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "00bfb82b-fc92-4b33-9045-7b517c2288c5",
+          "httpRequestId": "dd86d032-6bd2-4b83-8a3f-2eafe9bc784e"
+        },
+        "item": {
+          "id": "fbdcf3ad-6da2-41fc-8ad2-ea7fec5fd0ae",
+          "name": "G038-N-01 Contratos",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "contratos"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "4247a22f-c282-4420-ac88-57ad72417554",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Contratos HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Contratos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "b9517c7f-f4d5-4765-a896-2e3a7ebaef4a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "contratos"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "b9de924d-219f-4daa-950b-8284966819a4",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": "[RESERVADO]",
+          "responseTime": 576,
+          "responseSize": 6692
+        },
+        "id": "fbdcf3ad-6da2-41fc-8ad2-ea7fec5fd0ae",
+        "assertions": [
+          {
+            "assertion": "Contratos HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Contratos lista",
+            "skipped": false
+          },
+          {
+            "assertion": "Sandbox eco",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f61af615-d6fb-46c1-9278-f6fe25470de7",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "0f0541d6-92db-4e48-a6cb-3483c8567f04"
+        },
+        "item": {
+          "id": "1598e7cb-c59c-42ff-a686-e7447e64c168",
+          "name": "G038-N-02 Auditoría",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "auditoria"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "CONTRATO_ACTIVADO"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "100"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "e1aec469-42a7-4bc1-b8b6-3909f38f9d73",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auditoría HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Auditoría paginada',()=>pm.expect(pm.response.json().items).to.be.an('array'));",
+                  "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "e54302cb-b529-4682-83fd-693f548a4dc7"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "auditoria"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "tipo_evento",
+                "value": "CONTRATO_ACTIVADO"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "100"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "0b6ca970-552e-4bc3-a367-38f6926f5267",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": "[RESERVADO]",
+          "responseTime": 246,
+          "responseSize": 4515
+        },
+        "id": "1598e7cb-c59c-42ff-a686-e7447e64c168",
+        "assertions": [
+          {
+            "assertion": "Auditoría HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Auditoría paginada",
+            "skipped": false
+          },
+          {
+            "assertion": "Sandbox eco",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cdc295e3-dc2d-43ce-b881-f89dd9e124c4",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "45f50903-0b16-4619-bd85-c9b725eba970"
+        },
+        "item": {
+          "id": "aec153c2-984e-4c7e-a915-3ff6c9db63ac",
+          "name": "G038-N-03 Bandeja",
+          "request": {
+            "url": {
+              "path": [
+                "notificaciones"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "50"
+                },
+                {
+                  "key": "modulo",
+                  "value": "integracion"
+                },
+                {
+                  "key": "nivel",
+                  "value": "CRITICA"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "798f5a85-9859-4e36-baa9-d74ec7fa8189",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bandeja HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Bandeja paginada',()=>pm.expect(pm.response.json().items).to.be.an('array'));",
+                  "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "12024ff1-0d49-4b98-9cdc-bacb68eb3380"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "notificaciones"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "50"
+              },
+              {
+                "key": "modulo",
+                "value": "integracion"
+              },
+              {
+                "key": "nivel",
+                "value": "CRITICA"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "cc081d11-a24c-41b8-a0a6-7e984e5ddbf2",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": "[RESERVADO]",
+          "responseTime": 163,
+          "responseSize": 5830
+        },
+        "id": "aec153c2-984e-4c7e-a915-3ff6c9db63ac",
+        "assertions": [
+          {
+            "assertion": "Bandeja HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Bandeja paginada",
+            "skipped": false
+          },
+          {
+            "assertion": "Sandbox eco",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 17037
+    },
+    "failures": [],
+    "error": null
+  }
+}

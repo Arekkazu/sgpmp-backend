@@ -1,0 +1,303 @@
+{
+  "runId": "G29-REEVAL-V5-20261007-214956",
+  "caso": "TC-M09-62",
+  "version": "V5",
+  "ambiente": "TEST",
+  "escriturasOficialesRealizadas": 0,
+  "inicio": "2026-10-08T18:03:54.166572+00:00",
+  "actor": {
+    "correo": "administador.dev@gmail.com",
+    "tokenPersistido": false,
+    "identidad": {
+      "id_usuario": 104,
+      "nombre": "Admin",
+      "apellidos": "Camila",
+      "nombre_rol": "Administrador",
+      "estado_cuenta": "Activo"
+    },
+    "permisosRecurso20_umbralesAmbientales": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "puedeEjecutarRf17": true
+  },
+  "candidatos": [
+    {
+      "id_umbral_ambiental": 10,
+      "variable": {
+        "id": 1,
+        "nombre": "Temperatura del agua",
+        "unidad": "°C",
+        "rangoFisico": [
+          "0",
+          "45"
+        ]
+      },
+      "valor_min": "0.00",
+      "valor_max": "100.00",
+      "preRestaurable": false,
+      "motivosNoRestaurable": [
+        "PRE fuera del rango fisico [0, 45]",
+        "el ultimo nivel no termina en valor_max"
+      ],
+      "configuracionAPosible": false
+    },
+    {
+      "id_umbral_ambiental": 48,
+      "variable": {
+        "id": 2,
+        "nombre": "pH del agua",
+        "unidad": "pH",
+        "rangoFisico": [
+          "0",
+          "14"
+        ]
+      },
+      "valor_min": "5.60",
+      "valor_max": "8.40",
+      "preRestaurable": true,
+      "motivosNoRestaurable": [],
+      "configuracionAPosible": true
+    },
+    {
+      "id_umbral_ambiental": 11,
+      "variable": {
+        "id": 3,
+        "nombre": "Oxígeno disuelto",
+        "unidad": "mg/L",
+        "rangoFisico": [
+          "0",
+          "20"
+        ]
+      },
+      "valor_min": "0.00",
+      "valor_max": "100.00",
+      "preRestaurable": false,
+      "motivosNoRestaurable": [
+        "PRE fuera del rango fisico [0, 20]",
+        "el ultimo nivel no termina en valor_max"
+      ],
+      "configuracionAPosible": false
+    }
+  ],
+  "seleccion": {
+    "criterio": "umbral existente, editable por endpoint oficial, con PRE que hoy pasaria _validar_rangos (restaurable) y Configuracion A construible dentro del rango fisico",
+    "reutilizaUmbralExistente": true,
+    "noSeCrearaUmbralNuevo": true,
+    "aptos": [
+      48
+    ]
+  },
+  "pre": {
+    "id_umbral_ambiental": 48,
+    "id_especie": 4,
+    "variable": {
+      "id": 2,
+      "nombre": "pH del agua",
+      "unidad": "pH",
+      "rangoFisico": [
+        "0",
+        "14"
+      ]
+    },
+    "unidad_medida": "pH",
+    "valor_min": "5.60",
+    "valor_max": "8.40",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "5.60",
+        "limite_superior": "6.53"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "6.53",
+        "limite_superior": "7.46"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "7.46",
+        "limite_superior": "8.40"
+      }
+    ],
+    "es_activo": true,
+    "estado_sincronizacion": "PENDIENTE",
+    "fecha_ultima_sincronizacion": null,
+    "motivo_fallo_sincronizacion": null,
+    "fecha_actualizacion": null,
+    "auditoria": {
+      "total": 1,
+      "items": [
+        {
+          "id_auditoria_umbral": 12,
+          "id_umbral_ambiental": 48,
+          "id_usuario": 104,
+          "tipo_operacion": "CREATE",
+          "valores_anteriores": null,
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "5.60",
+                "limite_superior": "6.53"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "6.53",
+                "limite_superior": "7.46"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "7.46",
+                "limite_superior": "8.4"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "8.40",
+            "valor_min": "5.60",
+            "id_especie": 4,
+            "unidad_medida": "pH",
+            "fecha_actualizacion": null,
+            "id_umbral_ambiental": 48,
+            "id_variable_ambiental": 2
+          },
+          "fecha_gestion": "2026-09-14T22:19:08.558779Z"
+        }
+      ]
+    },
+    "cuerpoDeRestauracionExacto": {
+      "valor_min": "5.60",
+      "valor_max": "8.40",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "5.60",
+          "limite_superior": "6.53"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "6.53",
+          "limite_superior": "7.46"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "7.46",
+          "limite_superior": "8.40"
+        }
+      ]
+    },
+    "capturadoEn": "2026-10-08T18:03:55.948309+00:00"
+  },
+  "configuracionA": {
+    "valor_min": "5.90",
+    "valor_max": "8.70",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "5.90",
+        "limite_superior": "6.83"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "6.83",
+        "limite_superior": "7.76"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "7.76",
+        "limite_superior": "8.70"
+      }
+    ],
+    "deltaAplicado": "+0.30"
+  },
+  "destino": {
+    "destinosRf17Especie4": [
+      "SERBY-TAX-FIRMWARE"
+    ],
+    "cantidad": 1,
+    "unicoYEsElObjetivo": true,
+    "gateway": {
+      "serial": "SERBY-TAX-FIRMWARE",
+      "id": 138,
+      "es_activo": true,
+      "id_infraestructura": 22,
+      "area": "QA-G36-Infra-1789010064"
+    },
+    "nodo": {
+      "serial": "TEST-AMBIENTAL",
+      "id": 139,
+      "es_activo": true,
+      "sigueAsociado": true
+    },
+    "conectividad": {
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "ACTIVO",
+        "fecha_ultimo_contacto": "2026-10-08T18:05:01.244393Z",
+        "id_ultimo_heartbeat": 243,
+        "tiempo_sin_contacto": 0,
+        "causa_primaria": null,
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T18:05:01.244393Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE"
+    },
+    "timestamp": "2026-10-08T18:05:16.498765+00:00"
+  },
+  "endpoint": {
+    "metodo": "PATCH",
+    "ruta": "/configuracion/umbrales/{id_umbral_ambiental}",
+    "disponibleEnOpenapi": true,
+    "respuestasDeclaradas": [
+      "200",
+      "401",
+      "403",
+      "404",
+      "412",
+      "422",
+      "500"
+    ],
+    "declara500Sincronizacion": true,
+    "descripcion500": "FALLO_SINCRONIZACION_EDGE: guardado, pero la propagación al Nodo Edge se intentó y falló (RF-17)."
+  },
+  "integracionBroker": {
+    "brokerUrl": "https://api.inmero.co/broker-sigab-test",
+    "healthHttp": 404,
+    "evidenciaDeIntegracionViva": "el backend reporta conectada=True para el Gateway objetivo; ese dato proviene del broker, de modo que la cadena backend->broker->Edge esta activa",
+    "gatewayReportadoPorElBroker": true,
+    "credencialEmitidaYHabilitada": true
+  },
+  "gate": {
+    "condiciones": {
+      "actorValido": true,
+      "umbralReutilizableSeleccionado": true,
+      "preCompletoYRestaurable": true,
+      "configuracionAConstruida": true,
+      "configuracionADistintaDelPre": true,
+      "endpointOficialDisponible": true,
+      "endpointDeclara500Sincronizacion": true,
+      "unicoDestinoRf17EsElObjetivo": true,
+      "edgeOnline": true,
+      "heartbeatReciente": true,
+      "nodoObjetivoAsociado": true,
+      "integracionBrokerVerificable": true
+    },
+    "abierto": true,
+    "fallidas": []
+  },
+  "fin": "2026-10-08T18:05:17.760012+00:00"
+}

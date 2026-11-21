@@ -1,0 +1,801 @@
+{
+  "info": {
+    "name": "RF-64 - TC-M04-G007 Control de acceso por rol y auditoría del catálogo (TC-M04-015)",
+    "description": "Parte Postman de TC-M04-G007 (RF-64; OWASP API5, RNF-02 y CA-5): TC-M04-015. El Productor intenta crear, editar e inactivar patologías en /prediccion/patologias y debe recibir 403 en las tres, sin cambios en la patología objetivo ni altas. El Veterinario hace las tres operaciones sobre su propia patología y cada una debe quedar en la bitácora M04 (GET /prediccion/auditoria, RF-73) con usuario, timestamp, operación (CATALOGO_PATOLOGIA_AGREGADA / MODIFICADA / INACTIVADA) y version_catalogo resultante (1, 2 y 2: la desactivación no cambia la versión, ver TC-M04-031). El rendimiento de la consulta (TC-M04-016) está en test_tc_m04_016_rendimiento_catalogo.js (k6). Credenciales del Veterinario en correo_veterinario/contrasena_veterinario: por defecto el Administrador, porque TEST no tiene un usuario veterinario conocido (con el Administrador se prueba el camino autorizado, no el rol exacto). Datos propios: especie y patologías.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (logins y datos propios)",
+      "item": [
+        {
+          "name": "Login Administrador (lectura de la auditoría)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Administrador (lectura de la auditoría) (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Veterinario (por defecto, Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Veterinario (por defecto, Administrador) (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_vet', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Productor (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_productor', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Identidad del veterinario (id_usuario esperado en la auditoría)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);",
+                  "pm.collectionVariables.set('inicio', new Date(Date.now() - 60000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Identidad responde 200', function () { pm.response.to.have.status(200); });",
+                  "const u = pm.response.json();",
+                  "pm.collectionVariables.set('id_usuario_vet', String(u.id_usuario || (u.usuario && u.usuario.id_usuario)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie propia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bovino Acceso Patologia {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-015\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Patología objetivo de los intentos del Productor (creada por el veterinario)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Patología objetivo creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_objetivo', pm.response.json().id_patologia);",
+                  "pm.collectionVariables.set('objetivo_version', String(pm.response.json().version_catalogo));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Objetivo Productor {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 14],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-015 Productor sin permiso de modificación",
+      "item": [
+        {
+          "name": "TC-M04-015 - Productor: crear",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-015 crear: Productor sin permiso (403)', function () { pm.response.to.have.status(403); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-015 crear: la operación no se ejecuta', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Intento Productor {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [15, 16],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-015 - Productor: editar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-015 editar: Productor sin permiso (403)', function () { pm.response.to.have.status(403); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-015 editar: la operación no se ejecuta', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_objetivo}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_objetivo}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Objetivo Productor {{sufijo}}\",\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida y progresiva de las variables fisiológicas asociadas.\",\n  \"variables_sensoricas_asociadas\": [13, 14, 15]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-015 - Productor: inactivar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-015 inactivar: Productor sin permiso (403)', function () { pm.response.to.have.status(403); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-015 inactivar: la operación no se ejecuta', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_objetivo}}/desactivar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_objetivo}}",
+                "desactivar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-015 - La patología objetivo quedó intacta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Detalle responde 200', function () { pm.response.to.have.status(200); });",
+                  "const p = pm.response.json();",
+                  "pm.test('TC-M04-015: sin cambios tras los intentos del Productor', function () {",
+                  "  pm.expect(p.version_catalogo).to.eql(Number(pm.collectionVariables.get('objetivo_version')));",
+                  "  pm.expect(p.es_activo).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_objetivo}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_objetivo}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-015 - Ninguna patología del Productor en el catálogo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M04-015: el intento de alta del Productor no existe', function () {",
+                  "  pm.expect((pm.response.json().items || []).filter(p => p.nombre_patologia.startsWith('Intento Productor')).length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?especie_aplicable={{id_especie}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "especie_aplicable",
+                  "value": "{{id_especie}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-015 Veterinario autorizado",
+      "item": [
+        {
+          "name": "TC-M04-015 - Veterinario: crear",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-015 crear: Veterinario autorizado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_vet', pm.response.json().id_patologia);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Auditada Veterinario {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [9, 10],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-015 - Veterinario: editar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-015 editar: Veterinario autorizado (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_vet}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_vet}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Auditada Veterinario {{sufijo}}\",\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida y progresiva de las variables fisiológicas asociadas.\",\n  \"variables_sensoricas_asociadas\": [9, 10, 12]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-015 - Veterinario: inactivar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-015 inactivar: Veterinario autorizado (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_vet}}/desactivar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_vet}}",
+                "desactivar"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M04-015 Auditoría de las operaciones",
+      "item": [
+        {
+          "name": "TC-M04-015 - Operaciones del Veterinario auditadas (RF-73)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auditoría responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "console.log('TC-M04-015 auditoría:', JSON.stringify(items.map(e => [e.tipo_evento, e.id_usuario, e.fecha_evento])));",
+                  "const vet = Number(pm.collectionVariables.get('id_usuario_vet'));",
+                  "const version = (e) => { const p = e.payload_evento || {}; return (p.nuevo || p).version_catalogo; };",
+                  "[[\"CATALOGO_PATOLOGIA_AGREGADA\", \"crear\", 1], [\"CATALOGO_PATOLOGIA_MODIFICADA\", \"editar\", 2], [\"CATALOGO_PATOLOGIA_INACTIVADA\", \"inactivar\", 2]].forEach(([tipo, operacion, versionEsperada]) => {",
+                  "  const e = items.find(x => x.tipo_evento === tipo);",
+                  "  pm.test('TC-M04-015: ' + operacion + ' auditada (' + tipo + ')', function () { pm.expect(e, tipo).to.exist; });",
+                  "  if (e) {",
+                  "    pm.test('TC-M04-015: ' + operacion + ' registra usuario, timestamp y operación', function () {",
+                  "      pm.expect(e.id_usuario).to.eql(vet); pm.expect(e.fecha_evento).to.be.ok; pm.expect(e.tipo_evento).to.eql(tipo);",
+                  "    });",
+                  "    pm.test('TC-M04-015: ' + operacion + ' registra la version_catalogo resultante (' + versionEsperada + ')', function () {",
+                  "      pm.expect(version(e)).to.eql(versionEsperada);",
+                  "    });",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/auditoria?id_referencia={{id_vet}}&fecha_desde={{inicio}}&por_pagina=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "id_referencia",
+                  "value": "{{id_vet}}"
+                },
+                {
+                  "key": "fecha_desde",
+                  "value": "{{inicio}}"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_vet",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "inicio",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_objetivo",
+      "value": ""
+    },
+    {
+      "key": "objetivo_version",
+      "value": ""
+    },
+    {
+      "key": "id_vet",
+      "value": ""
+    }
+  ]
+}

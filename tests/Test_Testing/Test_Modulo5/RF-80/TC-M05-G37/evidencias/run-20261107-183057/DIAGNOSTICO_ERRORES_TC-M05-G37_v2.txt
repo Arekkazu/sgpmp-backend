@@ -1,0 +1,102 @@
+================================================================================
+INFORME DE DIAGNOSTICO DE ERRORES (v2): TC-M05-G37
+RF-80: Auditoria y Trazabilidad de Registros de Suministros (v1.4, CU06)
+================================================================================
+Fecha/Hora Diagnóstico: 2026-11-07 20:59:00 (America/Bogota)
+Caso Evaluado: TC-M05-026 (Plano) / TC-M05-002 (Agrupado)
+Subcaso Afectado: G37-A02 — Auditoría de Operaciones Fallidas / Reversiones
+
+1. QUE SE OBSERVO EXACTAMENTE (HECHO OBSERVADO)
+--------------------------------------------------------------------------------
+- Petición HTTP de prueba ejecutada vía API:
+  POST /suministros/costeo-directo
+  Payload: Suministro directo sobre un activo biológico cuyo ciclo productivo fue previamente cerrado.
+- Respuesta HTTP obtenida:
+  Código de estado: HTTP 409 Conflict (o 422 Unprocessable Entity según la temporalidad).
+  Código de error en cuerpo JSON: "CICLO_NO_ACTIVO" (o "FECHA_FUERA_DE_RANGO").
+  Cuerpo de error: {"error_code": "CICLO_NO_ACTIVO", "message": "El ciclo productivo del activo está cerrado.", "field": "id_activo_biologico"}
+- Consultas SQL exactas ejecutadas para contrastar persistencia en base de datos:
+  Consulta 1:
+  SELECT count(*) FROM modulo5.auditorias_suministros 
+  WHERE id_activo_biologico = 189 AND tipo_operacion = 'REGISTRO_FALLIDO';
+  Resultado observado: count = 0.
+  Consulta 2:
+  SELECT count(*) FROM modulo5.auditorias_suministros 
+  WHERE resultado = 'FALLIDO';
+  Resultado observado: count = 0.
+- Hecho concluyente: 0 eventos registrados en la bitácora de auditoría tras el rechazo controlado de la operación.
+
+2. RUTA DE CODIGO COMPLETA (INFERENCIA CONTRASTADA)
+--------------------------------------------------------------------------------
+- Router HTTP:
+  [INFERENCIA] src/supplies/infrastructure/routers/costeo_suministros_router.py:48-69 (función `costeo_directo`).
+  Invoca `build_registrar_suministro_directo_use_case(db).execute(dto, usuario_actual)`.
+- Dependencia / RBAC:
+  [INFERENCIA] src/shared/rbac.py:require_permission:104-115 (permiso concedido exitosamente a TEST_ADMIN).
+- Caso de Uso:
+  [INFERENCIA] src/supplies/application/use_cases/costeo_suministros/registrar_suministro_directo_use_case.py:
+  * Líneas 240-251: `_validar_fecha_aplicacion` detecta ciclo cerrado y lanza `BusinessRuleError(code="CICLO_NO_ACTIVO")`.
+  * Líneas 253-274: `_persistir_con_reintentos` implementa el bloque transaccional:
+    - Líneas 263-270: `_registrar_fallo` se invoca únicamente dentro de `except _ERRORES_REINTENTABLES` cuando `intento == _MAX_REINTENTOS`.
+    - Líneas 271-274: Bloque `except AppError as exc:` ejecuta estrictamente `self.db.rollback()` y relanza `raise`, sin invocar `auditoria_port`.
+- Puerto de Auditoría:
+  [INFERENCIA] src/supplies/domain/repositories/auditoria_suministro_port.py:42-48 (`AuditoriaSuministroPort.registrar`).
+- Adaptador / Repositorio:
+  [INFERENCIA] src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:27-57 (`SqlAlchemyAuditoriaSuministroRepository`).
+- Tabla / Triggers de Base de Datos:
+  [INFERENCIA] `modulo5.auditorias_suministros` (trigger `trg_audit_hash`).
+
+3. HIPOTESIS Y CONTRASTACION
+--------------------------------------------------------------------------------
+- Hipótesis 1: El caso de uso captura cualquier error genérico y despacha auditoría pero el rollback cancela la inserción.
+  [DESCARTADA]: En `registrar_suministro_directo_use_case.py:271-274`, el bloque `except AppError` solo hace `self.db.rollback()` y `raise`. No existe ninguna llamada a `self.auditoria_port.registrar()` dentro de dicho bloque.
+- Hipótesis 2: El método `_registrar_fallo` está reservado exclusivamente para fallos transitorios de infraestructura.
+  [CONFIRMADA]: `_registrar_fallo` solo se ejecuta cuando se captura `_ERRORES_REINTENTABLES` (fallos de conexión a BD o timeout de infraestructura). Las excepciones controladas de validación de negocio (`BusinessRuleError`, `ValidationError`) escapan inmediatamente sin auditarse.
+
+4. CAUSA MAS PROBABLE, CLASIFICACION Y CAUSA RAIZ COMPARTIDA
+--------------------------------------------------------------------------------
+- Causa Más Probable: Omisión en el diseño de la capa de aplicación: el use case no contempla auditar los rechazos de reglas de negocio cuando una operación de suministro es abortada por precondiciones inválidas.
+- Clasificación: Defecto de Producto.
+- Causa Raíz Compartida: Falta de un mecanismo transversal desacoplado para auditar rechazos controlados sin que el rollback de la transacción principal interfiera (compartida con G38-C02 y G39-B02).
+
+5. POSIBLE SOLUCION (LENGUAJE DE DESARROLLO)
+--------------------------------------------------------------------------------
+- En `registrar_suministro_directo_use_case.py`:
+  En el bloque `except (BusinessRuleError, ValidationError) as exc:`, antes de relanzar la excepción:
+  1. Abrir una sesión independiente o ejecutar `auditoria_port.registrar()` con `autocommit` aislado (o vía background task).
+  2. Registrar `EventoAuditoriaSuministro` con:
+     * `tipo_operacion="REGISTRO_FALLIDO"`
+     * `resultado="RECHAZADO"` o `"FALLIDO"`
+     * `detalle_causa=exc.message`
+     * `id_activo_biologico=dto.id_activo_biologico`
+     * `id_usuario=usuario_actual.id_usuario`
+  3. Ejecutar rollback de la transacción de negocio principal y relanzar la excepción HTTP para mantener el código 409/422 al cliente.
+
+6. CRITERIO DE RE-PRUEBA
+--------------------------------------------------------------------------------
+- Enviar POST `/suministros/costeo-directo` con datos que incumplan reglas de negocio (ej. activo con ciclo cerrado -> HTTP 409).
+- Consultar GET `/suministros/auditoria?id_activo_biologico=<id>&tipo_operacion=REGISTRO_FALLIDO`.
+- Verificar que retorne HTTP 200 con al menos 1 evento que contenga `resultado="FALLIDO"` (o `"RECHAZADO"`) y `detalle_causa` con el mensaje de error.
+
+================================================================================
+BORRADOR DE INCIDENTE FORMAL
+================================================================================
+INC-ID: INC-M05-G37-01
+Título: Omisión de registro de auditoría ante rechazos por reglas de negocio en suministro directo
+Módulo: Módulo 5 (Suministros y Alimentación)
+Categoría: ESTADO
+Severidad: Severo
+Casos Afectados: TC-M05-026 (Plano) / TC-M05-002 (Agrupado)
+Criterio de Aceptación: RF-80 CA-11 / CU06 Flujo Alterno
+Descripción:
+Al invocar POST /suministros/costeo-directo con parámetros que violan reglas de negocio (ej. activo con ciclo cerrado, código CICLO_NO_ACTIVO, HTTP 409), el backend retorna correctamente el error al cliente pero omite por completo la persistencia del evento fallido en modulo5.auditorias_suministros.
+Pasos para Reproducir:
+1. Crear un activo poblacional y cerrar su ciclo productivo.
+2. Enviar POST /suministros/costeo-directo hacia dicho activo.
+3. Observar respuesta HTTP 409 Conflict.
+4. Consultar SELECT count(*) FROM modulo5.auditorias_suministros WHERE tipo_operacion = 'REGISTRO_FALLIDO'.
+Resultado Esperado: count >= 1.
+Resultado Obtenido: count = 0.
+Impacto: Pérdida total de trazabilidad forense ante operaciones rechazadas, impidiendo auditar intentos de registro sobre activos inactivos.
+================================================================================
+

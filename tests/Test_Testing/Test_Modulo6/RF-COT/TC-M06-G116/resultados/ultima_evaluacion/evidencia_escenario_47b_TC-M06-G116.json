@@ -1,0 +1,331 @@
+{
+  "caso": "TC-M06-G116",
+  "escenario_id": "47b",
+  "subcaso": "TC-M06-47",
+  "nombre": "Periodo contable cerrado",
+  "activo": 1568,
+  "esperado": {
+    "http": 422,
+    "code": "PERIODO_CONTABLE_CERRADO"
+  },
+  "estado": "APROBADO",
+  "motivo": "HTTP 422 PERIODO_CONTABLE_CERRADO; sin persistencia.",
+  "precondiciones": {
+    "ok": true,
+    "motivo": "activo ACTIVO con VR y periodo 219 CERRADO (220 ABIERTO)",
+    "activo": {
+      "http": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 466,
+      "razon_social": "QA M06 Cierre SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "reconocimiento_estado": "CONFIRMADO",
+      "tiene_calculo": true,
+      "ultimo_calculo_estado": "CALCULADO",
+      "valor_razonable_neto": "3760000.0000",
+      "n_calculos": 1
+    },
+    "cotizaciones_del_activo": [],
+    "cotizaciones_ids": [
+      10,
+      9,
+      8,
+      7,
+      6,
+      4,
+      5
+    ],
+    "eventos": 5,
+    "periodo_219": {
+      "id_periodo_contable": 219,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "razon_social": "QA M06 Cierre SAS"
+    },
+    "periodo_220": {
+      "id_periodo_contable": 220,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS"
+    }
+  },
+  "post": {
+    "http": 422,
+    "code": "PERIODO_CONTABLE_CERRADO",
+    "respuesta": {
+      "error_code": "PERIODO_CONTABLE_CERRADO",
+      "message": "El período contable de hoy (2026-11) está cerrado: no se pueden registrar cotizaciones en él.",
+      "fields": [],
+      "timestamp": "2026-11-13T03:12:13.087456+00:00"
+    },
+    "en": "2026-11-13T03:12:13.322960+00:00"
+  },
+  "verificaciones": {
+    "checks": {
+      "http_esperado": true,
+      "code_esperado": true,
+      "sin_cotizacion_nueva": true,
+      "sin_evento_nuevo": true,
+      "activo_sin_cambio": true,
+      "periodo_220_abierto": true,
+      "periodo_219_cerrado": true,
+      "reservadas_intactas": true
+    },
+    "http": 422,
+    "code": "PERIODO_CONTABLE_CERRADO",
+    "cotizaciones_antes": 7,
+    "cotizaciones_despues": 7,
+    "ids_nuevos": [],
+    "eventos_antes": 5,
+    "eventos_despues": 5,
+    "activo_antes": {
+      "http": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 466,
+      "razon_social": "QA M06 Cierre SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "reconocimiento_estado": "CONFIRMADO",
+      "tiene_calculo": true,
+      "ultimo_calculo_estado": "CALCULADO",
+      "valor_razonable_neto": "3760000.0000",
+      "n_calculos": 1
+    },
+    "activo_despues": {
+      "http": 200,
+      "existe": true,
+      "estado": "ACTIVO",
+      "id_finca": 466,
+      "razon_social": "QA M06 Cierre SAS",
+      "indicador_valoracion": "VALOR_RAZONABLE",
+      "reconocimiento_estado": "CONFIRMADO",
+      "tiene_calculo": true,
+      "ultimo_calculo_estado": "CALCULADO",
+      "valor_razonable_neto": "3760000.0000",
+      "n_calculos": 1
+    },
+    "periodo_219": {
+      "id_periodo_contable": 219,
+      "estado": "CERRADO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "razon_social": "QA M06 Cierre SAS"
+    },
+    "periodo_220": {
+      "id_periodo_contable": 220,
+      "estado": "ABIERTO",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS"
+    }
+  },
+  "peticiones_relacionadas": [
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1568",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:11.292244+00:00",
+      "nota": "pre_47b_activo",
+      "respuesta": {
+        "http": 200,
+        "existe": true,
+        "estado": "ACTIVO",
+        "id_finca": 466,
+        "razon_social": "QA M06 Cierre SAS",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "reconocimiento_estado": "CONFIRMADO",
+        "tiene_calculo": true,
+        "ultimo_calculo_estado": "CALCULADO",
+        "valor_razonable_neto": "3760000.0000",
+        "n_calculos": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000002",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:12.086359+00:00",
+      "nota": "pre_47b_p219",
+      "respuesta": {
+        "periodo_219": {
+          "id_periodo_contable": 219,
+          "estado": "CERRADO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+          "razon_social": "QA M06 Cierre SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:12.086383+00:00",
+      "nota": "pre_47b_p220",
+      "respuesta": {
+        "periodo_220": {
+          "id_periodo_contable": 220,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "fecha_cierre": null,
+          "razon_social": "QA M06 Operaciones SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:12.479767+00:00",
+      "nota": "pre_47b_cotizaciones",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "del_activo": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=1&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:12.915334+00:00",
+      "nota": "pre_47b_auditoria",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 422,
+      "escritura": true,
+      "en": "2026-11-13T03:12:13.322923+00:00",
+      "nota": "post_47b",
+      "cuerpo": {
+        "activos_cotizados": [
+          1568
+        ],
+        "valor_cotizacion_propuesto": "1000.0000"
+      },
+      "respuesta": {
+        "error_code": "PERIODO_CONTABLE_CERRADO",
+        "message": "El período contable de hoy (2026-11) está cerrado: no se pueden registrar cotizaciones en él.",
+        "fields": [],
+        "timestamp": "2026-11-13T03:12:13.087456+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:13.724711+00:00",
+      "nota": "post_47b_cotizaciones",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "del_activo": [],
+        "nuevos_ids": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?tipo_evento=COTIZACION_REGISTRADA&formato=TECNICO&tamano=1&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:14.127255+00:00",
+      "nota": "post_47b_auditoria",
+      "respuesta": {
+        "total_registros": 5
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1568",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:14.539368+00:00",
+      "nota": "post_47b_activo",
+      "respuesta": {
+        "http": 200,
+        "existe": true,
+        "estado": "ACTIVO",
+        "id_finca": 466,
+        "razon_social": "QA M06 Cierre SAS",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "reconocimiento_estado": "CONFIRMADO",
+        "tiene_calculo": true,
+        "ultimo_calculo_estado": "CALCULADO",
+        "valor_razonable_neto": "3760000.0000",
+        "n_calculos": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000002",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:15.329374+00:00",
+      "nota": "post_47b_p219",
+      "respuesta": {
+        "periodo_219": {
+          "id_periodo_contable": 219,
+          "estado": "CERRADO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+          "razon_social": "QA M06 Cierre SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:12:15.329397+00:00",
+      "nota": "post_47b_p220",
+      "respuesta": {
+        "periodo_220": {
+          "id_periodo_contable": 220,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "fecha_cierre": null,
+          "razon_social": "QA M06 Operaciones SAS"
+        }
+      }
+    }
+  ],
+  "fuente": "extracto verbatim de resumen/evidencias vigentes; sin datos inventados"
+}

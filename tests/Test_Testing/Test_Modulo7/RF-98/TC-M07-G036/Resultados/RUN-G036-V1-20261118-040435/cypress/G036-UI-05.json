@@ -1,0 +1,90 @@
+{
+  "caso": "TC-M07-05",
+  "http_registro": 201,
+  "version_4_2_visible": true,
+  "pendiente_activar": true,
+  "activo_deprecar": true,
+  "deprecado_sin_accion": true,
+  "inactivo_sin_accion": true,
+  "subcomprobaciones_sin_dato": [],
+  "captura": true,
+  "video": false,
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "ruta": "/__sonda__",
+      "http": 200,
+      "local": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "local": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/interfaz/contexto",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/idioma",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones?pagina=1&tamano=20",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "http": 201
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200
+    }
+  ],
+  "hitos": {
+    "frontal_cargado": true,
+    "login_interceptado": true,
+    "pantalla_contrato": true,
+    "modal_abierto": true,
+    "registro_enviado": true
+  },
+  "error": null,
+  "asercion_producto": "pendiente_activar"
+}

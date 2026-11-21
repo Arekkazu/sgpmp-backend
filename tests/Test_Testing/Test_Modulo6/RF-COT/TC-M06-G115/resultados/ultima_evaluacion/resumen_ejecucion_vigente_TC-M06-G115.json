@@ -1,0 +1,80 @@
+{
+  "caso": "TC-M06-G115",
+  "rf": [
+    "RF-COT",
+    "M01",
+    "RF-86",
+    "RF-87"
+  ],
+  "subcasos": [
+    "TC-M06-44",
+    "TC-M06-45"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "fase": "evaluacion_vigente_cerrada",
+  "resultado": "APROBADO 2/2",
+  "porcentaje_aprobacion": 100,
+  "generado_en": "2026-11-13T02:31:16.190595+00:00",
+  "organizado_en": "2026-11-13T02:38:56.413300+00:00",
+  "nota_organizacion": "Resumen consolidado a partir de evidencias reales de Contador, Administrador y evidencia histórica de Productor (primera evaluación). No inventa resultados.",
+  "escenarios": [
+    {
+      "subcaso": "TC-M06-44",
+      "estado": "APROBADO",
+      "contador": {
+        "http": 201,
+        "id_cotizacion": 9,
+        "estado": "COTIZADO",
+        "valor_razonable_referencia": "3760000.0000",
+        "id_periodo_contable": 220,
+        "dictamen": "APROBADO_PARCIAL_CONTADOR",
+        "evidencia": "evidencia_ejecucion_tc44_contador_TC-M06-G115.json"
+      },
+      "administrador": {
+        "http": 201,
+        "id_cotizacion": 10,
+        "estado": "COTIZADO",
+        "valor_razonable_referencia": "3760000.0000",
+        "id_periodo_contable": 220,
+        "id_usuario": 137,
+        "dictamen": "APROBADO",
+        "evidencia": "evidencia_ejecucion_tc44_administrador_TC-M06-G115.json"
+      }
+    },
+    {
+      "subcaso": "TC-M06-45",
+      "estado": "APROBADO",
+      "fuente": "primera_evaluacion histórica",
+      "productor_post": {
+        "http": 403,
+        "code": "ACCESO_DENEGADO",
+        "cuerpo_valido": true
+      },
+      "motivo": "El Productor autenticado recibió 403 ACCESO_DENEGADO. No aumentaron las cotizaciones ni los eventos, y el valor razonable leído no cambió.",
+      "evidencia": "evidencia_tc_m06_45_productor_TC-M06-G115.json"
+    }
+  ],
+  "estado_g115": {
+    "tc_m06_44_contador": "APROBADO",
+    "tc_m06_44_administrador": "APROBADO",
+    "tc_m06_45": "APROBADO_HISTORICO",
+    "g115": "APROBADO 2/2",
+    "denominador": "2/2 = TC-M06-44 (Contador+Admin) + TC-M06-45",
+    "g115_aprobado": true
+  },
+  "archivos_evidencia": [
+    "evidencia_ejecucion_tc44_contador_TC-M06-G115.json",
+    "evidencia_peticiones_tc44_contador_TC-M06-G115.json",
+    "informe_ejecucion_tc44_contador_TC-M06-G115.md",
+    "evidencia_ejecucion_tc44_administrador_TC-M06-G115.json",
+    "evidencia_peticiones_tc44_administrador_TC-M06-G115.json",
+    "informe_ejecucion_tc44_administrador_TC-M06-G115.md",
+    "analisis_hallazgos_tc44_administrador_TC-M06-G115.md",
+    "evidencia_tc_m06_45_productor_TC-M06-G115.json",
+    "estado_final_G115.md",
+    "estado_final_G115.json",
+    "analisis_hallazgos_vigente_TC-M06-G115.md",
+    "resultado_ejecucion_vigente_TC-M06-G115.html",
+    "informe_cierre_TC-M06-G115.md"
+  ]
+}

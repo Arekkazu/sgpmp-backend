@@ -1,0 +1,402 @@
+{
+  "caso": "TC-M06-G115",
+  "generado_en": "2026-11-08T16:17:12.835391+00:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 679,
+      "escritura": false,
+      "en": "2026-11-08T16:17:13.514689+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/usuarios/me",
+      "codigo": 200,
+      "duracion_ms": 392,
+      "escritura": false,
+      "en": "2026-11-08T16:17:13.907251+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "id_usuario": 141,
+        "nombre_rol": "Contador",
+        "estado_cuenta": "Activo"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 351,
+      "escritura": false,
+      "en": "2026-11-08T16:17:14.258285+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "total_permisos": 60,
+        "cotizaciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "desactivar"
+        ],
+        "puede_crear": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "duracion_ms": 359,
+      "escritura": false,
+      "en": "2026-11-08T16:17:14.617510+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "total": 2,
+        "estados": {
+          "VENCIDA": 2
+        },
+        "muestra": [
+          {
+            "id_cotizacion": 4,
+            "estado": "VENCIDA",
+            "id_periodo_contable": 6,
+            "activos_cotizados": [
+              1
+            ],
+            "valor_razonable_referencia": null,
+            "valor_cotizacion_propuesto": "4600000.0000",
+            "id_usuario": 1,
+            "fecha_emision": "2026-04-27"
+          },
+          {
+            "id_cotizacion": 5,
+            "estado": "VENCIDA",
+            "id_periodo_contable": 6,
+            "activos_cotizados": [
+              2,
+              3
+            ],
+            "valor_razonable_referencia": null,
+            "valor_cotizacion_propuesto": "7000000.0000",
+            "id_usuario": 1,
+            "fecha_emision": "2026-03-18"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 378,
+      "escritura": false,
+      "en": "2026-11-08T16:17:14.995796+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 9,
+        "activos": [
+          {
+            "id_activo_biologico": 943,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "3015990.0000",
+            "valor_contable_por_costo": null
+          },
+          {
+            "id_activo_biologico": 944,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "2779956.0000",
+            "valor_contable_por_costo": null
+          },
+          {
+            "id_activo_biologico": 945,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "2761344.0000",
+            "valor_contable_por_costo": null
+          },
+          {
+            "id_activo_biologico": 946,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "2884860.0000",
+            "valor_contable_por_costo": null
+          },
+          {
+            "id_activo_biologico": 947,
+            "estado": "ACTIVO",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "305970.0000",
+            "valor_contable_por_costo": null
+          },
+          {
+            "id_activo_biologico": 948,
+            "estado": "BAJA",
+            "especie": "Bovino",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "2671480.0000",
+            "valor_contable_por_costo": null
+          },
+          {
+            "id_activo_biologico": 951,
+            "estado": "ACTIVO",
+            "especie": "Equino",
+            "valorado_por_costo": true,
+            "valor_razonable_neto": null,
+            "valor_contable_por_costo": "4200000.0000"
+          },
+          {
+            "id_activo_biologico": 949,
+            "estado": "ACTIVO",
+            "especie": "Pollo De Engorde Qa Mseis",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "6960000.0000",
+            "valor_contable_por_costo": null
+          },
+          {
+            "id_activo_biologico": 950,
+            "estado": "ACTIVO",
+            "especie": "Pollo De Engorde Qa Mseis",
+            "valorado_por_costo": false,
+            "valor_razonable_neto": "6960000.0000",
+            "valor_contable_por_costo": null
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "duracion_ms": 358,
+      "escritura": false,
+      "en": "2026-11-08T16:17:15.354015+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 8
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria",
+      "codigo": 200,
+      "duracion_ms": 387,
+      "escritura": false,
+      "en": "2026-11-08T16:17:15.740969+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 634,
+      "escritura": false,
+      "en": "2026-11-08T16:17:16.375369+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/usuarios/me",
+      "codigo": 200,
+      "duracion_ms": 373,
+      "escritura": false,
+      "en": "2026-11-08T16:17:16.748878+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "id_usuario": 137,
+        "nombre_rol": "Administrador",
+        "estado_cuenta": "Activo"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 492,
+      "escritura": false,
+      "en": "2026-11-08T16:17:17.240782+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "total_permisos": 188,
+        "cotizaciones": [
+          "crear",
+          "leer",
+          "desactivar"
+        ],
+        "puede_crear": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/activos-biologicos/943",
+      "codigo": 200,
+      "duracion_ms": 395,
+      "escritura": false,
+      "en": "2026-11-08T16:17:17.635931+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "id_activo_biologico": 943,
+        "estado": "ACTIVO"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 621,
+      "escritura": false,
+      "en": "2026-11-08T16:17:18.256865+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/usuarios/me",
+      "codigo": 200,
+      "duracion_ms": 360,
+      "escritura": false,
+      "en": "2026-11-08T16:17:18.617102+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "id_usuario": 2,
+        "nombre_rol": "Productor",
+        "estado_cuenta": "Activo"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 353,
+      "escritura": false,
+      "en": "2026-11-08T16:17:18.970263+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "total_permisos": 58,
+        "cotizaciones": [
+          "leer"
+        ],
+        "puede_crear": false
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 403,
+      "duracion_ms": 361,
+      "escritura": false,
+      "en": "2026-11-08T16:17:19.331537+00:00",
+      "cuerpo": {
+        "activos_cotizados": [
+          943
+        ],
+        "valor_cotizacion_propuesto": "1000.0000"
+      },
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-08T16:17:18.314732+00:00"
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 613,
+      "escritura": false,
+      "en": "2026-11-08T16:17:19.944499+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "duracion_ms": 378,
+      "escritura": false,
+      "en": "2026-11-08T16:17:20.322632+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria",
+      "codigo": 200,
+      "duracion_ms": 375,
+      "escritura": false,
+      "en": "2026-11-08T16:17:20.697778+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 377,
+      "escritura": false,
+      "en": "2026-11-08T16:17:21.074476+00:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 9
+      }
+    }
+  ]
+}

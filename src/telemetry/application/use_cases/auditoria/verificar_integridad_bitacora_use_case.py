@@ -1,23 +1,27 @@
-from __future__ import annotations
-
-import hashlib
-import json
-from dataclasses import dataclass
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: incidentes inmutables idempotentes y avisos recuperables |
+# | 2026-10-25 | Arekkazu | INC-M03-135-G177 RF-63: rango acotado; nunca recalcula la bitácora completa |
+"""E6: el marcador de compromiso es externo al registro protegido por DB-11."""
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from dataclasses import replace
+import logging
+import os
 from typing import Optional
-from uuid import UUID
-
-from sqlalchemy.orm import Session
 
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
-from src.telemetry.domain.entities.evento_auditoria_iot import (
-    ComponenteOrigen,
-    EntidadAfectadaTipo,
-    EventoAuditoriaIot,
-    SeveridadLog,
-    TipoResultado,
-)
-from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
+from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
+from src.telemetry.domain.entities.evento_auditoria_iot import SeveridadLog, TipoResultado
+from src.shared.errors import BusinessRuleError, ValidationError
+from src.telemetry.domain.repositories.aviso_integridad_port import AvisoIntegridadPort
+
+logger = logging.getLogger(__name__)
+
+# INC-M03-135-G177: sin tope, una sola verificación de toda la bitácora (1,96 M
+# eventos en TEST) ocupaba el worker 5,5 min y tumbaba el proxy. Con 15 000
+# eventos tarda ~140 ms.
+MAX_EVENTOS_VERIFICACION = int(os.getenv('AUDITORIA_IOT_MAX_VERIFICACION', '50000'))
 
 
 @dataclass
@@ -25,49 +29,96 @@ class ResultadoVerificacion:
     total_verificados: int
     comprometidos: int
     ids_comprometidos: list[str]
+    ids_sin_hash: list[str] = field(default_factory=list)
+    ids_incompletos: list[str] = field(default_factory=list)
+    incidentes_creados: int = 0
+    notificaciones_pendientes: int = 0
+
+
+def hash_coincide(evento):
+    # TIMESTAMPTZ conserva el instante, no el offset original. Los productores
+    # HTTP usan UTC; SQL puede devolver la zona de la sesión.
+    return evento.hash_integridad in {
+        _calcular_hash(evento),
+        _calcular_hash(replace(evento, fecha_hora=evento.fecha_hora.astimezone(timezone.utc))),
+    }
 
 
 class VerificarIntegridadBitacoraUseCase:
-    """RF-63 FA-11: Re-calcula SHA-256 de cada registro y detecta alteraciones."""
+    def __init__(self, db, auditoria_repo, avisos: Optional[AvisoIntegridadPort] = None):
+        self.db, self.auditoria_repo, self.avisos = db, auditoria_repo, avisos
 
-    def __init__(self, db: Session, auditoria_repo: BitacoraAuditoriaIotRepository) -> None:
-        self.db = db
-        self.auditoria_repo = auditoria_repo
-
-    def execute(
-        self,
-        fecha_desde: Optional[datetime] = None,
-        fecha_hasta: Optional[datetime] = None,
-    ) -> ResultadoVerificacion:
-        eventos = self.auditoria_repo.listar_todos_para_verificacion(fecha_desde, fecha_hasta)
-        comprometidos: list[str] = []
-
-        for evento in eventos:
-            hash_esperado = _calcular_hash(evento)
-            if hash_esperado != evento.hash_integridad:
-                comprometidos.append(str(evento.id_evento))
-
-        if comprometidos:
-            self._registrar_incidente(comprometidos)
-
-        return ResultadoVerificacion(
-            total_verificados=len(eventos),
-            comprometidos=len(comprometidos),
-            ids_comprometidos=comprometidos,
-        )
-
-    def _registrar_incidente(self, ids_comprometidos: list[str]) -> None:
-        try:
-            from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
-            svc = RegistrarEventoAuditoriaIotUseCase(db=self.db, auditoria_repo=self.auditoria_repo)
-            svc.execute(
-                tipo_evento='INTEGRIDAD_COMPROMETIDA',
-                resultado=TipoResultado.FALLIDO,
-                componente_origen=ComponenteOrigen.RF62,
-                severidad_log=SeveridadLog.CRITICAL,
-                descripcion=f'Integridad comprometida en {len(ids_comprometidos)} registro(s).',
-                entidad_afectada_tipo=EntidadAfectadaTipo.CALIDAD_DATO,
-                accion_detallada={'ids_comprometidos': ids_comprometidos},
+    def execute(self, fecha_desde: Optional[datetime] = None, fecha_hasta: Optional[datetime] = None):
+        if fecha_desde is not None and fecha_hasta is not None and fecha_desde > fecha_hasta:
+            raise ValidationError(code='RANGO_FECHAS_INVALIDO', field='fecha_desde',
+                                  message='fecha_desde no puede ser posterior a fecha_hasta.')
+        eventos = self.auditoria_repo.listar_todos_para_verificacion(
+            fecha_desde, fecha_hasta, MAX_EVENTOS_VERIFICACION + 1)
+        if len(eventos) > MAX_EVENTOS_VERIFICACION:
+            raise BusinessRuleError(
+                code='RANGO_VERIFICACION_EXCEDIDO',
+                message=(f'El rango tiene más de {MAX_EVENTOS_VERIFICACION} eventos. '
+                         'Divídalo en ventanas más cortas y verifique cada una.'),
+                field='fecha_desde',
             )
-        except Exception:
-            pass
+        resultado = ResultadoVerificacion(len(eventos), 0, [])
+        for evento in sorted(eventos, key=lambda e: str(e.id_evento)):
+            identificador = str(evento.id_evento)
+            if evento.registro_incompleto:
+                resultado.ids_incompletos.append(identificador)
+            if not evento.hash_integridad:
+                resultado.ids_sin_hash.append(identificador)
+                continue
+            if hash_coincide(evento):
+                continue
+            self.auditoria_repo.bloquear_integridad(evento.id_evento)
+            # La evidencia es append-only; confirmar nuevamente dentro del lock.
+            actual = self.auditoria_repo.obtener(evento.id_evento)
+            esperado = _calcular_hash(replace(actual, fecha_hora=actual.fecha_hora.astimezone(timezone.utc)))
+            if hash_coincide(actual):
+                continue
+            clave = {'id_evento': identificador, 'hash_almacenado': actual.hash_integridad,
+                     'hash_calculado': esperado}
+            incidente = self.auditoria_repo.buscar_incidente(clave)
+            if incidente is None:
+                try:
+                    incidente = registrar_evidencia(self.auditoria_repo, 'INTEGRIDAD_COMPROMETIDA', None,
+                        resultado=TipoResultado.FALLIDO, severidad=SeveridadLog.CRITICAL,
+                        descripcion='Hash de auditoría IoT alterado; evidencia original preservada.',
+                        detalle={'compromiso': clave, 'estado_integridad': 'COMPROMETIDO',
+                                 'notificacion': 'PENDIENTE'})
+                    self.db.commit()
+                    resultado.incidentes_creados += 1
+                except Exception:
+                    self.db.rollback()
+                    raise
+            resultado.ids_comprometidos.append(identificador)
+            # El incidente ya está confirmado: una falla de RF-14 no lo revierte.
+            if not self._notificar(incidente, identificador):
+                resultado.notificaciones_pendientes += 1
+        resultado.comprometidos = len(resultado.ids_comprometidos)
+        return resultado
+
+    def _notificar(self, incidente, identificador):
+        try:
+            self.auditoria_repo.bloquear_integridad(incidente.id_evento)
+            if self.auditoria_repo.aviso_confirmado(incidente.id_evento):
+                self.db.commit()
+                return True
+            if self.avisos is None:
+                self.db.rollback()
+                return False
+            cantidad = self.avisos.notificar(str(incidente.id_evento), [identificador])
+            if cantidad <= 0:
+                self.db.rollback()
+                return False
+            registrar_evidencia(self.auditoria_repo, 'INTEGRIDAD_COMPROMETIDA', None,
+                detalle={'aviso_incidente': str(incidente.id_evento),
+                         'notificacion': 'REGISTRADA_RF14', 'destinatarios': cantidad})
+            self.db.commit()
+            return True
+        except Exception as exc:
+            self.db.rollback()
+            logger.warning('RF-63: aviso pendiente incidente=%s error=%s',
+                           incidente.id_evento, getattr(exc, 'code', type(exc).__name__))
+            return False

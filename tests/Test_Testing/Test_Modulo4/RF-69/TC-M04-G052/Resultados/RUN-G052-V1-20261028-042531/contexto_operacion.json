@@ -1,0 +1,20 @@
+{
+  "grupo": "G052",
+  "version": 1,
+  "intento": 2,
+  "run_id": "RUN-G052-V1-20261028-042531",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G052-V1-R2-20261028",
+  "casos": [
+    "TC-M04-129",
+    "TC-M04-130",
+    "TC-M04-131",
+    "TC-M04-132",
+    "TC-M04-133",
+    "TC-M04-134"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico V1 (intento 2) de G052. Intento 1 RUN-G052-V1-20261028-040338 (no oficial, DELETE 200): 129, 132-a/c/d y 134 conformes; POST de 130, 131 y 132-b sin respuesta a los 30 s (ids 76, 77 y 79 consumidos: probable proceso y aviso en servidor); 133 aprobado con 2/5 (fallo QA). ORD-G052-003: timeout de registro 120 s con duración medida, conciliación por listado e id_proceso_rf71 sin reintentar, sin APROBADO parcial, observación RNF-01; hipótesis: aviso síncrono tras el commit con SMTP de 8 s por destinatario (use case 183-191; adapter 74-81,101-104; email.py:37,70). ORD-G052-005: 133 evalúa las versiones efectivamente RECHAZADO y excluye con nota las afectadas por un defecto ya atribuido a 130/131; NO_CONCLUYENTE solo sin evidencia. Ensayo Codex 14/14. SHA-256 g052.mjs f3ab2d5bc7d63fc1945dc6c5608a4f31317e013d30087e91fe716e667a024057; colección ace06becd09409f4de6f2666d85f17940a5d81f1d87fb1cd336ac5235bae6685; lib/g052_escenario.mjs 61ff0e0a9c6356cf3a7344a465dddb687dce3f379df79611a682d6a29c299eec; lib/artefactos.mjs 647fa0ef32cdf4644994b92b4a19a10df9f1947d128a0be83af188d396f97c13; lib/contrato_ejecutor.mjs 00da5517ed29450692ffd9799c7cddc84ffbec7361158b274cb948fef85ab684; lib/seguridad.mjs e9a5172fc06fd9115c519dcf0adb31fff0e7f481de08814e5548c386f53bca0a."
+  },
+  "version_anterior": null
+}

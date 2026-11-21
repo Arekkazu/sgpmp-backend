@@ -1,0 +1,1373 @@
+{
+  "caso": "TC-M06-G113",
+  "subcaso": "TC-M06-42",
+  "fase": "inspeccion_preparacion_escenario_positivo",
+  "generado_en": "2026-11-13T01:20:40.475393+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "restricciones": "Sin POST/PUT/PATCH/DELETE financieros; solo GET + POST /sesiones/",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "escritura": true,
+      "nota": "autenticacion",
+      "respuesta": {
+        "ok": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "tiene_CostoDTO": true,
+        "post_costos": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 1,
+        "220": "ABIERTO"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "bloqueos": [],
+        "activos_sin_precio": [],
+        "lineas_sin_trazabilidad": [],
+        "puede_cerrar": true,
+        "requiere_autorizacion": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas?id_periodo_contable=220",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 4
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1569",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "100.00",
+        "cabezas_o_cantidad": 1,
+        "biomasa": "100.00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/costos?id_activo_biologico=1569",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?id_activo_biologico=1569&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1570",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "200.00",
+        "cabezas_o_cantidad": 1,
+        "biomasa": "200.00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/costos?id_activo_biologico=1570",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?id_activo_biologico=1570&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total_registros": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1571",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "peso_kg": "300.00",
+        "cabezas_o_cantidad": 1,
+        "biomasa": "300.00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/costos?id_activo_biologico=1571",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?id_activo_biologico=1571&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total_registros": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/costos?id_periodo_contable=220",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "codigo": 200,
+      "escritura": false,
+      "respuesta": {
+        "total": 30
+      }
+    }
+  ],
+  "pr_1024": {
+    "numero": 1024,
+    "estado": "closed",
+    "merged_at": "2026-11-11T01:31:31Z",
+    "base": "dev",
+    "merge_commit_sha": "e84650d37464db79e35d69d58f45c5aed7c78b60",
+    "nota": "PR fusionado en dev con la lógica vigente de reparto de costos compartidos."
+  },
+  "despliegue_test": {
+    "fuente": "GitHub Deployments API environment=test",
+    "deployment_id": 7734885162,
+    "sha": "61614e4690dcbe81e66edd277f0e01dda6bdccc1",
+    "created_at": "2026-11-12T10:39:51Z",
+    "estado_deployment": "success",
+    "estado_status": "success @ 2026-11-12T10:40:33Z",
+    "mensaje_commit": "Merge dev into test",
+    "contiene_fix_pr_1024": true,
+    "evidencia_codigo_en_sha": "git show 61614e46:.../registrar_costo_use_case.py confirma la lógica de reparto (_repartir / POR_BIOMASA) presente en el SHA desplegado en TEST.",
+    "version_endpoint": {
+      "/version": 404,
+      "/info": 404,
+      "/health": 200,
+      "nota": "TEST no expone versión/release en endpoints públicos conocidos."
+    },
+    "verificacion_comportamental_en_test": "El SHA desplegado en TEST contiene la lógica de reparto vigente. La ejecución positiva autorizada de TC-M06-42 se documenta en ultima_evaluacion/."
+  },
+  "contratos": {
+    "ruta_registro": "POST /finanzas/costos",
+    "metodos_costos": [
+      "get",
+      "post"
+    ],
+    "consultas": {
+      "GET /finanzas/costos": [
+        "get",
+        "post"
+      ],
+      "GET /finanzas/costos?id_activo_biologico": "soportado por query",
+      "GET /finanzas/costos?id_periodo_contable": "soportado por query",
+      "GET /finanzas/lineas?id_periodo_contable": [
+        "get"
+      ],
+      "GET /finanzas/periodos/{id}/comprobantes": [
+        "get"
+      ],
+      "GET /finanzas/auditoria": [
+        "get"
+      ],
+      "GET /finanzas/activos/{id}": [
+        "get"
+      ]
+    },
+    "CostoDTO_campos": {
+      "subtipo_costo": {
+        "type": "string",
+        "enum": [
+          "ALIMENTO",
+          "MEDICAMENTO",
+          "MANO_OBRA",
+          "VETERINARIO",
+          "INVERSION_DIRECTA",
+          "TRANSPORTE",
+          "COMISION",
+          "IMPUESTO_TRANSACCION",
+          "SACRIFICIO",
+          "OTRO"
+        ],
+        "title": "Subtipo Costo"
+      },
+      "origen_costo": {
+        "type": "string",
+        "enum": [
+          "MANO_OBRA_PROPIA",
+          "COMPRA_PROVEEDOR",
+          "SERVICIO_TERCERO",
+          "CONSUMO_INVENTARIO"
+        ],
+        "title": "Origen Costo"
+      },
+      "monto_costo": {
+        "anyOf": [
+          {
+            "type": "number",
+            "exclusiveMinimum": 0.0
+          },
+          {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,19}0*$)\\d{0,14}\\.\\d{0,4}0*$)"
+          }
+        ],
+        "title": "Monto Costo"
+      },
+      "fecha_costo": {
+        "type": "string",
+        "format": "date",
+        "title": "Fecha Costo"
+      },
+      "id_activo_biologico": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "exclusiveMinimum": 0.0
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id Activo Biologico"
+      },
+      "activos_reparto": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array",
+        "maxItems": 500,
+        "title": "Activos Reparto"
+      },
+      "metodo_reparto": {
+        "type": "string",
+        "enum": [
+          "POR_CABEZAS",
+          "POR_BIOMASA"
+        ],
+        "title": "Metodo Reparto",
+        "default": "POR_CABEZAS"
+      },
+      "naturaleza_costo": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "MANTENIMIENTO",
+              "INVERSION",
+              "VENTA"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Naturaleza Costo"
+      },
+      "justificacion": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 2000
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Justificacion"
+      },
+      "tercero_nit": {
+        "omitido": true
+      },
+      "tercero_dv": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^[0-9]$"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Tercero Dv"
+      },
+      "tercero_razon_social": {
+        "omitido": true
+      },
+      "factura_prefijo": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 10
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Factura Prefijo"
+      },
+      "factura_numero": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 30
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Factura Numero"
+      },
+      "fecha_factura": {
+        "anyOf": [
+          {
+            "type": "string",
+            "format": "date"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Fecha Factura"
+      },
+      "fecha_vencimiento_factura": {
+        "anyOf": [
+          {
+            "type": "string",
+            "format": "date"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Fecha Vencimiento Factura"
+      },
+      "cuenta_debito_manual": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^[0-9]{1,20}$"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Cuenta Debito Manual"
+      },
+      "confirmar_capitalizacion": {
+        "type": "boolean",
+        "title": "Confirmar Capitalizacion",
+        "default": false
+      }
+    },
+    "regla_reparto_codigo": {
+      "metodo_reparto": [
+        "POR_CABEZAS",
+        "POR_BIOMASA"
+      ],
+      "activos_reparto": "list[int]",
+      "participacion_por_biomasa": "peso_kg * cabezas si todos tienen peso_kg; si no, cabezas",
+      "precision": "truncar2 (ROUND_DOWN a 2 decimales)",
+      "residuo": "se asigna al de mayor participación; empate: menor id",
+      "vinculo_grupo": "id_grupo_reparto (uuid) cuando len(activos)>1"
+    }
+  },
+  "periodo_220": {
+    "codigo_listado": 200,
+    "encontrado": true,
+    "ficha": {
+      "id_periodo_contable": 220,
+      "numero_id_tributaria": {
+        "omitido": true
+      },
+      "tipo_cierre": "MENSUAL",
+      "fecha_inicio": "2026-11-01",
+      "fecha_fin": "2026-11-30",
+      "estado": "ABIERTO",
+      "fecha_cierre": null,
+      "razon_social": "QA M06 Operaciones SAS",
+      "ultimo_cierre": null
+    },
+    "nit_coincide": true,
+    "estado": "ABIERTO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30",
+    "fecha_cierre": null,
+    "prevalidacion": {
+      "codigo": 200,
+      "payload": {
+        "bloqueos": [],
+        "activos_sin_precio": [],
+        "lineas_sin_trazabilidad": [],
+        "puede_cerrar": true,
+        "requiere_autorizacion": false
+      }
+    }
+  },
+  "activos": {
+    "1569": {
+      "codigo": 200,
+      "activo": {
+        "id_activo_biologico": 1569,
+        "identificador": {
+          "omitido": true
+        },
+        "tipo": "INDIVIDUAL",
+        "id_especie": 422,
+        "especie": "Caprino Qa Aislado",
+        "estado": "ACTIVO",
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "finca": {
+          "omitido": true
+        },
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "razon_social": "QA M06 Operaciones SAS",
+        "fecha_ingreso": "2026-10-31",
+        "origen_financiero": "compra",
+        "costo_adquisicion": "3500000.0000",
+        "soporte_documental": "Factura de compra QA-001",
+        "cantidad_actual": null,
+        "peso_kg": "100.00",
+        "id_evento_peso": 1289,
+        "id_dispositivo_iot": null,
+        "kg_cosechados": "0"
+      },
+      "peso_kg": "100.00",
+      "cabezas_o_cantidad": 1,
+      "biomasa_calculada_peso_x_cabezas": "100.00",
+      "claves_payload": [
+        "activo",
+        "calculos",
+        "lineas",
+        "mediciones",
+        "productos",
+        "reconocimientos",
+        "valoracion_costo"
+      ],
+      "reconocimientos": {
+        "total": 1,
+        "muestra": [
+          {
+            "id_reconocimiento_inicial": 495,
+            "id_activo_biologico": 1569,
+            "estado": "CONFIRMADO",
+            "clasificacion": "PRODUCCION",
+            "indicador_valoracion": "VALOR_RAZONABLE",
+            "valor_razonable_neto_inicial": "3760000.0000",
+            "fecha_reconocimiento": "2026-11-08T00:00:00Z",
+            "id_periodo_contable": 220,
+            "origen_financiero": "compra",
+            "costo_adquisicion": "3500000.0000",
+            "id_precio_mercado": 435,
+            "id_calculo_valor_razonable": 802,
+            "id_valoracion_por_costo": null,
+            "es_apertura": true,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "424815",
+            "costos_venta_estimados": "240000.0000",
+            "justificacion_reversion": null,
+            "fecha_reversion": null,
+            "fecha_creacion": "2026-11-08T21:25:01.126738Z"
+          }
+        ]
+      },
+      "lineas_activo": {
+        "total": 1,
+        "muestra": [
+          {
+            "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+            "sentido": "GANANCIA",
+            "valor": "260000.00",
+            "fecha_hecho": "2026-11-08",
+            "id_periodo_contable": 220,
+            "id_activo_biologico": 1569,
+            "id_especie": 422,
+            "id_finca": 467,
+            "numero_id_tributaria": {
+              "omitido": true
+            },
+            "tabla_origen": "reconocimientos_iniciales",
+            "id_origen": 495,
+            "tipo_evidencia": "REGISTRO_MANUAL",
+            "subtipo_costo": null,
+            "es_estimacion": false,
+            "es_reverso": false,
+            "tipo_hecho_corregido": null,
+            "id_linea_corregida": null,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "424815",
+            "justificacion": null,
+            "id_usuario": 132,
+            "id_linea_asiento_nic41": 894,
+            "estado": "REGISTRADA",
+            "extra": {}
+          }
+        ]
+      }
+    },
+    "1570": {
+      "codigo": 200,
+      "activo": {
+        "id_activo_biologico": 1570,
+        "identificador": {
+          "omitido": true
+        },
+        "tipo": "INDIVIDUAL",
+        "id_especie": 422,
+        "especie": "Caprino Qa Aislado",
+        "estado": "ACTIVO",
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "finca": {
+          "omitido": true
+        },
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "razon_social": "QA M06 Operaciones SAS",
+        "fecha_ingreso": "2026-10-31",
+        "origen_financiero": "compra",
+        "costo_adquisicion": "3600000.0000",
+        "soporte_documental": "Factura de compra QA-001",
+        "cantidad_actual": null,
+        "peso_kg": "200.00",
+        "id_evento_peso": 1290,
+        "id_dispositivo_iot": null,
+        "kg_cosechados": "0"
+      },
+      "peso_kg": "200.00",
+      "cabezas_o_cantidad": 1,
+      "biomasa_calculada_peso_x_cabezas": "200.00",
+      "claves_payload": [
+        "activo",
+        "calculos",
+        "lineas",
+        "mediciones",
+        "productos",
+        "reconocimientos",
+        "valoracion_costo"
+      ],
+      "reconocimientos": {
+        "total": 1,
+        "muestra": [
+          {
+            "id_reconocimiento_inicial": 496,
+            "id_activo_biologico": 1570,
+            "estado": "CONFIRMADO",
+            "clasificacion": "PRODUCCION",
+            "indicador_valoracion": "VALOR_RAZONABLE",
+            "valor_razonable_neto_inicial": "3760000.0000",
+            "fecha_reconocimiento": "2026-11-08T00:00:00Z",
+            "id_periodo_contable": 220,
+            "origen_financiero": "compra",
+            "costo_adquisicion": "3600000.0000",
+            "id_precio_mercado": 435,
+            "id_calculo_valor_razonable": 803,
+            "id_valoracion_por_costo": null,
+            "es_apertura": true,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "424815",
+            "costos_venta_estimados": "240000.0000",
+            "justificacion_reversion": null,
+            "fecha_reversion": null,
+            "fecha_creacion": "2026-11-08T21:25:04.061875Z"
+          }
+        ]
+      },
+      "lineas_activo": {
+        "total": 1,
+        "muestra": [
+          {
+            "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+            "sentido": "GANANCIA",
+            "valor": "160000.00",
+            "fecha_hecho": "2026-11-08",
+            "id_periodo_contable": 220,
+            "id_activo_biologico": 1570,
+            "id_especie": 422,
+            "id_finca": 467,
+            "numero_id_tributaria": {
+              "omitido": true
+            },
+            "tabla_origen": "reconocimientos_iniciales",
+            "id_origen": 496,
+            "tipo_evidencia": "REGISTRO_MANUAL",
+            "subtipo_costo": null,
+            "es_estimacion": false,
+            "es_reverso": false,
+            "tipo_hecho_corregido": null,
+            "id_linea_corregida": null,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "424815",
+            "justificacion": null,
+            "id_usuario": 132,
+            "id_linea_asiento_nic41": 895,
+            "estado": "REGISTRADA",
+            "extra": {}
+          }
+        ]
+      }
+    },
+    "1571": {
+      "codigo": 200,
+      "activo": {
+        "id_activo_biologico": 1571,
+        "identificador": {
+          "omitido": true
+        },
+        "tipo": "INDIVIDUAL",
+        "id_especie": 422,
+        "especie": "Caprino Qa Aislado",
+        "estado": "ACTIVO",
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "finca": {
+          "omitido": true
+        },
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "razon_social": "QA M06 Operaciones SAS",
+        "fecha_ingreso": "2026-10-31",
+        "origen_financiero": "compra",
+        "costo_adquisicion": "3700000.0000",
+        "soporte_documental": "Factura de compra QA-001",
+        "cantidad_actual": null,
+        "peso_kg": "300.00",
+        "id_evento_peso": 1291,
+        "id_dispositivo_iot": null,
+        "kg_cosechados": "0"
+      },
+      "peso_kg": "300.00",
+      "cabezas_o_cantidad": 1,
+      "biomasa_calculada_peso_x_cabezas": "300.00",
+      "claves_payload": [
+        "activo",
+        "calculos",
+        "lineas",
+        "mediciones",
+        "productos",
+        "reconocimientos",
+        "valoracion_costo"
+      ],
+      "reconocimientos": {
+        "total": 1,
+        "muestra": [
+          {
+            "id_reconocimiento_inicial": 497,
+            "id_activo_biologico": 1571,
+            "estado": "CONFIRMADO",
+            "clasificacion": "PRODUCCION",
+            "indicador_valoracion": "VALOR_RAZONABLE",
+            "valor_razonable_neto_inicial": "3760000.0000",
+            "fecha_reconocimiento": "2026-11-08T00:00:00Z",
+            "id_periodo_contable": 220,
+            "origen_financiero": "compra",
+            "costo_adquisicion": "3700000.0000",
+            "id_precio_mercado": 435,
+            "id_calculo_valor_razonable": 804,
+            "id_valoracion_por_costo": null,
+            "es_apertura": true,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "424815",
+            "costos_venta_estimados": "240000.0000",
+            "justificacion_reversion": null,
+            "fecha_reversion": null,
+            "fecha_creacion": "2026-11-08T21:25:06.574099Z"
+          }
+        ]
+      },
+      "lineas_activo": {
+        "total": 1,
+        "muestra": [
+          {
+            "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+            "sentido": "GANANCIA",
+            "valor": "60000.00",
+            "fecha_hecho": "2026-11-08",
+            "id_periodo_contable": 220,
+            "id_activo_biologico": 1571,
+            "id_especie": 422,
+            "id_finca": 467,
+            "numero_id_tributaria": {
+              "omitido": true
+            },
+            "tabla_origen": "reconocimientos_iniciales",
+            "id_origen": 497,
+            "tipo_evidencia": "REGISTRO_MANUAL",
+            "subtipo_costo": null,
+            "es_estimacion": false,
+            "es_reverso": false,
+            "tipo_hecho_corregido": null,
+            "id_linea_corregida": null,
+            "cuenta_debito": "158405",
+            "cuenta_credito": "424815",
+            "justificacion": null,
+            "id_usuario": 132,
+            "id_linea_asiento_nic41": 896,
+            "estado": "REGISTRADA",
+            "extra": {}
+          }
+        ]
+      }
+    }
+  },
+  "costos": {
+    "activo_1569": {
+      "total": 1,
+      "ids": [
+        4448
+      ],
+      "grupos_reparto": [],
+      "subtipos": {
+        "ALIMENTO": 1
+      },
+      "naturalezas": {
+        "MANTENIMIENTO": 1
+      },
+      "politicas": {
+        "GASTO": 1
+      },
+      "metodos_reparto": {
+        "None": 1
+      },
+      "detalle": [
+        {
+          "id_registro_costo": 4448,
+          "id_activo_biologico": 1569,
+          "id_periodo_contable": 220,
+          "subtipo_costo": "ALIMENTO",
+          "naturaleza_costo": "MANTENIMIENTO",
+          "politica_capitalizacion": "GASTO",
+          "origen_costo": "COMPRA_PROVEEDOR",
+          "monto_costo": "150000.0000",
+          "estado": "REGISTRADO",
+          "fecha_costo": "2026-11-12",
+          "vehiculo_contable": "FACTURA_COMPRA",
+          "id_grupo_reparto": null,
+          "metodo_reparto": null,
+          "id_linea_asiento": null
+        }
+      ],
+      "grupos_reparto_unicos": []
+    },
+    "activo_1570": {
+      "total": 0,
+      "ids": [],
+      "grupos_reparto": [],
+      "subtipos": {},
+      "naturalezas": {},
+      "politicas": {},
+      "metodos_reparto": {},
+      "detalle": [],
+      "grupos_reparto_unicos": []
+    },
+    "activo_1571": {
+      "total": 0,
+      "ids": [],
+      "grupos_reparto": [],
+      "subtipos": {},
+      "naturalezas": {},
+      "politicas": {},
+      "metodos_reparto": {},
+      "detalle": [],
+      "grupos_reparto_unicos": []
+    },
+    "periodo_220": {
+      "total": 1,
+      "ids": [
+        4448
+      ],
+      "grupos_reparto": [],
+      "subtipos": {
+        "ALIMENTO": 1
+      },
+      "naturalezas": {
+        "MANTENIMIENTO": 1
+      },
+      "politicas": {
+        "GASTO": 1
+      },
+      "metodos_reparto": {
+        "None": 1
+      },
+      "detalle": [
+        {
+          "id_registro_costo": 4448,
+          "id_activo_biologico": 1569,
+          "id_periodo_contable": 220,
+          "subtipo_costo": "ALIMENTO",
+          "naturaleza_costo": "MANTENIMIENTO",
+          "politica_capitalizacion": "GASTO",
+          "origen_costo": "COMPRA_PROVEEDOR",
+          "monto_costo": "150000.0000",
+          "estado": "REGISTRADO",
+          "fecha_costo": "2026-11-12",
+          "vehiculo_contable": "FACTURA_COMPRA",
+          "id_grupo_reparto": null,
+          "metodo_reparto": null,
+          "id_linea_asiento": null
+        }
+      ],
+      "grupos_reparto_unicos": []
+    }
+  },
+  "lineas_periodo": {
+    "codigo": 200,
+    "total": 4,
+    "por_activo": {
+      "1569": [
+        {
+          "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+          "sentido": "GANANCIA",
+          "valor": "260000.00",
+          "fecha_hecho": "2026-11-08",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1569,
+          "id_especie": 422,
+          "id_finca": 467,
+          "numero_id_tributaria": {
+            "omitido": true
+          },
+          "tabla_origen": "reconocimientos_iniciales",
+          "id_origen": 495,
+          "tipo_evidencia": "REGISTRO_MANUAL",
+          "subtipo_costo": null,
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": "424815",
+          "justificacion": null,
+          "id_usuario": 132,
+          "id_linea_asiento_nic41": 894,
+          "estado": "REGISTRADA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+            "id_comprobante_nic41": null
+          },
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        }
+      ],
+      "1570": [
+        {
+          "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+          "sentido": "GANANCIA",
+          "valor": "160000.00",
+          "fecha_hecho": "2026-11-08",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1570,
+          "id_especie": 422,
+          "id_finca": 467,
+          "numero_id_tributaria": {
+            "omitido": true
+          },
+          "tabla_origen": "reconocimientos_iniciales",
+          "id_origen": 496,
+          "tipo_evidencia": "REGISTRO_MANUAL",
+          "subtipo_costo": null,
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": "424815",
+          "justificacion": null,
+          "id_usuario": 132,
+          "id_linea_asiento_nic41": 895,
+          "estado": "REGISTRADA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+            "id_comprobante_nic41": null
+          },
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        }
+      ],
+      "1571": [
+        {
+          "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+          "sentido": "GANANCIA",
+          "valor": "60000.00",
+          "fecha_hecho": "2026-11-08",
+          "id_periodo_contable": 220,
+          "id_activo_biologico": 1571,
+          "id_especie": 422,
+          "id_finca": 467,
+          "numero_id_tributaria": {
+            "omitido": true
+          },
+          "tabla_origen": "reconocimientos_iniciales",
+          "id_origen": 497,
+          "tipo_evidencia": "REGISTRO_MANUAL",
+          "subtipo_costo": null,
+          "es_estimacion": false,
+          "es_reverso": false,
+          "tipo_hecho_corregido": null,
+          "id_linea_corregida": null,
+          "cuenta_debito": "158405",
+          "cuenta_credito": "424815",
+          "justificacion": null,
+          "id_usuario": 132,
+          "id_linea_asiento_nic41": 896,
+          "estado": "REGISTRADA",
+          "extra": {
+            "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+            "id_comprobante_nic41": null
+          },
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        }
+      ]
+    },
+    "activos": [
+      1569,
+      1570,
+      1571,
+      1572
+    ],
+    "muestra": [
+      {
+        "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+        "sentido": "GANANCIA",
+        "valor": "260000.00",
+        "fecha_hecho": "2026-11-08",
+        "id_periodo_contable": 220,
+        "id_activo_biologico": 1569,
+        "id_especie": 422,
+        "id_finca": 467,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tabla_origen": "reconocimientos_iniciales",
+        "id_origen": 495,
+        "tipo_evidencia": "REGISTRO_MANUAL",
+        "subtipo_costo": null,
+        "es_estimacion": false,
+        "es_reverso": false,
+        "tipo_hecho_corregido": null,
+        "id_linea_corregida": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "424815",
+        "justificacion": null,
+        "id_usuario": 132,
+        "id_linea_asiento_nic41": 894,
+        "estado": "REGISTRADA",
+        "extra": {
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        },
+        "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+        "id_comprobante_nic41": null
+      },
+      {
+        "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+        "sentido": "GANANCIA",
+        "valor": "160000.00",
+        "fecha_hecho": "2026-11-08",
+        "id_periodo_contable": 220,
+        "id_activo_biologico": 1570,
+        "id_especie": 422,
+        "id_finca": 467,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tabla_origen": "reconocimientos_iniciales",
+        "id_origen": 496,
+        "tipo_evidencia": "REGISTRO_MANUAL",
+        "subtipo_costo": null,
+        "es_estimacion": false,
+        "es_reverso": false,
+        "tipo_hecho_corregido": null,
+        "id_linea_corregida": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "424815",
+        "justificacion": null,
+        "id_usuario": 132,
+        "id_linea_asiento_nic41": 895,
+        "estado": "REGISTRADA",
+        "extra": {
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        },
+        "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+        "id_comprobante_nic41": null
+      },
+      {
+        "tipo_hecho": "RECONOCIMIENTO_DIFERENCIA",
+        "sentido": "GANANCIA",
+        "valor": "60000.00",
+        "fecha_hecho": "2026-11-08",
+        "id_periodo_contable": 220,
+        "id_activo_biologico": 1571,
+        "id_especie": 422,
+        "id_finca": 467,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tabla_origen": "reconocimientos_iniciales",
+        "id_origen": 497,
+        "tipo_evidencia": "REGISTRO_MANUAL",
+        "subtipo_costo": null,
+        "es_estimacion": false,
+        "es_reverso": false,
+        "tipo_hecho_corregido": null,
+        "id_linea_corregida": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "424815",
+        "justificacion": null,
+        "id_usuario": 132,
+        "id_linea_asiento_nic41": 896,
+        "estado": "REGISTRADA",
+        "extra": {
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        },
+        "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+        "id_comprobante_nic41": null
+      },
+      {
+        "tipo_hecho": "VARIACION_VR_PM",
+        "sentido": "PERDIDA",
+        "valor": "158000.00",
+        "fecha_hecho": "2026-11-10",
+        "id_periodo_contable": 220,
+        "id_activo_biologico": 1572,
+        "id_especie": 423,
+        "id_finca": 467,
+        "numero_id_tributaria": {
+          "omitido": true
+        },
+        "tabla_origen": "valoraciones_por_costos",
+        "id_origen": 25,
+        "tipo_evidencia": "VARIACION_PRECIO",
+        "subtipo_costo": null,
+        "es_estimacion": false,
+        "es_reverso": false,
+        "tipo_hecho_corregido": null,
+        "id_linea_corregida": null,
+        "cuenta_debito": "539505",
+        "cuenta_credito": "158405",
+        "justificacion": "Cambio del modelo de costo a valor razonable (NIC 41 ¶30)",
+        "id_usuario": 141,
+        "id_linea_asiento_nic41": 2665,
+        "estado": "REGISTRADA",
+        "extra": {
+          "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+          "id_comprobante_nic41": null
+        },
+        "estado_trazabilidad": "VERIFICACION_PENDIENTE",
+        "id_comprobante_nic41": null
+      }
+    ]
+  },
+  "comprobantes_periodo": {
+    "codigo": 200,
+    "total": 0,
+    "muestra": []
+  },
+  "auditoria": {
+    "1569": {
+      "codigo": 200,
+      "total_registros": 2,
+      "eventos_costo": [
+        {
+          "id_evento": 18854,
+          "tipo_evento": "COSTO_REGISTRADO",
+          "modulo": "M06",
+          "timestamp_evento": "2026-11-12T23:49:37.168426Z",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 141,
+          "nombre_usuario": "Contador Financiero",
+          "id_sistema": null,
+          "id_activo_biologico": 1569,
+          "id_periodo_contable": 220,
+          "id_referencia": 4448,
+          "payload_evento": {
+            "origen": "COMPRA_PROVEEDOR",
+            "factura": "QAG11011202601",
+            "subtipo": "ALIMENTO",
+            "politica": "GASTO",
+            "vehiculo": "FACTURA_COMPRA",
+            "naturaleza": "MANTENIMIENTO",
+            "tercero_nit": {
+              "omitido": true
+            },
+            "cuenta_manual": null,
+            "id_grupo_reparto": null
+          },
+          "datos_anteriores": null,
+          "severidad_evento": "INFO",
+          "hash_integridad": {
+            "omitido": true
+          },
+          "payload_truncado": false,
+          "origen_registro": "REPOSITORIO",
+          "monto_afectado": "150000.0000",
+          "identificador_activo": "QA-M06O-VR-01"
+        }
+      ],
+      "muestra": [
+        {
+          "id_evento": 18854,
+          "tipo_evento": "COSTO_REGISTRADO",
+          "modulo": "M06",
+          "timestamp_evento": "2026-11-12T23:49:37.168426Z",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 141,
+          "nombre_usuario": "Contador Financiero",
+          "id_sistema": null,
+          "id_activo_biologico": 1569,
+          "id_periodo_contable": 220,
+          "id_referencia": 4448,
+          "payload_evento": {
+            "origen": "COMPRA_PROVEEDOR",
+            "factura": "QAG11011202601",
+            "subtipo": "ALIMENTO",
+            "politica": "GASTO",
+            "vehiculo": "FACTURA_COMPRA",
+            "naturaleza": "MANTENIMIENTO",
+            "tercero_nit": {
+              "omitido": true
+            },
+            "cuenta_manual": null,
+            "id_grupo_reparto": null
+          },
+          "datos_anteriores": null,
+          "severidad_evento": "INFO",
+          "hash_integridad": {
+            "omitido": true
+          },
+          "payload_truncado": false,
+          "origen_registro": "REPOSITORIO",
+          "monto_afectado": "150000.0000",
+          "identificador_activo": "QA-M06O-VR-01"
+        },
+        {
+          "id_evento": 7065,
+          "tipo_evento": "RECONOCIMIENTO_INICIAL",
+          "modulo": "M06",
+          "timestamp_evento": "2026-11-08T21:25:01.126738Z",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 132,
+          "nombre_usuario": "",
+          "id_sistema": null,
+          "id_activo_biologico": 1569,
+          "id_periodo_contable": 220,
+          "id_referencia": 495,
+          "payload_evento": {
+            "lineas": [
+              894
+            ],
+            "es_apertura": true,
+            "advertencias": [],
+            "clasificacion": "PRODUCCION",
+            "valor_inicial": "3760000.0000",
+            "id_precio_mercado": 435,
+            "origen_financiero": "compra",
+            "indicador_valoracion": "VALOR_RAZONABLE"
+          },
+          "datos_anteriores": null,
+          "severidad_evento": "INFO",
+          "hash_integridad": {
+            "omitido": true
+          },
+          "payload_truncado": false,
+          "origen_registro": "REPOSITORIO",
+          "monto_afectado": "3760000.0000",
+          "identificador_activo": "QA-M06O-VR-01"
+        }
+      ]
+    },
+    "1570": {
+      "codigo": 200,
+      "total_registros": 1,
+      "eventos_costo": [],
+      "muestra": [
+        {
+          "id_evento": 7066,
+          "tipo_evento": "RECONOCIMIENTO_INICIAL",
+          "modulo": "M06",
+          "timestamp_evento": "2026-11-08T21:25:04.061875Z",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 132,
+          "nombre_usuario": "",
+          "id_sistema": null,
+          "id_activo_biologico": 1570,
+          "id_periodo_contable": 220,
+          "id_referencia": 496,
+          "payload_evento": {
+            "lineas": [
+              895
+            ],
+            "es_apertura": true,
+            "advertencias": [],
+            "clasificacion": "PRODUCCION",
+            "valor_inicial": "3760000.0000",
+            "id_precio_mercado": 435,
+            "origen_financiero": "compra",
+            "indicador_valoracion": "VALOR_RAZONABLE"
+          },
+          "datos_anteriores": null,
+          "severidad_evento": "INFO",
+          "hash_integridad": {
+            "omitido": true
+          },
+          "payload_truncado": false,
+          "origen_registro": "REPOSITORIO",
+          "monto_afectado": "3760000.0000",
+          "identificador_activo": "QA-M06O-VR-02"
+        }
+      ]
+    },
+    "1571": {
+      "codigo": 200,
+      "total_registros": 1,
+      "eventos_costo": [],
+      "muestra": [
+        {
+          "id_evento": 7067,
+          "tipo_evento": "RECONOCIMIENTO_INICIAL",
+          "modulo": "M06",
+          "timestamp_evento": "2026-11-08T21:25:06.574099Z",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 132,
+          "nombre_usuario": "",
+          "id_sistema": null,
+          "id_activo_biologico": 1571,
+          "id_periodo_contable": 220,
+          "id_referencia": 497,
+          "payload_evento": {
+            "lineas": [
+              896
+            ],
+            "es_apertura": true,
+            "advertencias": [],
+            "clasificacion": "PRODUCCION",
+            "valor_inicial": "3760000.0000",
+            "id_precio_mercado": 435,
+            "origen_financiero": "compra",
+            "indicador_valoracion": "VALOR_RAZONABLE"
+          },
+          "datos_anteriores": null,
+          "severidad_evento": "INFO",
+          "hash_integridad": {
+            "omitido": true
+          },
+          "payload_truncado": false,
+          "origen_registro": "REPOSITORIO",
+          "monto_afectado": "3760000.0000",
+          "identificador_activo": "QA-M06O-VR-03"
+        }
+      ]
+    }
+  },
+  "calculo_esperado_desarrollo": {
+    "monto": "900000.00",
+    "metodo": "POR_BIOMASA",
+    "biomasa_declarada_desarrollo": {
+      "1569": "100",
+      "1570": "200",
+      "1571": "300"
+    },
+    "biomasa_total_desarrollo": "600",
+    "importes_desarrollo": {
+      "1569": "150000.00",
+      "1570": "300000.00",
+      "1571": "450000.00"
+    },
+    "suma_desarrollo": "900000.00",
+    "coincide_tabla_desarrollo": true,
+    "biomasa_observada_test": {
+      "1569": "100.00",
+      "1570": "200.00",
+      "1571": "300.00"
+    },
+    "biomasa_total_observada": "600.00",
+    "importes_con_biomasa_observada": {
+      "1569": "150000.00",
+      "1570": "300000.00",
+      "1571": "450000.00"
+    },
+    "demostracion_persistencia_posterior": [
+      "GET /finanzas/costos?id_periodo_contable=220 filtrar por id_grupo_reparto",
+      "GET /finanzas/costos?id_activo_biologico={1569|1570|1571}",
+      "Comparar monto_costo de cada registro con importes esperados",
+      "GET /finanzas/lineas?id_periodo_contable=220 si origen MANO_OBRA_PROPIA",
+      "GET /finanzas/periodos/220/comprobantes (si aplica vehículo/asiento)",
+      "GET /finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_periodo_contable=220"
+    ]
+  },
+  "evaluacion": {
+    "proposito": "Preparación del escenario positivo TC-M06-42 (distribución POR_BIOMASA).",
+    "periodo_220": "PREPARADO",
+    "activos_1569_1570_1571": "PREPARADO",
+    "biomasa": "100/200/300",
+    "linea_base_1569": "Conserva costo histórico 4448 de G110; no es línea base cero.",
+    "despliegue_test": "CONFIRMADO_POR_DEPLOYMENT_SHA",
+    "nota_cierre": "Tras la ejecución autorizada, G113/TC-M06-42 quedaron APROBADOS. Esta inspección conserva solo datos de preparación del escenario positivo.",
+    "actualizado_en": "2026-11-13T01:38:49.935482+00:00"
+  }
+}

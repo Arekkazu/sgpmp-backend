@@ -1,0 +1,106 @@
+{
+  "grupo": "TC-M09-G32",
+  "caso": "TC-M09-69",
+  "rf": "RF-17",
+  "tipo": "REEVALUACION V2",
+  "runId": "G32-REEVAL-V2-20260913-021645",
+  "ambiente": "DEV",
+  "fecha": "2026-09-13T07:19:33.218Z",
+  "MONITORING_BEFORE": {
+    "dashboard": {
+      "endpoint": "GET /iot/monitoreo/dashboard",
+      "status": 200,
+      "total": 5,
+      "camposEstadoSensor": [
+        "id_sensor",
+        "id_dispositivo_iot",
+        "nombre_sensor",
+        "tipo_variable",
+        "categoria_variable",
+        "ultimo_valor",
+        "ultima_unidad",
+        "ultimo_timestamp_captura",
+        "estado_semaforo",
+        "estado_calidad",
+        "estado_desviacion",
+        "estado_conectividad",
+        "tiempo_sin_reporte_min",
+        "dato_desactualizado",
+        "id_alerta",
+        "severidad_alerta",
+        "tendencia",
+        "id_infraestructura",
+        "nombre_infraestructura",
+        "id_finca",
+        "nombre_finca",
+        "nivel_bateria_pct",
+        "calidad_senal_rssi",
+        "calidad_senal_snr"
+      ],
+      "sensoresDeLaVariable": [
+        {
+          "id_sensor": 1,
+          "tipo_variable": "Temperatura del agua",
+          "ultimo_valor": "48.5000",
+          "estado_semaforo": "GRIS",
+          "id_infraestructura": 1
+        }
+      ],
+      "semaforos": [
+        "GRIS"
+      ]
+    },
+    "historial": {
+      "endpoint": "GET /iot/monitoreo/historial",
+      "ventana": [
+        "2026-08-14",
+        "2026-09-13"
+      ],
+      "status": 200,
+      "total": 1,
+      "camposLectura": [
+        "id_telemetria",
+        "id_sensor",
+        "nombre_sensor",
+        "id_variable",
+        "tipo_variable",
+        "categoria_variable",
+        "valor",
+        "valor_ajustado",
+        "unidad_medida",
+        "timestamp_captura",
+        "estado_calidad",
+        "estado_semaforo_historico",
+        "origen_dato",
+        "id_infraestructura",
+        "infraestructura",
+        "finca",
+        "id_activo_biologico",
+        "especie",
+        "id_alerta",
+        "nivel_bateria_pct",
+        "calidad_senal_rssi",
+        "calidad_senal_snr"
+      ],
+      "lecturasDeLaVariable": [
+        {
+          "id_telemetria": 45,
+          "tipo_variable": "Temperatura del agua",
+          "valor": "19.1000",
+          "especie": null,
+          "estado_semaforo_historico": "GRIS"
+        }
+      ],
+      "semaforosHistoricos": [
+        "GRIS"
+      ],
+      "lecturasConEspecie": 0
+    }
+  },
+  "correlacion": {
+    "monitoreoExponeConfiguracionRF17": false,
+    "dashboardExponeEspecie": false,
+    "semaforoHistoricoCalculado": false,
+    "RF17_BEFORE_igual_MONITORING_BEFORE": "No verificable: Monitoreo no expone rango, niveles ni referencia al umbral"
+  }
+}

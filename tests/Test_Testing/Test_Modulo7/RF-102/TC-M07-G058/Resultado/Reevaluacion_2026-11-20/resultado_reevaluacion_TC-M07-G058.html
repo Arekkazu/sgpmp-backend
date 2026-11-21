@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"/>
+<title>TC-M07-G058 Reevaluación</title>
+<style>
+body{font-family:Segoe UI,sans-serif;margin:2rem;color:#1a1a1a;line-height:1.45;background:#f7f5f1}
+h1{font-size:1.5rem}.card{background:#fff;border:1px solid #ddd;padding:1rem;margin:1rem 0}
+table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:.4rem .55rem;text-align:left;vertical-align:top}
+th{background:#eee}.warn{background:#fff3cd;padding:.75rem;border:1px solid #e0c35a}
+</style></head><body>
+<h1>TC-M07-G058 — Reevaluación RF-102 (Issue #1165)</h1>
+<p>Fecha UTC: 2026-11-21T00:27:47.756010+00:00 · Estado general: <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></p>
+<div class="warn">Las evidencias originales en <code>Resultado/</code> se conservan intactas.
+Esta carpeta solo contiene la reevaluación. Limitaciones documentadas sin minimizar.</div>
+<div class="card"><h2>Resumen</h2>
+<pre>{
+  &quot;aprobados&quot;: 6,
+  &quot;rechazados&quot;: 0,
+  &quot;bloqueados&quot;: 0,
+  &quot;no_aplica&quot;: 0,
+  &quot;estado_final&quot;: &quot;APROBADO&quot;
+}</pre></div>
+<div class="card"><h2>Comparación antes / después</h2>
+<table><thead><tr><th>Escenario</th><th>Original</th><th>Reevaluación</th><th>Cambio</th><th>Evidencia</th></tr></thead>
+<tbody><tr><td>E1 Políticas de retención 5 y 10 años</td><td>RECHAZADO</td><td>APROBADO</td><td>MEJORA</td><td>evidencia_reevaluacion_e1_retencion_TC-M07-G058.json</td></tr><tr><td>E2 Archivado automático</td><td>RECHAZADO</td><td>APROBADO</td><td>MEJORA</td><td>evidencia_reevaluacion_e2_archivado_TC-M07-G058.json</td></tr><tr><td>E3 Integridad del hash durante el archivado</td><td>APROBADO</td><td>APROBADO</td><td>SIN CAMBIO</td><td>evidencia_reevaluacion_e3_hash_TC-M07-G058.json</td></tr><tr><td>E4 Consulta y recuperación de registros históricos</td><td>RECHAZADO</td><td>APROBADO</td><td>MEJORA</td><td>evidencia_reevaluacion_e4_historicos_TC-M07-G058.json</td></tr><tr><td>E5 Verificación de antigüedad 5 y 10 años</td><td>BLOQUEADO</td><td>APROBADO</td><td>MEJORA</td><td>evidencia_reevaluacion_e5_antiguedad_TC-M07-G058.json</td></tr><tr><td>E6 Comportamiento ante fallos de archivado</td><td>NO APLICA</td><td>APROBADO</td><td>MEJORA</td><td>evidencia_reevaluacion_e6_fallos_archivado_TC-M07-G058.json</td></tr></tbody></table></div>
+<div class="card"><h2>Escenarios</h2>
+<table><thead><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Validación</th><th>Evidencia</th></tr></thead>
+<tbody><tr><td>E1</td><td>Políticas de retención 5 y 10 años</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Configuración y comportamiento verificable 5y/10y</td><td>evidencia_reevaluacion_e1_retencion_TC-M07-G058.json</td></tr><tr><td>E2</td><td>Archivado automático</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Proceso real de archivado ejecutable</td><td>evidencia_reevaluacion_e2_archivado_TC-M07-G058.json</td></tr><tr><td>E3</td><td>Integridad del hash durante el archivado</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>SHA-256 conservado antes/después del traslado</td><td>evidencia_reevaluacion_e3_hash_TC-M07-G058.json</td></tr><tr><td>E4</td><td>Consulta y recuperación de registros históricos</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Recuperación real de archivados vía almacenamiento histórico</td><td>evidencia_reevaluacion_e4_historicos_TC-M07-G058.json</td></tr><tr><td>E5</td><td>Verificación de antigüedad 5 y 10 años</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Límites exactos con datos históricos controlados</td><td>evidencia_reevaluacion_e5_antiguedad_TC-M07-G058.json</td></tr><tr><td>E6</td><td>Comportamiento ante fallos de archivado</td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></td><td>Rollback, alerta, reintento, sin pérdida/duplicados</td><td>evidencia_reevaluacion_e6_fallos_archivado_TC-M07-G058.json</td></tr></tbody></table></div>
+<div class='card'><h3>E1 — Políticas de retención 5 y 10 años <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><b>Esperado:</b> 5 años generales y 10 años AAEF aplicados al archivar</p><p><b>Obtenido:</b> codigo_retencion=True; schema_test=True; aislado={&#x27;fn_retencion_existe&#x27;: True, &#x27;general_lt_5y_permanece_activo&#x27;: True, &#x27;general_ge_5y_archivado&#x27;: True, &#x27;aaef_probado&#x27;: True, &#x27;aaef_ge_10y_archivado&#x27;: True, &#x27;aaef_lt_10y_activo&#x27;: True}</p><pre>{
+  &quot;fn_retencion_existe&quot;: true,
+  &quot;general_lt_5y_permanece_activo&quot;: true,
+  &quot;general_ge_5y_archivado&quot;: true,
+  &quot;aaef_probado&quot;: true,
+  &quot;aaef_ge_10y_archivado&quot;: true,
+  &quot;aaef_lt_10y_activo&quot;: true
+}</pre><p>APROBADO solo con evidencia comportamental en ambos plazos.</p></div><div class='card'><h3>E2 — Archivado automático <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><b>Esperado:</b> Worker/lote traslada elegibles al histórico sin pérdida ni duplicados</p><p><b>Obtenido:</b> worker=True; aislado={&#x27;ejecutar_archivado_ok&#x27;: True, &#x27;n_activos&#x27;: 5, &#x27;n_historicos&#x27;: 4, &#x27;viejos_en_historico&#x27;: True, &#x27;vigentes_siguen_activos&#x27;: True, &#x27;sin_aviso&#x27;: True, &#x27;idempotente&#x27;: True}</p><pre>{
+  &quot;ejecutar_archivado_ok&quot;: true,
+  &quot;n_activos&quot;: 5,
+  &quot;n_historicos&quot;: 4,
+  &quot;viejos_en_historico&quot;: true,
+  &quot;vigentes_siguen_activos&quot;: true,
+  &quot;sin_aviso&quot;: true,
+  &quot;idempotente&quot;: true
+}</pre><p>Proceso verificado en BD aislada; en TEST el worker corre al lifespan del backend desplegado.</p></div><div class='card'><h3>E3 — Integridad del hash durante el archivado <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><b>Esperado:</b> Hash idéntico en activo→histórico y recuperable</p><p><b>Obtenido:</b> aislado={&#x27;hashes_antes&#x27;: {&#x27;44fa0c37-5521-4406-83d9-a235d3143fd5&#x27;: &#x27;982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be&#x27;, &#x27;34d132af-a303-4044-9d4e-f4b198d748e2&#x27;: &#x27;e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813&#x27;, &#x27;a89b0a75-27c0-48e7-90e0-bd4d36fe6f07&#x27;: &#x27;f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519&#x27;}, &#x27;n_comparados&#x27;: 4, &#x27;todos_conservados&#x27;: True, &#x27;detalle&#x27;: [{&#x27;id&#x27;: &#x27;44fa0c37-5521-4406-83d9-a235d3143fd5&#x27;, &#x27;antes&#x27;: &#x27;982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be&#x27;, &#x27;despues&#x27;: &#x27;982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be&#x27;, &#x27;igual&#x27;: True}, {&#x27;id&#x27;: &#x27;34d132af-a303-4044-9d4e-f4b198d748e2&#x27;, &#x27;antes&#x27;: &#x27;e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813&#x27;, &#x27;despues&#x27;: &#x27;e34909be0c0d2176cd4e049783fa63d4eba1…</p><pre>{
+  &quot;aislado&quot;: {
+    &quot;hashes_antes&quot;: {
+      &quot;44fa0c37-5521-4406-83d9-a235d3143fd5&quot;: &quot;982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be&quot;,
+      &quot;34d132af-a303-4044-9d4e-f4b198d748e2&quot;: &quot;e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813&quot;,
+      &quot;a89b0a75-27c0-48e7-90e0-bd4d36fe6f07&quot;: &quot;f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519&quot;
+    },
+    &quot;n_comparados&quot;: 4,
+    &quot;todos_conservados&quot;: true,
+    &quot;detalle&quot;: [
+      {
+        &quot;id&quot;: &quot;44fa0c37-5521-4406-83d9-a235d3143fd5&quot;,
+        &quot;antes&quot;: &quot;982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be&quot;,
+        &quot;despues&quot;: &quot;982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be&quot;,
+        &quot;igual&quot;: true
+      },
+      {
+        &quot;id&quot;: &quot;34d132af-a303-4044-9d4e-f4b198d748e2&quot;,
+        &quot;antes&quot;: &quot;e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813&quot;,
+        &quot;despues&quot;: &quot;e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813&quot;,
+        &quot;igual&quot;: true
+      },
+      {
+        &quot;id&quot;: &quot;a89b0a75-27c0-48e7-90e0-bd4d36fe6f07&quot;,
+        &quot;antes&quot;: &quot;f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519&quot;,
+        &quot;despues&quot;: &quot;f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519&quot;,
+        &quot;igual&quot;: true
+      },
+      {
+        &quot;id&quot;: &quot;635fa775-1f24-4937-b2de-7cc6a404f62c&quot;,
+        &quot;antes&quot;: &quot;14e6b8994209d189cafb668e7e1d2a4f59cfd889284a25349f65da31aa910681&quot;,
+        &quot;despues&quot;: &quot;14e6b8994209d189cafb668e7e1d2a4f59cfd889284a25349f65da31aa910681&quot;,
+        &quot;igual&quot;: true
+      }
+    ]
+  },
+  &quot;api_test_actual&quot;: {
+    &quot;integro&quot;: 781,
+    &quot;corrupto&quot;: 0
+  }
+}</pre><p>Evidencia nueva de conservación durante archivado en BD aislada.</p></div><div class='card'><h3>E4 — Consulta y recuperación de registros históricos <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><b>Esperado:</b> Vista/consulta unificada activos+archivados con integridad</p><p><b>Obtenido:</b> vista_test=True; aislado={&#x27;total_vista_historial&#x27;: 9, &#x27;esperado&#x27;: 9, &#x27;cubre_activos_y_archivados&#x27;: True, &#x27;consulta_dual_implementada&#x27;: True}; api_http=200</p><pre>{
+  &quot;total_vista_historial&quot;: 9,
+  &quot;esperado&quot;: 9,
+  &quot;cubre_activos_y_archivados&quot;: true,
+  &quot;consulta_dual_implementada&quot;: true
+}</pre><p>La API no expone flag &#x27;archivado&#x27;; la recuperación se demuestra por la vista unificada.</p></div><div class='card'><h3>E5 — Verificación de antigüedad 5 y 10 años <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><b>Esperado:</b> Escenarios &lt;, =margen, &gt; para 5y y 10y</p><p><b>Obtenido:</b> api_test_ge5y=0 aaef_ge10y=0; aislado={&#x27;n_viejos&#x27;: 4, &#x27;n_vigentes&#x27;: 5, &#x27;cinco_corte&#x27;: &#x27;2021-11-21T00:27:47.600566+00:00&#x27;, &#x27;diez_corte&#x27;: &#x27;2016-11-21T00:27:47.600566+00:00&#x27;, &#x27;cliente_id&#x27;: 1, &#x27;tipos_aaef_incluidos&#x27;: True}</p><pre>{
+  &quot;api_test&quot;: {
+    &quot;ge_5y&quot;: 0,
+    &quot;aaef_ge_10y&quot;: 0
+  },
+  &quot;aislado&quot;: {
+    &quot;n_viejos&quot;: 4,
+    &quot;n_vigentes&quot;: 5,
+    &quot;cinco_corte&quot;: &quot;2021-11-21T00:27:47.600566+00:00&quot;,
+    &quot;diez_corte&quot;: &quot;2016-11-21T00:27:47.600566+00:00&quot;,
+    &quot;cliente_id&quot;: 1,
+    &quot;tipos_aaef_incluidos&quot;: true
+  }
+}</pre><p>Datos sintéticos documentados; no representan producción.</p></div><div class='card'><h3>E6 — Comportamiento ante fallos de archivado <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#1b7a3d;color:#fff;font-weight:600">APROBADO</span></h3><p><b>Esperado:</b> Fallo controlado revierte lote; reintento archiva válidos; corruptos quedan activos</p><p><b>Obtenido:</b> aislado={&#x27;fallo_detectado&#x27;: True, &#x27;causa_alerta&#x27;: &#x27;FALLO_ARCHIVADO&#x27;, &#x27;rollback_sin_historico_del_lote&#x27;: True, &#x27;ambos_siguen_activos_tras_fallo&#x27;: True, &#x27;reintento_ok&#x27;: True, &#x27;bueno_archivado_tras_reintento&#x27;: True, &#x27;corrupto_permanece_activo&#x27;: True, &#x27;hash_bueno_conservado&#x27;: True}</p><pre>{
+  &quot;fallo_detectado&quot;: true,
+  &quot;causa_alerta&quot;: &quot;FALLO_ARCHIVADO&quot;,
+  &quot;rollback_sin_historico_del_lote&quot;: true,
+  &quot;ambos_siguen_activos_tras_fallo&quot;: true,
+  &quot;reintento_ok&quot;: true,
+  &quot;bueno_archivado_tras_reintento&quot;: true,
+  &quot;corrupto_permanece_activo&quot;: true,
+  &quot;hash_bueno_conservado&quot;: true
+}</pre><p>Ejecutado en BD aislada; no se provocaron fallos en infraestructura compartida.</p></div>
+<div class="card"><h2>Diagnóstico de implementación</h2>
+<pre>{
+  &quot;implementacion&quot;: {
+    &quot;code_root&quot;: &quot;origin/test (inspección RF-102 #1165)&quot;,
+    &quot;archivos_clave&quot;: {
+      &quot;alembic/versions/f11651020001_rf102_archivo_auditoria_integracion.py&quot;: true,
+      &quot;src/accounting_integration/application/use_cases/auditoria/archivar_auditoria_integracion_use_case.py&quot;: true,
+      &quot;src/accounting_integration/infrastructure/archivo_auditoria_worker.py&quot;: true,
+      &quot;src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py&quot;: true,
+      &quot;tests/integration/test_inc_m07_371_g58_archivado_auditoria.py&quot;: true,
+      &quot;anotaciones/modulo_7/inc_m07_371_g58_retencion_auditoria_rf102.md&quot;: true,
+      &quot;main.py&quot;: true
+    },
+    &quot;retencion_5y_10y&quot;: true,
+    &quot;tabla_historica&quot;: true,
+    &quot;vista_historial&quot;: true,
+    &quot;fn_archivar&quot;: true,
+    &quot;worker_periodico&quot;: true,
+    &quot;consulta_dual_almacen&quot;: true,
+    &quot;reintento_15m&quot;: true,
+    &quot;tipos_aaef_10y&quot;: [
+      &quot;PAQUETE_AAEF_CONSULTADO&quot;,
+      &quot;VISTA_AAEF_GENERADA&quot;,
+      &quot;CONTRATO_ACTIVADO&quot;
+    ],
+    &quot;proteccion_salida&quot;: true,
+    &quot;intervalo_1h&quot;: true,
+    &quot;metodos_archivo&quot;: true,
+    &quot;worker_en_lifespan&quot;: true,
+    &quot;implementacion_codigo_completa&quot;: true,
+    &quot;refs&quot;: {
+      &quot;issue&quot;: &quot;#1165&quot;,
+      &quot;pr&quot;: &quot;#1191&quot;,
+      &quot;pr_lote&quot;: &quot;#1202&quot;,
+      &quot;commit_fix&quot;: &quot;98f8b5c8822f4a169fb90cc1092cbe8bbb2f2b6a&quot;,
+      &quot;migracion&quot;: &quot;f11651020001&quot;
+    }
+  },
+  &quot;schema_test&quot;: {
+    &quot;readonly&quot;: true,
+    &quot;ok&quot;: true,
+    &quot;tablas&quot;: [
+      &quot;eventos_integracion&quot;,
+      &quot;eventos_integracion_archivados&quot;,
+      &quot;identidades_eventos_integracion&quot;
+    ],
+    &quot;vista_historial&quot;: true,
+    &quot;funciones&quot;: [
+      &quot;fn_archivar_eventos_rf102&quot;,
+      &quot;fn_fin_retencion_rf102&quot;
+    ],
+    &quot;retencion_tiene_5y&quot;: true,
+    &quot;retencion_tiene_10y&quot;: true,
+    &quot;retencion_tipos_aaef&quot;: true,
+    &quot;esquema_archivo_presente&quot;: true
+  },
+  &quot;api_test&quot;: {
+    &quot;disponible&quot;: true,
+    &quot;n_registros&quot;: 781,
+    &quot;integro&quot;: 781,
+    &quot;corrupto&quot;: 0,
+    &quot;pct_integro&quot;: 100.0,
+    &quot;ge_5y&quot;: 0,
+    &quot;aaef_ge_10y&quot;: 0,
+    &quot;fecha_min&quot;: &quot;2026-08-05T10:00:00+00:00&quot;,
+    &quot;fecha_max&quot;: &quot;2026-11-22T10:00:00+00:00&quot;
+  },
+  &quot;bd_aislada_ok&quot;: true
+}</pre></div>
+<div class="card"><h2>Limitaciones</h2>
+<pre>[
+  &quot;TEST no contiene registros naturales de antigüedad ≥5/10 años.&quot;,
+  &quot;E5 se validó con datos sintéticos en BD aislada (no representan histórico real de producción/TEST).&quot;,
+  &quot;La API no expone flag &#x27;archivado&#x27;; la recuperación histórica se demuestra vía vista unificada.&quot;,
+  &quot;pytest oficial tests/integration/test_inc_m07_371_g58_archivado_auditoria.py no ejecutado en Windows (dependencia fcntl).&quot;,
+  &quot;Se ejecutó harness equivalente (ejecutar_reevaluacion_tc_m07_g58.py) sobre el mismo código de origin/test / PR #1191.&quot;,
+  &quot;En API TEST no hay aún filas archivables por antigüedad; el worker no tiene candidatos reales en datos compartidos.&quot;
+]</pre></div>
+</body></html>

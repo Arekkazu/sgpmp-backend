@@ -222,7 +222,7 @@ Solo válido sobre `estado_registro=VALIDADO`; ya `ANULADO` → `409 CONSUMO_YA_
 | `fecha_aplicacion` | `date` | requerido |
 | `hora_aplicacion` | `time` | requerido |
 | `via_administracion` | `str` | 1–20; validado en el use case contra VO `ViaAplicacion`: `ORAL`, `INTRAMUSCULAR`/`IM`, `INTRAVENOSA`/`IV`, `SUBCUTANEA`/`SC`, `TOPICA`, `INTRAMAMARIA` |
-| `dosis_aplicada` | `Decimal` | `gt=0` |
+| `dosis_aplicada` | `Decimal(10,4)` | `gt=0`; hasta seis dígitos enteros y cuatro decimales. Precisión excesiva → 400, sin redondeo; se admiten ceros finales que no cambien el valor |
 | `unidad_dosis` | `str` | 1–20 |
 | `periodo_retiro_dias` | `int` | default `0`, `ge=0` |
 | `motivo_aplicacion` | `str` | 10–500 caracteres tras `strip()` |

@@ -1,0 +1,385 @@
+{
+  "info": {
+    "name": "TC-M02-G100 - Control de acceso a la bitacora por rol y correlacion con RF-63 (RF-52, CU13)",
+    "description": "Sub-casos TC-M02-172 y TC-M02-173, en vivo contra TEST. 172: el Productor pide eventos ACCESO_DATOS de un activo ajeno -> se espera 403 y un registro ACCESO_NO_AUTORIZADO en la propia bitacora. 173: los registros ASOCIACION_IOT_CREADA de RF-52 (generados por RF-49) deben llevar id_evento_correlacionado apuntando al registro de RF-63, y RF-63 debe exponer la correlacion de vuelta. Las aserciones afirman lo que pide la ficha; las que fallan son evidencia de defecto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login exitoso (HTTP 200)', function(){ pm.response.to.have.status(200); });",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "if (r && r.token) { pm.collectionVariables.set('token_admin', r.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{admin_correo}}\",\"contrasena\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Login Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login exitoso (HTTP 200)', function(){ pm.response.to.have.status(200); });",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "if (r && r.token) { pm.collectionVariables.set('token_productor', r.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{productor_correo}}\",\"contrasena\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "172, paso 1 - Conteo ACCESO_NO_AUTORIZADO ANTES",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text().slice(0,600));",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('consulta 200', function(){ pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('total_antes', r.total_registros);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?tipo_evento=ACCESO_NO_AUTORIZADO&page_size=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "ACCESO_NO_AUTORIZADO"
+            },
+            {
+              "key": "page_size",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "172, paso 2 - Productor consulta ACCESO_DATOS de un activo ajeno (403 esperado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text().slice(0,600));",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('rechazado con HTTP 403', function(){ pm.response.to.have.status(403); });",
+              "pm.test('error_code ALCANCE_BITACORA_DENEGADO', function(){ pm.expect(r.error_code).to.equal('ALCANCE_BITACORA_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo_ajeno}}&clasificacion_biologica=ACCESO_DATOS",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "id_activo_biologico",
+              "value": "{{id_activo_ajeno}}"
+            },
+            {
+              "key": "clasificacion_biologica",
+              "value": "ACCESO_DATOS"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "172, paso 3 - El intento quedo registrado como ACCESO_NO_AUTORIZADO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text().slice(0,600));",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('consulta 200', function(){ pm.response.to.have.status(200); });",
+              "pm.test('el conteo de ACCESO_NO_AUTORIZADO aumento', function(){ pm.expect(r.total_registros).to.be.above(parseInt(pm.collectionVariables.get('total_antes'),10)); });",
+              "pm.test('el registro nuevo documenta rol Productor y clasificacion ACCESO_DATOS', function(){ const d = r.registros[0].detalle_tecnico; pm.expect(d.rol).to.equal('Productor'); pm.expect(d.clasificacion_solicitada).to.equal('ACCESO_DATOS'); pm.expect(r.registros[0].resultado).to.equal('RECHAZADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?tipo_evento=ACCESO_NO_AUTORIZADO&page_size=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "ACCESO_NO_AUTORIZADO"
+            },
+            {
+              "key": "page_size",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "173, paso 1 - Registros ASOCIACION_IOT_CREADA de RF-52 (generados por RF-49)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text().slice(0,600));",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('consulta 200 y hay registros', function(){ pm.response.to.have.status(200); pm.expect(r.registros.length).to.be.above(0); });",
+              "pm.test('DEFECTO: todos llevan id_evento_correlacionado (enlace a RF-63)', function(){ const sin = r.registros.filter(function(x){ return !x.id_evento_correlacionado; }).length; pm.expect(sin, sin + ' de ' + r.registros.length + ' registros con id_evento_correlacionado nulo').to.equal(0); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?tipo_evento=ASOCIACION_IOT_CREADA&page_size=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "ASOCIACION_IOT_CREADA"
+            },
+            {
+              "key": "page_size",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "173, paso 2 - RF-63 (GET /iot/auditoria) expone la correlacion de vuelta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text().slice(0,600));",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('consulta 200', function(){ pm.response.to.have.status(200); });",
+              "pm.test('DEFECTO: los registros de RF-63 exponen un campo de correlacion', function(){ const campos = new Set(); r.items.forEach(function(i){ Object.keys(i).forEach(function(k){ campos.add(k); }); }); pm.expect(Array.from(campos).some(function(c){ return c.indexOf('correl') >= 0; }), 'campos RF-63: ' + Array.from(campos).join(',')).to.equal(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/auditoria?page_size=5",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "page_size",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "password",
+      "value": "Test1234!"
+    },
+    {
+      "key": "admin_correo",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "productor_correo",
+      "value": "m2m.nuevo@ejemplo.com"
+    },
+    {
+      "key": "id_activo_ajeno",
+      "value": "240"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "total_antes",
+      "value": ""
+    }
+  ]
+}

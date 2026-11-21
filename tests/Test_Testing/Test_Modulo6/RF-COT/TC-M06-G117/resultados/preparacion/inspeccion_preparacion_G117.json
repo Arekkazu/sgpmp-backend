@@ -1,0 +1,281 @@
+{
+  "caso": "TC-M06-G117",
+  "identificador_anterior": "TC-M06-G89",
+  "issue": "#1020 / INC-M06-333-G89",
+  "correccion_ambiente": "#1024",
+  "subcasos": [
+    "TC-M06-48",
+    "TC-M06-49"
+  ],
+  "fase": "inspeccion_preparacion_solo_lectura",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-13T03:37:46.521082+00:00",
+  "restricciones": "Sin POST /finanzas/cotizaciones; solo GET + POST /sesiones/",
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "ruta": "/health",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:37:46.935136+00:00",
+      "nota": "health",
+      "respuesta": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "escritura": true,
+      "en": "2026-11-13T03:37:47.577780+00:00",
+      "nota": "login",
+      "respuesta": {
+        "ok": true,
+        "tipo": "Bearer"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:37:48.816454+00:00",
+      "nota": "openapi",
+      "respuesta": {
+        "version": "1.0.0",
+        "post_cotizaciones": true,
+        "CotizacionDTO": {
+          "activos_cotizados": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Activos Cotizados"
+          },
+          "valor_cotizacion_propuesto": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,14}|(?=[\\d.]{1,19}0*$)\\d{0,14}\\.\\d{0,4}0*$)"
+              }
+            ],
+            "title": "Valor Cotizacion Propuesto"
+          },
+          "condiciones": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condiciones"
+          },
+          "fecha_vencimiento": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha Vencimiento"
+          }
+        },
+        "required": [
+          "activos_cotizados",
+          "valor_cotizacion_propuesto"
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:37:49.206888+00:00",
+      "respuesta": {
+        "periodo_220": {
+          "encontrado": true,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "razon_social": "QA M06 Operaciones SAS"
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1569",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:37:49.619973+00:00",
+      "respuesta": {
+        "http": 200,
+        "estado": "ACTIVO",
+        "id_finca": 467,
+        "razon_social": "QA M06 Operaciones SAS",
+        "indicador_valoracion": "VALOR_RAZONABLE",
+        "tiene_calculo": true,
+        "valor_razonable_neto": "3760000.0000",
+        "apto_para_g117": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-13T03:37:50.003928+00:00",
+      "respuesta": {
+        "total": 7,
+        "ids": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          4,
+          5
+        ],
+        "sobre_1569": [
+          10,
+          9
+        ]
+      }
+    }
+  ],
+  "contrato": {
+    "endpoint": "POST /finanzas/cotizaciones",
+    "dto": "CotizacionDTO",
+    "campos": {
+      "activos_cotizados": "list[int] obligatorio min_length=1",
+      "valor_cotizacion_propuesto": "Decimal gt=0 max_digits=18 decimal_places=4 (DTO)",
+      "condiciones": "opcional",
+      "fecha_vencimiento": "Optional[date] = None (DTO); opcional"
+    },
+    "fecha_emision": "No se envia; hoy_usuario() America/Bogota en el caso de uso",
+    "validaciones_caso_uso": {
+      "valor_propuesto_le_0": {
+        "http": 422,
+        "code": "VALOR_COTIZACION_INVALIDO",
+        "alcanzable_via_api": false
+      },
+      "fecha_vencimiento_anterior": {
+        "http": 422,
+        "code": "FECHA_VENCIMIENTO_INVALIDA",
+        "alcanzable_via_api": true
+      },
+      "fecha_vencimiento_omitida": {
+        "permitido": true,
+        "efecto": "persiste null; no vence automaticamente"
+      }
+    },
+    "validacion_dto_antes_caso_uso": {
+      "valor_0_o_negativo": {
+        "http": 400,
+        "code": "VAL_ENTRADA",
+        "motivo": "Field(gt=0) en CotizacionDTO"
+      }
+    }
+  },
+  "discrepancias": [
+    {
+      "id": "DISC-G117-01",
+      "tema": "TC-M06-48 esperado vs implementacion",
+      "matriz_issue_1020": "HTTP 422 VALOR_COTIZACION_INVALIDO para valor 0 y -1",
+      "implementacion": "CotizacionDTO.valor_cotizacion_propuesto = Field(gt=0) rechaza 0/-1 en Pydantic; error_handlers -> HTTP 400 VAL_ENTRADA. La linea FA-6 del caso de uso (422 VALOR_COTIZACION_INVALIDO) no se alcanza por la API.",
+      "fuentes": [
+        "src/financial_valuation/infrastructure/dto/m06_dto.py CotizacionDTO",
+        "src/shared/error_handlers.py request_validation_error_handler",
+        "registrar_cotizacion_use_case.py FA-6",
+        "primera_evaluacion/resumen_ejecucion_TC-M06-G117.json contrato historico"
+      ],
+      "accion": "No se altera la matriz ni el backend. Requiere revision/autorizacion de expectativa."
+    },
+    {
+      "id": "DISC-G117-02",
+      "tema": "RF-COT 5.3.b documental",
+      "matriz": "Omitir fecha_vencimiento es valido (RF-COT 5.3.b)",
+      "implementacion": "fecha_vencimiento Optional en DTO; caso de uso solo valida si viene y es < hoy",
+      "especificacion_en_repo": "No se encontro documento RF-COT v1.1 con seccion 5.3.b en el repositorio",
+      "respaldo_disponible": "Comentario Arekkazu en #1020 + DTO/use case + tabla (nullable)",
+      "accion": "Conservar referencia issue #1020 + implementacion; 49b es escritura positiva y requiere autorizacion expresa"
+    }
+  ],
+  "activo_1569": {
+    "http": 200,
+    "estado": "ACTIVO",
+    "id_finca": 467,
+    "razon_social": "QA M06 Operaciones SAS",
+    "indicador_valoracion": "VALOR_RAZONABLE",
+    "tiene_calculo": true,
+    "valor_razonable_neto": "3760000.0000",
+    "apto_para_g117": true
+  },
+  "periodo_220": {
+    "encontrado": true,
+    "estado": "ABIERTO",
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2026-11-30",
+    "razon_social": "QA M06 Operaciones SAS"
+  },
+  "disponibilidad_test": {
+    "health_http": 200,
+    "login_http": 200,
+    "login_ok": true,
+    "timeout": false
+  },
+  "dictamen_preparacion": {
+    "categoria": "PREPARADO_CON_DISCREPANCIA",
+    "motivo": "TEST responde, activo 1569 apto, huella #1024 presente. DISC-G117-01 pendiente de decision (422 vs 400). 49b no ejecutarse sin autorizacion (escritura).",
+    "listo_para_ejecutar_negativos_48_49a": true,
+    "listo_para_ejecutar_49b_positivo": false,
+    "requiere_decision_previa": [
+      "DISC-G117-01 expectativa HTTP/code para valor 0 y -1"
+    ],
+    "escritura_cotizaciones": false
+  },
+  "despliegue_1024_huella": {
+    "filtros_auditoria_presentes": {
+      "id_usuario": true,
+      "origen_registro": true,
+      "id_referencia": true
+    },
+    "todos": true,
+    "nota": "Huella OpenAPI del commit 29512934 (lote #1024). No prueba por si sola el FA-3 de periodo; si prueba presencia del lote en TEST."
+  },
+  "baseline_cotizaciones": {
+    "total": 7,
+    "ids": [
+      10,
+      9,
+      8,
+      7,
+      6,
+      4,
+      5
+    ],
+    "sobre_1569": [
+      10,
+      9
+    ]
+  },
+  "riesgos": [
+    "49b (omitir fecha_vencimiento) crea cotizacion y evento COTIZACION_REGISTRADA si se ejecuta: requiere autorizacion escrita.",
+    "No cerrar periodo 220; no usar 219; no tocar cotizaciones 6/7/9/10 ni activos 1570/1571 para otros casos si se evita solape.",
+    "DISC-G117-01: ejecutar 48a/48b con expectativa 422 puede producir FALLIDO por 400 VAL_ENTRADA."
+  ]
+}

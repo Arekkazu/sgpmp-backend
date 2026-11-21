@@ -1,0 +1,17 @@
+{
+  "grupo": "G44",
+  "version": 2,
+  "intento": 5,
+  "run_id": "RUN-G44-V2-20261110-070559",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G44-V2-R3-20261110",
+  "casos": [
+    "TC-M06-028",
+    "TC-M06-029",
+    "TC-M06-030"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico de V2 (intento 3) de TC-M06-G44. El intento 2 (RUN-G44-V2-20261110-065428, AUT-G44-V2-R2-20261110 consumida) terminó NO_CONCLUYENTE sin escrituras, con DELETE 200 y rollback verificado. El preflight exigía que los equinos 1572 y 1573 estuvieran valorados por costo, y 1572 llegó con valorado_por_costo false (error QA de diseño). K3 (ORD-G44-010, ronda 3 aprobada por el responsable QA) cambia ese requisito por 'al menos un activo de la finca 467 valorado por costo con vida útil > 0'; 1572 y 1573 quedan como registros informativos. SHA de g44.mjs: ac1b2748f0753a4ea7637e888a0c2a159278283ef0796cb5f23342892de07eb6. Mismos efectos y motivo de V2 que SOL-G44-004 y SOL-G44-003."
+  },
+  "version_anterior": null
+}

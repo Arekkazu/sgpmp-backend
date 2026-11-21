@@ -1,0 +1,69 @@
+{
+  "caso": "TC-M07-22",
+  "frontal_cargado": true,
+  "login_completado": true,
+  "login_interceptado": true,
+  "refresh_interceptado": true,
+  "pantalla_contrato": true,
+  "acceso_denegado": false,
+  "registrar_version_visible": false,
+  "activar_visible": false,
+  "deprecar_visible": false,
+  "registrar_anexo_visible": false,
+  "captura": true,
+  "error": null,
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/refresh",
+      "http": 401,
+      "local": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "local": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/interfaz/contexto",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/idioma",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "http": 200
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "http": 200
+    }
+  ]
+}

@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: devolver el ID del evento recién registrado. |
 """Puerto de persistencia del agregado ``Evento`` (capa de dominio).
 
 Incluye consulta, registro y archivado histórico del log de auditoría. Sus
@@ -121,7 +124,7 @@ class EventoRepository(ABC):
         id_sesion: Optional[int] = None,
         descripcion: Optional[str] = None,
         modulo: str = "MODULO1",
-    ) -> None:
+    ) -> int:
         """Registra un evento de auditoría con su hash de integridad SHA-256.
 
         La IP, el user-agent y la sesión se toman del contexto del request cuando

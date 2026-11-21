@@ -1,0 +1,269 @@
+{
+  "escenarios": [
+    {
+      "id": "conforme_v3",
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "sin_aviso",
+      "opciones": {
+        "sinAviso": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "antispam_previo",
+      "opciones": {
+        "avisoReciente": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "aviso_otra_version",
+      "opciones": {
+        "avisoOtraVersion": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "aviso_sin_motivo",
+      "opciones": {
+        "avisoSinMotivo": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "cupo_lleno",
+      "opciones": {
+        "dosVigentes": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "pendiente_activable_vencida",
+      "opciones": {
+        "activableVencida": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "limite_deja_cambios",
+      "opciones": {
+        "limiteNoAplicado": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "major_fechas_mal",
+      "opciones": {
+        "fechasMal": true
+      },
+      "esperado": [
+        "RECHAZADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "minor_depreca",
+      "opciones": {
+        "minorDepreca": true
+      },
+      "esperado": [
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "rollback_fallido",
+      "opciones": {
+        "rollbackAFallido": true
+      },
+      "esperado": [
+        "APROBADO",
+        "NO_CONCLUYENTE",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": false,
+      "rollbackFallido": true
+    },
+    {
+      "id": "delete_503",
+      "opciones": {
+        "delete503": true
+      },
+      "esperado": [
+        "APROBADO",
+        "NO_CONCLUYENTE",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": false,
+      "rollbackFallido": true
+    },
+    {
+      "id": "delete_404",
+      "opciones": {
+        "delete404": true
+      },
+      "esperado": [
+        "APROBADO",
+        "NO_CONCLUYENTE",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": false,
+      "rollbackFallido": true
+    },
+    {
+      "id": "login_invalido",
+      "opciones": {
+        "loginInvalido": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "privacidad",
+      "opciones": {
+        "avisosInicial": 5,
+        "auditoriaInicial": 5
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "aviso_agrupado",
+      "opciones": {
+        "avisoAgrupado": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true,
+      "via": "agrupado"
+    },
+    {
+      "id": "texto_real_backend",
+      "opciones": {
+        "textoReal": true,
+        "omitirModuloItem": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true,
+      "via": "nuevo"
+    },
+    {
+      "id": "aviso_agrupado_20902",
+      "opciones": {
+        "avisoAgrupado20902": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true,
+      "via": "agrupado"
+    },
+    {
+      "id": "aviso_otro_modulo_o_nivel",
+      "opciones": {
+        "avisoOtroModuloNivel": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "filtro_bandeja_4xx",
+      "opciones": {
+        "filtroRechazado": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "NO_CONCLUYENTE",
+        "APROBADO"
+      ],
+      "oficial": false
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "grupo": "G35",
+  "run_id": "RUN-G35-V1-20261108-153049",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 80,
+    "duracion_segundos": 900,
+    "logins_fuera_run": 2,
+    "bajas": 1,
+    "procesamientos": 1,
+    "intentos_crecimiento": 2,
+    "timeout_login_ms": 120000,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2"
+  },
+  "efectos_externos": [
+    "RF-52 puede escribir logs/audit_buffer_M02.jsonl o logs de aplicación; DELETE no revierte archivos.",
+    "Las notificaciones y auditorías fuera de la transacción del RUN requieren comprobación independiente.",
+    "La baja tipo perdida no solicita venta ni facturación; la línea BAJA_ACTIVO queda dentro del RUN."
+  ]
+}

@@ -1,0 +1,1233 @@
+{
+  "info": {
+    "name": "TC-M08-G001 Carga del dashboard por rol y control de acceso (RF-103)",
+    "description": "TC-M08-001, 002 y 007. Finca 494 y cuentas qa.m08.* del DBA. Corre en el sandbox.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo.",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (pm.request.headers.has('X-Fuera-Sandbox')) {",
+          "  pm.request.headers.remove('X-Fuera-Sandbox');  // TC-001: solo login y lecturas, fuera del sandbox",
+          "} else if (!secreto) {",
+          "  console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ': se omite ' + pm.info.requestName); pm.execution.skipRequest(); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "catalogo",
+      "value": ""
+    },
+    {
+      "key": "patch_body",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_prod_real",
+      "value": ""
+    },
+    {
+      "key": "tok_admin_real",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_gestor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. TC-M08-001 Carga del dashboard después de iniciar sesión (fuera del sandbox, solo lecturas)",
+      "item": [
+        {
+          "name": "TC-M08-001 - Login Productor (fuera del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('t0', String(Date.now()));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-001 - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod_real', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod_real', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-001 - Productor GET contexto de la interfaz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-001 - contexto del Productor (200)', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json() || {};",
+                  "pm.test('TC-M08-001 - el contexto trae el saludo (nombre) y la finca activa', () => { pm.expect(c.nombre_completo).to.be.a('string').and.not.empty; pm.expect(c.id_finca).to.be.a('number'); pm.expect(c.finca_activa).to.be.a('string').and.not.empty; });",
+                  "pm.collectionVariables.set('finca_tok_prod_real', String(c.id_finca));",
+                  "console.log('Contexto: ' + c.nombre_completo + ' / ' + c.nombre_rol + ' / finca ' + c.id_finca + ' ' + c.finca_activa);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod_real}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/interfaz/contexto"
+          }
+        },
+        {
+          "name": "TC-M08-001 - Productor GET layout del dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-001 - layout del Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('layout_tok_prod_real', pm.response.text());",
+                  "console.log(pm.response.text().slice(0, 1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod_real}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-001 - Productor GET catálogo de widgets del rol y carga de todos los widgets del layout (en paralelo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "pm.test('TC-M08-001 - catálogo del Productor (200)', () => pm.response.to.have.status(200));",
+                  "const lay = JSON.parse(pm.collectionVariables.get('layout_tok_prod_real') || '{}');",
+                  "const finca = pm.collectionVariables.get('finca_tok_prod_real');",
+                  "// Traduccion id -> clave con el catalogo del propio rol (esta respuesta); un id que no esta en el",
+                  "// catalogo (widget retirado en v6, ej. prod_aves en un layout personalizado) no se dibuja.",
+                  "const delRol = {}; (pm.response.json() || []).forEach(w => delRol[w.id_widget] = w.clave);",
+                  "const claves = (lay.grid || []).map(g => delRol[g.id_widget]).filter(Boolean);",
+                  "pm.test('TC-M08-001 - el layout del Productor tiene widgets', () => pm.expect(claves.length).to.be.above(0));",
+                  "Promise.all(claves.map(k => pedir('GET', '/dashboard/widgets/' + k + '?id_finca=' + finca, 'tok_prod_real', true))).then(rs => {",
+                  "  const ms = Date.now() - Number(pm.collectionVariables.get('t0'));",
+                  "  rs.forEach((x, i) => console.log(claves[i] + ' -> ' + (x.r && x.r.code) + ' ' + (x.json && x.json.estado) + ' ' + (x.r && x.r.responseTime) + ' ms'));",
+                  "  pm.test('TC-M08-001 - los ' + claves.length + ' widgets del Productor responden 200', () => rs.forEach((x, i) => pm.expect(x.r && x.r.code, claves[i]).to.equal(200)));",
+                  "  pm.test('TC-M08-001 - ningún widget del Productor queda en ERROR', () => rs.forEach((x, i) => pm.expect(x.json && x.json.estado, claves[i]).to.be.oneOf(['OK', 'SIN_DATOS'])));",
+                  "  pm.test('TC-M08-001 - Productor: carga completa (login + contexto + layout + widgets) en ≤ 3 s (CA-1): ' + ms + ' ms', () => pm.expect(ms).to.be.at.most(3000));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod_real}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        },
+        {
+          "name": "TC-M08-001 - Productor GET dashboard/datos (endpoint de la ficha, deprecated desde v6)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-001 - dashboard/datos del Productor (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text().slice(0, 1200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod_real}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/datos"
+          }
+        },
+        {
+          "name": "TC-M08-001 - Login Administrador (fuera del sandbox)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('t0', String(Date.now()));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-001 - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin_real', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin_real', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-001 - Administrador GET contexto de la interfaz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-001 - contexto del Administrador (200)', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json() || {};",
+                  "pm.test('TC-M08-001 - el contexto trae el saludo (nombre) y la finca activa', () => { pm.expect(c.nombre_completo).to.be.a('string').and.not.empty; pm.expect(c.id_finca).to.be.a('number'); pm.expect(c.finca_activa).to.be.a('string').and.not.empty; });",
+                  "pm.collectionVariables.set('finca_tok_admin_real', String(c.id_finca));",
+                  "console.log('Contexto: ' + c.nombre_completo + ' / ' + c.nombre_rol + ' / finca ' + c.id_finca + ' ' + c.finca_activa);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin_real}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/interfaz/contexto"
+          }
+        },
+        {
+          "name": "TC-M08-001 - Administrador GET layout del dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-001 - layout del Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('layout_tok_admin_real', pm.response.text());",
+                  "console.log(pm.response.text().slice(0, 1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin_real}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-001 - Administrador GET catálogo de widgets del rol y carga de todos los widgets del layout (en paralelo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "pm.test('TC-M08-001 - catálogo del Administrador (200)', () => pm.response.to.have.status(200));",
+                  "const lay = JSON.parse(pm.collectionVariables.get('layout_tok_admin_real') || '{}');",
+                  "const finca = pm.collectionVariables.get('finca_tok_admin_real');",
+                  "// Traduccion id -> clave con el catalogo del propio rol (esta respuesta); un id que no esta en el",
+                  "// catalogo (widget retirado en v6, ej. prod_aves en un layout personalizado) no se dibuja.",
+                  "const delRol = {}; (pm.response.json() || []).forEach(w => delRol[w.id_widget] = w.clave);",
+                  "const claves = (lay.grid || []).map(g => delRol[g.id_widget]).filter(Boolean);",
+                  "pm.test('TC-M08-001 - el layout del Administrador tiene widgets', () => pm.expect(claves.length).to.be.above(0));",
+                  "Promise.all(claves.map(k => pedir('GET', '/dashboard/widgets/' + k + '?id_finca=' + finca, 'tok_admin_real', true))).then(rs => {",
+                  "  const ms = Date.now() - Number(pm.collectionVariables.get('t0'));",
+                  "  rs.forEach((x, i) => console.log(claves[i] + ' -> ' + (x.r && x.r.code) + ' ' + (x.json && x.json.estado) + ' ' + (x.r && x.r.responseTime) + ' ms'));",
+                  "  pm.test('TC-M08-001 - los ' + claves.length + ' widgets del Administrador responden 200', () => rs.forEach((x, i) => pm.expect(x.r && x.r.code, claves[i]).to.equal(200)));",
+                  "  pm.test('TC-M08-001 - ningún widget del Administrador queda en ERROR', () => rs.forEach((x, i) => pm.expect(x.json && x.json.estado, claves[i]).to.be.oneOf(['OK', 'SIN_DATOS'])));",
+                  "  pm.test('TC-M08-001 - Administrador: carga completa (login + contexto + layout + widgets) en ≤ 3 s (CA-1): ' + ms + ' ms', () => pm.expect(ms).to.be.at.most(3000));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin_real}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        },
+        {
+          "name": "TC-M08-001 - Administrador GET dashboard/datos (endpoint de la ficha, deprecated desde v6)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-001 - dashboard/datos del Administrador (200)', () => pm.response.to.have.status(200));",
+                  "console.log(pm.response.text().slice(0, 1200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin_real}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/datos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "item": [
+        {
+          "name": "PRE - Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Catálogo de widgets (Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - catálogo de widgets (200)', () => pm.response.to.have.status(200));",
+                  "const m = {}; (pm.response.json() || []).forEach(w => m[w.id_widget] = w.clave);",
+                  "pm.collectionVariables.set('catalogo', JSON.stringify(m));",
+                  "console.log('Catálogo: ' + JSON.stringify(m));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-002 El dashboard se adapta al rol",
+      "item": [
+        {
+          "name": "TC-M08-002 - Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-002 - Login Veterinario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - Login Veterinario (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_vet', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_vet', t); pm.collectionVariables.set('id_veterinario', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-002 - Login Contador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - Login Contador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_cont', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_cont', t); pm.collectionVariables.set('id_contador', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_contador}}\",\n  \"contrasena\": \"{{contrasena_contador}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-002 - Login Ingeniero de Campo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - Login Ingeniero de Campo (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_ing', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_ing', t); pm.collectionVariables.set('id_ingeniero', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-002 - Productor GET catálogo de widgets del rol",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - catálogo del Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('lista_tok_prod', JSON.stringify((pm.response.json() || []).map(w => w.clave)));",
+                  "console.log(JSON.stringify((pm.response.json() || []).map(w => w.clave)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        },
+        {
+          "name": "TC-M08-002 - Veterinario GET catálogo de widgets del rol",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - catálogo del Veterinario (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('lista_tok_vet', JSON.stringify((pm.response.json() || []).map(w => w.clave)));",
+                  "console.log(JSON.stringify((pm.response.json() || []).map(w => w.clave)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_vet}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        },
+        {
+          "name": "TC-M08-002 - Contador GET catálogo de widgets del rol",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - catálogo del Contador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('lista_tok_cont', JSON.stringify((pm.response.json() || []).map(w => w.clave)));",
+                  "console.log(JSON.stringify((pm.response.json() || []).map(w => w.clave)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_cont}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        },
+        {
+          "name": "TC-M08-002 - Ingeniero GET catálogo de widgets del rol y comparación de las 4 listas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - catálogo del Ingeniero (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('lista_tok_ing', JSON.stringify((pm.response.json() || []).map(w => w.clave)));",
+                  "console.log(JSON.stringify((pm.response.json() || []).map(w => w.clave)));",
+                  "const L = t => JSON.parse(pm.collectionVariables.get('lista_' + t) || '[]');",
+                  "const p = L('tok_prod'), v = L('tok_vet'), c = L('tok_cont'), i = L('tok_ing');",
+                  "const firma = x => x.slice().sort().join(',');",
+                  "pm.test('TC-M08-002 - las 4 listas (Productor, Veterinario, Contador, Ingeniero) son distintas', () => pm.expect(new Set([p, v, c, i].map(firma)).size).to.equal(4));",
+                  "pm.test('TC-M08-002 - el Productor no ve los widgets del Contador (CA-4)', () => pm.expect(p.filter(k => [\"periodos_abiertos\", \"reconocimientos_pendientes\", \"integraciones_fallidas\", \"precios_por_vencer\"].includes(k))).to.eql([]));",
+                  "pm.test('TC-M08-002 - el Contador no ve los widgets del Productor (CA-4)', () => pm.expect(c.filter(k => [\"semaforo_areas\", \"inventario_especies\", \"ultimos_eventos\", \"conversion_alimenticia\", \"temp_galpon\", \"hum_galpon\"].includes(k))).to.eql([]));",
+                  "pm.test('TC-M08-002 - el Productor no ve los widgets del Veterinario', () => pm.expect(p.filter(k => [\"riesgo_sanitario_alto\", \"distribucion_riesgo\", \"retroalimentacion_pendiente\", \"alertas_sanitarias\"].includes(k))).to.eql([]));",
+                  "pm.test('TC-M08-002 - el Productor no ve widgets técnicos de IoT (RF-103, nota de separación de responsabilidades)', () => pm.expect(p.filter(k => [\"estado_iot\", \"cal_sensores\", \"cfg_pendiente\", \"dispositivos_sin_senal\"].includes(k))).to.eql([]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/widgets"
+          }
+        },
+        {
+          "name": "TC-M08-002 - Productor GET layout del dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - layout del Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('layout_antes', pm.response.text());",
+                  "console.log(pm.response.text().slice(0, 1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-002 - Productor PATCH con un widget del Contador (periodos_abiertos, id 25)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const lay = JSON.parse(pm.collectionVariables.get('layout_antes') || '{}');",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "let cfg = (lay.grid || []).map(g => ({ id_widget: g.id_widget, posicion_fila: g.posicion_fila, posicion_columna: g.posicion_columna,",
+                  "  span_columnas: g.span_columnas, visible: g.visible, orden: g.orden, parametros: g.parametros || {} }));",
+                  "let frecuencia;",
+                  "cfg[0].id_widget = 25; cfg[0].parametros = {};",
+                  "const cuerpo = { layout_config: cfg, active_widget: cfg.map(c => cat[c.id_widget]).filter(Boolean), version_perfil: lay.version_perfil };",
+                  "if (frecuencia !== undefined) cuerpo.frecuencia_actualizacion = frecuencia;",
+                  "pm.collectionVariables.set('patch_body', JSON.stringify(cuerpo));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 800));",
+                  "pm.test('TC-M08-002 - widget no permitido rechazado (403 WIDGET_NO_AUTORIZADO)', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().error_code).to.equal('WIDGET_NO_AUTORIZADO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard",
+            "body": {
+              "mode": "raw",
+              "raw": "{{patch_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-002 - Productor GET layout después del rechazo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-002 - layout después del rechazo (200)', () => pm.response.to.have.status(200));",
+                  "const antes = (JSON.parse(pm.collectionVariables.get('layout_antes')).grid || []).map(g => g.id_widget);",
+                  "pm.test('TC-M08-002 - el layout no cambió', () => pm.expect(pm.response.json().grid.map(g => g.id_widget)).to.eql(antes));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-002 - Productor PATCH con el widget técnico de IoT de la ficha (estado_iot, id 6)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const lay = JSON.parse(pm.collectionVariables.get('layout_antes') || '{}');",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "let cfg = (lay.grid || []).map(g => ({ id_widget: g.id_widget, posicion_fila: g.posicion_fila, posicion_columna: g.posicion_columna,",
+                  "  span_columnas: g.span_columnas, visible: g.visible, orden: g.orden, parametros: g.parametros || {} }));",
+                  "let frecuencia;",
+                  "cfg[0].id_widget = 6; cfg[0].parametros = {};",
+                  "const cuerpo = { layout_config: cfg, active_widget: cfg.map(c => cat[c.id_widget]).filter(Boolean), version_perfil: lay.version_perfil };",
+                  "if (frecuencia !== undefined) cuerpo.frecuencia_actualizacion = frecuencia;",
+                  "pm.collectionVariables.set('patch_body', JSON.stringify(cuerpo));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 800));",
+                  "pm.test('TC-M08-002 - widget técnico de IoT rechazado al Productor (403 WIDGET_NO_AUTORIZADO)', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard",
+            "body": {
+              "mode": "raw",
+              "raw": "{{patch_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M08-007 Control de acceso al dashboard",
+      "item": [
+        {
+          "name": "TC-M08-007 - sin token GET dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - sin token GET dashboard responde 401', () => pm.response.to.have.status(401));",
+                  "pm.test('TC-M08-007 - sin token GET dashboard: no devuelve widgets ni datos', () => { const b = pm.response.json() || {}; pm.expect(b).to.not.have.any.keys('grid', 'datos'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-007 - sin token GET dashboard/datos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - sin token GET dashboard/datos responde 401', () => pm.response.to.have.status(401));",
+                  "pm.test('TC-M08-007 - sin token GET dashboard/datos: no devuelve widgets ni datos', () => { const b = pm.response.json() || {}; pm.expect(b).to.not.have.any.keys('grid', 'datos'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/datos"
+          }
+        },
+        {
+          "name": "TC-M08-007 - sin token GET widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - sin token GET widget semaforo_areas responde 401', () => pm.response.to.have.status(401));",
+                  "pm.test('TC-M08-007 - sin token GET widget semaforo_areas: no devuelve widgets ni datos', () => { const b = pm.response.json() || {}; pm.expect(b).to.not.have.any.keys('grid', 'datos'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}"
+          }
+        },
+        {
+          "name": "TC-M08-007 - token alterado GET dashboard",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = pm.collectionVariables.get('tok_prod') || 'x.y.z';",
+                  "pm.collectionVariables.set('tok_alterado', t.slice(0, -4) + (t.slice(-4) === 'AAAA' ? 'BBBB' : 'AAAA'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - token alterado GET dashboard responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_alterado}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-007 - token alterado GET dashboard/datos",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = pm.collectionVariables.get('tok_prod') || 'x.y.z';",
+                  "pm.collectionVariables.set('tok_alterado', t.slice(0, -4) + (t.slice(-4) === 'AAAA' ? 'BBBB' : 'AAAA'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - token alterado GET dashboard/datos responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_alterado}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/datos"
+          }
+        },
+        {
+          "name": "TC-M08-007 - Login Gestor de Granja",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - Login Gestor de Granja (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_gestor', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_gestor', t); pm.collectionVariables.set('id_gestor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_gestor}}\",\n  \"contrasena\": \"{{contrasena_gestor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-007 - Gestor de Granja GET dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - Gestor de Granja GET dashboard responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('TC-M08-007 - Gestor de Granja GET dashboard: no devuelve widgets ni datos', () => pm.expect(pm.response.json() || {}).to.not.have.any.keys('grid', 'datos'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_gestor}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M08-007 - Gestor de Granja GET dashboard/datos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - Gestor de Granja GET dashboard/datos responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('TC-M08-007 - Gestor de Granja GET dashboard/datos: no devuelve widgets ni datos', () => pm.expect(pm.response.json() || {}).to.not.have.any.keys('grid', 'datos'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_gestor}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/personalizacion/dashboard/datos"
+          }
+        },
+        {
+          "name": "TC-M08-007 - Gestor de Granja GET widget semaforo_areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M08-007 - Gestor de Granja GET widget semaforo_areas responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('TC-M08-007 - Gestor de Granja GET widget semaforo_areas: no devuelve widgets ni datos', () => pm.expect(pm.response.json() || {}).to.not.have.any.keys('grid', 'datos'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_gestor}}"
+              }
+            ],
+            "url": "{{base_url}}/dashboard/widgets/semaforo_areas?id_finca={{id_finca}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

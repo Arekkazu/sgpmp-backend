@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G114 — APROBADO</title>
+  <style>
+    body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}
+    th{background:#f3f3f3}
+    .ok{color:#0a7a2f;font-weight:600}
+    pre{white-space:pre-wrap;margin:0;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <h1>TC-M06-G114 — <span class="ok">APROBADO</span></h1>
+  <p>Subcaso TC-M06-43 · RF-90 / RF-94 · Ambiente TEST</p>
+  <table>
+    <tr><th>Dictamen</th><td class="ok">APROBADO 1/1</td></tr>
+    <tr><th>Aprobados</th><td>1/1</td></tr>
+    <tr><th>Generado</th><td>2026-11-12T20:57:36.475638-05:00</td></tr>
+  </table>
+
+  <h2>1. Identificación</h2>
+  <p>Validación integral de trazabilidad de costos registrados y movimientos contables.
+  Se utilizaron exclusivamente los costos 4453, 4454 y 4455 (G113). No se crearon costos.</p>
+
+  <h2>2. Registros utilizados</h2>
+  <table>
+    <tr><th>ID costo</th><th>Activo</th><th>Período</th><th>Monto</th><th>Evento</th><th>Actor</th></tr>
+    <tr><td>4453</td><td>1569</td><td>220</td><td>150000.0000</td><td>19671</td><td>USUARIO 141</td></tr><tr><td>4454</td><td>1570</td><td>220</td><td>300000.0000</td><td>19672</td><td>USUARIO 141</td></tr><tr><td>4455</td><td>1571</td><td>220</td><td>450000.0000</td><td>19673</td><td>USUARIO 141</td></tr>
+  </table>
+
+  <h2>3. Verificaciones</h2>
+  <table>
+    <tr><th>Validación</th><th>Resultado</th><th>Detalle</th></tr>
+    <tr><td>costo_4453_existe</td><td>OK</td><td><pre>{
+  &quot;id&quot;: 4453
+}</pre></td></tr><tr><td>costo_4453_un_evento_tecnico</td><td>OK</td><td><pre>{
+  &quot;cantidad&quot;: 1
+}</pre></td></tr><tr><td>costo_4453_un_evento_legible</td><td>OK</td><td><pre>{
+  &quot;cantidad&quot;: 1
+}</pre></td></tr><tr><td>costo_4453_id_referencia</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 4453,
+  &quot;esperado&quot;: 4453
+}</pre></td></tr><tr><td>costo_4453_activo</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 1569,
+  &quot;costo&quot;: 1569,
+  &quot;esperado&quot;: 1569
+}</pre></td></tr><tr><td>costo_4453_periodo</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 220,
+  &quot;costo&quot;: 220,
+  &quot;esperado&quot;: 220
+}</pre></td></tr><tr><td>costo_4453_monto</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: &quot;150000.0000&quot;,
+  &quot;costo&quot;: &quot;150000.0000&quot;,
+  &quot;esperado&quot;: &quot;150000.00&quot;
+}</pre></td></tr><tr><td>costo_4453_naturaleza</td><td>OK</td><td><pre>{
+  &quot;costo&quot;: &quot;MANTENIMIENTO&quot;,
+  &quot;payload&quot;: &quot;MANTENIMIENTO&quot;,
+  &quot;subtipo&quot;: &quot;ALIMENTO&quot;,
+  &quot;politica&quot;: &quot;GASTO&quot;
+}</pre></td></tr><tr><td>costo_4453_actor_usuario_141</td><td>OK</td><td><pre>{
+  &quot;tipo_actor&quot;: &quot;USUARIO&quot;,
+  &quot;id_usuario_evento&quot;: 141,
+  &quot;id_usuario_costo&quot;: 141,
+  &quot;id_sistema&quot;: null
+}</pre></td></tr><tr><td>costo_4453_evento_esperado</td><td>OK</td><td><pre>{
+  &quot;obtenido&quot;: 19671,
+  &quot;esperado&quot;: 19671
+}</pre></td></tr><tr><td>costo_4453_tipo_evento</td><td>OK</td><td><pre>{
+  &quot;tipo&quot;: &quot;COSTO_REGISTRADO&quot;
+}</pre></td></tr><tr><td>costo_4454_existe</td><td>OK</td><td><pre>{
+  &quot;id&quot;: 4454
+}</pre></td></tr><tr><td>costo_4454_un_evento_tecnico</td><td>OK</td><td><pre>{
+  &quot;cantidad&quot;: 1
+}</pre></td></tr><tr><td>costo_4454_un_evento_legible</td><td>OK</td><td><pre>{
+  &quot;cantidad&quot;: 1
+}</pre></td></tr><tr><td>costo_4454_id_referencia</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 4454,
+  &quot;esperado&quot;: 4454
+}</pre></td></tr><tr><td>costo_4454_activo</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 1570,
+  &quot;costo&quot;: 1570,
+  &quot;esperado&quot;: 1570
+}</pre></td></tr><tr><td>costo_4454_periodo</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 220,
+  &quot;costo&quot;: 220,
+  &quot;esperado&quot;: 220
+}</pre></td></tr><tr><td>costo_4454_monto</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: &quot;300000.0000&quot;,
+  &quot;costo&quot;: &quot;300000.0000&quot;,
+  &quot;esperado&quot;: &quot;300000.00&quot;
+}</pre></td></tr><tr><td>costo_4454_naturaleza</td><td>OK</td><td><pre>{
+  &quot;costo&quot;: &quot;MANTENIMIENTO&quot;,
+  &quot;payload&quot;: &quot;MANTENIMIENTO&quot;,
+  &quot;subtipo&quot;: &quot;ALIMENTO&quot;,
+  &quot;politica&quot;: &quot;GASTO&quot;
+}</pre></td></tr><tr><td>costo_4454_actor_usuario_141</td><td>OK</td><td><pre>{
+  &quot;tipo_actor&quot;: &quot;USUARIO&quot;,
+  &quot;id_usuario_evento&quot;: 141,
+  &quot;id_usuario_costo&quot;: 141,
+  &quot;id_sistema&quot;: null
+}</pre></td></tr><tr><td>costo_4454_evento_esperado</td><td>OK</td><td><pre>{
+  &quot;obtenido&quot;: 19672,
+  &quot;esperado&quot;: 19672
+}</pre></td></tr><tr><td>costo_4454_tipo_evento</td><td>OK</td><td><pre>{
+  &quot;tipo&quot;: &quot;COSTO_REGISTRADO&quot;
+}</pre></td></tr><tr><td>costo_4455_existe</td><td>OK</td><td><pre>{
+  &quot;id&quot;: 4455
+}</pre></td></tr><tr><td>costo_4455_un_evento_tecnico</td><td>OK</td><td><pre>{
+  &quot;cantidad&quot;: 1
+}</pre></td></tr><tr><td>costo_4455_un_evento_legible</td><td>OK</td><td><pre>{
+  &quot;cantidad&quot;: 1
+}</pre></td></tr><tr><td>costo_4455_id_referencia</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 4455,
+  &quot;esperado&quot;: 4455
+}</pre></td></tr><tr><td>costo_4455_activo</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 1571,
+  &quot;costo&quot;: 1571,
+  &quot;esperado&quot;: 1571
+}</pre></td></tr><tr><td>costo_4455_periodo</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: 220,
+  &quot;costo&quot;: 220,
+  &quot;esperado&quot;: 220
+}</pre></td></tr><tr><td>costo_4455_monto</td><td>OK</td><td><pre>{
+  &quot;evento&quot;: &quot;450000.0000&quot;,
+  &quot;costo&quot;: &quot;450000.0000&quot;,
+  &quot;esperado&quot;: &quot;450000.00&quot;
+}</pre></td></tr><tr><td>costo_4455_naturaleza</td><td>OK</td><td><pre>{
+  &quot;costo&quot;: &quot;MANTENIMIENTO&quot;,
+  &quot;payload&quot;: &quot;MANTENIMIENTO&quot;,
+  &quot;subtipo&quot;: &quot;ALIMENTO&quot;,
+  &quot;politica&quot;: &quot;GASTO&quot;
+}</pre></td></tr><tr><td>costo_4455_actor_usuario_141</td><td>OK</td><td><pre>{
+  &quot;tipo_actor&quot;: &quot;USUARIO&quot;,
+  &quot;id_usuario_evento&quot;: 141,
+  &quot;id_usuario_costo&quot;: 141,
+  &quot;id_sistema&quot;: null
+}</pre></td></tr><tr><td>costo_4455_evento_esperado</td><td>OK</td><td><pre>{
+  &quot;obtenido&quot;: 19673,
+  &quot;esperado&quot;: 19673
+}</pre></td></tr><tr><td>costo_4455_tipo_evento</td><td>OK</td><td><pre>{
+  &quot;tipo&quot;: &quot;COSTO_REGISTRADO&quot;
+}</pre></td></tr><tr><td>sin_duplicados_ni_huerfanos</td><td>OK</td><td><pre>{
+  &quot;eventos&quot;: 3,
+  &quot;referencias&quot;: [
+    4453,
+    4454,
+    4455
+  ],
+  &quot;ids_evento&quot;: [
+    19671,
+    19672,
+    19673
+  ],
+  &quot;sin_duplicados_referencia&quot;: true,
+  &quot;sin_duplicados_evento&quot;: true,
+  &quot;huerfanos&quot;: [],
+  &quot;sin_evento&quot;: []
+}</pre></td></tr><tr><td>rf90_costos_existentes_trazables</td><td>OK</td><td><pre>{
+  &quot;costos&quot;: [
+    4453,
+    4454,
+    4455
+  ]
+}</pre></td></tr><tr><td>rf94_auditoria_m06_por_id_referencia</td><td>OK</td><td><pre>{
+  &quot;endpoint&quot;: &quot;GET /finanzas/auditoria&quot;,
+  &quot;filtro&quot;: &quot;id_referencia&quot;
+}</pre></td></tr>
+  </table>
+
+  <h2>4. Integridad</h2>
+  <pre>{
+  &quot;eventos&quot;: 3,
+  &quot;referencias&quot;: [
+    4453,
+    4454,
+    4455
+  ],
+  &quot;ids_evento&quot;: [
+    19671,
+    19672,
+    19673
+  ],
+  &quot;sin_duplicados_referencia&quot;: true,
+  &quot;sin_duplicados_evento&quot;: true,
+  &quot;huerfanos&quot;: [],
+  &quot;sin_evento&quot;: []
+}</pre>
+
+  <h2>5. Conclusión</h2>
+  <p class="ok">Se verificó la trazabilidad integral de los costos 4453/4454/4455: exactamente un evento COSTO_REGISTRADO por costo, con correspondencia de activo, período, monto, naturaleza y actor USUARIO 141 (RF-90 / RF-94).</p>
+  <p>TC-M06-43: APROBADO.
+  TC-M06-G114: APROBADO. Casos aprobados: 1/1.
+  Requerimientos verificados: RF-90 y RF-94.</p>
+</body>
+</html>

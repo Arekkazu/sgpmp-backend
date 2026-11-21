@@ -1,0 +1,93 @@
+{
+  "info": {
+    "name": "TC-M07-G025 - Metadata (CA-4)",
+    "description": "Copia propia, autocontenida, de la carpeta 'TC-M07-G025 - Metadata (CA-4)' de la colección compartida RF-97-Verificacion-Live/tc_m07_rf97_live.postman_collection.json. Incluye el login (precondición) para poder correrse sola. Verificación en vivo RF-97 contra TEST. NIT 901444215, período 627 (oct 2026).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "contador_correo", "value": "contador@pecuaria.co"},
+    {"key": "contador_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la clave real del roster del equipo. Nunca commitear el valor real."},
+    {"key": "token_contador", "value": ""},
+    {"key": "nit", "value": "901444215"},
+    {"key": "desde_oct", "value": "2026-10-01"},
+    {"key": "hasta_oct", "value": "2026-10-31"},
+    {"key": "envelope_oct", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones - Login",
+      "item": [
+        {
+          "name": "Login Contador",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"{{contador_correo}}\",\"contrasena\":\"{{contador_pass}}\"}"},
+            "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('login 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('token_contador', body.token);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G025 - Metadata (CA-4)",
+      "item": [
+        {
+          "name": "ExchangeId formato real AF-SIGAB-AAAA-MM-NNNNNNN",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "const body = pm.response.json();",
+            "pm.test('HALLAZGO: ExchangeId NO sigue SGPMP-{NIT}-{desde}-{hasta}-{nonce} de la ficha -- el real es AF-SIGAB-{AAAA-MM}-{nonce de 7 digitos} (confirmado 2026-11-14, exigido por SIGCON)', () => {",
+            "  pm.expect(body.metadata.ExchangeId).to.match(/^AF-SIGAB-\\d{4}-\\d{2}-\\d{7}$/);",
+            "  pm.expect(body.metadata.ExchangeId).to.not.match(/^SGPMP-/);",
+            "});",
+            "pm.test('GeneratedAt es YYYY-MM-DD sin hora', () => pm.expect(body.metadata.GeneratedAt).to.match(/^\\d{4}-\\d{2}-\\d{2}$/));",
+            "pm.test('StandardVersion es el texto 1.0, no el numero 1', () => pm.expect(body.metadata.StandardVersion).to.eql('1.0'));",
+            "pm.test('RequestedPeriod.From/To coinciden con lo consultado', () => {",
+            "  pm.expect(body.metadata.RequestedPeriod.From).to.eql(pm.collectionVariables.get('desde_oct'));",
+            "  pm.expect(body.metadata.RequestedPeriod.To).to.eql(pm.collectionVariables.get('hasta_oct'));",
+            "});",
+            "pm.test('SourceSystem.SystemNIT igual al nit solicitado', () => pm.expect(body.metadata.SourceSystem.SystemNIT).to.eql(pm.collectionVariables.get('nit')));",
+            "pm.test('GeneratedBy es el correo del usuario que consulta', () => pm.expect(body.metadata.GeneratedBy).to.eql(pm.collectionVariables.get('contador_correo')));",
+            "pm.test('HALLAZGO: SourceSystem.Environment dice DEV aunque el request es a TEST (config del contenedor)', () => {",
+            "  pm.expect(body.metadata.SourceSystem.Environment).to.eql('DEV');",
+            "});",
+            "pm.collectionVariables.set('envelope_oct', JSON.stringify(body));"
+          ]}}]
+        },
+        {
+          "name": "El nonce cambia entre dos consultas del mismo rango",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "const anterior = JSON.parse(pm.collectionVariables.get('envelope_oct') || '{}');",
+            "const actual = pm.response.json();",
+            "pm.test('ExchangeId cambia entre dos consultas (nonce no es fijo)', () => {",
+            "  if (anterior.metadata) pm.expect(actual.metadata.ExchangeId).to.not.eql(anterior.metadata.ExchangeId);",
+            "});",
+            "pm.test('el hash de contenido es el mismo aunque el ExchangeId cambie (CA-9)', () => {",
+            "  pm.expect(pm.response.headers.get('X-Content-SHA256')).to.not.be.null;",
+            "});",
+            "pm.collectionVariables.set('envelope_oct', JSON.stringify(actual));"
+          ]}}]
+        }
+      ]
+    }
+  ]
+}

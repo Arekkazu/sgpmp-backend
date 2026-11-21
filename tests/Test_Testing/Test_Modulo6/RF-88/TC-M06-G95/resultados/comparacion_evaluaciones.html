@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Comparación de evaluaciones — TC-M06-G95</title>
+  <style>
+    :root { --ink:#1c2430; --muted:#5c6778; --line:#d9e0e8; --paper:#f6f8fb; --ok:#0d6b3a; --amber:#8a5a00; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Segoe UI", sans-serif; color:var(--ink); background:var(--paper); }
+    header { background:#1c2430; color:#fff; padding:2rem 1.5rem; }
+    header p { margin:0.3rem 0 0; color:#c5d0dc; }
+    main { max-width:980px; margin:0 auto; padding:1.5rem; }
+    h1 { margin:0; font-size:1.7rem; }
+    h2 { margin:1.8rem 0 0.6rem; font-size:1.15rem; }
+    a { color:#1a4f8b; }
+    table { width:100%; border-collapse:collapse; background:#fff; margin:0.6rem 0 1rem; }
+    th, td { border:1px solid var(--line); padding:0.5rem 0.6rem; text-align:left; vertical-align:top; }
+    th { background:#eef3f8; }
+    td:nth-child(2) { color:var(--amber); }
+    td:nth-child(3) { color:var(--ok); font-weight:600; }
+    ol { background:#fff; border:1px solid var(--line); border-radius:8px; padding:1rem 1.3rem 1rem 2.2rem; }
+    li { margin:0.45rem 0; }
+    code { font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <header>
+    <p>SGPMP · Módulo 6 · RF-88 · Caso TC-M06-G95</p>
+    <h1>Comparación de evaluaciones</h1>
+    <p>Primera evaluación del 2026-11-07 y ejecución aprobada del 2026-11-10.</p>
+  </header>
+  <main>
+    <p><a href="primera_evaluacion/resultado_primera_evaluacion.html">Primera evaluación</a> · <a href="ultima_evaluacion_aprobada/resultado_ultima_evaluacion.html">Última evaluación aprobada</a></p>
+
+    <h2>Tabla comparativa</h2>
+    <table>
+      <tr><th>Aspecto</th><th>Primera evaluación</th><th>Última evaluación</th></tr>
+      <tr><td>Estado</td><td>BLOQUEADO</td><td>APROBADO</td></tr>
+      <tr><td>Disponibilidad de datos QA</td><td>No se crearon datos de prueba</td><td>Datos QA creados</td></tr>
+      <tr><td>Propuesta por costo</td><td>No consultada</td><td>VALORACION_POR_COSTO</td></tr>
+      <tr><td>Activo confirmable</td><td>No evaluado</td><td>Sí</td></tr>
+      <tr><td>Confirmación</td><td>No enviada</td><td>HTTP 201</td></tr>
+      <tr><td>Reconocimiento persistido</td><td>No</td><td>529</td></tr>
+      <tr><td>Valoración inicial</td><td>No</td><td>INICIAL_RF82</td></tr>
+      <tr><td>Resultado de TC-M06-01</td><td>BLOQUEADO</td><td>APROBADO</td></tr>
+    </table>
+    <p>La primera evaluación usó un denominador de 4 y registró 0/4. TC-M06-02, TC-M06-03 y TC-M06-04 quedaron después retirados por cambio de alcance, conforme al issue #959. No se cuentan como fallidos. El alcance vigente es TC-M06-01 y el resultado final es 1/1 aprobado.</p>
+
+    <h2>Evolución</h2>
+    <ol>
+      <li>El 2026-11-07, con el identificador TC-M06-G67, la ficha clasificó TC-M06-01 como bloqueado porque no encontró un flujo invocable de reconocimiento. La colección solo definía <code>GET /openapi.json</code> y no se guardó la respuesta de esa corrida.</li>
+      <li>Para que el modelo de costo surgiera hacían falta una especie sin precios, su parámetro contable, una finca con titular propio, un área, el vínculo del Contador y un activo de compra con costo y vida útil.</li>
+      <li>El escenario se preparó en el entorno TEST, sin modificar especies, matrices ni fincas preexistentes. El plan SQL no se ejecutó.</li>
+      <li>La API creó la especie 541, la finca 469, el titular NIT 901106010, el área 1056 y el activo 1635. Los identificadores ya ocupados respondieron 409 y se dejaron intactos.</li>
+      <li>La propuesta del activo 1635 devolvió <code>VALORACION_POR_COSTO</code> y era confirmable. <code>POST /finanzas/reconocimientos/1635</code> respondió 201.</li>
+      <li>La lectura posterior mostró el reconocimiento 529 en estado CONFIRMADO, la valoración 41 con escenario <code>INICIAL_RF82</code> y el período 258, sin líneas. En una compra las líneas vacías son el resultado definido.</li>
+      <li>TC-M06-01 quedó aprobado. El reconocimiento y la valoración permanecen en TEST. La limpieza no se ejecutó.</li>
+    </ol>
+  </main>
+</body>
+</html>

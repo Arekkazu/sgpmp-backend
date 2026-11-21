@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TC-M03-089 — Resultado G46</title>
+  <style>
+    :root {
+      --ok: #0f7b3a;
+      --ok-bg: #e7f6ec;
+      --ink: #1a1d21;
+      --muted: #5c6570;
+      --line: #d5dbe3;
+      --bg: #f4f6f8;
+      --card: #fff;
+      --warn: #8a5a00;
+      --warn-bg: #fff6e5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 28px 20px 48px; }
+    header {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.55rem; }
+    .meta { color: var(--muted); font-size: 0.95rem; }
+    .badge {
+      display: inline-block;
+      margin-top: 14px;
+      background: var(--ok);
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .kpi b { display: block; font-size: 1.6rem; color: var(--ok); }
+    .kpi span { color: var(--muted); font-size: 0.85rem; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    h2 { margin: 0 0 12px; font-size: 1.15rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+    th { background: #eef2f6; }
+    .pass { color: var(--ok); font-weight: 700; }
+    pre {
+      background: #0f1419;
+      color: #d6e0ea;
+      padding: 14px 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.78rem;
+      line-height: 1.4;
+    }
+    .note {
+      background: var(--warn-bg);
+      border: 1px solid #f0d9a0;
+      color: var(--warn);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 0 0 12px;
+    }
+    ul { margin: 8px 0 0; padding-left: 20px; }
+    footer { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
+    @media (max-width: 720px) {
+      .kpis { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>TC-M03-089 — consolidación de severidad Edge</h1>
+      <p class="meta">
+        Grupo <strong>TC-M03-G46</strong> · RF-55.1 / RF-55.2 · CU-02 ·
+        Prueba funcional · Prioridad alta<br>
+        Criterio: conservar la mayor severidad entre nivel simple y compuesto
+        (LEVE &lt; MODERADO &lt; CRITICO)
+      </p>
+      <div class="badge">APROBADO — 5/5 escenarios ejecutables (100 %)</div>
+    </header>
+
+    <div class="kpis">
+      <div class="kpi"><b>5</b><span>Ejecutados</span></div>
+      <div class="kpi"><b>5</b><span>Aprobados</span></div>
+      <div class="kpi"><b>0</b><span>Fallidos</span></div>
+      <div class="kpi"><b>100 %</b><span>Escenarios ejecutables</span></div>
+    </div>
+
+    <section>
+      <h2>Objetivo</h2>
+      <p>
+        Verificar que, cuando RF-55.1 (simple) y RF-55.2 (compuesto) producen
+        severidades distintas, el evento consolidado en el nodo conserva la mayor.
+        Motor real: <code>evaluar_lote</code>. Sin mocks de consolidación.
+      </p>
+    </section>
+
+    <section>
+      <h2>Escenarios ejecutados</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>RF-55.2</th>
+            <th>RF-55.1</th>
+            <th>Final</th>
+            <th>Origen</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td><td>MODERADO</td><td>CRITICO</td><td>CRITICO</td><td>RF-55.1</td>
+            <td class="pass">PASS</td>
+          </tr>
+          <tr>
+            <td>2</td><td>LEVE</td><td>CRITICO</td><td>CRITICO</td><td>RF-55.1</td>
+            <td class="pass">PASS</td>
+          </tr>
+          <tr>
+            <td>3</td><td>CRITICO</td><td>MODERADO</td><td>CRITICO</td><td>RF-55.2</td>
+            <td class="pass">PASS</td>
+          </tr>
+          <tr>
+            <td>4</td><td>CRITICO</td><td>CRITICO</td><td>CRITICO</td><td>RF-55.2</td>
+            <td class="pass">PASS</td>
+          </tr>
+          <tr>
+            <td>5</td><td>LEVE</td><td>None</td><td>LEVE</td><td>RF-55.2</td>
+            <td class="pass">PASS</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="meta" style="margin-top:10px">
+        Test:
+        <code>raspberry/tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad</code>
+      </p>
+    </section>
+
+    <section>
+      <h2>Asserts comprobados en cada escenario</h2>
+      <ul>
+        <li>Clasificación <code>DESVIACION_COMPUESTA</code></li>
+        <li>Severidad final (<code>evento.severidad</code> y payload)</li>
+        <li><code>severidad_regla</code> (RF-55.2 original)</li>
+        <li><code>severidad_rf55_1</code></li>
+        <li><code>severidad_origen</code></li>
+        <li><code>id_regla_alerta == 12</code></li>
+      </ul>
+      <p>
+        Implementación: <code>_con_maxima_severidad</code>, invocada desde
+        <code>_evaluar_rf55_2</code>, jerarquía <code>LEVE &lt; MODERADO &lt; CRITICO</code>
+        vía <code>SEVERIDADES.index</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Comando y entorno</h2>
+      <p>
+        Python 3.13.7 · pytest 9.0.3 · firmware local
+        <code>.worktrees/sgpmp-rf55-validation/raspberry</code><br>
+        Sin Docker, PostgreSQL, MQTT real ni conexiones externas.
+      </p>
+      <pre>python -m pytest tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad -v
+
+collected 5 items
+...[CRITICO-MODERADO-CRITICO-RF-55.1] PASSED
+...[CRITICO-LEVE-CRITICO-RF-55.1] PASSED
+...[CRITICO-CRITICO-MODERADO-RF-55.2] PASSED
+...[CRITICO-CRITICO-CRITICO-RF-55.2] PASSED
+...[LEVE-LEVE-None-RF-55.2] PASSED
+============================== 5 passed in 0.07s ==============================
+EXIT=0</pre>
+      <p class="meta">
+        Salida resumida aquí; transcripción completa en
+        <code>TC-M03-089_evidencia_ejecucion.txt</code> (no es una re-ejecución).
+      </p>
+    </section>
+
+    <section>
+      <h2>Limitaciones y alcance</h2>
+      <div class="note">
+        RF-55.1 no produce LEVE. El vector RF-55.1 LEVE / RF-55.2 MODERADO
+        <strong>no se ejecutó</strong> y no entra en el 5/5.
+      </div>
+      <div class="note">
+        El wrapper backend <code>test_tc_m03_g46.py</code> continúa
+        <strong>SKIPPED</strong> (2026-10-25). Este informe no lo declara aprobado.
+      </div>
+      <p>
+        Alcance: cálculo y consolidación en el nodo. Fuera de alcance:
+        persistencia PostgreSQL y MQTT físico.
+      </p>
+    </section>
+
+    <section>
+      <h2>Conclusión técnica</h2>
+      <p>
+        <strong>APROBADO — 100 % de los escenarios ejecutables de consolidación
+        cubiertos y superados (5/5).</strong>
+        El cierre documental se respalda con la ejecución del firmware.
+        No se afirma que el wrapper del backend haya pasado ni que se haya
+        validado el laboratorio físico.
+      </p>
+    </section>
+
+    <footer>
+      TC-M03-G46 / TC-M03-089 · cierre documental 2026-10-31 · evidencia firmware
+      (transcripción de ejecución comprobada). CSS integrado; sin recursos de red.
+    </footer>
+  </div>
+</body>
+</html>

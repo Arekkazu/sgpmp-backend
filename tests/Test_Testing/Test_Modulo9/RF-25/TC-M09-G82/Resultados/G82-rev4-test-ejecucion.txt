@@ -1,0 +1,18 @@
+TC-M09-157 / G82 rev4 TEST
+laura local: f6f51ea7 (origin/test NO fusionado). Evaluacion contra API TEST.
+
+Coleccion historica tc_m09_g82.json: login ingeniero, GET /configuracion/fincas/19, espera 403 ACCESO_DENEGADO.
+Matriz: usuario 20 finca 999. GET /usuarios/20/detalle 404. GET /fincas/999 404.
+
+Ingeniero: 1 login env password -> 401 CREDENCIALES_INVALIDAS intento 2/5. No reintento.
+
+Alternativa: productor id=2 / finca 19 existente no autorizada.
+POST /sesiones/ 200 jwt sub=2 rol=2 [REDACTED]
+GET /configuracion/fincas -> 200 total=8 sin 19
+GET /configuracion/fincas/19 -> 403 FINCA_NO_AUTORIZADA (sin datos)
+GET /configuracion/fincas/1 -> 200
+GET /configuracion/fincas/999 -> 404
+GET /auditoria/?id_usuario=2 -> sin evento de denegacion
+
+Clasificacion autorizacion: APROBADO
+Password/JWT: [REDACTED]

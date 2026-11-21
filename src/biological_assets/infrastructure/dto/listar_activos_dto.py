@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
 """Filtros de ``GET /activos-biologicos`` (RF-35 / RF-36)."""
 
 from __future__ import annotations
@@ -18,6 +21,7 @@ class ListarActivosDTO(BaseDTO):
     id_especie: Optional[int] = None
     id_estado: Optional[int] = None
     id_infraestructura: Optional[int] = None
+    id_finca: Optional[int] = Field(default=None, ge=1)
     pagina: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 

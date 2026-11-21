@@ -1,0 +1,546 @@
+{
+  "info": {
+    "name": "TC-M09-G143 — PRECHECK de solo lectura",
+    "description": "Precheck previo al RUN oficial: OpenAPI, rutas M02/M03/M09/auditoria, autenticacion de los dos actores, permisos, finca compartida, especie apta para el alta de lote y catalogo de tipos de evento RF-10. No escribe nada.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "PRECHECK 01 · OpenAPI de TEST",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/openapi.json",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "openapi.json"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · openapi.json disponible (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const paths = b.paths || {};",
+              "const req = [[\"/activos-biologicos\", \"post\"], [\"/iot/telemetria/vision\", \"post\"], [\"/configuracion/calibraciones-vision\", \"post\"], [\"/configuracion/calibraciones-vision\", \"get\"], [\"/configuracion/calibraciones-vision/linea-base\", \"get\"], [\"/auditoria/\", \"get\"]];",
+              "const faltan = [];",
+              "req.forEach(r => { if (!paths[r[0]] || !paths[r[0]][r[1]]) faltan.push(r[1].toUpperCase() + ' ' + r[0]); });",
+              "pm.environment.set('rutas_ausentes', JSON.stringify(faltan));",
+              "pm.test('PRECHECK · estan las rutas M02, M03, M09 VISION y auditoria',",
+              "  () => pm.expect(faltan, 'rutas ausentes').to.eql([]));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 02 · Autenticacion del Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{admin_correo}}\", \"contrasena\": \"{{admin_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · el Administrador autentica (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.expect(b.token, 'token').to.be.a('string');",
+              "pm.environment.set('admin_session', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 03 · Autenticacion del Ingeniero",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{ing_correo}}\", \"contrasena\": \"{{ing_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · el Ingeniero autentica (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.expect(b.token, 'token').to.be.a('string');",
+              "pm.environment.set('ing_session', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 04 · Permisos del Administrador",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/me/permisos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/me/permisos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · permisos del Administrador (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const items = b.items || b.permisos || b || [];",
+              "const lista = Array.isArray(items) ? items : [];",
+              "const de = (r) => lista.filter(p => p.id_recurso === r).map(p => p.id_accion).sort();",
+              "pm.environment.set('admin_m02', JSON.stringify(de(29)));",
+              "pm.environment.set('admin_infra', JSON.stringify(de(10)));",
+              "pm.test('PRECHECK · el Administrador puede crear lotes (29.1)', () => pm.expect(de(29)).to.include(1));",
+              "pm.test('PRECHECK · el Administrador puede crear areas (10.1)', () => pm.expect(de(10)).to.include(1));",
+              "pm.test('PRECHECK · el Administrador puede crear dispositivos (11.1)', () => pm.expect(de(11)).to.include(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 05 · Permisos del Ingeniero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/me/permisos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/me/permisos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · permisos del Ingeniero (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const items = b.items || b.permisos || b || [];",
+              "const lista = Array.isArray(items) ? items : [];",
+              "const sensores = lista.filter(p => p.id_recurso === 12).map(p => p.id_accion).sort();",
+              "pm.environment.set('ing_sensores', JSON.stringify(sensores));",
+              "pm.test('PRECHECK · el Ingeniero puede calibrar (12.1)', () => pm.expect(sensores).to.include(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 06 · Fincas compartidas por los dos actores",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/fincas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · fincas del Administrador (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const activas = (b.items || []).filter(f => f.es_activo).map(f => f.id_finca);",
+              "pm.environment.set('fincas_admin', JSON.stringify(activas));",
+              "pm.test('PRECHECK · el Administrador tiene finca activa', () => pm.expect(activas.length).to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 07 · Fincas del Ingeniero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ing_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/fincas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · fincas del Ingeniero (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const ing = (b.items || []).filter(f => f.es_activo).map(f => f.id_finca);",
+              "const adm = JSON.parse(pm.environment.get('fincas_admin') || '[]');",
+              "const compartidas = ing.filter(f => adm.indexOf(f) >= 0);",
+              "pm.environment.set('fincas_compartidas', JSON.stringify(compartidas));",
+              "pm.environment.set('finca_id', compartidas.length ? String(compartidas.indexOf(163) >= 0 ? 163 : compartidas[0]) : '');",
+              "pm.test('PRECHECK · hay finca QA en el alcance de los dos actores',",
+              "  () => pm.expect(compartidas.length, 'fincas compartidas').to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 08 · Catalogo de tipos de area",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-area",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/tipos-area"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · tipos de area (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test('PRECHECK · hay tipo de area activo',",
+              "  () => pm.expect((b.items || []).filter(t => t.es_activo).length).to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 09 · Especie AVES apta para el alta de lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/especies"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · especies (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "// El alta de lote calcula la densidad inicial: la especie necesita",
+              "// densidad_maxima_por_especie o M02 responde 422 DENSIDAD_MAXIMA_NO_CONFIGURADA.",
+              "const aptas = (b.items || []).filter(e => e.es_activo",
+              "  && String(e.tipo_modelo) === 'MODELO_AVES'",
+              "  && e.densidad_maxima_por_especie && Number(e.densidad_maxima_por_especie) > 0);",
+              "aptas.sort((x, y) => x.id_especie - y.id_especie);",
+              "pm.environment.set('especies_aptas', JSON.stringify(aptas.map(e => e.id_especie)));",
+              "pm.environment.set('especie_id', aptas.length ? String(aptas[0].id_especie) : '');",
+              "pm.test('PRECHECK · hay especie AVES activa con densidad maxima',",
+              "  () => pm.expect(aptas.length, 'especies AVES con densidad').to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 10 · Metricas obligatorias de la especie",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/metricas?id_especie={{especie_id}}&solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/metricas?id_especie={{especie_id}}&solo_activas=true"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · metricas (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const oblig = (b.items || []).filter(m => m.es_obligatorio",
+              "  && ['LOTE', 'AMBOS'].indexOf(String(m.aplica_a_tipo_activo)) >= 0);",
+              "pm.environment.set('metricas_obligatorias', JSON.stringify(oblig.map(m => m.nombre)));",
+              "pm.test('PRECHECK · la especie no exige atributos dinamicos para LOTE',",
+              "  () => pm.expect(oblig.length).to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 11 · Catalogo de tipos de evento RF-10",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/catalogo/tipos-evento",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/catalogo/tipos-evento"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · catalogo de tipos de evento (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const lista = Array.isArray(b) ? b : (b.items || []);",
+              "const buscar = (n) => (lista.find(t => String(t.nombre).toUpperCase() === n) || {}).id_tipo_evento;",
+              "const rechazada = buscar('CALIBRACION_RECHAZADA');",
+              "const exitosa = buscar('CALIBRACION_EXITOSA');",
+              "pm.environment.set('tipo_rechazada', rechazada ? String(rechazada) : '');",
+              "pm.environment.set('tipo_exitosa', exitosa ? String(exitosa) : '');",
+              "pm.test('PRECHECK · existe el tipo CALIBRACION_RECHAZADA en el catalogo',",
+              "  () => pm.expect(rechazada, 'id de CALIBRACION_RECHAZADA').to.be.a('number'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 12 · Auditoria RF-10 consultable",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde}}&pagina=1&tamano=5",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/?tipo_evento={{tipo_rechazada}}&fecha_desde={{auditoria_desde}}&pagina=1&tamano=5"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('auditoria_desde', new Date(Date.now() - 3600000).toISOString().slice(0, 19));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('PRECHECK · auditoria consultable (200 o 206)', () => pm.expect([200, 206]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

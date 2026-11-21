@@ -1,0 +1,95 @@
+================================================================================
+INFORME DE DIAGNOSTICO DE ERRORES: TC-M05-G38
+RF-80: Auditoria y Trazabilidad de Registros de Suministros (v1.4, CU06)
+================================================================================
+Fecha/Hora Diagnostico: 2026-11-07 20:10:00 (America/Bogota)
+Casos Afectados: TC-M05-044.1, 044.2, 044.3 / 032
+
+--------------------------------------------------------------------------------
+SUB-CASO 1: G38-B01 (TC-M05-044.1 / 032) - Filtro fecha_desde > fecha_hasta
+--------------------------------------------------------------------------------
+1. Que se observo exactamente (Hecho observado):
+   - Peticion: GET /suministros/auditoria?fecha_desde=2026-11-10T00:00:00Z&fecha_hasta=2026-11-01T00:00:00Z
+   - Respuesta HTTP: 200 OK con cuerpo {"total": 0, "pagina": 1, "registros_por_pagina": 50, "items": []}.
+   - Especificacion: Exige HTTP 4xx con mensaje explicativo indicando que fecha_desde no puede ser mayor que fecha_hasta.
+2. Ruta de codigo completa (Inferencia contrastada):
+   - Router: src/supplies/infrastructure/routers/auditoria_suministros_router.py:55-87
+   - DTO / Value Object: src/supplies/domain/repositories/auditoria_suministro_read_port.py:FiltrosAuditoriaSuministro
+   - Caso de Uso: src/supplies/application/use_cases/auditoria/consultar_auditoria_suministros_use_case.py:21-24
+   - Repositorio Read: src/supplies/infrastructure/repositories/auditoria_suministro_read_repository.py:63-66
+   - Motor SQL: Cláusulas WHERE fecha_evento >= fecha_desde AND fecha_evento <= fecha_hasta producen conjunto vacio.
+3. Hipotesis y contrastacion:
+   - H1: El router valida pero un middleware lo transforma a 200. DESCARTADA: No existe codigo de validacion
+     de coherencia temporal entre fecha_desde y fecha_hasta en el router ni en Pydantic.
+   - H2: La logica de base de datos maneja la condicion AND sin error. CONFIRMADA: En SQL un rango invertido
+     evalua a falso para todas las filas y retorna 0 registros sin excepcion.
+4. Causa mas probable, clasificacion y causa raiz compartida:
+   - Causa Mas Probable: Omision de validacion cruzada de parametros temporales en el endpoint.
+   - Clasificacion: Defecto de Producto.
+   - Causa Raiz Compartida: Falta de validacion temporal coherente en query parameters de routers de consulta.
+5. Posible solucion (Desarrollo):
+   - En auditoria_suministros_router.py (o dependencia de validacion):
+     if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+         raise ValidationError(code="RANGO_FECHAS_INVALIDO", message="fecha_desde no puede ser posterior a fecha_hasta")
+6. Criterio de re-prueba:
+   - Invocar GET /suministros/auditoria?fecha_desde=2026-12-01&fecha_hasta=2026-11-01 y verificar HTTP 400
+     con error_code="RANGO_FECHAS_INVALIDO".
+
+--------------------------------------------------------------------------------
+SUB-CASO 2: G38-B02 (TC-M05-044.2 / 032) - Auto-auditoria de Consultas a Bitacora
+--------------------------------------------------------------------------------
+1. Que se observo exactamente (Hecho observado):
+   - Conteo inicial de eventos: N.
+   - Ejecucion de GET /suministros/auditoria?pagina=1&registros_por_pagina=1.
+   - Conteo posterior en modulo5.auditorias_suministros: N (+0 eventos).
+2. Ruta de codigo completa (Inferencia contrastada):
+   - Router: src/supplies/infrastructure/routers/auditoria_suministros_router.py:52-87
+   - Caso de Uso: src/supplies/application/use_cases/auditoria/consultar_auditoria_suministros_use_case.py:1-27
+   - Docstring oficial del caso de uso (lineas 3-6): "Solo lectura. No se auto-audita: RF-80 no define un tipo
+     de evento de negocio para 'se consulto la bitacora' (a diferencia de RF-81...)"
+3. Hipotesis y contrastacion:
+   - H1: Se intenta auditar pero se revierte la transaccion. DESCARTADA: El caso de uso ni siquiera recibe
+     el puerto de escritura AuditoriaSuministroPort; es unicamente de lectura.
+   - H2: Desacuerdo explícito entre el CU06 FA-02 y el catalogo de eventos de RF-80. CONFIRMADA: El enum
+     TipoEventoAuditoriaSuministro carece de evento para consulta de auditoria. El desarrollador decidio
+     no persistir lecturas para no saturar la tabla con lecturas de bitacora.
+4. Causa mas probable, clasificacion y causa raiz compartida:
+   - Causa Mas Probable: Discrepancia funcional entre la especificacion CU06 FA-02 y el diseño de catalogo.
+   - Clasificacion: Especificacion Ambigua / Conflicto de Diseño.
+   - Causa Raiz Compartida: Ausencia de definicion formal de tipos de eventos de lectura en catalogo de M05.
+5. Posible solucion (Desarrollo):
+   - Si Negocio ratifica CU06 FA-02: Agregar CONSULTA_BITACORA_EJECUTADA al enum modulo5.enum_auditoria_suministro_tipo_operacion,
+     inyectar AuditoriaSuministroPort en ConsultarAuditoriaSuministrosUseCase y persistir en background.
+   - Si se prefiere no saturar: Actualizar la especificacion CU06 eliminando el flujo FA-02.
+6. Criterio de re-prueba:
+   - Tras GET /suministros/auditoria, verificar incremento de 1 evento con tipo CONSULTA_BITACORA_EJECUTADA.
+
+--------------------------------------------------------------------------------
+SUB-CASO 3: G38-C02 (TC-M05-044.3 / 032) - Registro de Eventos 403 (Seguridad)
+--------------------------------------------------------------------------------
+1. Que se observo exactamente (Hecho observado):
+   - Peticion autenticada con rol Veterinario: GET /suministros/auditoria.
+   - Respuesta HTTP: 403 Forbidden con {"error_code": "ACCESO_DENEGADO"}.
+   - Consulta a BD: SELECT count(*) FROM modulo5.auditorias_suministros WHERE resultado = 'RECHAZADO';
+   - Resultado: 0 eventos registrados.
+2. Ruta de codigo completa (Inferencia contrastada):
+   - Router: src/supplies/infrastructure/routers/auditoria_suministros_router.py:45
+   - RBAC: src/shared/rbac.py:require_permission:104-115
+   - Comprobacion: src/shared/rbac.py:_exigir_permiso:155-162 -> raise AuthorizationError(...)
+   - Handler: src/shared/error_handlers.py:app_error_handler:76-100 (retorna 403 sin persistir en BD).
+3. Hipotesis y contrastacion:
+   - H1: El fallo 403 se persiste en modulo1.eventos. DESCARTADA: rbac.py no interactua con el modulo de eventos
+     ni inyecta ningun repositorio de seguridad.
+   - H2: rbac.py es puramente defensivo y solo lanza la excepcion. CONFIRMADA: rbac.py se limita a verificar
+     el permiso en modulo1.permisos y lanzar AuthorizationError sin disparar efectos secundarios.
+4. Causa mas probable, clasificacion y causa raiz compartida:
+   - Causa Mas Probable: Desacoplamiento de la compuerta RBAC sin enlace a la bitacora de auditoria de seguridad.
+   - Clasificacion: Defecto de Producto.
+   - Causa Raiz Compartida: Ausencia de auditoria de seguridad transversal ante fallos de autorizacion/metodo
+     (compartida con G39-B02).
+5. Posible solucion (Desarrollo):
+   - En src/shared/rbac.py o en un middleware de seguridad: al denegar acceso, invocar un servicio
+     asincrono de auditoria de seguridad que persista el evento denegado (usuario, rol, recurso, endpoint, ip).
+6. Criterio de re-prueba:
+   - Intentar acceder con rol no autorizado (403) y verificar que se genere 1 evento con resultado 'RECHAZADO'.
+

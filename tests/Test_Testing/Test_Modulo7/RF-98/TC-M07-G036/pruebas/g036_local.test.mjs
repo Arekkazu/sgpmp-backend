@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {test} from 'node:test';
+import {CAPACIDADES,contexto,dirRun,preflight,verificarRollback,sanitize} from '../g036.mjs';
+import {precondiciones,versionesLibres,estados,clasificarRechazo,clasificarUI,evaluarAuditoria} from '../lib/g036_core.mjs';
+import {contrato,validarSolicitud,validarError} from '../lib/contrato.mjs';
+const fixture=JSON.parse(fs.readFileSync(new URL('./fixture_g036.json',import.meta.url)));
+const permisos=[['contratos_aaef',1],['contratos_aaef',2],['auditoria_integracion',2]].map(([nombre_recurso,id_accion])=>({nombre_recurso,id_accion}));
+const runId='RUN-G036-V2-20261120-000000';
+const base=fixture.contratos, anexos=fixture.anexos;
+test('V2 y casos obligatorios',()=>{assert.deepEqual(CAPACIDADES.operaciones,['reevaluar','reintentar']);assert.deepEqual(CAPACIDADES.versiones,{min:2,max:2});assert.equal(Object.keys(CAPACIDADES.comprobaciones_obligatorias).length,5);});
+test('dirRun V2 dentro de TEMP para ensayo',()=>{const dir=path.join(os.tmpdir(),'g036-local-unit',runId);assert.equal(dirRun({ensayo:true,dir,runId}),dir);});
+test('contexto rechaza V1 y acepta V2 local',()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'g036-ctx-')),run=path.join(dir,runId);fs.mkdirSync(run);const file=path.join(run,'contexto_operacion.json');fs.writeFileSync(file,JSON.stringify({grupo:'G036',version:2,intento:1,run_id:runId,operacion:'REEVALUAR',referencia:'LOCAL',casos:CAPACIDADES.casos}));const args=['--operacion','reevaluar','--version','2','--intento','1','--run-id',runId,'--autorizacion','LOCAL','--contexto',file];assert.equal(contexto(args,true).version,2);assert.throws(()=>contexto(args.map(x=>x==='2'?'1':x),true));fs.rmSync(dir,{recursive:true,force:true});});
+test('preflight sin credenciales no autoriza red',()=>{const z=preflight({ensayo:true,runId,version:2,referencia:'LOCAL'},{QA_AUTORIZADO:'NO'});assert.equal(z.ok,false);});
+test('versiones libres desde 6.0 saltan ocupadas',()=>{assert.deepEqual(versionesLibres([...base,{contrato_version:'6.0'},{contrato_version:'6.2'}]),['6.1','6.3','6.4']);});
+test('datos vivos y revisión ausente afecta solo 03c',()=>{const p=precondiciones(anexos.filter(x=>x.estado!=='EN_REVISION'),base,permisos);assert.equal(p.existente.estado,'ACTIVO');assert.deepEqual(p.libres,['6.0','6.1','6.2']);assert.equal(p.revision,null);assert(!p.faltan.includes('ANEXO_EN_REVISION'));});
+test('04 acepta solamente 400/422 MAPPERS_INVALIDOS sin alta',()=>{const antes=estados(base);for(const http of [400,422])assert.equal(clasificarRechazo({http,data:{error_code:'MAPPERS_INVALIDOS'}},'MAPPERS_INVALIDOS',antes,base,'6.0'),'APROBADO');assert.equal(clasificarRechazo({http:409,data:{error_code:'MAPPERS_INVALIDOS'}},'MAPPERS_INVALIDOS',antes,base,'6.0'),'NO_CONCLUYENTE');});
+test('04 VAL_ENTRADA es RECHAZADO BAJA y alta indebida no pasa',()=>{const antes=estados(base);assert.equal(clasificarRechazo({http:422,data:{error_code:'VAL_ENTRADA'}},'MAPPERS_INVALIDOS',antes,base,'6.0'),'RECHAZADO');assert.equal(clasificarRechazo({http:201,data:{}},'MAPPERS_INVALIDOS',antes,base,'6.0'),'RECHAZADO');});
+test('02 duplicado ACTIVO no se confunde con alta nueva',()=>{assert.equal(clasificarRechazo({http:409,data:{error_code:'VERSION_DUPLICADA'}},'VERSION_DUPLICADA',estados(base),base,'2.1'),'APROBADO');});
+test('05 deshabilitado con motivo y captura aprueba',()=>{const a={hitos:{pantalla_contrato:true,registro_enviado:true},http_registro:201,version_visible:true,pendiente_activar:true,activo_deprecar:true,deprecado_sin_accion:true,inactivo_sin_accion:true,captura:true};assert.equal(clasificarUI(a,0).ui,true);assert.equal(clasificarUI({...a,pendiente_activar:false,asercion_producto:'pendiente_activar'},1).ui,false);});
+test('auditoría compara actor, versión, estado y fecha',()=>{const x={id_evento_integracion:'1',tipo_evento:'CONTRATO_REGISTRADO',version_contrato:'6.0',id_usuario:7,json_detalle:{estado:'PENDIENTE'},fecha_evento:'2026-11-20T00:00:00Z'};assert(evaluarAuditoria([],[x],'6.0',7));assert(!evaluarAuditoria([],[x],'6.0',8));});
+test('saneamiento elimina personas, JWT y cabecera',()=>{const x=sanitize({nombre_usuario:'Nombre',correo_usuario:'a@local.invalid',texto:'Authorization: Bearer eyJhbGci.eyJzdWI.abc'});assert(!('nombre_usuario' in x));assert(!('correo_usuario' in x));assert(!/Authorization|eyJ/.test(x.texto));});
+test('rollback exige mismos IDs y estados',()=>{assert(verificarRollback(base,base,anexos,anexos));assert(!verificarRollback(base,[...base,{...base[0],id_version_contrato_aaef:99}],anexos,anexos));});
+test('contrato solicitud y error actual',()=>{assert(validarSolicitud('POST','/integracion/contratos',{contrato_version:'6.0',tipo_cambio:'MAJOR',fecha_vigencia:'2027-12-31',id_mapeo_anexo_aaef:2,mapeadores:[],periodo_gracia_dias:90}));assert(validarError({error_code:'MAPPERS_INVALIDOS',message:'x',field:'mapeadores',fields:[{field:'mapeadores',message:'x'}],timestamp:'2026-11-20T00:00:00Z'}));assert(contrato.citas_campos['GET /integracion/contratos[].motivo_no_activable']);});
+

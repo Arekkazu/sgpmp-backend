@@ -1,0 +1,798 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g84-asociacion-sensores-rf49",
+    "name": "TC-M02-G84 - Asociación exitosa de sensores IoT y manejo de advertencia por dispositivo desconectado (RF-49)",
+    "description": "Caso agrupado TC-M02-G84 (RF-49, CU11): Pruebas de integración para POST /activos-biologicos/{id_activo}/sensores evaluando tipos de asociación (DIRECTA, AMBIENTAL, POBLACIONAL) y advertencia por dispositivo desconectado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "administador.dev@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_activo_143",
+      "value": "108",
+      "type": "string"
+    },
+    {
+      "key": "id_asoc_activo_143",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_infraestructura_144",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "id_asoc_ambiental_144",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-143",
+      "description": "Subcaso TC-M02-143: Asociar sensor DIRECTA a activo individual válido",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-143] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Asociar sensor DIRECTA a activo individual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 38,\n  \"sensor_id\": 22,\n  \"id_infraestructura\": 3,\n  \"motivo\": \"Monitoreo biometrico individual TC-M02-143\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/108/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "108",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"[TC-M02-143] Código HTTP es 201 Created\", function () {\n",
+                  "    pm.response.to.have.status(201);\n",
+                  "});\n",
+                  "\n",
+                  "pm.test(\"[TC-M02-143] Estructura de respuesta contiene identificadores correctos\", function () {\n",
+                  "    var data = pm.response.json();\n",
+                  "    pm.expect(data).to.have.property(\"id_asociacion_activo_sensor\");\n",
+                  "    pm.expect(data.id_asociacion_activo_sensor).to.be.a(\"number\");\n",
+                  "    pm.expect(data.id_activo_biologico).to.eql(108);\n",
+                  "    pm.expect(data.sensor_id).to.eql(22);\n",
+                  "    pm.expect(data.dispositivo_iot_id).to.eql(38);\n",
+                  "    pm.expect(data.id_infraestructura).to.eql(3);\n",
+                  "    pm.collectionVariables.set(\"id_asoc_activo_143\", data.id_asociacion_activo_sensor);\n",
+                  "    pm.collectionVariables.set(\"id_activo_143\", data.id_activo_biologico);\n",
+                  "});\n",
+                  "\n",
+                  "pm.test(\"[TC-M02-143] Estado de asociación es ACTIVA y tipo es directa\", function () {\n",
+                  "    var data = pm.response.json();\n",
+                  "    pm.expect(data.estado_asociacion).to.eql(\"ACTIVA\");\n",
+                  "    pm.expect(data.tipo_asociacion.toLowerCase()).to.eql(\"directa\");\n",
+                  "    pm.expect(data.tipo_activo).to.eql(\"INDIVIDUAL\");\n",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-144",
+      "description": "Subcaso TC-M02-144: Asociar sensor AMBIENTAL compartido a infraestructura",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-144] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Asociar sensor AMBIENTAL a activo en infraestructura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dispositivo_iot_id\": 39,\n  \"sensor_id\": 23,\n  \"motivo\": \"Monitoreo ambiental compartido infraestructura TC-M02-144\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/infraestructuras/{{id_infraestructura_144}}/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "infraestructuras",
+                "{{id_infraestructura_144}}",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// C1: Pre-cleanup: inactivar cualquier asociacion ambiental previa del sensor 23 en infra 3",
+                  "const baseUrl = pm.collectionVariables.get(\"baseUrl\");",
+                  "const token = pm.collectionVariables.get(\"jwt_token\");",
+                  "const infraId = pm.collectionVariables.get(\"id_infraestructura_144\") || \"3\";",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/activos-biologicos/83/sensores?tipo_consulta=ACTIVA\",",
+                  "    method: \"GET\",",
+                  "    header: {",
+                  "        \"Authorization\": \"Bearer \" + token,",
+                  "        \"Accept\": \"application/json\"",
+                  "    }",
+                  "}, function (err, res) {",
+                  "    if (!err && res && res.code === 200) {",
+                  "        try {",
+                  "            const d = res.json();",
+                  "            const asocs = d.asociaciones || [];",
+                  "            const previa = asocs.find(function(a) {",
+                  "                return (a.sensor_id === 23 || a.id_sensor === 23) && String(a.id_infraestructura) === String(infraId) && a.estado_asociacion === \"ACTIVA\";",
+                  "            });",
+                  "            if (previa && previa.id_asociacion_activo_sensor) {",
+                  "                pm.sendRequest({",
+                  "                    url: baseUrl + \"/infraestructuras/\" + infraId + \"/sensores/\" + previa.id_asociacion_activo_sensor,",
+                  "                    method: \"PATCH\",",
+                  "                    header: {",
+                  "                        \"Authorization\": \"Bearer \" + token,",
+                  "                        \"Content-Type\": \"application/json\",",
+                  "                        \"Accept\": \"application/json\"",
+                  "                    },",
+                  "                    body: {",
+                  "                        mode: \"raw\",",
+                  "                        raw: JSON.stringify({",
+                  "                            estado_nuevo: \"INACTIVA\",",
+                  "                            motivo: \"Pre-cleanup automatico TC-M02-144\"",
+                  "                        })",
+                  "                    }",
+                  "                }, function (patchErr, patchRes) {});",
+                  "            }",
+                  "        } catch (e) {}",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// C2: Assertion tolerante e idempotente (200, 201, 409)",
+                  "pm.test(\"[TC-M02-144] POST crea o encuentra asociacion ambiental existente\", function () {",
+                  "    pm.expect([200, 201, 409]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    pm.test(\"[TC-M02-144] Asociacion ambiental vinculada a infraestructura correctamente (Tipo B)\", function () {",
+                  "        var data = pm.response.json();",
+                  "        pm.expect(data).to.have.property(\"id_asociacion_activo_sensor\");",
+                  "        pm.expect(data.id_asociacion_activo_sensor).to.be.a(\"number\");",
+                  "        pm.expect(data.id_activo_biologico).to.be.null;",
+                  "        pm.expect(data.sensor_id).to.eql(23);",
+                  "        pm.expect(data.id_infraestructura).to.eql(3);",
+                  "        pm.expect(data.tipo_asociacion.toLowerCase()).to.eql(\"ambiental\");",
+                  "        pm.expect(data.estado_asociacion).to.eql(\"ACTIVA\");",
+                  "        pm.collectionVariables.set(\"id_asoc_ambiental_144\", data.id_asociacion_activo_sensor);",
+                  "    });",
+                  "} else if (pm.response.code === 409) {",
+                  "    const baseUrl = pm.collectionVariables.get(\"baseUrl\");",
+                  "    const token = pm.collectionVariables.get(\"jwt_token\");",
+                  "    const infraId = pm.collectionVariables.get(\"id_infraestructura_144\") || \"3\";",
+                  "    pm.sendRequest({",
+                  "        url: baseUrl + \"/activos-biologicos/83/sensores?tipo_consulta=ACTIVA\",",
+                  "        method: \"GET\",",
+                  "        header: {",
+                  "            \"Authorization\": \"Bearer \" + token,",
+                  "            \"Accept\": \"application/json\"",
+                  "        }",
+                  "    }, function (err, res) {",
+                  "        var idRecuperado = null;",
+                  "        if (!err && res && res.code === 200) {",
+                  "            try {",
+                  "                var d = res.json();",
+                  "                var asocs = d.asociaciones || [];",
+                  "                var match = asocs.find(function(a) {",
+                  "                    return (a.sensor_id === 23 || a.id_sensor === 23) && String(a.id_infraestructura) === String(infraId) && a.estado_asociacion === \"ACTIVA\";",
+                  "                });",
+                  "                if (match && match.id_asociacion_activo_sensor) {",
+                  "                    idRecuperado = match.id_asociacion_activo_sensor;",
+                  "                    pm.collectionVariables.set(\"id_asoc_ambiental_144\", idRecuperado);",
+                  "                }",
+                  "            } catch (e) {}",
+                  "        }",
+                  "        pm.test(\"[TC-M02-144] Recuperacion de id_asoc_ambiental_144 tras 409 existente\", function () {",
+                  "            pm.expect(idRecuperado, \"No se pudo recuperar id_asoc_ambiental_144 (estado inconsistente)\").to.not.be.null;",
+                  "        });",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-145",
+      "description": "Subcaso TC-M02-145: Asociar sensor POBLACIONAL a lote",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-145] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Asociar sensor POBLACIONAL a lote activo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"LOTE\",\n  \"tipo_asociacion\": \"POBLACIONAL\",\n  \"dispositivo_iot_id\": 40,\n  \"sensor_id\": 24,\n  \"id_infraestructura\": 3,\n  \"motivo\": \"Monitoreo poblacional lote TC-M02-145\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/83/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "83",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-145] Código HTTP es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-145] Asociación POBLACIONAL vinculada a lote correctamente', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('id_asociacion_activo_sensor');",
+                  "    pm.expect(data.id_asociacion_activo_sensor).to.be.a('number');",
+                  "    pm.expect(data.id_activo_biologico).to.eql(83);",
+                  "    pm.expect(data.sensor_id).to.eql(24);",
+                  "    pm.expect(data.tipo_activo).to.eql('LOTE');",
+                  "    pm.expect(data.tipo_asociacion.toLowerCase()).to.eql('poblacional');",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-150",
+      "description": "Subcaso TC-M02-150: Advertencia por dispositivo IoT desconectado",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-150] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Asociar sensor con dispositivo desconectado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 3,\n  \"sensor_id\": 6,\n  \"id_infraestructura\": 3,\n  \"motivo\": \"Verificacion advertencia dispositivo desconectado TC-M02-150\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/110/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "110",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-150] Código HTTP es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-150] Asociación registrada exitosamente como ACTIVA', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('id_asociacion_activo_sensor');",
+                  "    pm.expect(data.id_asociacion_activo_sensor).to.be.a('number');",
+                  "    pm.expect(data.id_activo_biologico).to.eql(110);",
+                  "    pm.expect(data.sensor_id).to.eql(6);",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-150] Respuesta incluye advertencia informativa de dispositivo desconectado', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('advertencia');",
+                  "    pm.expect(data.advertencia).to.not.be.null;",
+                  "    pm.expect(data.advertencia.toLowerCase()).to.include('desconectado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "98 - Verificación Fix #398: Admin puede desactivar asociación ambiental vía PATCH",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"INACTIVA\",\n  \"motivo\": \"Desactivación ambiental vía PATCH Fix 398\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/infraestructuras/{{id_infraestructura_144}}/sensores/{{id_asoc_ambiental_144}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "infraestructuras",
+            "{{id_infraestructura_144}}",
+            "sensores",
+            "{{id_asoc_ambiental_144}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// C3: Autocontenido - Garantizar que id_asoc_ambiental_144 este definida",
+              "var currentId = pm.collectionVariables.get(\"id_asoc_ambiental_144\");",
+              "if (!currentId) {",
+              "    var baseUrl = pm.collectionVariables.get(\"baseUrl\");",
+              "    var token = pm.collectionVariables.get(\"jwt_token\");",
+              "    var infraId = pm.collectionVariables.get(\"id_infraestructura_144\") || \"3\";",
+              "    pm.sendRequest({",
+              "        url: baseUrl + \"/infraestructuras/\" + infraId + \"/sensores\",",
+              "        method: \"POST\",",
+              "        header: {",
+              "            \"Authorization\": \"Bearer \" + token,",
+              "            \"Content-Type\": \"application/json\",",
+              "            \"Accept\": \"application/json\"",
+              "        },",
+              "        body: {",
+              "            mode: \"raw\",",
+              "            raw: JSON.stringify({",
+              "                dispositivo_iot_id: 39,",
+              "                sensor_id: 23,",
+              "                motivo: \"Pre-req 98 autocontenido Fix 398\"",
+              "            })",
+              "        }",
+              "    }, function (err, res) {",
+              "        if (res && (res.code === 201 || res.code === 200)) {",
+              "            pm.collectionVariables.set(\"id_asoc_ambiental_144\", res.json().id_asociacion_activo_sensor);",
+              "        } else if (res && res.code === 409) {",
+              "            pm.sendRequest({",
+              "                url: baseUrl + \"/activos-biologicos/83/sensores?tipo_consulta=ACTIVA\",",
+              "                method: \"GET\",",
+              "                header: { \"Authorization\": \"Bearer \" + token, \"Accept\": \"application/json\" }",
+              "            }, function (gErr, gRes) {",
+              "                if (!gErr && gRes && gRes.code === 200) {",
+              "                    var asocs = gRes.json().asociaciones || [];",
+              "                    var m = asocs.find(function(a) { return (a.sensor_id === 23 || a.id_sensor === 23) && a.estado_asociacion === \"ACTIVA\"; });",
+              "                    if (m && m.id_asociacion_activo_sensor) {",
+              "                        pm.collectionVariables.set(\"id_asoc_ambiental_144\", m.id_asociacion_activo_sensor);",
+              "                    }",
+              "                }",
+              "            });",
+              "        }",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// C4: Guardian anti-cascada",
+              "const idAsoc = pm.collectionVariables.get(\"id_asoc_ambiental_144\");",
+              "pm.test(\"[Req 98] Guardian: id_asoc_ambiental_144 debe estar definida\", function () {",
+              "    pm.expect(idAsoc, \"Variable de coleccion faltante: id_asoc_ambiental_144\").to.not.be.undefined;",
+              "    pm.expect(String(idAsoc)).to.match(/^\\d+$/);",
+              "});",
+              "",
+              "pm.test(\"[Fix #398] Codigo HTTP es 200 OK al desactivar asociacion ambiental\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"[Fix #398] Anti-regresion: No retorna 403 Forbidden ni 404 Not Found\", function () {",
+              "    pm.expect(pm.response.code).to.not.eql(403);",
+              "    pm.expect(pm.response.code).to.not.eql(404);",
+              "});",
+              "",
+              "pm.test(\"[Fix #398] Asociacion ambiental transiciona exitosamente a INACTIVA\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.estado_asociacion).to.eql(\"INACTIVA\");",
+              "    pm.expect(data.fecha_fin).to.not.be.null;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "99 - Verificación Fix #397: Admin puede desactivar asociación de activo vía PATCH",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"INACTIVA\",\n  \"motivo\": \"Desactivación de asociación vía PATCH Fix 397\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_activo_143}}/sensores/{{id_asoc_activo_143}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_143}}",
+            "sensores",
+            "{{id_asoc_activo_143}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// C5: Autocontenido - Garantizar que id_asoc_activo_143 este definida",
+              "var currentIdActivo = pm.collectionVariables.get(\"id_asoc_activo_143\");",
+              "if (!currentIdActivo) {",
+              "    var baseUrl = pm.collectionVariables.get(\"baseUrl\");",
+              "    var token = pm.collectionVariables.get(\"jwt_token\");",
+              "    pm.sendRequest({",
+              "        url: baseUrl + \"/activos-biologicos/108/sensores\",",
+              "        method: \"POST\",",
+              "        header: {",
+              "            \"Authorization\": \"Bearer \" + token,",
+              "            \"Content-Type\": \"application/json\",",
+              "            \"Accept\": \"application/json\"",
+              "        },",
+              "        body: {",
+              "            mode: \"raw\",",
+              "            raw: JSON.stringify({",
+              "                tipo_activo: \"INDIVIDUAL\",",
+              "                tipo_asociacion: \"DIRECTA\",",
+              "                dispositivo_iot_id: 38,",
+              "                sensor_id: 22,",
+              "                id_infraestructura: 3,",
+              "                motivo: \"Pre-req 99 autocontenido Fix 397\"",
+              "            })",
+              "        }",
+              "    }, function (err, res) {",
+              "        if (res && (res.code === 201 || res.code === 200)) {",
+              "            pm.collectionVariables.set(\"id_asoc_activo_143\", res.json().id_asociacion_activo_sensor);",
+              "            pm.collectionVariables.set(\"id_activo_143\", 108);",
+              "        }",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// C5: Guardian anti-cascada para Req 99",
+              "const idAsocActivo = pm.collectionVariables.get(\"id_asoc_activo_143\");",
+              "pm.test(\"[Req 99] Guardian: id_asoc_activo_143 debe estar definida\", function () {",
+              "    pm.expect(idAsocActivo, \"Variable de coleccion faltante: id_asoc_activo_143\").to.not.be.undefined;",
+              "    pm.expect(String(idAsocActivo)).to.match(/^\\d+$/);",
+              "});",
+              "",
+              "pm.test(\"[Fix #397] Codigo HTTP es 200 OK al desactivar asociacion de activo\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"[Fix #397] Anti-regresion: Rol Admin no recibe 403 Forbidden (RBAC verificado)\", function () {",
+              "    pm.expect(pm.response.code).to.not.eql(403);",
+              "});",
+              "",
+              "pm.test(\"[Fix #397] Asociacion de activo transiciona exitosamente a INACTIVA\", function () {",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.estado_asociacion).to.eql(\"INACTIVA\");",
+              "    pm.expect(data.fecha_fin).to.not.be.null;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "info": {
+    "name": "TC-M09-G23 - rangos invalidos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M09-50",
+      "item": [
+        {
+          "name": "TC-M09-50 POST rango invalido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "pm.test('HTTP exactamente 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Codigo VAL_ENTRADA',()=>pm.expect(b.error_code).to.eql('VAL_ENTRADA'));",
+                  "pm.test('Mensaje de validacion',()=>pm.expect(b.message).to.eql('Errores de validacion en la solicitud'));",
+                  "pm.test('Solo regla valor_max > valor_min',()=>{pm.expect(b.fields).to.have.lengthOf(1);pm.expect(b.fields[0].field).to.eql('valor_max');pm.expect(b.fields[0].message).to.include('estrictamente mayor que valor_min');});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-50 GET ausencia persistencia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Combinacion no persistida activa ni inactiva',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_variable_ambiental===Number(pm.environment.get('id_variable')))).to.have.lengthOf(0);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-51",
+      "item": [
+        {
+          "name": "TC-M09-51 POST rango invalido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "pm.test('HTTP exactamente 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Codigo VAL_ENTRADA',()=>pm.expect(b.error_code).to.eql('VAL_ENTRADA'));",
+                  "pm.test('Mensaje de validacion',()=>pm.expect(b.message).to.eql('Errores de validacion en la solicitud'));",
+                  "pm.test('Solo regla valor_max > valor_min',()=>{pm.expect(b.fields).to.have.lengthOf(1);pm.expect(b.fields[0].field).to.eql('valor_max');pm.expect(b.fields[0].message).to.include('estrictamente mayor que valor_min');});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-51 GET ausencia persistencia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Combinacion no persistida activa ni inactiva',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_variable_ambiental===Number(pm.environment.get('id_variable')))).to.have.lengthOf(0);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

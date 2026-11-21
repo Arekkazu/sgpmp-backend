@@ -1,0 +1,109 @@
+{
+  "grupo": "TC-M09-G79-v2.0",
+  "caso": "TC-M09-150-v2.0",
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "runId": "run-20261007-083841",
+  "ambiente": "LOCAL AISLADO",
+  "postgresReal": true,
+  "backendHttpReal": true,
+  "fakesDePersistencia": false,
+  "safetyGuard": "PASS",
+  "postgresVersion": "PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "alembicVersion": "78f6f579b5ba",
+  "appRole": {
+    "rolname": "sgpmp_app",
+    "rolsuper": false,
+    "rolinherit": true,
+    "rolbypassrls": true,
+    "rolcanlogin": true
+  },
+  "ownersTablas": [
+    {
+      "schemaname": "modulo1",
+      "tablename": "eventos",
+      "tableowner": "postgres"
+    },
+    {
+      "schemaname": "modulo9",
+      "tablename": "auditorias_calibraciones",
+      "tableowner": "sgpmp_owner"
+    },
+    {
+      "schemaname": "modulo9",
+      "tablename": "calibraciones",
+      "tableowner": "postgres"
+    }
+  ],
+  "fixture": {
+    "id_dispositivo_iot": 1,
+    "serial": "IOT-G79V2-LAB-001",
+    "id_sensor": 1,
+    "categoria": "TEMPERATURA",
+    "id_infraestructura": 1,
+    "rango": {
+      "min": "0.0000",
+      "max": "45.0000"
+    },
+    "valor": "22.5000"
+  },
+  "contrato": {
+    "endpoint": "POST /configuracion/sensores/{id_sensor}/calibrar",
+    "codigosDeclarados": [
+      "201",
+      "400",
+      "401",
+      "403",
+      "404",
+      "422",
+      "500"
+    ]
+  },
+  "actor": {
+    "id_usuario": 3,
+    "correo": "ingeniero@pecuaria.co",
+    "rol": "Ingeniero de Campo",
+    "tokenAntesDelFault": true
+  },
+  "controlPositivo": {
+    "http": 201,
+    "id_calibracion": 1,
+    "calibracionPersistida": true,
+    "auditoriaM9Creada": true,
+    "eventoRf10Observado": false
+  },
+  "postObjetivo": {
+    "httpEsperado": 500,
+    "httpObtenido": 500,
+    "error_code": "AUDITORIA_CALIBRACION_FALLIDA",
+    "mensajeEsperado": "Error de integridad: No se pudo garantizar la trazabilidad de la calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo.",
+    "mensajeObtenido": "Error de integridad: No se pudo garantizar la trazabilidad de la calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo.",
+    "mensajeCoincide": true,
+    "fechaEnviada": "2026-10-07T08:38:46.937602+00:00",
+    "devuelveIdCalibracion": false
+  },
+  "rollback": {
+    "countBefore": 1,
+    "countAfter": 1,
+    "idsBefore": [
+      1
+    ],
+    "idsAfter": [
+      1
+    ],
+    "calibracionesNuevas": [],
+    "historicosDesaparecidos": [],
+    "historicosAlterados": [],
+    "auditoriasHuerfanasNuevas": []
+  },
+  "puntoDeFallo": {
+    "permissionDeniedEnAuditoria": true,
+    "permissionDeniedEnEventos": false,
+    "permissionDeniedEnCalibraciones": false
+  },
+  "restauracion": {
+    "grantEjecutado": true,
+    "privilegiosRestaurados": true,
+    "restauracionPendiente": false
+  }
+}

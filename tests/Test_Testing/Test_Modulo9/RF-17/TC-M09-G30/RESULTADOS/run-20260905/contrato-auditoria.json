@@ -1,0 +1,67 @@
+{
+  "grupo": "TC-M09-G30",
+  "caso": "TC-M09-64",
+  "rf": "RF-17",
+  "runId": "run-20260905",
+  "capturadoEn": "2026-09-05T20:08:48-05:00",
+  "modo": "DISCOVERY_Y_CONTRATO_SOLO_LECTURA",
+  "testApi": {
+    "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+    "health": 200,
+    "openapi": 200
+  },
+  "actor": {
+    "loginStatus": 200,
+    "meStatus": 200,
+    "id_usuario": 1,
+    "nombre_rol": "Administrador",
+    "correo_coincide_con_actor_solicitado": true,
+    "secretos_persistidos": false
+  },
+  "permisos": {
+    "auditoria_6_2": true,
+    "umbral_create_20_1": true,
+    "umbral_read_20_2": true,
+    "umbral_update_20_3": true
+  },
+  "apiAuditoriaD09": {
+    "endpoint": "GET /auditoria/",
+    "status": 200,
+    "filtros_publicados": ["id_usuario", "tipo_evento", "categoria", "fecha_desde", "fecha_hasta", "pagina", "tamano"],
+    "campos_evento_publicados": ["id_evento", "tipo_evento", "fecha_evento", "modulo", "resultado", "detalle", "id_usuario", "categoria", "estado", "id_sesion", "nombre_usuario", "direccion_ip", "user_agent", "descripcion", "integridad_ok", "integridad"],
+    "catalogo_tipos_status": 200,
+    "catalogo_tipos_count": 24,
+    "catalogo_tipos_coincidentes_umbral": [],
+    "soporta_filtro_id_umbral_ambiental": false,
+    "expone_auditorias_umbrales_ambientales": false
+  },
+  "trazabilidadRF17": {
+    "modelo": "modulo9.auditorias_umbrales_ambientales",
+    "campos_persistidos": ["id_auditoria_umbral", "id_umbral_ambiental", "id_usuario", "tipo_operacion", "valores_anteriores", "valores_nuevos", "fecha_gestion"],
+    "operaciones": ["CREATE", "UPDATE", "DEACTIVATE"],
+    "registrarUmbral": "Persiste umbral y auditoría CREATE mediante SqlAlchemyAuditoriaUmbralRepository.",
+    "editarUmbral": "Persiste actualización y auditoría UPDATE mediante SqlAlchemyAuditoriaUmbralRepository.",
+    "conectorHaciaEventosD09": "NO_ENCONTRADO: los casos de uso de umbrales no utilizan SqlAlchemyEventoRepository.",
+    "endpointConsultaEspecificoRF17": "NO_ENCONTRADO en router local ni OpenAPI TEST."
+  },
+  "escrituras": {
+    "operaciones_funcionales_tc64": 0,
+    "post_umbral": 0,
+    "patch_umbral": 0,
+    "writes_db_directas": 0,
+    "nota": "El único POST fue el inicio de sesión requerido; no es una operación funcional de umbral ni consumió el presupuesto de dos escrituras de TC64."
+  },
+  "decision": {
+    "clasificacion": "BLOCKED — AUDITORÍA NO EXPUESTA/NO VERIFICABLE EN TEST",
+    "codigo": "CONTRACT_REQUIREMENT_MISMATCH",
+    "motivo": "No existe interfaz API que permita recuperar el registro RF-17 por id_umbral_ambiental y correlacionar CREATE/UPDATE con una operación de esta corrida.",
+    "hallazgo_reportable": "DEFECTO_DE_PRODUCTO_DE_CONTRATO_Y_OBSERVABILIDAD",
+    "reportar_desarrollo": true,
+    "equipo_responsable": "Desarrollo Backend — Configuration/RF-17 y Auditoría/D09",
+    "no_asignar_a": [
+      "Despliegue: el OpenAPI de TEST expone el mismo vacío contractual observado en el código.",
+      "DBA: la tabla y campos de auditoría RF-17 existen; no hay evidencia de fallo de esquema, disponibilidad o permisos de base de datos."
+    ],
+    "accion": "REPORTAR A DESARROLLO BACKEND PARA EXPONER O INTEGRAR UNA CONSULTA API CORRELACIONABLE DE LA AUDITORÍA RF-17."
+  }
+}

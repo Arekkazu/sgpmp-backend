@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G113 — APROBADO</title>
+  <style>
+    body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45;color:#222}
+    h1,h2{margin-top:1.4rem}
+    table{border-collapse:collapse;width:100%;margin:1rem 0}
+    th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}
+    th{background:#f3f3f3}
+    .ok{color:#0a7a2f;font-weight:600}
+    pre{white-space:pre-wrap;background:#fafafa;border:1px solid #eee;padding:.8rem}
+  </style>
+</head>
+<body>
+  <h1>TC-M06-G113 — <span class="ok">APROBADO</span></h1>
+  <p>Módulo 6 · RF-90 · Subcaso TC-M06-42 · Ambiente TEST</p>
+  <table>
+    <tr><th>Dictamen del caso</th><td class="ok">APROBADO 1/1</td></tr>
+    <tr><th>Subcaso</th><td>TC-M06-42 — APROBADO</td></tr>
+    <tr><th>Ejecución</th><td>COMPLETADA</td></tr>
+    <tr><th>Resultado</th><td>SATISFACTORIO</td></tr>
+    <tr><th>Generado</th><td>2026-11-12T20:28:07.353011-05:00</td></tr>
+  </table>
+
+  <h2>1. Identificación</h2>
+  <p><strong>Caso:</strong> TC-M06-G113<br>
+  <strong>Requisito:</strong> RF-90<br>
+  <strong>Subcaso:</strong> TC-M06-42<br>
+  <strong>Endpoint:</strong> POST /finanzas/costos</p>
+
+  <h2>2. Objetivo y alcance</h2>
+  <p>Validación de la distribución proporcional de costos compartidos y conservación de la integridad de los importes.
+  Comprobar que los importes se distribuyan proporcionalmente entre los activos y que la suma distribuida sea exactamente igual al costo original.</p>
+
+  <h2>3. Datos de prueba</h2>
+  <table>
+    <tr><th>Titular</th><td>QA M06 Operaciones SAS — NIT 900000003</td></tr>
+    <tr><th>Finca</th><td>467</td></tr>
+    <tr><th>Período</th><td>220 (ABIERTO)</td></tr>
+    <tr><th>Activos</th><td>1569 (100 kg), 1570 (200 kg), 1571 (300 kg)</td></tr>
+    <tr><th>Método</th><td>POR_BIOMASA</td></tr>
+    <tr><th>Monto</th><td>900000.00</td></tr>
+  </table>
+
+  <h2>4. Solicitud ejecutada y respuesta</h2>
+  <pre>{
+  "subtipo_costo": "ALIMENTO",
+  "origen_costo": "MANO_OBRA_PROPIA",
+  "monto_costo": "900000.00",
+  "fecha_costo": "2026-11-12",
+  "activos_reparto": [1569, 1570, 1571],
+  "metodo_reparto": "POR_BIOMASA"
+}</pre>
+  <p><strong>HTTP 201</strong> · <code>id_grupo_reparto</code>: <code>97e56560-f488-41e9-a5eb-b9a93455f275</code></p>
+
+  <h2>5. Distribución esperada frente a real</h2>
+  <table>
+    <tr><th>Activo</th><th>Biomasa</th><th>Esperado</th><th>Real</th><th>ID costo</th><th>Línea</th></tr>
+    <tr><td>1569</td><td>100 kg</td><td>150000.00</td><td>150000.00</td><td>4453</td><td>5799</td></tr>
+    <tr><td>1570</td><td>200 kg</td><td>300000.00</td><td>300000.00</td><td>4454</td><td>5800</td></tr>
+    <tr><td>1571</td><td>300 kg</td><td>450000.00</td><td>450000.00</td><td>4455</td><td>5801</td></tr>
+    <tr><th>Total</th><th>600 kg</th><th>900000.00</th><th>900000.00</th><td colspan="2"></td></tr>
+  </table>
+
+  <h2>6. Conservación del importe</h2>
+  <p>La suma de los tres registros del grupo es exactamente <strong>900000.00</strong>, igual al costo original.</p>
+
+  <h2>7. Validaciones de integridad</h2>
+  <ul>
+    <li>Distribución proporcional correcta según biomasa.</li>
+    <li>Los tres registros pertenecen al mismo <code>id_grupo_reparto</code>.</li>
+    <li>No se generaron costos adicionales inesperados fuera del grupo.</li>
+    <li>El costo histórico 4448 de G110 permaneció intacto y fuera del nuevo grupo.</li>
+    <li>El período 220 permaneció ABIERTO antes y después.</li>
+  </ul>
+
+  <h2>8. Identificadores generados</h2>
+  <ul>
+    <li>Grupo: <code>97e56560-f488-41e9-a5eb-b9a93455f275</code></li>
+    <li>Costos: 4453, 4454, 4455</li>
+    <li>Líneas NIC 41: 5799, 5800, 5801</li>
+  </ul>
+
+  <h2>9. Conclusión</h2>
+  <p class="ok">TC-M06-G113 — APROBADO.</p>
+  <p>Se verificó satisfactoriamente la distribución proporcional del costo compartido y la conservación del importe original.
+  El único subcaso asociado, TC-M06-42, quedó APROBADO.</p>
+</body>
+</html>

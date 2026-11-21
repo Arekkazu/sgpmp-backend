@@ -1,0 +1,41 @@
+# TC-M06-G39 — RF-86 v2.0
+
+Preparación local de TC-M06-016 y TC-M06-017, solo API. El ejecutor canónico es `g39.mjs`; la colección vigente es `G39.postman_collection.json`. No hay spec Cypress porque la matriz exige únicamente API.
+
+## Oráculos conservados
+
+- TC-M06-016: el intento manual de `CONSUMO_INVENTARIO` devuelve 422 `ORIGEN_RESERVADO_M05` y no crea costo ni línea; `MANO_OBRA_PROPIA` crea una línea `MANO_OBRA_PROPIA/UNICO` conforme a RF-109; `COMPRA_PROVEEDOR` y `SERVICIO_TERCERO` crean costos sin línea. La integración asíncrona M05→M06 no forma parte del caso.
+- TC-M06-017: baja por venta y baja por muerte de bovinos distintos. Cada una crea exactamente una línea `BAJA_ACTIVO` por el valor en libros truncado a dos decimales, con sentido `UNICO` o `PERDIDA` y cuentas de RF-109. La venta no crea una línea adicional de ingreso.
+
+El contrato `pruebas/contrato_g39.json` indica las rutas y las citas de código para los campos consumidos. La selección de 016 fija el caprino 1569, ACTIVO, reconocido, sin valoración por costo, con período ABIERTO que contiene la fecha del costo. La fila original pide un bovino con precio vigente; los bovinos de NIT-A tienen noviembre cerrado y RF-90 rechaza costos de esa fecha por FA-4. El caprino 1569 no tiene precio de mercado, pero RF-90 y la línea MANO_OBRA_PROPIA usan el monto del costo, y el rechazo de CONSUMO_INVENTARIO ocurre antes de consultar el activo. RF-109 tiene matriz genérica (`id_especie NULL`): ni especie ni ausencia de precio cambian las cuentas o el oráculo. Para 017 se eligen dos bovinos individuales ACTIVO, reconocidos, con precio vigente, valor en libros positivo y período destino ABIERTO conforme a `periodo_para`, aunque sea posterior a hoy. Las lecturas y los motivos de descarte se guardan por caso. Un bloqueo de 016 no impide ejecutar 017.
+
+| Condición de selección de 016 | Por qué se exige | Cita |
+| --- | --- | --- |
+| Activo 1569 presente | Es el caprino de prueba fijado para la adaptación aprobada; debe existir para registrar los cuatro intentos sobre el mismo activo. | `Casos_Prueba(Modulo6Agrup).csv`, fila `TC-M06-G39`, precondición 1; `g39.mjs:259-262,295-302` |
+| ACTIVO en catálogo y ficha | RF-90 rechaza un activo no valorable. La doble lectura comprueba el estado antes de escribir. | `src/financial_valuation/application/use_cases/costos/registrar_costo_use_case.py:162-166`; `src/financial_valuation/domain/entities/activo_financiero.py:43-46` |
+| INDIVIDUAL | El caso registra cada costo sobre un único activo, sin reparto; conserva el alcance del 1569 elegido. | `src/financial_valuation/application/use_cases/costos/registrar_costo_use_case.py:186-189`; `g39.mjs:274-281` |
+| Reconocimiento o cálculo disponible | RF-90 exige reconocimiento confirmado para el costo. El cálculo legible es la señal pública disponible en el detalle antes del intento; el resultado de la API sigue siendo decisivo. | `src/financial_valuation/application/use_cases/costos/registrar_costo_use_case.py:164-166`; `src/financial_valuation/infrastructure/repositories/valoracion_repository.py:126-129` |
+| Sin valoración por costo | Mantiene el activo de valor razonable elegido para la adaptación y evita una política de capitalización distinta en este escenario. | `Casos_Prueba(Modulo6Agrup).csv`, fila `TC-M06-G39`, oráculo de MANO_OBRA_PROPIA; `src/financial_valuation/application/use_cases/costos/registrar_costo_use_case.py:173-181` |
+| Período que contiene la fecha del costo ABIERTO | `periodo_para` puede escoger uno posterior; RF-90 rechaza el costo cuando el período elegido no contiene la fecha. | `src/financial_valuation/application/use_cases/costos/registrar_costo_use_case.py:100-104`; `src/financial_valuation/application/services/contabilizador.py:39-52` |
+
+La fecha de 016 se calcula en `America/Bogota` y las solicitudes del ejecutor envían `X-Zona-Horaria: America/Bogota`, la misma cabecera que usa `hoy_usuario` en el backend. Antes de escribir se comprueba que el período del titular contiene la fecha y está ABIERTO. Se leen permisos de ambos actores, catálogo, detalles, fichas, matriz, costos y líneas. Un par contable faltante bloquea únicamente el caso afectado.
+
+| Evidencia de contrato | Fuente leída | Uso en G39 |
+| --- | --- | --- |
+| Catálogo de 16 activos, períodos, motivos, valores en libros y formas de respuesta | `pruebas/replay_g39_tecnicos.json`, transcrito del RUN oficial `Resultados/RUN-G39-V1-20261109-093338/resultado.json` y su informe, con origen por campo | Reproducción local aislada; el ensayo no abre carpetas de RUN. |
+| Costos 201, 422 y GET | `src/financial_valuation/infrastructure/routers/m06_router.py:267-281`, `src/financial_valuation/application/use_cases/costos/registrar_costo_use_case.py:82-84,126-127,207-233`, `src/financial_valuation/infrastructure/repositories/costo_repository.py:17-26,99-102` | Forma mínima del registro, consulta y `ORIGEN_RESERVADO_M05`. |
+| Baja y valor en libros | `src/biological_assets/infrastructure/routers/activo_biologico_router.py:1223-1261`, `src/biological_assets/infrastructure/schema/activo_biologico_schema.py:325-339`, `src/financial_valuation/application/use_cases/valoracion/procesar_eventos_m02_use_case.py:129-160` | `id_eventos` en raíz; BAJA_ACTIVO vinculada al evento y valor truncado. |
+
+La matriz original consultada fue `tests/Test_Testing/Test_Modulo6/Casos_Prueba(Modulo6Agrup).csv`, fila `TC-M06-G39`, reformulada el 2026-11-09. No se encontró un archivo RF-86 independiente dentro de las rutas de lectura del repositorio; el texto de CA-19 y CA-20 y la tabla de tipo_hecho se tomaron de esa fila y de la orden vigente.
+
+## Ejecución
+
+`node g39.mjs --comprobar` solo valida archivos locales. La ejecución TEST corresponde exclusivamente al lanzador externo autorizado; `g39.mjs` exige contexto de RUN y preflight. Los ensayos `principal()` usan loopback y `os.tmpdir()`. Límite: 150 solicitudes, 1800 s. Newman corre en un proceso hijo con `process.execPath`. Los reportes e informe solo se escriben dentro del RUN correspondiente.
+
+## Inventario
+
+Vigentes: `g39.mjs`, `lib/g39_core.mjs`, `G39.postman_collection.json`, `pruebas/contrato_g39.json`, `pruebas/replay_g39_tecnicos.json`, `pruebas/newman_hijo.mjs`, `pruebas/registro_qa.mjs` y pruebas locales. No hay duplicados ni legado en G39.
+
+## Observación de configuración
+
+La matriz conocida de TEST usa `158405` como débito de `MANO_OBRA_PROPIA/UNICO` con política `GASTO`. El oráculo compara con la matriz leída durante el RUN; el informe deja la observación para decisión de QA.

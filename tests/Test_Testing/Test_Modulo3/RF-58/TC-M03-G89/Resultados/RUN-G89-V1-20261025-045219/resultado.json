@@ -1,0 +1,875 @@
+{
+  "grupo": "G89",
+  "rf": "RF-58",
+  "casos": {
+    "TC-M03-173": {
+      "veredicto": "APROBADO",
+      "estado_tecnico": "OK",
+      "comprobaciones": [
+        {
+          "id": "TC-M03-173",
+          "etapa": "base173",
+          "esperado": "VERDE",
+          "observado": {
+            "estado_semaforo": "VERDE",
+            "id_alerta": null,
+            "ultimo_valor": "25.0000",
+            "dato_desactualizado": false
+          },
+          "id_alerta_esperado": null,
+          "cumple": true,
+          "id_alerta_asociado_correcto": true,
+          "id_comprobacion": "PRE-173-01",
+          "http": 200,
+          "evidencia": "newman/newman-TC-M03-173-01.json"
+        },
+        {
+          "id": "TC-M03-173",
+          "etapa": "critica",
+          "esperado": "ROJO",
+          "observado": {
+            "estado_semaforo": "ROJO",
+            "id_alerta": 298,
+            "ultimo_valor": "25.0000",
+            "dato_desactualizado": false
+          },
+          "id_alerta_esperado": 298,
+          "cumple": true,
+          "id_alerta_asociado_correcto": true,
+          "id_comprobacion": "API-173-01",
+          "http": 200,
+          "evidencia": "newman/newman-TC-M03-173-02.json"
+        }
+      ],
+      "prerequisitos": [],
+      "veredicto_funcional": "APROBADO",
+      "estado": "APROBADO"
+    },
+    "TC-M03-174": {
+      "veredicto": "RECHAZADO",
+      "estado_tecnico": "OK",
+      "comprobaciones": [
+        {
+          "id": "TC-M03-174",
+          "etapa": "base174",
+          "esperado": "VERDE",
+          "observado": {
+            "estado_semaforo": "VERDE",
+            "id_alerta": null,
+            "ultimo_valor": "25.0000",
+            "dato_desactualizado": false
+          },
+          "id_alerta_esperado": null,
+          "cumple": true,
+          "id_alerta_asociado_correcto": true,
+          "id_comprobacion": "PRE-174-01",
+          "http": 200,
+          "evidencia": "newman/newman-TC-M03-174-03.json"
+        },
+        {
+          "id": "TC-M03-174",
+          "etapa": "noCriticaActiva",
+          "esperado": "AMARILLO",
+          "observado": {
+            "estado_semaforo": "AMARILLO",
+            "id_alerta": 299,
+            "ultimo_valor": "25.0000",
+            "dato_desactualizado": false
+          },
+          "id_alerta_esperado": null,
+          "cumple": true,
+          "id_alerta_asociado_correcto": true,
+          "id_comprobacion": "API-174-01",
+          "http": 200,
+          "evidencia": "newman/newman-TC-M03-174-04.json"
+        },
+        {
+          "id": "TC-M03-174",
+          "etapa": "resuelta",
+          "esperado": "VERDE",
+          "observado": {
+            "estado_semaforo": "AMARILLO",
+            "id_alerta": null,
+            "ultimo_valor": "25.0000",
+            "dato_desactualizado": false
+          },
+          "id_alerta_esperado": null,
+          "cumple": false,
+          "id_alerta_asociado_correcto": true,
+          "id_comprobacion": "API-174-02",
+          "http": 200,
+          "evidencia": "newman/newman-TC-M03-174-05.json"
+        },
+        {
+          "id": "TC-M03-174",
+          "etapa": "baseDescarte",
+          "esperado": "VERDE",
+          "observado": {
+            "estado_semaforo": "VERDE",
+            "id_alerta": null,
+            "ultimo_valor": "25.0000",
+            "dato_desactualizado": false
+          },
+          "id_alerta_esperado": null,
+          "cumple": true,
+          "id_alerta_asociado_correcto": true,
+          "id_comprobacion": "PRE-174-02",
+          "http": 200,
+          "evidencia": "newman/newman-TC-M03-174-06.json"
+        },
+        {
+          "id": "TC-M03-174",
+          "etapa": "noCriticaDescarte",
+          "esperado": "AMARILLO",
+          "observado": {
+            "estado_semaforo": "AMARILLO",
+            "id_alerta": 300,
+            "ultimo_valor": "25.0000",
+            "dato_desactualizado": false
+          },
+          "id_alerta_esperado": null,
+          "cumple": true,
+          "id_alerta_asociado_correcto": true,
+          "id_comprobacion": "API-174-03",
+          "http": 200,
+          "evidencia": "newman/newman-TC-M03-174-07.json"
+        },
+        {
+          "id": "TC-M03-174",
+          "etapa": "descartada",
+          "esperado": "VERDE",
+          "observado": {
+            "estado_semaforo": "AMARILLO",
+            "id_alerta": null,
+            "ultimo_valor": "25.0000",
+            "dato_desactualizado": false
+          },
+          "id_alerta_esperado": null,
+          "cumple": false,
+          "id_alerta_asociado_correcto": true,
+          "id_comprobacion": "API-174-04",
+          "http": 200,
+          "evidencia": "newman/newman-TC-M03-174-08.json"
+        }
+      ],
+      "prerequisitos": [],
+      "veredicto_funcional": "RECHAZADO",
+      "estado": "RECHAZADO"
+    }
+  },
+  "ejecucion": {
+    "run_id": "RUN-G89-V1-20261025-045219",
+    "version": 1,
+    "ambiente": "TEST",
+    "autorizacion": "AUT-G89-V1-R2-20261025",
+    "inicio": "2026-10-25T04:52:19.560Z",
+    "operacion": "reintentar",
+    "commit": "NO_VERIFICADO",
+    "fin": "2026-10-25T04:52:49.185Z"
+  },
+  "semilla": {
+    "dispositivo": 357,
+    "sensor": 552,
+    "area": 349,
+    "especie": 126,
+    "asociacion": true,
+    "calibracion": true,
+    "umbral": true,
+    "umbral_normal": {
+      "minimo": 20,
+      "maximo": 30
+    },
+    "sin_alerta_activa": true
+  },
+  "plan_temporal": {
+    "inicio": "2026-10-25T04:52:19.550Z",
+    "ancla": "2026-10-25T04:50:19.550Z",
+    "marcas": [
+      "2026-10-25T04:50:04.550Z",
+      "2026-10-25T04:50:09.550Z",
+      "2026-10-25T04:50:14.550Z"
+    ]
+  },
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "latencia_ms": 1135,
+      "http": 200,
+      "eco_run": null
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "latencia_ms": 644,
+      "http": 200,
+      "eco_run": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "latencia_ms": 341,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357",
+      "en_run": true,
+      "latencia_ms": 553,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": true,
+      "latencia_ms": 209,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357/sensores",
+      "en_run": true,
+      "latencia_ms": 151,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": true,
+      "latencia_ms": 164,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": true,
+      "latencia_ms": 159,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 202,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 242,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 164,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 297,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/telemetria",
+      "en_run": true,
+      "latencia_ms": 153,
+      "http": 201,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 3542,
+      "http": 200,
+      "eco_run": true,
+      "via": "Newman",
+      "caso": "TC-M03-173",
+      "comprobacion": "PRE-173-01"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 177,
+      "http": 201,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/298",
+      "en_run": true,
+      "latencia_ms": 161,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 2663,
+      "http": 200,
+      "eco_run": true,
+      "via": "Newman",
+      "caso": "TC-M03-173",
+      "comprobacion": "API-173-01"
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/iot/alertas/298/estado",
+      "en_run": true,
+      "latencia_ms": 148,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/iot/alertas/298/estado",
+      "en_run": true,
+      "latencia_ms": 149,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/telemetria",
+      "en_run": true,
+      "latencia_ms": 135,
+      "http": 201,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 2856,
+      "http": 200,
+      "eco_run": true,
+      "via": "Newman",
+      "caso": "TC-M03-174",
+      "comprobacion": "PRE-174-01"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 138,
+      "http": 201,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/299",
+      "en_run": true,
+      "latencia_ms": 222,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 2572,
+      "http": 200,
+      "eco_run": true,
+      "via": "Newman",
+      "caso": "TC-M03-174",
+      "comprobacion": "API-174-01"
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/iot/alertas/299/estado",
+      "en_run": true,
+      "latencia_ms": 150,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/iot/alertas/299/estado",
+      "en_run": true,
+      "latencia_ms": 151,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 2426,
+      "http": 200,
+      "eco_run": true,
+      "via": "Newman",
+      "caso": "TC-M03-174",
+      "comprobacion": "API-174-02"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/telemetria",
+      "en_run": true,
+      "latencia_ms": 139,
+      "http": 201,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 2396,
+      "http": 200,
+      "eco_run": true,
+      "via": "Newman",
+      "caso": "TC-M03-174",
+      "comprobacion": "PRE-174-02"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 138,
+      "http": 201,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/300",
+      "en_run": true,
+      "latencia_ms": 143,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 2433,
+      "http": 200,
+      "eco_run": true,
+      "via": "Newman",
+      "caso": "TC-M03-174",
+      "comprobacion": "API-174-03"
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/iot/alertas/300/estado",
+      "en_run": true,
+      "latencia_ms": 147,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 2500,
+      "http": 200,
+      "eco_run": true,
+      "via": "Newman",
+      "caso": "TC-M03-174",
+      "comprobacion": "API-174-04"
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/G89-V1-20261025-045219",
+      "en_run": true,
+      "latencia_ms": 129,
+      "http": 200,
+      "eco_run": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "latencia_ms": 415,
+      "http": 200,
+      "eco_run": null
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "latencia_ms": 409,
+      "http": 200,
+      "eco_run": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": false,
+      "latencia_ms": 256,
+      "http": 200,
+      "eco_run": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/298",
+      "en_run": false,
+      "latencia_ms": 142,
+      "http": 404,
+      "eco_run": null,
+      "error": "{\n  \"error_code\": \"ALERTA_NO_ENCONTRADA\",\n  \"message\": \"Alerta 298 no encontrada.\",\n  \"fields\": [],\n  \"timestamp\": \"2026-10-25T04:52:48.717086+00:00\"\n}"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/299",
+      "en_run": false,
+      "latencia_ms": 141,
+      "http": 404,
+      "eco_run": null,
+      "error": "{\n  \"error_code\": \"ALERTA_NO_ENCONTRADA\",\n  \"message\": \"Alerta 299 no encontrada.\",\n  \"fields\": [],\n  \"timestamp\": \"2026-10-25T04:52:48.856685+00:00\"\n}"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas/300",
+      "en_run": false,
+      "latencia_ms": 147,
+      "http": 404,
+      "eco_run": null,
+      "error": "{\n  \"error_code\": \"ALERTA_NO_ENCONTRADA\",\n  \"message\": \"Alerta 300 no encontrada.\",\n  \"fields\": [],\n  \"timestamp\": \"2026-10-25T04:52:48.997499+00:00\"\n}"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 151,
+      "http": 200,
+      "eco_run": null
+    }
+  ],
+  "newman": [
+    {
+      "caso": "TC-M03-173",
+      "check_id": "PRE-173-01",
+      "archivo": "newman/newman-TC-M03-173-01.json",
+      "http": 200,
+      "fallos": [],
+      "aserciones": 3,
+      "ejecuciones": 1
+    },
+    {
+      "caso": "TC-M03-173",
+      "check_id": "API-173-01",
+      "archivo": "newman/newman-TC-M03-173-02.json",
+      "http": 200,
+      "fallos": [],
+      "aserciones": 4,
+      "ejecuciones": 1
+    },
+    {
+      "caso": "TC-M03-174",
+      "check_id": "PRE-174-01",
+      "archivo": "newman/newman-TC-M03-174-03.json",
+      "http": 200,
+      "fallos": [],
+      "aserciones": 3,
+      "ejecuciones": 1
+    },
+    {
+      "caso": "TC-M03-174",
+      "check_id": "API-174-01",
+      "archivo": "newman/newman-TC-M03-174-04.json",
+      "http": 200,
+      "fallos": [],
+      "aserciones": 3,
+      "ejecuciones": 1
+    },
+    {
+      "caso": "TC-M03-174",
+      "check_id": "API-174-02",
+      "archivo": "newman/newman-TC-M03-174-05.json",
+      "http": 200,
+      "fallos": [
+        {
+          "nombre": "[REDACTADO]",
+          "mensaje": "expected 'AMARILLO' to deeply equal 'VERDE'"
+        }
+      ],
+      "aserciones": 3,
+      "ejecuciones": 1
+    },
+    {
+      "caso": "TC-M03-174",
+      "check_id": "PRE-174-02",
+      "archivo": "newman/newman-TC-M03-174-06.json",
+      "http": 200,
+      "fallos": [],
+      "aserciones": 3,
+      "ejecuciones": 1
+    },
+    {
+      "caso": "TC-M03-174",
+      "check_id": "API-174-03",
+      "archivo": "newman/newman-TC-M03-174-07.json",
+      "http": 200,
+      "fallos": [],
+      "aserciones": 3,
+      "ejecuciones": 1
+    },
+    {
+      "caso": "TC-M03-174",
+      "check_id": "API-174-04",
+      "archivo": "newman/newman-TC-M03-174-08.json",
+      "http": 200,
+      "fallos": [
+        {
+          "nombre": "[REDACTADO]",
+          "mensaje": "expected 'AMARILLO' to deeply equal 'VERDE'"
+        }
+      ],
+      "aserciones": 3,
+      "ejecuciones": 1
+    }
+  ],
+  "evidencias": [
+    "resultado.json",
+    "preflight.json",
+    "newman/newman-TC-M03-173-01.json",
+    "newman/newman-TC-M03-173-02.json",
+    "newman/newman-TC-M03-174-03.json",
+    "newman/newman-TC-M03-174-04.json",
+    "newman/newman-TC-M03-174-05.json",
+    "newman/newman-TC-M03-174-06.json",
+    "newman/newman-TC-M03-174-07.json",
+    "newman/newman-TC-M03-174-08.json",
+    "newman/newman-G89-consolidado.html"
+  ],
+  "alertas_creadas": [
+    298,
+    299,
+    300
+  ],
+  "telemetrias_creadas": [
+    117078,
+    117079,
+    117080
+  ],
+  "incidencias": [
+    {
+      "caso": "TC-M03-174",
+      "comprobacion": "API-174-02",
+      "evidencia": "newman/newman-TC-M03-174-05.json",
+      "equipo_inicial": "Desarrollo",
+      "severidad": "MEDIA",
+      "certeza": "CONFIRMADA",
+      "causa_raiz": "NO DETERMINADA"
+    },
+    {
+      "caso": "TC-M03-174",
+      "comprobacion": "API-174-04",
+      "evidencia": "newman/newman-TC-M03-174-08.json",
+      "equipo_inicial": "Desarrollo",
+      "severidad": "MEDIA",
+      "certeza": "CONFIRMADA",
+      "causa_raiz": "NO DETERMINADA"
+    }
+  ],
+  "hallazgos": [],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "http": 200,
+    "rollback_verificado": true,
+    "comprobaciones": [
+      {
+        "tipo": "dashboard_previo",
+        "http": 200,
+        "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+        "actor": "Productor",
+        "pagina": 1,
+        "por_pagina": 50,
+        "previo_completo": true,
+        "posterior_completo": true,
+        "total_previo": 0,
+        "total_posterior": 0,
+        "sensor_previo_presente": false,
+        "sensor_posterior_presente": false,
+        "coincide": true
+      },
+      {
+        "tipo": "alerta_ausente",
+        "http": 404,
+        "coincide": true,
+        "id_alerta": 298
+      },
+      {
+        "tipo": "alerta_ausente",
+        "http": 404,
+        "coincide": true,
+        "id_alerta": 299
+      },
+      {
+        "tipo": "alerta_ausente",
+        "http": 404,
+        "coincide": true,
+        "id_alerta": 300
+      },
+      {
+        "tipo": "telemetrias_ausentes",
+        "http": 200,
+        "completo": true,
+        "coincide": true,
+        "total_ids": 3
+      }
+    ],
+    "motivo": "DELETE y lecturas posteriores acreditan reversión de los objetos comprobados.",
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true
+    }
+  },
+  "parada_seguridad": null,
+  "run_id": "RUN-G89-V1-20261025-045219",
+  "version": 1,
+  "datos": {
+    "ids_telemetria": [
+      117078,
+      117079,
+      117080
+    ]
+  },
+  "consume_version": true,
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-173",
+      "fuente": "API",
+      "id": "PRE-173-01",
+      "tipo": "PRE",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-TC-M03-173-01.json",
+      "http": 200,
+      "observado": {
+        "estado_semaforo": "VERDE",
+        "id_alerta": null,
+        "ultimo_valor": "25.0000",
+        "dato_desactualizado": false
+      }
+    },
+    {
+      "caso": "TC-M03-173",
+      "fuente": "API",
+      "id": "API-173-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-TC-M03-173-02.json",
+      "http": 200,
+      "observado": {
+        "estado_semaforo": "ROJO",
+        "id_alerta": 298,
+        "ultimo_valor": "25.0000",
+        "dato_desactualizado": false
+      }
+    },
+    {
+      "caso": "TC-M03-174",
+      "fuente": "API",
+      "id": "PRE-174-01",
+      "tipo": "PRE",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-TC-M03-174-03.json",
+      "http": 200,
+      "observado": {
+        "estado_semaforo": "VERDE",
+        "id_alerta": null,
+        "ultimo_valor": "25.0000",
+        "dato_desactualizado": false
+      }
+    },
+    {
+      "caso": "TC-M03-174",
+      "fuente": "API",
+      "id": "API-174-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-TC-M03-174-04.json",
+      "http": 200,
+      "observado": {
+        "estado_semaforo": "AMARILLO",
+        "id_alerta": 299,
+        "ultimo_valor": "25.0000",
+        "dato_desactualizado": false
+      }
+    },
+    {
+      "caso": "TC-M03-174",
+      "fuente": "API",
+      "id": "API-174-02",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "newman/newman-TC-M03-174-05.json",
+      "http": 200,
+      "observado": {
+        "estado_semaforo": "AMARILLO",
+        "id_alerta": null,
+        "ultimo_valor": "25.0000",
+        "dato_desactualizado": false
+      }
+    },
+    {
+      "caso": "TC-M03-174",
+      "fuente": "API",
+      "id": "PRE-174-02",
+      "tipo": "PRE",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-TC-M03-174-06.json",
+      "http": 200,
+      "observado": {
+        "estado_semaforo": "VERDE",
+        "id_alerta": null,
+        "ultimo_valor": "25.0000",
+        "dato_desactualizado": false
+      }
+    },
+    {
+      "caso": "TC-M03-174",
+      "fuente": "API",
+      "id": "API-174-03",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-TC-M03-174-07.json",
+      "http": 200,
+      "observado": {
+        "estado_semaforo": "AMARILLO",
+        "id_alerta": 300,
+        "ultimo_valor": "25.0000",
+        "dato_desactualizado": false
+      }
+    },
+    {
+      "caso": "TC-M03-174",
+      "fuente": "API",
+      "id": "API-174-04",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "newman/newman-TC-M03-174-08.json",
+      "http": 200,
+      "observado": {
+        "estado_semaforo": "AMARILLO",
+        "id_alerta": null,
+        "ultimo_valor": "25.0000",
+        "dato_desactualizado": false
+      }
+    }
+  ],
+  "oficial": true,
+  "estado": "COMPLETO"
+}

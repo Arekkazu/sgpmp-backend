@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "TC-M02-G107 - Reintento 2 (2026-09-19) - CA-10 CORREGIDO, CA-7 avanza pero sigue incompleto",
+    "description": "Segunda re-ejecucion de TC-M02-G107 (RF-52, CA-7/CA-10) contra TEST, el 2026-09-19 (reintento1 fue 2026-09-15). Ambas colecciones anteriores quedan intactas como evidencia historica.\n\nSub-caso CA-10 (rechazo temprano no auditado): CORREGIDO. Confirmado con el escenario EXACTO de la ficha (NACIMIENTO fuera de secuencia, 422 SECUENCIA_REPRODUCTIVA_INVALIDA) sobre un activo con fase asignada -- el conteo de auditoria SI aumenta (ver tambien TC-M02-G60 reintento1, mismo hallazgo, confirmado independientemente 3 veces esa sesion). Revierte la conclusion original y el reintento1.\n\nSub-caso CA-7 (cadena de custodia): AVANZA pero sigue incompleta. Confirmado en vivo esta sesion: RF-33 (crear) funciona, RF-37 (fase) funciona (ambos corregidos, ver TC-M02-G54 reintento1), y AHORA TAMBIEN RF-40 (evento de crecimiento) funciona sobre un activo con fase -- previamente bloqueado en cascada por el mismo bug de RF-37, ahora reachable. RF-43 (evento productivo) sigue bloqueado, pero por una razon DISTINTA a la original (ya no por falta de fase): el mismo problema de fecha-vs-timestamp ya documentado en memoria (trg_fn_evento_fecha_coherente-like: fecha_evento es date-only, se trunca a medianoche, y eso siempre cae antes del fecha_creacion exacto de un activo creado el mismo dia) bloquea probarlo sobre un activo fresco creado hoy mismo -- no se probo con un activo mas viejo con fase por falta de tiempo esta ronda. RF-44 (cierre) no se probo. Conclusion: la cadena ya NO esta bloqueada de forma permanente como antes (2 de 5 pasos mas alcanzables que hace 4 dias), pero reconstruir la cadena completa (RF-33->RF-37->RF-40->RF-43->RF-44) en un solo activo sigue pendiente -- necesita un activo con fase de un dia anterior, no uno fresco.\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "CA-7, paso 1/2 - RF-40 (crecimiento) ahora reachable con fase asignada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('CORREGIDO: RF-40 responde 201 (antes bloqueado en cascada por RF-37)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 1.5,\n  \"unidad_medida\": \"kg\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_con_fase}}/eventos/crecimiento", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_con_fase}}", "eventos", "crecimiento" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "CA-10, paso 1/3 - Capturar conteo de auditoria ANTES",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('la consulta de bitacora responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta) { pm.collectionVariables.set('total_antes', respuesta.total_registros); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF42&id_activo_biologico={{id_activo_con_fase}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "rf_origen", "value": "RF42" }, { "key": "id_activo_biologico", "value": "{{id_activo_con_fase}}" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "CA-10, paso 2/3 - Forzar NACIMIENTO fuera de secuencia (422 esperado, escenario exacto de la ficha)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('rechazado con HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('codigo de negocio SECUENCIA_REPRODUCTIVA_INVALIDA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SECUENCIA_REPRODUCTIVA_INVALIDA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"nacimiento\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_con_fase}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_con_fase}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "CA-10, paso 3/3 - CORREGIDO: el conteo de auditoria SI aumento",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('la consulta de bitacora responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('CORREGIDO (CA-10): el rechazo 422 SI genero una fila nueva de auditoria', function () {",
+              "    const antes = parseInt(pm.collectionVariables.get('total_antes'), 10);",
+              "    pm.expect(respuesta.total_registros).to.equal(antes + 1);",
+              "});",
+              "console.log('CONCLUSION: CA-10 revertido -- las validaciones tempranas de RF-42 ahora SI dejan rastro de auditoria.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF42&id_activo_biologico={{id_activo_con_fase}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "rf_origen", "value": "RF42" }, { "key": "id_activo_biologico", "value": "{{id_activo_con_fase}}" } ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_activo_con_fase", "value": "374" }
+  ]
+}

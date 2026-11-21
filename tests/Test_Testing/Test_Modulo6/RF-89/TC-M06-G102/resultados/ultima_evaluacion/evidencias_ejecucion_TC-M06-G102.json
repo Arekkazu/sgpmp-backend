@@ -1,0 +1,51 @@
+{
+  "caso": "TC-M06-G102",
+  "mecanismo": "POST /finanzas/precios es append-only. No existe PUT, PATCH ni DELETE de un precio. El registro anterior permanece y su estado SUPERADO se calcula al leer.",
+  "antes": [
+    {"id_precio_mercado": 436, "fuente": "MERCADO_ACTIVO", "precio_unitario": "4000000.00", "fecha_vigencia": "2026-11-01", "estado": "ACTIVO", "es_aplicado": true},
+    {"id_precio_mercado": 437, "fuente": "UPRA", "precio_unitario": "3900000.00", "fecha_vigencia": "2026-11-09", "estado": "ACTIVO", "es_aplicado": false}
+  ],
+  "umbral": "50.00",
+  "activos_reconocidos_especie_424": 0,
+  "posts": [
+    {
+      "subcaso": "TC-M06-16",
+      "http": 201,
+      "respuesta": {"id_precio_mercado": 489, "estado": "ACTIVO", "unidad_medida": "cabeza", "desviacion_pct": "25.00", "fecha_vigencia": "2026-11-10"},
+      "evento_registrado": 12902,
+      "evento_reemplazo": 12903
+    },
+    {
+      "subcaso": "TC-M06-17",
+      "http": 201,
+      "respuesta": {"id_precio_mercado": 490, "estado": "ACTIVO", "unidad_medida": "cabeza", "desviacion_pct": "23.07692307692307692307692308", "fecha_vigencia": "2026-11-10"},
+      "referencia_upra_antes_del_post": 437,
+      "evento_registrado": 12904,
+      "evento_reemplazo": 12905
+    },
+    {
+      "subcaso": "TC-M06-18",
+      "http": 201,
+      "respuesta": {"id_precio_mercado": 491, "estado": "ACTIVO", "unidad_medida": "cabeza", "desviacion_pct": null, "fecha_vigencia": "2026-11-10"},
+      "justificacion_persistida": true,
+      "evidencia_persistida": true,
+      "evento_registrado": 12906,
+      "evento_reemplazo": null
+    }
+  ],
+  "despues": [
+    {"id_precio_mercado": 489, "fuente": "MERCADO_ACTIVO", "precio_unitario": "5000000.00", "unidad_medida": "cabeza", "categoria": "POR_CABEZA", "fecha_vigencia": "2026-11-10", "estado": "ACTIVO", "es_aplicado": true},
+    {"id_precio_mercado": 490, "fuente": "UPRA", "precio_unitario": "4800000.00", "unidad_medida": "cabeza", "categoria": "POR_CABEZA", "fecha_vigencia": "2026-11-10", "estado": "ACTIVO", "es_aplicado": false},
+    {"id_precio_mercado": 491, "fuente": "ESTIMADA", "precio_unitario": "4500000.00", "unidad_medida": "cabeza", "categoria": "POR_CABEZA", "fecha_vigencia": "2026-11-10", "estado": "ACTIVO", "es_aplicado": false, "justificacion_persistida": true},
+    {"id_precio_mercado": 437, "fuente": "UPRA", "precio_unitario": "3900000.00", "fecha_vigencia": "2026-11-09", "estado": "SUPERADO", "es_aplicado": false},
+    {"id_precio_mercado": 436, "fuente": "MERCADO_ACTIVO", "precio_unitario": "4000000.00", "fecha_vigencia": "2026-11-01", "estado": "SUPERADO", "es_aplicado": false}
+  ],
+  "duplicados": false,
+  "auditoria_nueva": [
+    {"id_evento": 12902, "tipo_evento": "PRECIO_REGISTRADO", "id_referencia": 489, "timestamp_evento": "2026-11-10T19:17:29.747799Z"},
+    {"id_evento": 12903, "tipo_evento": "PRECIO_MARCADO_REEMPLAZADO", "id_referencia": 489, "id_precio_anterior": 436, "timestamp_evento": "2026-11-10T19:17:29.747799Z"},
+    {"id_evento": 12904, "tipo_evento": "PRECIO_REGISTRADO", "id_referencia": 490, "timestamp_evento": "2026-11-10T19:17:30.883692Z"},
+    {"id_evento": 12905, "tipo_evento": "PRECIO_MARCADO_REEMPLAZADO", "id_referencia": 490, "id_precio_anterior": 437, "timestamp_evento": "2026-11-10T19:17:30.883692Z"},
+    {"id_evento": 12906, "tipo_evento": "PRECIO_REGISTRADO", "id_referencia": 491, "timestamp_evento": "2026-11-10T19:17:31.980835Z"}
+  ]
+}

@@ -1,0 +1,294 @@
+{
+  "caso": "TC-M06-G101",
+  "generado_en": "2026-11-08T06:08:20.945769+00:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 1176,
+      "lectura": false,
+      "escritura": true,
+      "en": "2026-11-08T06:08:22.122353+00:00",
+      "respuesta": {
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false,
+        "duracion_ms": 1176
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 512,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:22.634689+00:00",
+      "respuesta": {
+        "puede_actualizar_valoracion_por_costo": true,
+        "total": 60
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "duracion_ms": 610,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:23.245120+00:00",
+      "respuesta": {
+        "total": 8,
+        "titulares": 1,
+        "decision": {
+          "http": 200,
+          "total": 8,
+          "crea_periodo": false,
+          "en_cierre": false,
+          "motivo": "El período de hoy está cerrado y ya existe uno abierto posterior. No se inserta otro.",
+          "detalle": [
+            {
+              "id": 8,
+              "estado": "ABIERTO",
+              "inicio": "2026-12-01",
+              "fin": "2026-12-31"
+            },
+            {
+              "id": 7,
+              "estado": "CERRADO",
+              "inicio": "2026-11-01",
+              "fin": "2026-11-30"
+            },
+            {
+              "id": 1,
+              "estado": "ABIERTO",
+              "inicio": "2026-05-10",
+              "fin": "2026-05-11"
+            },
+            {
+              "id": 2,
+              "estado": "CERRADO",
+              "inicio": "2026-05-10",
+              "fin": "2026-06-10"
+            },
+            {
+              "id": 6,
+              "estado": "ABIERTO",
+              "inicio": "2024-10-01",
+              "fin": "2024-12-31"
+            },
+            {
+              "id": 5,
+              "estado": "CERRADO",
+              "inicio": "2024-07-01",
+              "fin": "2024-09-30"
+            },
+            {
+              "id": 4,
+              "estado": "CERRADO",
+              "inicio": "2024-04-01",
+              "fin": "2024-06-30"
+            },
+            {
+              "id": 3,
+              "estado": "CERRADO",
+              "inicio": "2024-01-01",
+              "fin": "2024-03-31"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 618,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:23.862945+00:00",
+      "respuesta": {
+        "http": 200,
+        "reconocidos": 9,
+        "a_costo": [
+          951
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/951",
+      "codigo": 200,
+      "duracion_ms": 707,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:24.569667+00:00",
+      "respuesta": {
+        "estado": "ACTIVO",
+        "valoracion_costo": true,
+        "lineas": 1,
+        "calculos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/951/simulacion",
+      "codigo": 200,
+      "duracion_ms": 623,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:25.193036+00:00",
+      "respuesta": {
+        "es_valido": false,
+        "motivo": "SIN_PRECIO",
+        "mensaje": "No hay precio de mercado vigente para la especie Equino. Registre uno en Precios de mercado.",
+        "fuente": null,
+        "precio_unitario": null,
+        "valor_neto": null,
+        "estado_calculo": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?id_activo_biologico=951&formato=TECNICO&tamano=100",
+      "codigo": 200,
+      "duracion_ms": 413,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:25.606068+00:00",
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?id_activo_biologico=951&tipo_evento=METODO_VALORACION_CAMBIADO&formato=TECNICO&tamano=100",
+      "codigo": 200,
+      "duracion_ms": 390,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:25.996157+00:00",
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios?id_especie=42",
+      "codigo": 200,
+      "duracion_ms": 420,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:26.416282+00:00",
+      "respuesta": {
+        "total": 0,
+        "vigentes_o_aplicados": 0,
+        "fuente": null,
+        "estado_precio": null,
+        "precio_unitario": null
+      }
+    },
+    {
+      "metodo": "POST",
+      "consulta": "/finanzas/activos/951/valor-razonable",
+      "codigo": 422,
+      "duracion_ms": 387,
+      "lectura": false,
+      "escritura": true,
+      "en": "2026-11-08T06:08:26.803685+00:00",
+      "respuesta": {
+        "error_code": "SIN_PRECIO_PARA_VALOR_RAZONABLE",
+        "message": "No es posible cambiar al valor razonable: No hay precio de mercado vigente para la especie Equino. Registre uno en Precios de mercado.",
+        "fields": [],
+        "timestamp": "2026-11-08T06:08:27.585148+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/951",
+      "codigo": 200,
+      "duracion_ms": 412,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:27.215359+00:00",
+      "respuesta": {
+        "estado": "ACTIVO",
+        "valoracion_costo": true,
+        "lineas": 1,
+        "calculos": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/951/simulacion",
+      "codigo": 200,
+      "duracion_ms": 409,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:27.624429+00:00",
+      "respuesta": {
+        "es_valido": false,
+        "motivo": "SIN_PRECIO",
+        "mensaje": "No hay precio de mercado vigente para la especie Equino. Registre uno en Precios de mercado.",
+        "fuente": null,
+        "precio_unitario": null,
+        "valor_neto": null,
+        "estado_calculo": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?id_activo_biologico=951&formato=TECNICO&tamano=100",
+      "codigo": 200,
+      "duracion_ms": 382,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:28.006369+00:00",
+      "respuesta": {
+        "total_registros": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?id_activo_biologico=951&tipo_evento=METODO_VALORACION_CAMBIADO&formato=TECNICO&tamano=100",
+      "codigo": 200,
+      "duracion_ms": 392,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:28.398447+00:00",
+      "respuesta": {
+        "total_registros": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/precios?id_especie=42",
+      "codigo": 200,
+      "duracion_ms": 376,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:28.774507+00:00",
+      "respuesta": {
+        "total": 0,
+        "vigentes_o_aplicados": 0,
+        "fuente": null,
+        "estado_precio": null,
+        "precio_unitario": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/periodos",
+      "codigo": 200,
+      "duracion_ms": 406,
+      "lectura": true,
+      "escritura": false,
+      "en": "2026-11-08T06:08:29.180942+00:00",
+      "respuesta": {
+        "total": 8
+      }
+    }
+  ]
+}

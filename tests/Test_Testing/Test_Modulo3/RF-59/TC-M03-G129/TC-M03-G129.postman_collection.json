@@ -1,0 +1,137 @@
+{
+  "info": {
+    "name": "TC-M03-G129 — Autorización por granja, recurso y rol en historial y exportación (RF-59)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "TC-M03-258 a 261. Una petición parametrizada que recorre la matriz actor × endpoint × recurso (iterationData construida por ejecutar_tc_m03_g129.mjs). Solo se ejecuta con autorización vigente, dentro del sandbox del RUN."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Barrera: la colección solo se ejecuta desde ejecutar_tc_m03_g129.mjs con autorización vigente.",
+          "const autorizado = pm.environment.get(\"autorizado_run\") === \"SI\" && !!pm.environment.get(\"run_id\") && /^https:\\/\\//.test(pm.environment.get(\"base_url\") || \"\") && /^https:\\/\\//.test(pm.iterationData.get(\"url\") || \"\");",
+          "if (!autorizado) { if (pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest(); throw Error(\"BLOQUEO_G129\"); }"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const casoFila = pm.iterationData.get(\"caso\");",
+          "pm.test(`[${casoFila}][PRE] respuesta dentro del sandbox del RUN`, () => pm.expect(pm.response.headers.get(\"X-Test-Run-Id\")).to.eql(pm.environment.get(\"run_id\")));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "[G129] fila de la matriz de acceso",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Fila de la matriz (iterationData): el token del actor sale del entorno; sin actor disponible la fila no se envía.",
+              "const actor = pm.iterationData.get(\"actor\");",
+              "const token = pm.environment.get(`token_${actor}`) || \"\";",
+              "if (!token) { if (pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest(); }",
+              "pm.variables.set(\"token_actual\", token);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const d = k => pm.iterationData.get(k);",
+              "const caso = d(\"caso\"), v = d(\"variante\"), tipo = d(\"tipo\"), nombre = d(\"nombre\");",
+              "const V = v ? `[V:${v}]` : \"\";",
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const prohibidos = JSON.parse(d(\"prohibidos\") || \"{\\\"ids\\\":{},\\\"nombres\\\":[]}\");",
+              "// Datos del recurso ajeno en cualquier nivel (se excluye el eco de la propia petición en filtros_aplicados).",
+              "function hallazgos() {",
+              "  const out = (prohibidos.nombres || []).filter(n => n && texto.includes(n)).map(n => `nombre «${n}»`);",
+              "  (function rec(o) { if (!o || typeof o !== \"object\") return; for (const [k, x] of Object.entries(o)) { if (k === \"filtros_aplicados\") continue; const ids = (prohibidos.ids || {})[k]; if (ids && x !== null && typeof x !== \"object\" && ids.map(String).includes(String(x))) out.push(`${k}=${x}`); rec(x); } })(cuerpo);",
+              "  return out;",
+              "}",
+              "// Datos históricos entregados: lecturas, total, estadísticas con lecturas o rango real de datos.",
+              "function datosHistoricos() {",
+              "  const c = cuerpo && typeof cuerpo === \"object\" ? cuerpo : {}; const out = [];",
+              "  if (Array.isArray(c.items) && c.items.length) out.push(`${c.items.length} lecturas`);",
+              "  if (Number(c.total) > 0) out.push(`total=${c.total}`);",
+              "  if (Array.isArray(c.estadisticas) && c.estadisticas.some(e => Number(e.total_lecturas) > 0 || Number(e.total_alertas_en_periodo) > 0)) out.push(\"estadísticas\");",
+              "  if (c.rango_real_datos && Object.values(c.rango_real_datos).some(x => x !== null && x !== undefined && x !== \"\")) out.push(\"rango_real_datos\");",
+              "  return out;",
+              "}",
+              "function canon(x) { if (Array.isArray(x)) return `[${x.map(canon).join(\",\")}]`; if (x && typeof x === \"object\") return `{${Object.keys(x).sort().map(k => `${JSON.stringify(k)}:${canon(x[k])}`).join(\",\")}}`; return JSON.stringify(x); }",
+              "// Firma comparable de la respuesta (sin el eco de filtros ni marcas de tiempo).",
+              "function firma() { const c = cuerpo && typeof cuerpo === \"object\" ? JSON.parse(JSON.stringify(cuerpo)) : null; if (c) { delete c.filtros_aplicados; delete c.timestamp; } return canon({ status: pm.response.code, cuerpo: c }); }",
+              "const contiene = () => { const k = d(\"espera_clave\"), x = d(\"espera_valor\"); return Array.isArray(cuerpo && cuerpo.items) ? cuerpo.items.some(i => String(i[k]) === String(x)) : !!cuerpo && String(cuerpo[k]) === String(x); };",
+              "if (tipo === \"control\" || tipo === \"existe\") {",
+              "  pm.test(`[${caso}][PRE]${V} ${nombre}`, () => { pm.expect(pm.response.code, \"HTTP\").to.eql(200); pm.expect(contiene(), \"datos del recurso\").to.eql(true); });",
+              "} else if (tipo === \"existe_get\") {",
+              "  pm.test(`[${caso}][PRE]${V} ${nombre}`, () => { pm.expect(pm.response.code, \"HTTP\").to.eql(200); pm.expect(contiene(), \"ficha del recurso\").to.eql(true); });",
+              "} else if (tipo === \"ajeno\") {",
+              "  if (d(\"contrato\")) pm.test(`[${caso}][PRE]${V} el filtro ${d(\"contrato\")} es reconocido por el contrato del historial (aparece en filtros_aplicados)`, () => pm.expect(!!(cuerpo && cuerpo.filtros_aplicados && Object.prototype.hasOwnProperty.call(cuerpo.filtros_aplicados, d(\"contrato\"))), \"filtro reconocido\").to.eql(true));",
+              "  if (caso === \"TC-M03-258\") {",
+              "    pm.test(`[${caso}][ASSERT][API-258-01]${V} acceso denegado: no se entregan lecturas, estadísticas ni rango de datos de la granja B`, () => pm.expect(datosHistoricos(), \"datos de la granja B\").to.eql([]));",
+              "    pm.test(`[${caso}][ASSERT][API-258-02]${V} la respuesta no expone lecturas, alertas ni metadatos de la granja B`, () => pm.expect(hallazgos(), \"información de la granja B\").to.eql([]));",
+              "  } else {",
+              "    pm.test(`[${caso}][ASSERT][API-259-01]${V} ${nombre}: no devuelve información del recurso ajeno`, () => pm.expect(datosHistoricos().concat(hallazgos()), \"información del recurso ajeno\").to.eql([]));",
+              "    pm.collectionVariables.set(`firma_${v}`, firma());",
+              "  }",
+              "  pm.test(`[${caso}][INFO]${V} respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});",
+              "} else if (tipo === \"inexistente\") {",
+              "  pm.test(`[${caso}][ASSERT][API-259-02]${V} la respuesta con el identificador ajeno es indistinguible de la de uno inexistente (no revela existencia ni características)`, () => pm.expect(pm.collectionVariables.get(`firma_${v}`), \"respuesta con el identificador ajeno\").to.eql(firma()));",
+              "} else if (tipo === \"control_lectura\") {",
+              "  pm.test(`[${caso}][PRE] ${nombre} (HTTP 200)`, () => pm.expect(pm.response.code, \"HTTP\").to.eql(200));",
+              "} else if (tipo === \"exportar_sin_permiso\") {",
+              "  pm.test(`[${caso}][ASSERT][API-260-01]${V} ${nombre}: HTTP 403`, () => pm.expect(pm.response.code, \"HTTP 403 obligatorio\").to.eql(403));",
+              "  pm.test(`[${caso}][ASSERT][API-260-02]${V} no genera ni entrega archivo, enlace o identificador de descarga`, () => {",
+              "    const disp = pm.response.headers.get(\"Content-Disposition\") || \"\", tipoC = pm.response.headers.get(\"Content-Type\") || \"\";",
+              "    const claves = []; (function rec(o) { if (o && typeof o === \"object\") for (const [k, x] of Object.entries(o)) { if (x !== null && x !== \"\" && /url|enlace|link|archivo|descarga|download|id_exportacion|id_archivo|ruta_archivo/i.test(k)) claves.push(k); rec(x); } })(cuerpo);",
+              "    const archivo = /attachment|filename/i.test(disp) || /pdf|spreadsheet|excel|octet-stream|csv/i.test(tipoC) ? [\"archivo\"] : [];",
+              "    pm.expect(archivo.concat(claves, datosHistoricos(), hallazgos()), \"archivo, enlace o datos entregados\").to.eql([]);",
+              "  });",
+              "  pm.test(`[${caso}][INFO]${V} respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});",
+              "} else if (tipo === \"lectura_sin_permiso\") {",
+              "  pm.test(`[${caso}][ASSERT][API-261-01]${V} ${nombre}: acceso denegado (no se entrega un historial)`, () => pm.expect(!!(cuerpo && typeof cuerpo === \"object\" && (\"items\" in cuerpo || \"estadisticas\" in cuerpo)), \"respuesta de historial\").to.eql(false));",
+              "  pm.test(`[${caso}][ASSERT][API-261-02]${V} no se entregan lecturas, estadísticas, alertas ni metadatos históricos`, () => pm.expect(datosHistoricos().concat(hallazgos()), \"datos históricos\").to.eql([]));",
+              "  pm.test(`[${caso}][INFO]${V} respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_actual}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{url}}"
+      }
+    }
+  ]
+}

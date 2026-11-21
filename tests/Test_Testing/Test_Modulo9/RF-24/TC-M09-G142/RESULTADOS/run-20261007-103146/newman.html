@@ -1,0 +1,97 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>G142 Newman</title><style>body{font:16px system-ui;max-width:70rem;margin:2rem;line-height:1.5}pre{white-space:pre-wrap;background:#f4f4f4;padding:1rem}</style><h1>G142 — Newman GET OpenAPI TEST</h1><p>RUN run-20261007-103146 · Newman exit 0 · POST M02: 0 · POST VISION: 0</p><h2>GET y assertions</h2><pre>newman
+
+TC-M09-G142 - preflight de integración M02/VISION TEST
+
+→ GET OpenAPI TEST y comprobar contratos M02
+  GET https://api.inmero.co/back-sigab-test/openapi.json [200 OK, 568.78kB, 966ms]
+  √  OpenAPI TEST responde 200
+  √  Alta M02 publicada
+  √  Cierre M02 publicado
+  √  Detalle M02 y RF-10 publicados
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                  0 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                  4 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 1092ms                                       │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 568.4kB (approx)                            │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 966ms [min: 966ms, max: 966ms, s.d.: 0µs] │
+└──────────────────────────────────────────────────────────────────┘
+</pre><h2>Rutas M02</h2><pre>{
+  &quot;alta&quot;: {
+    &quot;present&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;path&quot;: &quot;/activos-biologicos&quot;,
+    &quot;summary&quot;: &quot;Registrar activo biológico (RF-33)&quot;,
+    &quot;request_schema&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/RegistrarActivoBiologicoDTO&quot;
+    },
+    &quot;responses&quot;: [
+      &quot;201&quot;,
+      &quot;400&quot;,
+      &quot;401&quot;,
+      &quot;403&quot;,
+      &quot;409&quot;,
+      &quot;422&quot;,
+      &quot;429&quot;
+    ]
+  },
+  &quot;cierre&quot;: {
+    &quot;present&quot;: true,
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;path&quot;: &quot;/activos-biologicos/{id_activo}/cierre&quot;,
+    &quot;summary&quot;: &quot;Cerrar ciclo productivo del activo biológico (RF-38)&quot;,
+    &quot;request_schema&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/CerrarCicloDTO&quot;
+    },
+    &quot;responses&quot;: [
+      &quot;200&quot;,
+      &quot;400&quot;,
+      &quot;401&quot;,
+      &quot;403&quot;,
+      &quot;404&quot;,
+      &quot;409&quot;,
+      &quot;422&quot;
+    ]
+  },
+  &quot;detalle&quot;: {
+    &quot;present&quot;: true,
+    &quot;method&quot;: &quot;GET&quot;,
+    &quot;path&quot;: &quot;/activos-biologicos/{id_activo}&quot;,
+    &quot;summary&quot;: &quot;Consultar activo biológico (RF-35)&quot;,
+    &quot;request_schema&quot;: null,
+    &quot;responses&quot;: [
+      &quot;200&quot;,
+      &quot;401&quot;,
+      &quot;403&quot;,
+      &quot;404&quot;,
+      &quot;422&quot;
+    ]
+  },
+  &quot;auditoria&quot;: {
+    &quot;present&quot;: true,
+    &quot;method&quot;: &quot;GET&quot;,
+    &quot;path&quot;: &quot;/auditoria/&quot;,
+    &quot;summary&quot;: &quot;Consultar Auditoria&quot;,
+    &quot;request_schema&quot;: null,
+    &quot;responses&quot;: [
+      &quot;200&quot;,
+      &quot;206&quot;,
+      &quot;400&quot;,
+      &quot;403&quot;,
+      &quot;500&quot;,
+      &quot;422&quot;
+    ]
+  }
+}</pre><p>OpenAPI SHA-256: 3c5399809538cc403904725612dc20072bbc2c964eb10c8ad7f802731d21eed8</p></html>

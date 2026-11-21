@@ -1,0 +1,1175 @@
+{
+  "grupo": "G072",
+  "run_id": "RUN-G072-V2-20261101-052705",
+  "version": 2,
+  "intento": 3,
+  "referencia": "AUT-G072-V2-20261101",
+  "ambiente": "TEST",
+  "casos": {
+    "TC-M04-226": {
+      "estado": "APROBADO",
+      "motivo": "El segundo registro contradice al primero; el indicador, el evento y la conservación de A se cotejan en respuestas y lecturas públicas.",
+      "que_se_hizo": "Se enviaron CORRECTO por A e INCORRECTO con patología 8 por B sobre 511a6d66-a862-4822-bf47-2634333531b3; se leyeron historial y auditoría.",
+      "esperado_referencia": "Dos HTTP 201; B con conflicto y un evento CONFLICTO_RETROALIMENTACION que referencia R1; A intacto y ambos en historial HTTP 200 (TC-M04-226; RF-72, líneas 4053-4061 y CA-14, 4393-4394).",
+      "observado_prosa": "HTTP 226-A=201, 226-B=201; registros 226-A: id e0ae6f3d-798e-4efc-aef9-8ec4ca057ffb, usuario 97, estado CORRECTO, diagnósticos ninguno, conflicto no; 226-B: id 175d420e-c645-40eb-9bf4-1762f089d3f7, usuario 162, estado INCORRECTO, diagnósticos 8, conflicto sí; historial 2 registros; eventos de conflicto 1; referencias de auditoría 6499564d-e722-494c-ac9b-17542aba74af:511a6d66-a862-4822-bf47-2634333531b3.",
+      "por_que_prosa": "El segundo registro contradice al primero; el indicador, el evento y la conservación de A se cotejan en respuestas y lecturas públicas."
+    },
+    "TC-M04-227": {
+      "estado": "APROBADO",
+      "motivo": "Cada respuesta se coteja por identificador, usuario, estado y diagnóstico con un registro de historial; no hay cuarto registro ni evento de consolidación.",
+      "que_se_hizo": "Se enviaron CORRECTO, PARCIAL e INCORRECTO por A, B y C sobre f056f99d-78bf-478d-86f0-5b2ee1a70873; se leyó historial y auditoría.",
+      "esperado_referencia": "Tres registros independientes, íntegros y sin consolidado ni etiqueta ganadora, visibles en historial HTTP 200 (TC-M04-227; RF-72, líneas 4043-4051 y 4065).",
+      "observado_prosa": "HTTP 227-A=201, 227-B=201, 227-C=201; registros 227-A: id 74f624ea-ea4c-464d-a40b-00be175b7320, usuario 97, estado CORRECTO, diagnósticos ninguno, conflicto no; 227-B: id 616d9074-f240-4d78-84a4-eb9231b349f2, usuario 162, estado PARCIAL, diagnósticos 8, conflicto sí; 227-C: id 863dfe26-664e-48ad-a27f-37d6f513bea3, usuario 163, estado INCORRECTO, diagnósticos 8, conflicto sí; historial 3 registros; eventos de conflicto 2; referencias de auditoría 2e51b72c-7ccb-4d2a-860b-f721ea40aa46:f056f99d-78bf-478d-86f0-5b2ee1a70873, b9d208b6-25c7-4efc-8da6-92c30583dd5f:f056f99d-78bf-478d-86f0-5b2ee1a70873.",
+      "por_que_prosa": "Cada respuesta se coteja por identificador, usuario, estado y diagnóstico con un registro de historial; no hay cuarto registro ni evento de consolidación."
+    },
+    "TC-M04-230": {
+      "estado": "APROBADO",
+      "motivo": "Cada par conserva sus dos registros y las respuestas y auditoría no señalan conflicto.",
+      "que_se_hizo": "A y B enviaron CORRECTO sobre 997b8cda-b608-4bb3-a7d2-ea37cf12b944 e INCORRECTO con la misma patología 8 sobre d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e; se leyeron historial y auditoría.",
+      "esperado_referencia": "Dos evaluaciones iguales por resultado coexisten tras HTTP 201, sin flag ni evento de conflicto; historial inicial y posterior HTTP 200 (TC-M04-230; RF-72, líneas 4024 y 4053-4061).",
+      "observado_prosa": "HTTP 230a-A=201, 230a-B=201, 230b-A=201, 230b-B=201; registros 230a-A: id 30987145-d035-46ea-b808-0e9148db456b, usuario 97, estado CORRECTO, diagnósticos ninguno, conflicto no; 230a-B: id c1224fe4-3802-46f8-b427-89495a61fd7a, usuario 162, estado CORRECTO, diagnósticos ninguno, conflicto no; 230b-A: id eea5c708-fa7b-499c-bc22-cd8a73bc7989, usuario 97, estado INCORRECTO, diagnósticos 8, conflicto no; 230b-B: id a2ac9be4-97f1-45b4-9dd5-3172f42b24cd, usuario 162, estado INCORRECTO, diagnósticos 8, conflicto no; historial 2/2 registros; eventos de conflicto 0/0; referencias de auditoría ninguna.",
+      "por_que_prosa": "Cada par conserva sus dos registros y las respuestas y auditoría no señalan conflicto."
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-226",
+      "fuente": "API",
+      "id": "API-226-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G072.json"
+    },
+    {
+      "caso": "TC-M04-227",
+      "fuente": "API",
+      "id": "API-227-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G072.json"
+    },
+    {
+      "caso": "TC-M04-230",
+      "fuente": "API",
+      "id": "API-230-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G072.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 1172,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 664,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 396,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 399,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 425,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 388
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 148,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 139,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 156,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 2
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 162,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/811",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 169,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 263,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/patologias",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 255,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 34
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/43",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 144,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 150,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 140,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 145,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 142,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "230a-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 487,
+      "respuesta": {
+        "id_retroalimentacion": "30987145-d035-46ea-b808-0e9148db456b",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "230a-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 154,
+      "respuesta": {
+        "id_retroalimentacion": "c1224fe4-3802-46f8-b427-89495a61fd7a",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "historial_tras_230a",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 248,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "230b-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 157,
+      "respuesta": {
+        "id_retroalimentacion": "eea5c708-fa7b-499c-bc22-cd8a73bc7989",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "230b-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 160,
+      "respuesta": {
+        "id_retroalimentacion": "a2ac9be4-97f1-45b4-9dd5-3172f42b24cd",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "historial_tras_230b",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 260,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-226",
+      "nombre": "226-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 152,
+      "respuesta": {
+        "id_retroalimentacion": "e0ae6f3d-798e-4efc-aef9-8ec4ca057ffb",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-226",
+      "nombre": "226-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 155,
+      "respuesta": {
+        "id_retroalimentacion": "175d420e-c645-40eb-9bf4-1762f089d3f7",
+        "es_conflicto_retroalimentacion": true,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-226",
+      "nombre": "historial_tras_226",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 282,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "227-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 151,
+      "respuesta": {
+        "id_retroalimentacion": "74f624ea-ea4c-464d-a40b-00be175b7320",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "227-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 161,
+      "respuesta": {
+        "id_retroalimentacion": "616d9074-f240-4d78-84a4-eb9231b349f2",
+        "es_conflicto_retroalimentacion": true,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "historial_tras_227_parcial",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 303,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "227-C",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 160,
+      "respuesta": {
+        "id_retroalimentacion": "863dfe26-664e-48ad-a27f-37d6f513bea3",
+        "es_conflicto_retroalimentacion": true,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "historial_tras_227_final",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 278,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 505,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 529,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 2
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 148,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 139,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 151,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 146,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 146,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 140,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 153,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 140,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 150,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 139,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 148,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G072-V2-20261101-052705",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 127,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 482,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    }
+  ],
+  "incidencias": [],
+  "observaciones": [
+    "OBS-M04-G072-227: la tercera respuesta para f056f99d-78bf-478d-86f0-5b2ee1a70873 indicó conflicto sí al añadirse INCORRECTO tras PARCIAL y CORRECTO. Es una observación; el oráculo de conflicto se decide en TC-M04-226.",
+    "OBS-M04-G072-HIST: el HTTP 500 del intento 1 no se reprodujo."
+  ],
+  "problemas_tecnicos": [],
+  "semilla": {
+    "id_activo_biologico": 885,
+    "resultados": [
+      {
+        "id": "511a6d66-a862-4822-bf47-2634333531b3",
+        "fecha": "2026-10-28T00:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+        "fecha": "2026-10-26T21:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+        "fecha": "2026-10-26T01:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+        "fecha": "2026-10-24T19:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+        "fecha": "2026-10-23T23:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "fecha": "2026-10-22T17:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "32985675-9bbf-46ae-a37d-dc1833155627",
+        "fecha": "2026-10-20T22:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "98c7697c-0cb8-403c-9421-07679e59cac8",
+        "fecha": "2026-10-19T20:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      }
+    ],
+    "patologia": 8
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 14,
+      "posts": 9,
+      "lecturas": 5,
+      "aserciones": 28
+    }
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "lecturas_historial": [
+    {
+      "momento": "230a",
+      "tras_post": "230a-B",
+      "http": 200,
+      "codigo": null,
+      "mensaje": "",
+      "paginas": 1,
+      "completo": true,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": [
+            {
+              "id_retroalimentacion": "c1224fe4-3802-46f8-b427-89495a61fd7a",
+              "id_usuario_veterinario": 162,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "30987145-d035-46ea-b808-0e9148db456b",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    },
+    {
+      "momento": "230b",
+      "tras_post": "230b-B",
+      "http": 200,
+      "codigo": null,
+      "mensaje": "",
+      "paginas": 1,
+      "completo": true,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": [
+            {
+              "id_retroalimentacion": "c1224fe4-3802-46f8-b427-89495a61fd7a",
+              "id_usuario_veterinario": 162,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "30987145-d035-46ea-b808-0e9148db456b",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": [
+            {
+              "id_retroalimentacion": "eea5c708-fa7b-499c-bc22-cd8a73bc7989",
+              "id_usuario_veterinario": 97,
+              "estado": "INCORRECTO"
+            },
+            {
+              "id_retroalimentacion": "a2ac9be4-97f1-45b4-9dd5-3172f42b24cd",
+              "id_usuario_veterinario": 162,
+              "estado": "INCORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    },
+    {
+      "momento": "226",
+      "tras_post": "226-B",
+      "http": 200,
+      "codigo": null,
+      "mensaje": "",
+      "paginas": 1,
+      "completo": true,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": [
+            {
+              "id_retroalimentacion": "e0ae6f3d-798e-4efc-aef9-8ec4ca057ffb",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "175d420e-c645-40eb-9bf4-1762f089d3f7",
+              "id_usuario_veterinario": 162,
+              "estado": "INCORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": [
+            {
+              "id_retroalimentacion": "c1224fe4-3802-46f8-b427-89495a61fd7a",
+              "id_usuario_veterinario": 162,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "30987145-d035-46ea-b808-0e9148db456b",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": [
+            {
+              "id_retroalimentacion": "eea5c708-fa7b-499c-bc22-cd8a73bc7989",
+              "id_usuario_veterinario": 97,
+              "estado": "INCORRECTO"
+            },
+            {
+              "id_retroalimentacion": "a2ac9be4-97f1-45b4-9dd5-3172f42b24cd",
+              "id_usuario_veterinario": 162,
+              "estado": "INCORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    },
+    {
+      "momento": "227_parcial",
+      "tras_post": "227-B",
+      "http": 200,
+      "codigo": null,
+      "mensaje": "",
+      "paginas": 1,
+      "completo": true,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": [
+            {
+              "id_retroalimentacion": "e0ae6f3d-798e-4efc-aef9-8ec4ca057ffb",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "175d420e-c645-40eb-9bf4-1762f089d3f7",
+              "id_usuario_veterinario": 162,
+              "estado": "INCORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": [
+            {
+              "id_retroalimentacion": "74f624ea-ea4c-464d-a40b-00be175b7320",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "616d9074-f240-4d78-84a4-eb9231b349f2",
+              "id_usuario_veterinario": 162,
+              "estado": "PARCIAL"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": [
+            {
+              "id_retroalimentacion": "c1224fe4-3802-46f8-b427-89495a61fd7a",
+              "id_usuario_veterinario": 162,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "30987145-d035-46ea-b808-0e9148db456b",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": [
+            {
+              "id_retroalimentacion": "eea5c708-fa7b-499c-bc22-cd8a73bc7989",
+              "id_usuario_veterinario": 97,
+              "estado": "INCORRECTO"
+            },
+            {
+              "id_retroalimentacion": "a2ac9be4-97f1-45b4-9dd5-3172f42b24cd",
+              "id_usuario_veterinario": 162,
+              "estado": "INCORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    },
+    {
+      "momento": "227_final",
+      "tras_post": "227-C",
+      "http": 200,
+      "codigo": null,
+      "mensaje": "",
+      "paginas": 1,
+      "completo": true,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": [
+            {
+              "id_retroalimentacion": "e0ae6f3d-798e-4efc-aef9-8ec4ca057ffb",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "175d420e-c645-40eb-9bf4-1762f089d3f7",
+              "id_usuario_veterinario": 162,
+              "estado": "INCORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": [
+            {
+              "id_retroalimentacion": "863dfe26-664e-48ad-a27f-37d6f513bea3",
+              "id_usuario_veterinario": 163,
+              "estado": "INCORRECTO"
+            },
+            {
+              "id_retroalimentacion": "74f624ea-ea4c-464d-a40b-00be175b7320",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "616d9074-f240-4d78-84a4-eb9231b349f2",
+              "id_usuario_veterinario": 162,
+              "estado": "PARCIAL"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": [
+            {
+              "id_retroalimentacion": "c1224fe4-3802-46f8-b427-89495a61fd7a",
+              "id_usuario_veterinario": 162,
+              "estado": "CORRECTO"
+            },
+            {
+              "id_retroalimentacion": "30987145-d035-46ea-b808-0e9148db456b",
+              "id_usuario_veterinario": 97,
+              "estado": "CORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": [
+            {
+              "id_retroalimentacion": "eea5c708-fa7b-499c-bc22-cd8a73bc7989",
+              "id_usuario_veterinario": 97,
+              "estado": "INCORRECTO"
+            },
+            {
+              "id_retroalimentacion": "a2ac9be4-97f1-45b4-9dd5-3172f42b24cd",
+              "id_usuario_veterinario": 162,
+              "estado": "INCORRECTO"
+            }
+          ]
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    }
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "DELETE 200; identificadores nuevos ausentes e historial inicial restaurado"
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G072.json",
+    "newman/newman-G072.html",
+    "resultado.json",
+    "TC-M04-G072_reevaluacion_V2.md"
+  ],
+  "oficial": true,
+  "consume_version": true,
+  "control_aislamiento": {
+    "estado": "NO_CONCLUYENTE",
+    "activo": 811,
+    "finca": 3,
+    "http": 200,
+    "eventos": 0,
+    "motivo": "Respuesta HTTP 200 sin prueba concluyente de segregación."
+  },
+  "historial_inicial": {
+    "http": 200,
+    "completo": true,
+    "eventos": 14
+  }
+}

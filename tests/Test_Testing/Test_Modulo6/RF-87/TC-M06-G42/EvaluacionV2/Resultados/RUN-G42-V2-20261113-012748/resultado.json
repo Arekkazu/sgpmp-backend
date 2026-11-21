@@ -1,0 +1,4203 @@
+{
+  "grupo": "G42",
+  "run_id": "RUN-G42-V2-20261113-012748",
+  "version": 2,
+  "intento": 8,
+  "autorizacion_referencia": "AUT-G42-V2-R3-20261112",
+  "casos": {
+    "TC-M06-021": {
+      "estado": "APROBADO",
+      "motivo": "cuatro tipos, sumas, ejecutor y origen conformes"
+    },
+    "TC-M06-022": {
+      "estado": "APROBADO",
+      "motivo": "comprobantes, sumas, descargas e inmutabilidad conformes"
+    },
+    "TC-M06-023": {
+      "estado": "APROBADO",
+      "motivo": "costos por tipo y período, valor razonable conformes"
+    }
+  },
+  "solicitudes": [
+    {
+      "id": "G42-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-002",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-003",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-004",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-006",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-007",
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-008",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-009",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-010",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/mediciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-011",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-012",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-013",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-014",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-015",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-016",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-017",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-018",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/mediciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-019",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-020",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-021",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-022",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-023",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-024",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-025",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-026",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1627",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-027",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-028",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/metricas",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-029",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-030",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1627/simulacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-031",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1832",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-032",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-033",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1832/metricas",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-034",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-035",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1832/simulacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-036",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1833",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-037",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-038",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1833/metricas",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-039",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-040",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1833/simulacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-041",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/eventos",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-042",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1832/eventos",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-043",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1833/eventos",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-044",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-045",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1569/simulacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-046",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-047",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1572/simulacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-048",
+      "metodo": "POST",
+      "ruta": "/finanzas/configuracion/matriz",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-049",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-050",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-051",
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-052",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/1627/eventos/crecimiento",
+      "actor": "admin",
+      "http": 201
+    },
+    {
+      "id": "G42-053",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-054",
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-055",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/1627/eventos/crecimiento",
+      "actor": "admin",
+      "http": 201
+    },
+    {
+      "id": "G42-056",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-057",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/1832/eventos/crecimiento",
+      "actor": "admin",
+      "http": 201
+    },
+    {
+      "id": "G42-058",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-059",
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-060",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/1833/eventos/crecimiento",
+      "actor": "admin",
+      "http": 201
+    },
+    {
+      "id": "G42-061",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-062",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-063",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-064",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-065",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-066",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-067",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-068",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/241/cierre",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-069",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-070",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-071",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-072",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-073",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-074",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-075",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/mediciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-076",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-077",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-078",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-079",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-080",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-081",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-082",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-083",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-084",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-085",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-086",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-087",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-088",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-089",
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-090",
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 201
+    },
+    {
+      "id": "G42-091",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-092",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-093",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-094",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-095",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-096",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/220/cierre",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-097",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-098",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-099",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-100",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-101",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-102",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-103",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-104",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/mediciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-105",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-106",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-107",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-108",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-109",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-110",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-111",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/mediciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-112",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-113",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-114",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-115",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-116",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes/descarga",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-117",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes/descarga",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-118",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes/descarga",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-119",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes/descarga",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-120",
+      "metodo": "PUT",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "actor": "contador",
+      "http": 405,
+      "error": "405"
+    },
+    {
+      "id": "G42-121",
+      "metodo": "DELETE",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "actor": "contador",
+      "http": 405,
+      "error": "405"
+    },
+    {
+      "id": "G42-122",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-123",
+      "metodo": "PUT",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "actor": "contador",
+      "http": 405,
+      "error": "405"
+    },
+    {
+      "id": "G42-124",
+      "metodo": "DELETE",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "actor": "contador",
+      "http": 405,
+      "error": "405"
+    },
+    {
+      "id": "G42-125",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-126",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/391/prevalidacion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-127",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-128",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-129",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-130",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-131",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-132",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/391/cierre",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-133",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-134",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-135",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-136",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-137",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-138",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-139",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/391/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-140",
+      "metodo": "GET",
+      "ruta": "/finanzas/estados-resultados/66",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-141",
+      "metodo": "GET",
+      "ruta": "/finanzas/estados-resultados/67",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-142",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/mediciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-143",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-144",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-145",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-146",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-147",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G42-V2-20261113-012748",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-148",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-149",
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-150",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-151",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-152",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-153",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-154",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-155",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-156",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/mediciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-157",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-158",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-159",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-160",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-161",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-162",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-163",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/mediciones",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-164",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-165",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-166",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/calculos",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-167",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/estados-resultados",
+      "actor": "contador",
+      "http": 200
+    },
+    {
+      "id": "G42-168",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1627/eventos",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-169",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1832/eventos",
+      "actor": "admin",
+      "http": 200
+    },
+    {
+      "id": "G42-170",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1833/eventos",
+      "actor": "admin",
+      "http": 200
+    }
+  ],
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-021",
+      "fuente": "API",
+      "id": "G42-API-021-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json",
+      "detalle": "cuatro tipos, sumas, ejecutor y origen conformes"
+    },
+    {
+      "caso": "TC-M06-022",
+      "fuente": "API",
+      "id": "G42-API-022-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json",
+      "detalle": "comprobantes, sumas, descargas e inmutabilidad conformes"
+    },
+    {
+      "caso": "TC-M06-023",
+      "fuente": "API",
+      "id": "G42-API-023-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json",
+      "detalle": "costos por tipo y período, valor razonable conformes"
+    }
+  ],
+  "contraste_contrato": [
+    {
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/mediciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/mediciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos/1627",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/metricas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos/1627/simulacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos/1832",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/metricas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos/1832/simulacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos/1833",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/metricas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos/1833/simulacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/eventos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/eventos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/eventos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos/1569/simulacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos/1572/simulacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/configuracion/matriz",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/eventos/crecimiento",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/eventos/crecimiento",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/eventos/crecimiento",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/eventos/crecimiento",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/cierre",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/mediciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/cierre",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/mediciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/mediciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 405,
+      "resultado": "difiere",
+      "esquema": "error_respuesta"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 405,
+      "resultado": "difiere",
+      "esquema": "error_respuesta"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 405,
+      "resultado": "difiere",
+      "esquema": "error_respuesta"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 405,
+      "resultado": "difiere",
+      "esquema": "error_respuesta"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/391/prevalidacion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/391/cierre",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/notificaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/391/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/mediciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/test-control/runs/RUN-G42-V2-20261113-012748",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/mediciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/mediciones",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/calculos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/estados-resultados",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/eventos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/eventos",
+      "http": 200,
+      "resultado": "coincide"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/eventos",
+      "http": 200,
+      "resultado": "coincide"
+    }
+  ],
+  "campos_extra_observados": [
+    {
+      "ruta": "/sesiones/",
+      "campo": "respuesta.tipo"
+    },
+    {
+      "ruta": "/sesiones/",
+      "campo": "respuesta.expira_en"
+    },
+    {
+      "ruta": "/sesiones/",
+      "campo": "respuesta.message"
+    },
+    {
+      "ruta": "/sesiones/",
+      "campo": "respuesta.perfil_incompleto"
+    },
+    {
+      "ruta": "/sesiones/",
+      "campo": "respuesta.tipo"
+    },
+    {
+      "ruta": "/sesiones/",
+      "campo": "respuesta.expira_en"
+    },
+    {
+      "ruta": "/sesiones/",
+      "campo": "respuesta.message"
+    },
+    {
+      "ruta": "/sesiones/",
+      "campo": "respuesta.perfil_incompleto"
+    },
+    {
+      "ruta": "/finanzas/configuracion",
+      "campo": "respuesta.costos_venta"
+    },
+    {
+      "ruta": "/finanzas/configuracion",
+      "campo": "respuesta.lineas_pendientes_cuenta"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.pagina_actual"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.registros_por_pagina"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.resumen_severidad"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.pagina_actual"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.registros_por_pagina"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.resumen_severidad"
+    },
+    {
+      "ruta": "/finanzas/activos/1627",
+      "campo": "respuesta.reconocimientos"
+    },
+    {
+      "ruta": "/finanzas/activos/1627",
+      "campo": "respuesta.calculos"
+    },
+    {
+      "ruta": "/finanzas/activos/1627",
+      "campo": "respuesta.mediciones"
+    },
+    {
+      "ruta": "/finanzas/activos/1627",
+      "campo": "respuesta.productos"
+    },
+    {
+      "ruta": "/finanzas/activos/1627",
+      "campo": "respuesta.valoracion_costo"
+    },
+    {
+      "ruta": "/finanzas/activos/1627",
+      "campo": "respuesta.lineas"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.identificador"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.tipo"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.especie"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.fecha_registro"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.dias_en_sistema"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.estado_actual"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.infraestructura_asociada"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.fase_productiva_activa"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.raza"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.sexo"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.fecha_nacimiento"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.fecha_ultimo_peso"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.cantidad_actual"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.biomasa_total"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.densidad"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.eventos_sanitarios"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.eventos_productivos"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.eventos_crecimiento"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.eventos_reproductivos"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.indicadores"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.advertencias"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/ficha-integral",
+      "campo": "respuesta.accesos_directos"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/metricas",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/metricas",
+      "campo": "respuesta.total"
+    },
+    {
+      "ruta": "/finanzas/activos/1627/simulacion",
+      "campo": "respuesta.motivo"
+    },
+    {
+      "ruta": "/finanzas/activos/1627/simulacion",
+      "campo": "respuesta.mensaje"
+    },
+    {
+      "ruta": "/finanzas/activos/1627/simulacion",
+      "campo": "respuesta.calculo"
+    },
+    {
+      "ruta": "/finanzas/activos/1832",
+      "campo": "respuesta.reconocimientos"
+    },
+    {
+      "ruta": "/finanzas/activos/1832",
+      "campo": "respuesta.calculos"
+    },
+    {
+      "ruta": "/finanzas/activos/1832",
+      "campo": "respuesta.mediciones"
+    },
+    {
+      "ruta": "/finanzas/activos/1832",
+      "campo": "respuesta.productos"
+    },
+    {
+      "ruta": "/finanzas/activos/1832",
+      "campo": "respuesta.valoracion_costo"
+    },
+    {
+      "ruta": "/finanzas/activos/1832",
+      "campo": "respuesta.lineas"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.identificador"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.tipo"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.especie"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.fecha_registro"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.dias_en_sistema"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.estado_actual"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.infraestructura_asociada"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.fase_productiva_activa"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.raza"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.sexo"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.fecha_nacimiento"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.fecha_ultimo_peso"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.cantidad_actual"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.biomasa_total"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.densidad"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.eventos_sanitarios"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.eventos_productivos"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.eventos_crecimiento"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.eventos_reproductivos"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.indicadores"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.advertencias"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/ficha-integral",
+      "campo": "respuesta.accesos_directos"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/metricas",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/metricas",
+      "campo": "respuesta.total"
+    },
+    {
+      "ruta": "/finanzas/activos/1832/simulacion",
+      "campo": "respuesta.motivo"
+    },
+    {
+      "ruta": "/finanzas/activos/1832/simulacion",
+      "campo": "respuesta.mensaje"
+    },
+    {
+      "ruta": "/finanzas/activos/1832/simulacion",
+      "campo": "respuesta.calculo"
+    },
+    {
+      "ruta": "/finanzas/activos/1833",
+      "campo": "respuesta.reconocimientos"
+    },
+    {
+      "ruta": "/finanzas/activos/1833",
+      "campo": "respuesta.calculos"
+    },
+    {
+      "ruta": "/finanzas/activos/1833",
+      "campo": "respuesta.mediciones"
+    },
+    {
+      "ruta": "/finanzas/activos/1833",
+      "campo": "respuesta.productos"
+    },
+    {
+      "ruta": "/finanzas/activos/1833",
+      "campo": "respuesta.valoracion_costo"
+    },
+    {
+      "ruta": "/finanzas/activos/1833",
+      "campo": "respuesta.lineas"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.identificador"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.tipo"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.especie"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.fecha_registro"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.dias_en_sistema"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.estado_actual"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.infraestructura_asociada"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.fase_productiva_activa"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.raza"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.sexo"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.fecha_nacimiento"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.fecha_ultimo_peso"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.cantidad_actual"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.biomasa_total"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.densidad"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.eventos_sanitarios"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.eventos_productivos"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.eventos_crecimiento"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.eventos_reproductivos"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.indicadores"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.advertencias"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/ficha-integral",
+      "campo": "respuesta.accesos_directos"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/metricas",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/metricas",
+      "campo": "respuesta.total"
+    },
+    {
+      "ruta": "/finanzas/activos/1833/simulacion",
+      "campo": "respuesta.motivo"
+    },
+    {
+      "ruta": "/finanzas/activos/1833/simulacion",
+      "campo": "respuesta.mensaje"
+    },
+    {
+      "ruta": "/finanzas/activos/1833/simulacion",
+      "campo": "respuesta.calculo"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/eventos",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/eventos",
+      "campo": "respuesta.total"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/eventos",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/eventos",
+      "campo": "respuesta.total"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/eventos",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/eventos",
+      "campo": "respuesta.total"
+    },
+    {
+      "ruta": "/finanzas/activos/1569/simulacion",
+      "campo": "respuesta.motivo"
+    },
+    {
+      "ruta": "/finanzas/activos/1569/simulacion",
+      "campo": "respuesta.mensaje"
+    },
+    {
+      "ruta": "/finanzas/activos/1569/simulacion",
+      "campo": "respuesta.calculo"
+    },
+    {
+      "ruta": "/finanzas/activos/1572/simulacion",
+      "campo": "respuesta.motivo"
+    },
+    {
+      "ruta": "/finanzas/activos/1572/simulacion",
+      "campo": "respuesta.mensaje"
+    },
+    {
+      "ruta": "/finanzas/activos/1572/simulacion",
+      "campo": "respuesta.calculo"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.estado"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.unidad_medida"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.desviacion_pct"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.fecha_vigencia"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "campo": "respuesta.eventos"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "campo": "respuesta.provisiones_m05"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.estado"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.unidad_medida"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.desviacion_pct"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.fecha_vigencia"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "campo": "respuesta.eventos"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "campo": "respuesta.provisiones_m05"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "campo": "respuesta.eventos"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "campo": "respuesta.provisiones_m05"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.estado"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.unidad_medida"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.desviacion_pct"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.fecha_vigencia"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "campo": "respuesta.eventos"
+    },
+    {
+      "ruta": "/finanzas/eventos/procesar",
+      "campo": "respuesta.provisiones_m05"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/finanzas/periodos/241/cierre",
+      "campo": "respuesta.activos_al_costo_con_precio"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.pagina_actual"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.registros_por_pagina"
+    },
+    {
+      "ruta": "/finanzas/auditoria",
+      "campo": "respuesta.resumen_severidad"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "campo": "respuesta.id_grupo_reparto"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "campo": "respuesta.aviso"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "campo": "respuesta.id_grupo_reparto"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "campo": "respuesta.aviso"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "campo": "respuesta.id_grupo_reparto"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "campo": "respuesta.aviso"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "campo": "respuesta.id_grupo_reparto"
+    },
+    {
+      "ruta": "/finanzas/costos",
+      "campo": "respuesta.aviso"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.estado"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.unidad_medida"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.desviacion_pct"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.fecha_vigencia"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.estado"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.unidad_medida"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.desviacion_pct"
+    },
+    {
+      "ruta": "/finanzas/precios",
+      "campo": "respuesta.fecha_vigencia"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/finanzas/periodos/220/cierre",
+      "campo": "respuesta.activos_al_costo_con_precio"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/finanzas/periodos/391/cierre",
+      "campo": "respuesta.activos_al_costo_con_precio"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.no_leidas"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.pagina"
+    },
+    {
+      "ruta": "/notificaciones",
+      "campo": "respuesta.tamano"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.id_periodo_contable"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.total_ingresos"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.total_gastos"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.estado"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.hash_consistencia"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.fecha_generacion"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.filtros"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.version"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.id_usuario"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.id_usuario_aprobador"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.fecha_aprobacion"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/66",
+      "campo": "respuesta.nombre_aprobador"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.id_periodo_contable"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.total_ingresos"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.total_gastos"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.estado"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.hash_consistencia"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.fecha_generacion"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.filtros"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.version"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.id_usuario"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.id_usuario_aprobador"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.fecha_aprobacion"
+    },
+    {
+      "ruta": "/finanzas/estados-resultados/67",
+      "campo": "respuesta.nombre_aprobador"
+    },
+    {
+      "ruta": "/test-control/runs/RUN-G42-V2-20261113-012748",
+      "campo": "respuesta.status"
+    },
+    {
+      "ruta": "/finanzas/configuracion",
+      "campo": "respuesta.costos_venta"
+    },
+    {
+      "ruta": "/finanzas/configuracion",
+      "campo": "respuesta.lineas_pendientes_cuenta"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/eventos",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1627/eventos",
+      "campo": "respuesta.total"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/eventos",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1832/eventos",
+      "campo": "respuesta.total"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/eventos",
+      "campo": "respuesta.id_activo_biologico"
+    },
+    {
+      "ruta": "/activos-biologicos/1833/eventos",
+      "campo": "respuesta.total"
+    }
+  ],
+  "evidencias": [
+    "descargas/comprobantes-241.csv",
+    "descargas/comprobantes-220.csv",
+    "newman/newman-G42.json",
+    "newman/newman-G42.html"
+  ],
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "permisos_faltantes": {
+    "contador": [],
+    "admin": []
+  },
+  "prevalidaciones": {
+    "220": {
+      "inicial": {
+        "puede_cerrar": true,
+        "requiere_autorizacion": false,
+        "bloqueos": [],
+        "activos_sin_precio_cantidad": 0,
+        "lineas_sin_trazabilidad": []
+      },
+      "puede_cerrar": true,
+      "requiere_autorizacion": false,
+      "bloqueos": [],
+      "activos_sin_precio_cantidad": 0,
+      "lineas_sin_trazabilidad": [],
+      "antes_cierre": {
+        "puede_cerrar": true,
+        "requiere_autorizacion": false,
+        "bloqueos": [],
+        "activos_sin_precio_cantidad": 0,
+        "lineas_sin_trazabilidad": []
+      }
+    },
+    "241": {
+      "inicial": {
+        "puede_cerrar": false,
+        "requiere_autorizacion": false,
+        "bloqueos": [
+          {
+            "codigo": "LINEAS_PENDIENTE_CUENTA",
+            "mensaje": "1 líneas no tienen cuentas en la matriz contable: Depreciación (modelo de costo) (único) de Bovino. Asígnelas en Configuración contable."
+          }
+        ],
+        "activos_sin_precio_cantidad": 0,
+        "lineas_sin_trazabilidad": [],
+        "tras_resolucion": {
+          "puede_cerrar": true,
+          "bloqueos": []
+        },
+        "tras_matriz": {
+          "puede_cerrar": true,
+          "bloqueos": []
+        }
+      },
+      "puede_cerrar": false,
+      "requiere_autorizacion": false,
+      "bloqueos": [
+        {
+          "codigo": "LINEAS_PENDIENTE_CUENTA",
+          "mensaje": "1 líneas no tienen cuentas en la matriz contable: Depreciación (modelo de costo) (único) de Bovino. Asígnelas en Configuración contable."
+        }
+      ],
+      "activos_sin_precio_cantidad": 0,
+      "lineas_sin_trazabilidad": [],
+      "tras_resolucion": {
+        "puede_cerrar": true,
+        "bloqueos": []
+      },
+      "tras_matriz": {
+        "puede_cerrar": true,
+        "bloqueos": []
+      },
+      "antes_cierre": {
+        "puede_cerrar": true,
+        "requiere_autorizacion": false,
+        "bloqueos": [],
+        "activos_sin_precio_cantidad": 0,
+        "lineas_sin_trazabilidad": []
+      }
+    },
+    "391": {
+      "antes_cierre": {
+        "puede_cerrar": true,
+        "requiere_autorizacion": false,
+        "bloqueos": [],
+        "activos_sin_precio_cantidad": 0,
+        "lineas_sin_trazabilidad": []
+      }
+    }
+  },
+  "diagnostico_preflight": {
+    "220": {
+      "estado": "ABIERTO",
+      "ultimo_cierre": null,
+      "prevalidacion": {
+        "puede_cerrar": true,
+        "requiere_autorizacion": false,
+        "bloqueos": [],
+        "activos_sin_precio_cantidad": 0,
+        "lineas_sin_trazabilidad": []
+      }
+    },
+    "241": {
+      "estado": "ABIERTO",
+      "ultimo_cierre": null,
+      "prevalidacion": {
+        "puede_cerrar": false,
+        "requiere_autorizacion": false,
+        "bloqueos": [
+          {
+            "codigo": "LINEAS_PENDIENTE_CUENTA",
+            "mensaje": "1 líneas no tienen cuentas en la matriz contable: Depreciación (modelo de costo) (único) de Bovino. Asígnelas en Configuración contable."
+          }
+        ],
+        "activos_sin_precio_cantidad": 0,
+        "lineas_sin_trazabilidad": [],
+        "tras_resolucion": {
+          "puede_cerrar": true,
+          "bloqueos": []
+        },
+        "tras_matriz": {
+          "puede_cerrar": true,
+          "bloqueos": []
+        }
+      }
+    },
+    "matriz": {
+      "asignaciones": 63
+    },
+    "activos": [
+      {
+        "id": 1627,
+        "estado": "ACTIVO",
+        "valorado_por_costo": false,
+        "especie": 39,
+        "finca": 468
+      },
+      {
+        "id": 1568,
+        "estado": "ACTIVO",
+        "valorado_por_costo": false,
+        "especie": 422,
+        "finca": 466
+      },
+      {
+        "id": 1832,
+        "estado": "ACTIVO",
+        "valorado_por_costo": false,
+        "especie": 39,
+        "finca": 468
+      },
+      {
+        "id": 1833,
+        "estado": "ACTIVO",
+        "valorado_por_costo": false,
+        "especie": 39,
+        "finca": 468
+      },
+      {
+        "id": 1572,
+        "estado": "ACTIVO",
+        "valorado_por_costo": false,
+        "especie": 423,
+        "finca": 467
+      },
+      {
+        "id": 1573,
+        "estado": "ACTIVO",
+        "valorado_por_costo": true,
+        "especie": 423,
+        "finca": 467
+      },
+      {
+        "id": 1569,
+        "estado": "ACTIVO",
+        "valorado_por_costo": false,
+        "especie": 422,
+        "finca": 467
+      },
+      {
+        "id": 1570,
+        "estado": "ACTIVO",
+        "valorado_por_costo": false,
+        "especie": 422,
+        "finca": 467
+      },
+      {
+        "id": 1571,
+        "estado": "ACTIVO",
+        "valorado_por_costo": false,
+        "especie": 422,
+        "finca": 467
+      }
+    ],
+    "pendientes_241": [
+      {
+        "id": 1431,
+        "tipo": "DEPRECIACION_ACTIVO_COSTO",
+        "sentido": "UNICO",
+        "especie": 39,
+        "subtipo": null
+      }
+    ],
+    "motivos": [],
+    "precios_por_activo": {
+      "1569": {
+        "especie": 422,
+        "categoria": "POR_CABEZA",
+        "candidatos": [
+          435
+        ],
+        "simulacion_valida": true,
+        "precio_simulacion": 435
+      },
+      "1572": {
+        "especie": 423,
+        "categoria": "POR_CABEZA",
+        "candidatos": [
+          438
+        ],
+        "simulacion_valida": true,
+        "precio_simulacion": 438
+      },
+      "1627": {
+        "especie": 39,
+        "categoria": "PESO_KG",
+        "candidatos": [
+          18
+        ],
+        "simulacion_valida": true,
+        "precio_simulacion": 18
+      },
+      "1832": {
+        "especie": 39,
+        "categoria": "PESO_KG",
+        "candidatos": [
+          18
+        ],
+        "simulacion_valida": true,
+        "precio_simulacion": 18
+      },
+      "1833": {
+        "especie": 39,
+        "categoria": "PESO_KG",
+        "candidatos": [
+          18
+        ],
+        "simulacion_valida": true,
+        "precio_simulacion": 18
+      }
+    },
+    "precios": {
+      "bovino": 18,
+      "caprino": 435,
+      "especie_1572": 438
+    },
+    "resolucion_241": [
+      {
+        "linea": 1431,
+        "cobertura": "GENERICA",
+        "asignacion_origen": 49,
+        "cuentas_iguales": true,
+        "http": 201,
+        "asignacion": 5716,
+        "lineas_resueltas": 1
+      }
+    ]
+  },
+  "pendientes_resueltos": [
+    {
+      "linea": 1431,
+      "cobertura": "GENERICA",
+      "asignacion_origen": 49,
+      "cuentas_iguales": true,
+      "http": 201,
+      "asignacion": 5716,
+      "lineas_resueltas": 1
+    }
+  ],
+  "observado": {
+    "seleccion_bovino": {
+      "criterio": "Menor id ACTIVO a valor razonable de finca NIT-D, sin IoT, con PESO/kg v?lido y precio aplicado confirmado por simulaci?n",
+      "candidatos": [
+        {
+          "id": 1627,
+          "resultado": "ELEGIDO"
+        }
+      ],
+      "elegido": 1627,
+      "razon": "Sin IoT, PESO/kg v?lido y precio aplicado confirmado por simulaci?n"
+    },
+    "peso_semilla": {
+      "bovino_id": 1627,
+      "peso_original": 395,
+      "arriba": "396",
+      "abajo": "394",
+      "enteros": true
+    },
+    "semillas_bovinos": [
+      {
+        "id": 1832,
+        "valor": "381",
+        "peso": 380
+      },
+      {
+        "id": 1833,
+        "valor": "400",
+        "peso": 400
+      }
+    ],
+    "021": {
+      "cierre": "HTTP 200",
+      "lineas_excluidas": [],
+      "variaciones_excluidas": [],
+      "ejecutor": 5,
+      "timestamp": "2026-11-13T01:27:51.253391Z",
+      "auditoria": [
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 266,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 267,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 428,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 429,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 430,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 431,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 432,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 433,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 434,
+          "payload_evento": {
+            "id_cierre": null
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 435,
+          "payload_evento": {
+            "id_cierre": 71
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 436,
+          "payload_evento": {
+            "id_cierre": 71
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 437,
+          "payload_evento": {
+            "id_cierre": 71
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 438,
+          "payload_evento": {
+            "id_cierre": 71
+          }
+        },
+        {
+          "tipo_evento": "VARIACION_REGISTRADA",
+          "id_referencia": 439,
+          "payload_evento": {
+            "id_cierre": 71
+          }
+        }
+      ],
+      "tipos": [
+        {
+          "tipo": "VARIACION_VR_TB",
+          "sentido": "GANANCIA",
+          "especie": 39,
+          "variaciones": 3,
+          "sumaMonto": "154395.00",
+          "sumaLineas": "154395.00",
+          "linea": "154395.00"
+        },
+        {
+          "tipo": "VARIACION_VR_TB",
+          "sentido": "GANANCIA",
+          "especie": 1,
+          "variaciones": 1,
+          "sumaMonto": "54050.00",
+          "sumaLineas": "54050.00",
+          "linea": "54050.00"
+        },
+        {
+          "tipo": "VARIACION_VR_TB",
+          "sentido": "PERDIDA",
+          "especie": 1,
+          "variaciones": 1,
+          "sumaMonto": "32430.00",
+          "sumaLineas": "32430.00",
+          "linea": "32430.00"
+        },
+        {
+          "tipo": "VARIACION_VR_TB",
+          "sentido": "PERDIDA",
+          "especie": 39,
+          "variaciones": 1,
+          "sumaMonto": "17766.00",
+          "sumaLineas": "17766.00",
+          "linea": "17766.00"
+        },
+        {
+          "tipo": "VARIACION_VR_PM",
+          "sentido": "GANANCIA",
+          "especie": 39,
+          "variaciones": 6,
+          "sumaMonto": "2704803.00",
+          "sumaLineas": "2704803.00",
+          "linea": "2704803.00"
+        },
+        {
+          "tipo": "VARIACION_VR_PM",
+          "sentido": "PERDIDA",
+          "especie": 39,
+          "variaciones": 2,
+          "sumaMonto": "556104.00",
+          "sumaLineas": "556104.00",
+          "linea": "556104.00"
+        }
+      ],
+      "observaciones": []
+    },
+    "022": {
+      "comprobantes": [
+        {
+          "codigo": "NIC-[NIT]-202611-CONSUMO_INSUMO-1",
+          "nit": "[NIT]",
+          "tipo": "CONSUMO_INSUMO",
+          "especie": 1,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-CONSUMO_INSUMO-39",
+          "nit": "[NIT]",
+          "tipo": "CONSUMO_INSUMO",
+          "especie": 39,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-DEPRECIACION_ACTIVO_COSTO-39",
+          "nit": "[NIT]",
+          "tipo": "DEPRECIACION_ACTIVO_COSTO",
+          "especie": 39,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-PRODUCTO_AGRICOLA-1",
+          "nit": "[NIT]",
+          "tipo": "PRODUCTO_AGRICOLA",
+          "especie": 1,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-RECONOCIMIENTO_DIFERENCIA-1",
+          "nit": "[NIT]",
+          "tipo": "RECONOCIMIENTO_DIFERENCIA",
+          "especie": 1,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-RECONOCIMIENTO_DIFERENCIA-39",
+          "nit": "[NIT]",
+          "tipo": "RECONOCIMIENTO_DIFERENCIA",
+          "especie": 39,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-VARIACION_VR_PM-39",
+          "nit": "[NIT]",
+          "tipo": "VARIACION_VR_PM",
+          "especie": 39,
+          "lineas": 2,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-VARIACION_VR_TB-1",
+          "nit": "[NIT]",
+          "tipo": "VARIACION_VR_TB",
+          "especie": 1,
+          "lineas": 2,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-VARIACION_VR_TB-39",
+          "nit": "[NIT]",
+          "tipo": "VARIACION_VR_TB",
+          "especie": 39,
+          "lineas": 2,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-DEPRECIACION_ACTIVO_COSTO-423",
+          "nit": "[NIT]",
+          "tipo": "DEPRECIACION_ACTIVO_COSTO",
+          "especie": 423,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-MANO_OBRA_PROPIA-422",
+          "nit": "[NIT]",
+          "tipo": "MANO_OBRA_PROPIA",
+          "especie": 422,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-RECONOCIMIENTO_DIFERENCIA-422",
+          "nit": "[NIT]",
+          "tipo": "RECONOCIMIENTO_DIFERENCIA",
+          "especie": 422,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-VARIACION_VR_PM-422",
+          "nit": "[NIT]",
+          "tipo": "VARIACION_VR_PM",
+          "especie": 422,
+          "lineas": 1,
+          "fecha": "2026-11-30"
+        },
+        {
+          "codigo": "NIC-[NIT]-202611-VARIACION_VR_PM-423",
+          "nit": "[NIT]",
+          "tipo": "VARIACION_VR_PM",
+          "especie": 423,
+          "lineas": 2,
+          "fecha": "2026-11-30"
+        }
+      ],
+      "descargas": {
+        "B": {
+          "csv": 200,
+          "tipo_csv": "text/csv; charset=utf-8",
+          "pdf": 200,
+          "tipo_pdf": "application/pdf",
+          "cabecera_pdf": "%PDF",
+          "tamano_pdf": 21089,
+          "sha256_pdf": "a1136f0436a2f4296bd27941a77c59c091c7ab560299472aeec1519ed025200d",
+          "put": 405,
+          "delete": 405,
+          "hashesIguales": true
+        },
+        "C": {
+          "csv": 200,
+          "tipo_csv": "text/csv; charset=utf-8",
+          "pdf": 200,
+          "tipo_pdf": "application/pdf",
+          "cabecera_pdf": "%PDF",
+          "tamano_pdf": 12999,
+          "sha256_pdf": "ace52ac7bcf41abe83a490e4ddd0cd1b8987a7460449827d368b8b97d78322eb",
+          "put": 405,
+          "delete": 405,
+          "hashesIguales": true
+        }
+      }
+    },
+    "023": {
+      "costos": [
+        {
+          "tipo": "VETERINARIO",
+          "id": 4452,
+          "monto": "104.0000"
+        },
+        {
+          "tipo": "MANO_OBRA",
+          "id": 4451,
+          "monto": "103.0000"
+        },
+        {
+          "tipo": "MEDICAMENTO",
+          "id": 4450,
+          "monto": "102.0000"
+        },
+        {
+          "tipo": "ALIMENTO",
+          "id": 4449,
+          "monto": "101.0000"
+        }
+      ],
+      "noviembre": {
+        "id": 66,
+        "costos_mantenimiento": "150410.0000",
+        "clavesComponentes": [
+          "bajas_activos",
+          "costos_mantenimiento",
+          "perdida_precio_mercado",
+          "deterioro_activos_costo",
+          "ganancia_precio_mercado",
+          "activos_excluidos_cierre",
+          "depreciacion_activos_costo",
+          "ingresos_productos_agricolas",
+          "inversiones_llevadas_a_gasto",
+          "desglose_costos_mantenimiento",
+          "perdida_reconocimiento_inicial",
+          "ganancia_reconocimiento_inicial",
+          "perdida_transformacion_biologica",
+          "ganancia_transformacion_biologica",
+          "perdida_ajustes_periodos_anteriores",
+          "ganancia_ajustes_periodos_anteriores"
+        ],
+        "desglose": {
+          "ALIMENTO": "150101.0000",
+          "MANO_OBRA": "103.0000",
+          "MEDICAMENTO": "102.0000",
+          "VETERINARIO": "104.0000"
+        },
+        "esperadoPorTipo": {
+          "ALIMENTO": "150101.0000",
+          "MEDICAMENTO": "102.0000",
+          "MANO_OBRA": "103.0000",
+          "VETERINARIO": "104.0000"
+        }
+      },
+      "diciembre": {
+        "id": 67,
+        "costos_mantenimiento": "0"
+      },
+      "valorRazonable": {
+        "conCostos": "4230000.0000",
+        "sinCostos": "4230000.0000"
+      }
+    }
+  },
+  "efectos_persistentes": [
+    {
+      "id": 13378,
+      "texto": "Al cerrar el período 2026-11, estos activos valorados por costo ya tienen precio de mercado para su especie: BOV-116-TIL. La NIC 41 ¶30 exige pasarlos a valor razonable.",
+      "periodo": 241
+    },
+    {
+      "id": 13372,
+      "texto": "Período 2026-11 cerrado: listo para transferir desde Agrofusión.",
+      "periodo": 241
+    },
+    {
+      "id": 13402,
+      "texto": "Al cerrar el período 2026-11, estos activos valorados por costo ya tienen precio de mercado para su especie: QA-M06O-COSTO-02. La NIC 41 ¶30 exige pasarlos a valor razonable.",
+      "periodo": 220
+    },
+    {
+      "id": 13396,
+      "texto": "Período 2026-11 cerrado: listo para transferir desde Agrofusión.",
+      "periodo": 220
+    },
+    {
+      "id": 13414,
+      "texto": "Al cerrar el período 2026-12, estos activos valorados por costo ya tienen precio de mercado para su especie: QA-M06O-COSTO-02. La NIC 41 ¶30 exige pasarlos a valor razonable.",
+      "periodo": 391
+    },
+    {
+      "id": 13408,
+      "texto": "Período 2026-12 cerrado: listo para transferir desde Agrofusión.",
+      "periodo": 391
+    }
+  ],
+  "nuevasAsignaciones": [
+    5716
+  ],
+  "nuevosPrecios": [
+    711,
+    712,
+    713,
+    714,
+    715
+  ],
+  "nuevosCostos": [
+    4449,
+    4450,
+    4451,
+    4452
+  ],
+  "periodosCreados": [
+    390,
+    391,
+    392
+  ],
+  "cierres": [
+    {
+      "periodo": 241,
+      "http": 200,
+      "cuerpo": {
+        "id_cierre": 71,
+        "id_periodo_contable": 241,
+        "periodo": "2026-11",
+        "estado": "CERRADO",
+        "activos_procesados": 7,
+        "activos_excluidos": [],
+        "lineas_excluidas": [],
+        "comprobantes": [
+          {
+            "codigo": "NIC-[NIT]-202611-CONSUMO_INSUMO-1",
+            "hash": "1404aec6ca86c5ed4df02664301a639fa36422bdd4d478e8fadcb15c97c7012d",
+            "valor_total": "168300.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-CONSUMO_INSUMO-39",
+            "hash": "b23095a659dbb84037b267f51bb84c2ec8b45a47dd5131785599a48f2b9a41bf",
+            "valor_total": "2674600.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-DEPRECIACION_ACTIVO_COSTO-39",
+            "hash": "fc8848c7da39a4108ed104906d992afdccde87e77b95c1d149fe9276192313b8",
+            "valor_total": "58333.33"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-PRODUCTO_AGRICOLA-1",
+            "hash": "3d6adb0839c5eced5a9e7d228ad7cce62a05724f29e1a2c263f7641765bf4d89",
+            "valor_total": "54050.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-RECONOCIMIENTO_DIFERENCIA-1",
+            "hash": "3d3fc7fa1ac59c69977e9797233275f6b35c739d578a041a6a9d59ec7adf2b1d",
+            "valor_total": "20250.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-RECONOCIMIENTO_DIFERENCIA-39",
+            "hash": "5fedc15bb2e4355eb534bc7d9298aef1d08652991ba36760a4b78c0c9ab691bd",
+            "valor_total": "1483520.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-VARIACION_VR_PM-39",
+            "hash": "cc67b479282ad16eee8f011f58278882e19d9238764c328b35d3d9787fb78151",
+            "valor_total": "3260907.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-VARIACION_VR_TB-1",
+            "hash": "3a052c28d7d79d4dc214e8b74cf8420010e7e2d64036a9067d189bd7a6ec26c7",
+            "valor_total": "86480.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-VARIACION_VR_TB-39",
+            "hash": "f662126cfbba4173793e0bbab7dafbbfd545e74825003d6e6d8bfd6d8b21c63a",
+            "valor_total": "172161.00"
+          }
+        ],
+        "hash_cierre": "c1fdb4c48ec5428b216fcfb8165befce3f3798e3f9121a01c8f39d2f767bc5ee",
+        "reportes": {
+          "estado_resultados": {
+            "id_estado": 65,
+            "resultado_neto": "-2762555.3300"
+          },
+          "informe_revelaciones": {
+            "id_informe": 75,
+            "version": "2026-M11-V1"
+          }
+        },
+        "id_periodo_siguiente": 390,
+        "activos_al_costo_con_precio": [
+          "BOV-116-TIL"
+        ]
+      },
+      "avisos": [
+        {
+          "id": 13378,
+          "texto": "Al cerrar el período 2026-11, estos activos valorados por costo ya tienen precio de mercado para su especie: BOV-116-TIL. La NIC 41 ¶30 exige pasarlos a valor razonable."
+        },
+        {
+          "id": 13372,
+          "texto": "Período 2026-11 cerrado: listo para transferir desde Agrofusión."
+        }
+      ]
+    },
+    {
+      "periodo": 220,
+      "http": 200,
+      "cuerpo": {
+        "id_cierre": 72,
+        "id_periodo_contable": 220,
+        "periodo": "2026-11",
+        "estado": "CERRADO",
+        "activos_procesados": 5,
+        "activos_excluidos": [],
+        "lineas_excluidas": [],
+        "comprobantes": [
+          {
+            "codigo": "NIC-[NIT]-202611-DEPRECIACION_ACTIVO_COSTO-423",
+            "hash": "3358c149bfa71a47f182d26e84b42998805182c10608b02ba1a260c6cccee48b",
+            "valor_total": "100000.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-MANO_OBRA_PROPIA-422",
+            "hash": "6b2060dc5ac6085ff6b0349b18c63b0d5fc9e61704f6daf8c328d0945ce9a377",
+            "valor_total": "103.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-RECONOCIMIENTO_DIFERENCIA-422",
+            "hash": "88352745e628f1948bbf51eb3d9e45b5c10d5c7936c9e874391a81741e32fde0",
+            "valor_total": "480000.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-VARIACION_VR_PM-422",
+            "hash": "cc209add36257dc8bf017573172a262c7f4db5b2eebcb599a6562481358c21a3",
+            "valor_total": "1410000.00"
+          },
+          {
+            "codigo": "NIC-[NIT]-202611-VARIACION_VR_PM-423",
+            "hash": "e21fdee677c8c1118288a39bab1cb0f8a158dbd014212718bec4a01cb7453603",
+            "valor_total": "663250.00"
+          }
+        ],
+        "hash_cierre": "893edb27265e9e2425e9485a6c32af01e8f943791ec0aadb938b1456ab7304eb",
+        "reportes": {
+          "estado_resultados": {
+            "id_estado": 66,
+            "resultado_neto": "1986840.0000"
+          },
+          "informe_revelaciones": {
+            "id_informe": 76,
+            "version": "2026-M11-V1"
+          }
+        },
+        "id_periodo_siguiente": 391,
+        "activos_al_costo_con_precio": [
+          "QA-M06O-COSTO-02"
+        ]
+      },
+      "avisos": [
+        {
+          "id": 13402,
+          "texto": "Al cerrar el período 2026-11, estos activos valorados por costo ya tienen precio de mercado para su especie: QA-M06O-COSTO-02. La NIC 41 ¶30 exige pasarlos a valor razonable."
+        },
+        {
+          "id": 13396,
+          "texto": "Período 2026-11 cerrado: listo para transferir desde Agrofusión."
+        }
+      ]
+    },
+    {
+      "periodo": 391,
+      "http": 200,
+      "cuerpo": {
+        "id_cierre": 73,
+        "id_periodo_contable": 391,
+        "periodo": "2026-12",
+        "estado": "CERRADO",
+        "activos_procesados": 5,
+        "activos_excluidos": [],
+        "lineas_excluidas": [],
+        "comprobantes": [],
+        "hash_cierre": "a3e9ef08e4dae617302b892dd6feb029e86e060a9883084b294e6780271cea4c",
+        "reportes": {
+          "estado_resultados": {
+            "id_estado": 67,
+            "resultado_neto": "0"
+          },
+          "informe_revelaciones": {
+            "id_informe": 77,
+            "version": "2026-M12-V1"
+          }
+        },
+        "id_periodo_siguiente": 392,
+        "activos_al_costo_con_precio": [
+          "QA-M06O-COSTO-02"
+        ]
+      },
+      "avisos": [
+        {
+          "id": 13414,
+          "texto": "Al cerrar el período 2026-12, estos activos valorados por costo ya tienen precio de mercado para su especie: QA-M06O-COSTO-02. La NIC 41 ¶30 exige pasarlos a valor razonable."
+        },
+        {
+          "id": 13408,
+          "texto": "Período 2026-12 cerrado: listo para transferir desde Agrofusión."
+        }
+      ]
+    }
+  ],
+  "escrituras": [
+    "G42-048",
+    "G42-051",
+    "G42-052",
+    "G42-053",
+    "G42-054",
+    "G42-055",
+    "G42-056",
+    "G42-057",
+    "G42-058",
+    "G42-059",
+    "G42-060",
+    "G42-061",
+    "G42-068",
+    "G42-083",
+    "G42-084",
+    "G42-085",
+    "G42-086",
+    "G42-089",
+    "G42-090",
+    "G42-096",
+    "G42-120",
+    "G42-121",
+    "G42-123",
+    "G42-124",
+    "G42-132"
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Lecturas poscierre coinciden con línea base"
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "newman": {
+    "codigo": 0,
+    "fallos": 0,
+    "solicitudes": 8,
+    "reportes": true
+  },
+  "sandboxCerrado": true,
+  "total_solicitudes_api": 178,
+  "duracion_segundos": 41,
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "version": "6.2.2",
+      "codigo": 0,
+      "fallos": 0,
+      "solicitudes": 8,
+      "reportes": true
+    }
+  }
+}

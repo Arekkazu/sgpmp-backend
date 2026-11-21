@@ -1,0 +1,63 @@
+{
+  "caso": "TC-M09-G82",
+  "subcaso": "TC-M09-157",
+  "revision": "tercera",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "generado": "2026-09-19T02:12:00Z",
+  "matriz_dba": {
+    "usuario": 20,
+    "finca_objetivo": 999,
+    "esperado": "rechazo de acceso y evento de seguridad"
+  },
+  "inspeccion_admin": {
+    "login": "admin@pecuaria.co",
+    "id_usuario": 1,
+    "rol": "Administrador",
+    "jwt": "[REDACTED]",
+    "get_usuarios_20_detalle": {
+      "endpoint": "GET /usuarios/20/detalle",
+      "http": 404,
+      "error_code": "USUARIO_NO_ENCONTRADO",
+      "message": "Consulta fallida: El usuario solicitado no existe o ha sido retirado del sistema."
+    },
+    "get_fincas_999": {
+      "endpoint": "GET /configuracion/fincas/999",
+      "http": 404,
+      "error_code": "FINCA_NO_ENCONTRADA",
+      "message": "No existe una finca con ID 999."
+    },
+    "get_fincas_19_diagnostico": {
+      "endpoint": "GET /configuracion/fincas/19",
+      "http": 200,
+      "nota": "Finca existente usada en la coleccion historica, NO es el id 999 de la matriz. id_usuario=null (no asignada a nadie).",
+      "id_finca": 19,
+      "nombre": "Finca Ajena RBAC nunraqtorm",
+      "id_usuario": null
+    },
+    "listado_usuarios": {
+      "total": 75,
+      "id_20_presente": false,
+      "ids_cercanos": [19, 22],
+      "ingeniero_historico": {
+        "id_usuario": 4,
+        "correo": "ingeniero@pecuaria.co",
+        "rol": "Ingeniero de Campo"
+      }
+    }
+  },
+  "tc_m09_157": {
+    "resultado": "BLOQUEADO",
+    "motivo": "En TEST no existe el usuario 20 ni la finca 999. No se puede ejecutar el escenario de finca existente no asignada con los IDs de la matriz. 404 FINCA_NO_ENCONTRADA no equivale a finca existente no autorizada (eso seria 403 FINCA_NO_AUTORIZADA).",
+    "usuario_utilizado": null,
+    "rol": null,
+    "finca_solicitada": 999,
+    "finca_existe": false,
+    "finca_asignada_al_usuario": "no comprobable (usuario y finca inexistentes)",
+    "endpoint": "GET /configuracion/fincas/{id_finca}",
+    "http_esperado_caso": "403 (rechazo de acceso; contrato de producto FINCA_NO_AUTORIZADA si la finca existe fuera de alcance)",
+    "http_recibido_como_admin_sobre_999": 404,
+    "evento_seguridad": "NO COMPROBABLE — no hubo intento rechazado del usuario 20",
+    "autorizacion_server_side": "NO EVALUADA en este retest (precondicion de datos faltante)"
+  }
+}

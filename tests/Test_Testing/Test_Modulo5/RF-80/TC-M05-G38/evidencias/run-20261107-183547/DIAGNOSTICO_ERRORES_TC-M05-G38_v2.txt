@@ -1,0 +1,182 @@
+================================================================================
+INFORME DE DIAGNOSTICO DE ERRORES (v2): TC-M05-G38
+RF-80: Auditoria y Trazabilidad de Registros de Suministros (v1.4, CU06)
+================================================================================
+Fecha/Hora Diagnóstico: 2026-11-07 20:59:00 (America/Bogota)
+Casos Evaluados: TC-M05-044.1, TC-M05-044.2, TC-M05-044.3 (Plano) / TC-M05-032 (Agrupado)
+
+--------------------------------------------------------------------------------
+SUB-CASO 1: G38-B01 (TC-M05-044.1 / 032) - Filtro Invertido fecha_desde > fecha_hasta
+--------------------------------------------------------------------------------
+1. QUE SE OBSERVO EXACTAMENTE (HECHO OBSERVADO)
+- Petición HTTP:
+  GET /suministros/auditoria?fecha_desde=2026-11-10T00:00:00Z&fecha_hasta=2026-11-01T00:00:00Z
+- Respuesta HTTP obtenida:
+  HTTP 200 OK con payload: {"total": 0, "pagina": 1, "registros_por_pagina": 50, "items": []}
+- Exigencia normativa (CU06 / TC-M05-044.1):
+  El backend debe validar la coherencia temporal de los filtros y responder con HTTP 400 Bad Request descriptivo (indicando que `fecha_desde` no puede ser posterior a `fecha_hasta`).
+
+2. RUTA DE CODIGO COMPLETA (INFERENCIA CONTRASTADA)
+- Router HTTP:
+  [INFERENCIA] src/supplies/infrastructure/routers/auditoria_suministros_router.py:55-87 (`listar_auditoria`).
+  Recibe `fecha_desde` y `fecha_hasta` como query params opcionales sin validación de orden relativo.
+- DTO / Value Object:
+  [INFERENCIA] src/supplies/domain/repositories/auditoria_suministro_read_port.py: `FiltrosAuditoriaSuministro`.
+- Caso de Uso:
+  [INFERENCIA] src/supplies/application/use_cases/auditoria/consultar_auditoria_suministros_use_case.py:21-24.
+- Repositorio Read:
+  [INFERENCIA] src/supplies/infrastructure/repositories/auditoria_suministro_read_repository.py:63-66.
+  Construye la cláusula SQLAlchemy: `query.filter(AuditoriaSuministroModel.fecha_evento >= filtros.fecha_desde).filter(AuditoriaSuministroModel.fecha_evento <= filtros.fecha_hasta)`.
+- Base de Datos SQL:
+  La condición `WHERE fecha_evento >= '2026-11-10' AND fecha_evento <= '2026-11-01'` es vacía (contradictoria), retornando 0 filas sin error.
+
+3. HIPOTESIS Y CONTRASTACION
+- Hipótesis 1: El router valida el rango pero devuelve 200 por manejo genérico.
+  [DESCARTADA]: En `auditoria_suministros_router.py` no existe ninguna línea que compare `fecha_desde > fecha_hasta`.
+- Hipótesis 2: El motor SQL absorbe el rango invertido evaluando a falso y retornando lista vacía.
+  [CONFIRMADA]: Comprobado por la consulta generada en el repositorio; la cláusula AND devuelve conjunto vacío de forma silenciosa.
+
+4. CAUSA MAS PROBABLE, CLASIFICACION Y CAUSA RAIZ
+- Causa Más Probable: Omisión de validación semántica cruzada entre parámetros de consulta temporal.
+- Clasificación: Defecto de Producto.
+- Causa Raíz: Ausencia de validador unificado de rangos de fechas en query params de endpoints de lectura.
+
+5. POSIBLE SOLUCION (LENGUAJE DE DESARROLLO)
+- En `auditoria_suministros_router.py` (o en un validador de dependencias FastAPI):
+  if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+      raise ValidationError(
+          code="RANGO_FECHAS_INVALIDO",
+          message="La fecha inicial (fecha_desde) no puede ser posterior a la fecha final (fecha_hasta)."
+      )
+
+6. CRITERIO DE RE-PRUEBA
+- Enviar GET `/suministros/auditoria?fecha_desde=2026-12-01&fecha_hasta=2026-11-01`.
+- Comprobar que responda HTTP 400 Bad Request con código `RANGO_FECHAS_INVALIDO`.
+
+--------------------------------------------------------------------------------
+SUB-CASO 2: G38-B02 (TC-M05-044.2 / 032) - Auto-auditoría de Consultas a la Bitácora
+--------------------------------------------------------------------------------
+1. QUE SE OBSERVO EXACTAMENTE (HECHO OBSERVADO)
+- Conteo inicial de eventos: `SELECT count(*) FROM modulo5.auditorias_suministros;` -> N.
+- Ejecución de GET `/suministros/auditoria?pagina=1&registros_por_pagina=1`.
+- Conteo posterior en la bitácora: N (+0 eventos registrados).
+- Exigencia normativa (CU06 FA-02 / TC-M05-044.2):
+  Cada consulta ejecutada sobre la bitácora de auditoría debe registrarse a sí misma como un evento de auditoría de acceso/lectura.
+
+2. RUTA DE CODIGO COMPLETA (INFERENCIA CONTRASTADA)
+- Router HTTP:
+  [INFERENCIA] src/supplies/infrastructure/routers/auditoria_suministros_router.py:52-87.
+- Caso de Uso:
+  [INFERENCIA] src/supplies/application/use_cases/auditoria/consultar_auditoria_suministros_use_case.py:
+  Docstring oficial del caso de uso (líneas 3-6):
+  """Solo lectura. No se auto-audita: RF-80 no define un tipo de evento de negocio para 'se consultó la bitácora' (a diferencia de RF-81...)."""
+- Especialización arquitectónica de RF-10 vs RF-80:
+  [HECHO/INFERENCIA]: RF-10 gobierna la auditoría y exportación de la bitácora general del sistema (incluyendo auto-auditoría de consultas globales y encolamiento asíncrono), mientras que RF-80 está normativamente especializada en la trazabilidad de operaciones de negocio de suministros (costeo directo, anulación, provisiones). El caso de uso actual no recibe `AuditoriaSuministroPort`.
+
+3. HIPOTESIS Y CONTRASTACION
+- Hipótesis 1: El caso de uso intenta auto-auditar pero la transacción falla.
+  [DESCARTADA]: El caso de uso `ConsultarAuditoriaSuministrosUseCase` es exclusivamente de lectura; no inyecta `AuditoriaSuministroPort` ni ejecuta operaciones de escritura en BD.
+- Hipótesis 2: El docstring del caso de uso declara formalmente que RF-80 no contempla auto-auditoría.
+  [CONFIRMADA]: El código fuente explicita en su docstring la exclusión de auto-auditoría de lectura para no generar bucles infinitos de eventos de lectura sobre la misma bitácora.
+
+4. CAUSA MAS PROBABLE, CLASIFICACION Y CAUSA RAIZ
+- Causa Más Probable: Discrepancia entre la especificación funcional CU06 FA-02 (que pide auto-auditoría de lecturas) y el alcance de diseño de RF-80 vs RF-10.
+- Clasificación: Especificación Ambigua / Conflicto de Diseño Arquitectónico.
+- Causa Raíz: Ausencia de delimitación formal entre la auditoría de accesos de lectura (ámbito transversal de RF-10 / M01) y la auditoría de transacciones de suministro (ámbito de negocio de RF-80 / M05).
+
+5. POSIBLE SOLUCION (LENGUAJE DE DESARROLLO)
+- Opción A (Alineación con CU06 FA-02): Incorporar el evento `CONSULTA_BITACORA_EJECUTADA` en `modulo5.enum_auditoria_suministro_tipo_operacion`, inyectar `AuditoriaSuministroPort` y despacharlo en segundo plano (`BackgroundTasks`) evitando que afecte la latencia.
+- Opción B (Alineación con Arquitectura): Ajustar la especificación CU06 eliminando el flujo alterno FA-02 de auto-auditoría de lectura en M05 y delegándolo a los logs de acceso de infraestructura / RF-10.
+
+6. CRITERIO DE RE-PRUEBA
+- Tras invocar GET `/suministros/auditoria`, verificar que el conteo de la bitácora se incremente en 1 con tipo `CONSULTA_BITACORA_EJECUTADA` (si se adopta Opción A).
+
+--------------------------------------------------------------------------------
+SUB-CASO 3: G38-C02 (TC-M05-044.3 / 032) - Auditoría de Intentos Denegados HTTP 403
+--------------------------------------------------------------------------------
+1. QUE SE OBSERVO EXACTAMENTE (HECHO OBSERVADO)
+- Petición HTTP autenticada con rol Veterinario (sin permiso de auditoría):
+  GET /suministros/auditoria
+- Respuesta HTTP obtenida:
+  HTTP 403 Forbidden con cuerpo: {"error_code": "ACCESO_DENEGADO", "message": "No tiene permisos suficientes..."}
+- Consulta en BD:
+  SELECT count(*) FROM modulo5.auditorias_suministros WHERE resultado = 'RECHAZADO';
+  Resultado observado: count = 0.
+- Diferenciación técnica con G39-B02:
+  * G38-C02 ocurre en un endpoint GET válido y existente, interceptado a nivel de dependencia de autorización RBAC (`src/shared/rbac.py`).
+  * G39-B02 ocurre al enviar métodos no soportados (PUT/PATCH/DELETE), interceptado a nivel del motor de enrutamiento Starlette (`HTTP 405 Method Not Allowed`) antes de ejecutar RBAC o dependencias.
+  * Son defectos conceptual y técnicamente distintos en diferentes capas del ciclo de vida de la petición.
+
+2. RUTA DE CODIGO COMPLETA (INFERENCIA CONTRASTADA)
+- Router HTTP:
+  [INFERENCIA] src/supplies/infrastructure/routers/auditoria_suministros_router.py:45.
+  Decorador: `dependencies=[Depends(require_permission(_RECURSO, 1))]`.
+- Capa RBAC:
+  [INFERENCIA] src/shared/rbac.py:
+  * Línea 104: `require_permission` evalúa permisos del usuario actual.
+  * Líneas 155-162: `_exigir_permiso` detecta falta de permiso y lanza `AuthorizationError(code="ACCESO_DENEGADO")`.
+- Manejador de Errores:
+  [INFERENCIA] src/shared/error_handlers.py: `app_error_handler:76-100`.
+  Captura `AuthorizationError` y genera la respuesta HTTP 403 en formato JSON sin disparar persistencia en base de datos.
+
+3. HIPOTESIS Y CONTRASTACION
+- Hipótesis 1: El 403 es registrado por un servicio de seguridad en `modulo1.eventos`.
+  [DESCARTADA]: Consulta `SELECT count(*) FROM modulo1.eventos` retorna 0. `rbac.py` no interactúa con ningún puerto de persistencia de eventos.
+- Hipótesis 2: La compuerta RBAC es una función puramente inspectiva sin efectos secundarios de persistencia.
+  [CONFIRMADA]: `rbac.py` solo evalúa y lanza excepciones; carece de inyección de repositorios para registrar incidentes de acceso denegado.
+
+4. CAUSA MAS PROBABLE, CLASIFICACION Y CAUSA RAIZ
+- Causa Más Probable: Desconexión entre el subsistema de autorización RBAC y la bitácora de seguridad.
+- Clasificación: Defecto de Producto.
+- Causa Raíz: Inexistencia de un interceptor de excepciones de seguridad que capture accesos denegados y los registre en la bitácora.
+
+5. POSIBLE SOLUCION (LENGUAJE DE DESARROLLO)
+- En `src/shared/rbac.py` o dentro de `app_error_handler` para `AuthorizationError`:
+  Inyectar un despachador asíncrono que registre en la bitácora:
+  * `resultado="RECHAZADO"`
+  * `tipo_operacion="ACCESO_DENEGADO"`
+  * `id_usuario=usuario.id_usuario`
+  * `ip_origen=request.client.host`
+  * `detalle_causa=f"Acceso denegado a recurso {_RECURSO}"`
+
+6. CRITERIO DE RE-PRUEBA
+- Enviar GET `/suministros/auditoria` con un token sin permisos (ej. Veterinario).
+- Comprobar que responda HTTP 403 y se registre 1 fila con `resultado='RECHAZADO'` en la bitácora.
+
+================================================================================
+BORRADORES DE INCIDENTES FORMALES (G38)
+================================================================================
+INC-ID: INC-M05-G38-01
+Título: Endpoint de auditoría responde HTTP 200 ante rango invertido fecha_desde > fecha_hasta
+Módulo: Módulo 5 (Suministros y Alimentación)
+Categoría: VAL_ENTRADA
+Severidad: Severo
+Casos Afectados: TC-M05-044.1 (Plano) / TC-M05-032 (Agrupado)
+Descripción:
+Al consultar GET /suministros/auditoria con fecha_desde posterior a fecha_hasta, el sistema responde HTTP 200 con lista vacía en lugar de HTTP 400 con mensaje de validación temporal.
+Resultado Esperado: HTTP 400 Bad Request (RANGO_FECHAS_INVALIDO).
+Resultado Obtenido: HTTP 200 OK con 0 items.
+
+INC-ID: INC-M05-G38-02
+Título: Consultas de lectura a la bitácora de auditoría no se auto-auditan
+Módulo: Módulo 5 (Suministros y Alimentación)
+Categoría: FLUJO
+Severidad: Medio
+Casos Afectados: TC-M05-044.2 (Plano) / TC-M05-032 (Agrupado)
+Descripción:
+Las peticiones GET a la bitácora de auditoría de suministros no generan eventos de auto-auditoría en la bitácora, contraviniendo el flujo CU06 FA-02 por exclusión expresa en el use case.
+Resultado Esperado: Incremento de 1 evento de consulta en la bitácora.
+Resultado Obtenido: 0 eventos registrados.
+
+INC-ID: INC-M05-G38-03
+Título: Intentos de acceso no autorizado (HTTP 403) no generan registro de seguridad en bitácora
+Módulo: Módulo 5 (Suministros y Alimentación)
+Categoría: AUTORIZACION
+Severidad: Severo
+Casos Afectados: TC-M05-044.3 (Plano) / TC-M05-032 (Agrupado)
+Descripción:
+Al invocar GET /suministros/auditoria con un usuario sin permiso (HTTP 403 Forbidden), la compuerta RBAC rechaza la petición pero no persiste ningún evento con resultado 'RECHAZADO' en la bitácora de auditoría.
+Resultado Esperado: 1 evento en auditoría con resultado 'RECHAZADO' y tipo 'ACCESO_DENEGADO'.
+Resultado Obtenido: 0 eventos en modulo5.auditorias_suministros y 0 en modulo1.eventos.
+================================================================================
+

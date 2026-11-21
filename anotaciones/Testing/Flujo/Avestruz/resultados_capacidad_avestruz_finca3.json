@@ -1,0 +1,244 @@
+{
+ "ejecutado": "2026-11-02T23:57:41",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "creados": {
+  "infra": 26,
+  "activos": [
+   43,
+   44,
+   45,
+   46,
+   47,
+   48
+  ],
+  "infra_m1": 27,
+  "infra_m2": 28
+ },
+ "pasos": [
+  {
+   "id": "C1",
+   "descripcion": "Crear area de 155 m2 con Avestruz Qa (densidad 0.02)",
+   "esperado": "201, capacidad_maxima=3 (floor(3.1))",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3 id=26"
+  },
+  {
+   "id": "C2",
+   "descripcion": "Registrar animal 1 de 3 (capacidad 3)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=43"
+  },
+  {
+   "id": "C3",
+   "descripcion": "Registrar animal 2 de 3 (capacidad 3)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=44"
+  },
+  {
+   "id": "C4",
+   "descripcion": "Registrar animal 3 de 3 (capacidad 3) - LIMITE EXACTO",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=45"
+  },
+  {
+   "id": "C5",
+   "descripcion": "Registrar animal 4 (un animal sobre el limite)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-AVESTRUZ-CAP-235720' superaría su capacidad efectiva (3 individuos = MIN"
+  },
+  {
+   "id": "C6",
+   "descripcion": "Identificador duplicado",
+   "esperado": "409/422 por identificador repetido (no por otro motivo)",
+   "status": 409,
+   "error_code": "IDENTIFICADOR_DUPLICADO",
+   "resultado": "PASA",
+   "detalle": "El identificador 'QA-AVE-CAP-235720-1' ya está registrado en el sistema."
+  },
+  {
+   "id": "C7",
+   "descripcion": "Leer area: capacidad_maxima sigue 3",
+   "esperado": "capacidad_maxima=3",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3"
+  },
+  {
+   "id": "C8",
+   "descripcion": "Reducir superficie a 150 m2 (capacidad 3) con 3 animales",
+   "esperado": "200 (limite)",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3"
+  },
+  {
+   "id": "C9",
+   "descripcion": "Reducir superficie a 149.99 m2 (capacidad 2) con 3 animales",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-AVESTRUZ-CAP-235720' superaría su capacidad efectiva (2 individuos = MIN"
+  },
+  {
+   "id": "C10",
+   "descripcion": "La superficie no cambio tras el rechazo",
+   "esperado": "superficie=150.00",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "superficie=150.00"
+  },
+  {
+   "id": "C11",
+   "descripcion": "Area con Avestruz Qa + Ternero (ESPECIES_GRANDES + ESPECIES_MEDIANAS)",
+   "esperado": "422 GRUPOS_MANEJO_INCOMPATIBLES",
+   "status": 422,
+   "error_code": "GRUPOS_MANEJO_INCOMPATIBLES",
+   "resultado": "PASA",
+   "detalle": "Grupos de manejo incompatibles: el área 'QA-FLUJO-AVESTRUZ-MIX-235720' aloja especies del grupo 'ESPECIES_GRANDES' y 'Te"
+  },
+  {
+   "id": "M1",
+   "descripcion": "Area de 150 m2 con Avestruz Qa (0.02) + Bovino (0.1): capacidad por la menor densidad",
+   "esperado": "201, capacidad_maxima=3 (el bovino solo seria 15)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3"
+  },
+  {
+   "id": "M2",
+   "descripcion": "Mismas especies en orden inverso (Bovino, Avestruz)",
+   "esperado": "capacidad_maxima=3",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3"
+  },
+  {
+   "id": "M3",
+   "descripcion": "Animal 1 de 3 en el area multiespecie",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": ""
+  },
+  {
+   "id": "M4",
+   "descripcion": "Animal 2 de 3 en el area multiespecie",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": ""
+  },
+  {
+   "id": "M5",
+   "descripcion": "Animal 3 de 3 en el area multiespecie - LIMITE",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": ""
+  },
+  {
+   "id": "M6",
+   "descripcion": "Animal 4 (uno sobre el limite multiespecie)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-AVESTRUZ-MULTI1-235720' superaría su capacidad efect"
+  },
+  {
+   "id": "L-activo-43",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-activo-44",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-activo-45",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-activo-46",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-activo-47",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-activo-48",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-infra-26",
+   "descripcion": "Limpieza: desactivar area",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-infra_m1-27",
+   "descripcion": "Limpieza: desactivar area",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-infra_m2-28",
+   "descripcion": "Limpieza: desactivar area",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  }
+ ]
+}

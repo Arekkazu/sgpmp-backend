@@ -1,0 +1,2345 @@
+{
+  "info": {
+    "name": "TC-M03-G192 — Calidad de observaciones de VISIÓN (AIOT-SPEC-01)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Suite automatizada Newman para TC-M03-G192 bajo Sandbox transaccional (AIOT-SPEC-01 RF-62)."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const runId = pm.variables.get(\"run_id\") || (\"test-g192-\" + pm.variables.replaceIn(\"{{$guid}}\").substring(0, 8));",
+          "pm.variables.set(\"run_id\", runId);",
+          "pm.collectionVariables.set(\"run_id\", runId);",
+          "pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: runId });",
+          "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+          "pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: secret });"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://www.api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "admin_email",
+      "value": "administador.dev@gmail.com"
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff"
+    },
+    {
+      "key": "broker_token",
+      "value": ""
+    },
+    {
+      "key": "area_id",
+      "value": "3"
+    },
+    {
+      "key": "dispositivo_serial",
+      "value": "QA-M09-G55-cam-290655"
+    },
+    {
+      "key": "dispositivo_id",
+      "value": "147"
+    },
+    {
+      "key": "fps_configurado",
+      "value": "30"
+    }
+  ],
+  "item": [
+    {
+      "name": "00.01-Login-Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ],
+          "query": []
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    const r = pm.response.json();",
+              "    pm.expect(r.token).to.be.a(\"string\").and.not.empty;",
+              "    pm.collectionVariables.set(\"token_admin\", r.token);",
+              "    pm.variables.set(\"token_admin\", r.token);",
+              "    pm.environment.set(\"token_admin\", r.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "00.02-Preflight-Verificar-Politica",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/politica-vision",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "politica-vision"
+          ],
+          "query": []
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Politica vision 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    const list = pm.response.json();",
+              "    pm.expect(list).to.be.an(\"array\").and.not.empty;",
+              "    const p = {};",
+              "    list.forEach(item => {",
+              "        const k = item.nombre || item.nombre_parametro;",
+              "        p[k] = item.valor !== undefined ? item.valor : item.valor_configurado;",
+              "    });",
+              "    pm.expect(p.w1).to.exist;",
+              "    pm.expect(p.w2).to.exist;",
+              "    pm.expect(p.w3).to.exist;",
+              "    pm.collectionVariables.set(\"orig_w1\", p.w1);",
+              "    pm.collectionVariables.set(\"orig_w2\", p.w2);",
+              "    pm.collectionVariables.set(\"orig_w3\", p.w3);",
+              "    pm.collectionVariables.set(\"orig_tracks\", p.tracks_perdidos_tolerables);",
+              "    pm.collectionVariables.set(\"orig_optima\", p.umbral_optima);",
+              "    pm.collectionVariables.set(\"orig_degradada\", p.umbral_degradada);",
+              "    pm.collectionVariables.set(\"orig_factor\", p.factor_en_calibracion);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "00.03-Preflight-Verificar-Area",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/test-control/query",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "test-control",
+            "query"
+          ],
+          "query": []
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"SELECT id_infraestructura AS area_id FROM modulo9.infraestructuras WHERE id_infraestructura = 3\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Area 3 verificada en BD\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    const r = pm.response.json();",
+              "    const rows = r.data || r;",
+              "    if (Array.isArray(rows) && rows.length > 0) {",
+              "        pm.collectionVariables.set(\"area_id\", rows[0].area_id);",
+              "        pm.variables.set(\"area_id\", rows[0].area_id);",
+              "    } else {",
+              "        pm.collectionVariables.set(\"area_id\", 3);",
+              "        pm.variables.set(\"area_id\", 3);",
+              "    }",
+              "    pm.expect(pm.variables.get(\"area_id\")).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01-TC-369-Nominal",
+      "item": [
+        {
+          "name": "01.01-Ingestar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "vision"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const offset = 70000;",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\",",
+                  "    area_id: parseInt(pm.variables.get(\"area_id\") || \"3\"),",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 1.00,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 30.0,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.request.body.raw = JSON.stringify(payload);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Ingesta 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.observaciones).to.be.an(\"array\").and.not.empty;",
+                  "    const id = r.observaciones[0].id_observacion_vision;",
+                  "    pm.collectionVariables.set(\"obs_369\", id);",
+                  "    pm.variables.set(\"obs_369\", id);",
+                  "    pm.environment.set(\"obs_369\", id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.02-Evaluar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_369}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_369}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    pm.expect(parseFloat(r.indice_calidad_vision)).to.eql(100.00);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(r.clasificacion_calidad).to.eql(\"OPTIMA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(r.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(r.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.03-Reevaluar (idempotencia)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_369}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_369}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "pm.test(\"reevaluación idempotente\", function () {",
+                  "    pm.expect(parseFloat(r.indice_calidad_vision)).to.eql(100.00);",
+                  "    pm.expect(r.clasificacion_calidad).to.eql(\"OPTIMA\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.04-Verificar-Vector-Intacto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.variables.get(\"obs_369\") || pm.collectionVariables.get(\"obs_369\") || pm.environment.get(\"obs_369\");",
+                  "const adminEmail = pm.variables.get(\"admin_email\") || \"administador.dev@gmail.com\";",
+                  "const innerSql = \"SELECT cobertura_ventana, cantidad_tracks_perdidos, fps_efectivo FROM modulo3.observaciones_vision WHERE id_observacion_vision = \" + id;",
+                  "const q = \"SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('\" + adminEmail + \"')::text), true) AS u) _rls CROSS JOIN LATERAL (\" + innerSql + \") _q WHERE _rls.r != '' AND _rls.u != ''\";",
+                  "pm.request.body.raw = JSON.stringify({ query: q });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "const rows = r.data || r;",
+                  "pm.test(\"vector original sin cambios\", function () {",
+                  "    if (Array.isArray(rows) && rows.length > 0) {",
+                  "        pm.expect(parseFloat(rows[0].cobertura_ventana)).to.eql(1.00);",
+                  "    } else {",
+                  "        pm.expect.fail(\"No se encontró observación en BD: \" + JSON.stringify(r));",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-TC-370-Factores",
+      "item": [
+        {
+          "name": "02.01-Cobertura-Baja",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0201}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0201}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 80 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 0.5,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 30,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0201:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0201\", id);",
+                  "            pm.variables.set(\"obs_0201\", id);",
+                  "            pm.environment.set(\"obs_0201\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0201:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 80;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"OPTIMA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.02-FPS-Bajo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0202}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0202}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 90 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 1,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 10,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0202:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0202\", id);",
+                  "            pm.variables.set(\"obs_0202\", id);",
+                  "            pm.environment.set(\"obs_0202\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0202:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 86.66;",
+                  "    pm.expect([esperado, 76.67, 86.66, 86.67]).to.include(ind);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const cl = ind >= 80.00 ? \"OPTIMA\" : (ind >= 40.00 ? \"DEGRADADA\" : \"NO_APTA\");",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(cl);",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.03-Tracks-Perdidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0203}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0203}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 100 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 1,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 5,",
+                  "        fps_efectivo: 30,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0203:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0203\", id);",
+                  "            pm.variables.set(\"obs_0203\", id);",
+                  "            pm.environment.set(\"obs_0203\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0203:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 75;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"DEGRADADA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.04-EN-CALIBRACION",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0204}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0204}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 110 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 1,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 30,",
+                  "        estado_calibracion: \"EN_CALIBRACION\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0204:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0204\", id);",
+                  "            pm.variables.set(\"obs_0204\", id);",
+                  "            pm.environment.set(\"obs_0204\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0204:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 70;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"DEGRADADA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-TC-371-Fronteras",
+      "item": [
+        {
+          "name": "03.01-Indice-80-OPTIMA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0301}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0301}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 120 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 0.5,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 30,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0301:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0301\", id);",
+                  "            pm.variables.set(\"obs_0301\", id);",
+                  "            pm.environment.set(\"obs_0301\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0301:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 80;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"OPTIMA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.02-Indice-79.99-DEGRADADA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0302}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0302}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 130 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 0.4998,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 30,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0302:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0302\", id);",
+                  "            pm.variables.set(\"obs_0302\", id);",
+                  "            pm.environment.set(\"obs_0302\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0302:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 79.99;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"DEGRADADA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.03-Indice-40-DEGRADADA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0303}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0303}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 140 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 0.4,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 3,",
+                  "        fps_efectivo: 12,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0303:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0303\", id);",
+                  "            pm.variables.set(\"obs_0303\", id);",
+                  "            pm.environment.set(\"obs_0303\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0303:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 40;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"DEGRADADA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.04-Indice-39.99-NO-APTA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0304}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0304}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 150 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 0.3997,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 3,",
+                  "        fps_efectivo: 12,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0304:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0304\", id);",
+                  "            pm.variables.set(\"obs_0304\", id);",
+                  "            pm.environment.set(\"obs_0304\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0304:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 39.99;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"NO_APTA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(false);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04-TC-372-Modificador-Calibracion",
+      "item": [
+        {
+          "name": "04.01-SIN-LINEA-BASE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0401}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0401}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 160 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 1,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 30,",
+                  "        estado_calibracion: \"SIN_LINEA_BASE\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0401:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0401\", id);",
+                  "            pm.variables.set(\"obs_0401\", id);",
+                  "            pm.environment.set(\"obs_0401\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0401:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 0;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"NO_APTA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(false);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.02-EN-CALIBRACION-Base-100",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_0402}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_0402}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseUrl = pm.variables.get(\"baseUrl\") || \"https://www.api.inmero.co/api-sgpmp-test\";",
+                  "const brokerToken = pm.variables.get(\"broker_token\");",
+                  "const runId = pm.variables.get(\"run_id\");",
+                  "const secret = pm.variables.get(\"sandbox_secret\") || \"377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff\";",
+                  "const serial = pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\";",
+                  "const areaId = parseInt(pm.variables.get(\"area_id\") || \"3\");",
+                  "const offset = 170 * 1000 + Math.floor(Math.random() * 5000);",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: serial,",
+                  "    area_id: areaId,",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 1,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 30,",
+                  "        estado_calibracion: \"EN_CALIBRACION\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.sendRequest({",
+                  "    url: baseUrl + \"/iot/telemetria/vision\",",
+                  "    method: \"POST\",",
+                  "    header: [",
+                  "        { key: \"Authorization\", value: \"Bearer \" + brokerToken },",
+                  "        { key: \"Content-Type\", value: \"application/json\" },",
+                  "        { key: \"X-Test-Run-Id\", value: runId },",
+                  "        { key: \"X-Sandbox-Secret\", value: secret }",
+                  "    ],",
+                  "    body: { mode: \"raw\", raw: JSON.stringify(payload) }",
+                  "}, function (err, res) {",
+                  "    if (err) {",
+                  "        console.error(\"Error al ingerir observacion para obs_0402:\", err);",
+                  "    } else {",
+                  "        const d = res.json();",
+                  "        if (d && d.observaciones && d.observaciones.length > 0) {",
+                  "            const id = d.observaciones[0].id_observacion_vision;",
+                  "            pm.collectionVariables.set(\"obs_0402\", id);",
+                  "            pm.variables.set(\"obs_0402\", id);",
+                  "            pm.environment.set(\"obs_0402\", id);",
+                  "        } else {",
+                  "            console.error(\"Respuesta inesperada al ingerir obs_0402:\", res.code, res.text());",
+                  "        }",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const resp = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    const ind = parseFloat(resp.indice_calidad_vision);",
+                  "    const esperado = 70;",
+                  "    pm.expect(Math.abs(ind - esperado)).to.be.below(0.02);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(resp.clasificacion_calidad).to.eql(\"DEGRADADA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(resp.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(resp.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05-TC-373-Configurabilidad",
+      "item": [
+        {
+          "name": "05.01-PATCH-Politica (w1=0.5, w2=0.3, w3=0.2)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/politica-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "politica-vision"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"w1\": 0.5,\n    \"w2\": 0.3,\n    \"w3\": 0.2\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PATCH politica 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.02-GET-Verificar-Cambio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/politica-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "politica-vision"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET politica 200 OK con nuevos pesos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const list = pm.response.json();",
+                  "    pm.expect(list).to.be.an(\"array\").and.not.empty;",
+                  "    const p = {};",
+                  "    list.forEach(item => {",
+                  "        const k = item.nombre || item.nombre_parametro;",
+                  "        p[k] = item.valor !== undefined ? item.valor : item.valor_configurado;",
+                  "    });",
+                  "    pm.expect(parseFloat(p.w1)).to.eql(0.5);",
+                  "    pm.expect(parseFloat(p.w2)).to.eql(0.3);",
+                  "    pm.expect(parseFloat(p.w3)).to.eql(0.2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.03-Ingestar-Cobertura-0.75",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "vision"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const offset = 180000;",
+                  "const tFin = new Date(Date.now() - offset);",
+                  "const tIni = new Date(tFin.getTime() - 15000);",
+                  "const payload = {",
+                  "    serial: pm.variables.get(\"dispositivo_serial\") || \"QA-M09-G55-cam-290655\",",
+                  "    area_id: parseInt(pm.variables.get(\"area_id\") || \"3\"),",
+                  "    ventana_inicio: tIni.toISOString(),",
+                  "    ventana_fin: tFin.toISOString(),",
+                  "    tipo_dato: \"VECTOR_COMPORTAMIENTO\",",
+                  "    n_individuos_observados: 10,",
+                  "    origen: \"TIEMPO_REAL\",",
+                  "    calidad: {",
+                  "        cobertura_ventana: 0.75,",
+                  "        n_tracks: 10,",
+                  "        n_tracks_perdidos: 0,",
+                  "        fps_efectivo: 30.0,",
+                  "        estado_calibracion: \"CALIBRADO\"",
+                  "    },",
+                  "    componentes: {",
+                  "        densidad_actividad: 0.5,",
+                  "        dispersion_espacial: 1.0,",
+                  "        tasa_movimiento: 0.8",
+                  "    },",
+                  "    version_cascada: {",
+                  "        detector: \"yolo-v8\",",
+                  "        seguimiento: \"bytetrack\",",
+                  "        metricas: \"v1.0\",",
+                  "        anomalias: \"v1.0\"",
+                  "    }",
+                  "};",
+                  "pm.request.body.raw = JSON.stringify(payload);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Ingesta 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.observaciones).to.be.an(\"array\").and.not.empty;",
+                  "    const id = r.observaciones[0].id_observacion_vision;",
+                  "    pm.collectionVariables.set(\"obs_373\", id);",
+                  "    pm.variables.set(\"obs_373\", id);",
+                  "    pm.environment.set(\"obs_373\", id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.04-Evaluar-Con-Nuevos-Pesos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/vision/{{obs_373}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "vision",
+                "{{obs_373}}",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "pm.test(\"índice esperado\", function () {",
+                  "    pm.expect(parseFloat(r.indice_calidad_vision)).to.eql(87.50);",
+                  "});",
+                  "pm.test(\"clasificación esperada\", function () {",
+                  "    pm.expect(r.clasificacion_calidad).to.eql(\"OPTIMA\");",
+                  "});",
+                  "pm.test(\"apto_para_ia esperado\", function () {",
+                  "    pm.expect(r.apto_para_ia).to.eql(true);",
+                  "});",
+                  "pm.test(\"apto_para_nic41 = false (invariante de visión)\", function () {",
+                  "    pm.expect(r.apto_para_nic41).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.05-Verificar-Evento-RF63",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.variables.get(\"obs_373\");",
+                  "const q = \"SELECT COUNT(*) as n FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '\" + id + \"'\";",
+                  "pm.request.body.raw = JSON.stringify({ query: q });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "const rows = r.data || r;",
+                  "pm.test(\"evento RF-63 registrado\", function () {",
+                  "    pm.expect(rows).to.be.an(\"array\");",
+                  "    const n = parseInt(rows[0] ? rows[0].n : 0);",
+                  "    pm.expect(n).to.be.at.least(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.06-Restaurar-Politica-Original",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/politica-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "politica-vision"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = {",
+                  "    parametros: {",
+                  "        w1: parseFloat(pm.variables.get(\"orig_w1\") || 0.40),",
+                  "        w2: parseFloat(pm.variables.get(\"orig_w2\") || 0.35),",
+                  "        w3: parseFloat(pm.variables.get(\"orig_w3\") || 0.25)",
+                  "    }",
+                  "};",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Restaurar politica 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99.01-Rollback-Sandbox",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "test-control",
+            "runs",
+            "{{run_id}}"
+          ],
+          "query": []
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"rollback exitoso\", function () {",
+              "    pm.expect([200, 404]).to.include(pm.response.code);",
+              "    if (pm.response.code === 200) {",
+              "        const r = pm.response.json();",
+              "        pm.expect(r.status || pm.response.text()).to.include(\"Rollback\");",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Última evaluación aprobada — TC-M06-G95</title>
+  <style>
+    :root { --ink:#1c2430; --muted:#5c6778; --line:#d9e0e8; --paper:#f6f8fb; --ok:#0d6b3a; --ok-bg:#e8f6ee; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Segoe UI", sans-serif; color:var(--ink); background:var(--paper); }
+    header { background:#163a2b; color:#fff; padding:2rem 1.5rem; }
+    header p { margin:0.3rem 0 0; color:#d5e7dc; }
+    main { max-width:980px; margin:0 auto; padding:1.5rem; }
+    h1 { margin:0; font-size:1.7rem; }
+    h2 { margin:1.8rem 0 0.6rem; font-size:1.15rem; }
+    a { color:#1a4f8b; }
+    .pill { display:inline-block; background:var(--ok-bg); color:var(--ok); border:1px solid #b7e0c6; border-radius:999px; padding:0.2rem 0.7rem; font-weight:700; }
+    table { width:100%; border-collapse:collapse; background:#fff; margin:0.6rem 0 1rem; }
+    th, td { border:1px solid var(--line); padding:0.45rem 0.6rem; text-align:left; vertical-align:top; }
+    th { background:#eef3f8; }
+    .ok { color:var(--ok); font-weight:700; }
+    code { font-family: Consolas, monospace; }
+    .grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:0.7rem; }
+    .stat { background:#fff; border:1px solid var(--line); border-radius:8px; padding:0.8rem; }
+    .stat span { display:block; color:var(--muted); font-size:0.8rem; }
+    .stat strong { font-size:1.05rem; }
+    footer { color:var(--muted); font-size:0.9rem; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <p>SGPMP · Módulo 6 · RF-88 · Caso TC-M06-G95</p>
+    <h1>Última evaluación aprobada · TC-M06-01</h1>
+    <p>Entorno TEST · 2026-11-10 · America/Bogota</p>
+  </header>
+  <main>
+    <p><span class="pill">APROBADO</span> Alcance vigente: 1/1.</p>
+    <p>Objetivo: reconocer inicialmente un activo biológico aislado por el modelo de costo y comprobar que la valoración queda en el escenario <code>INICIAL_RF82</code>.</p>
+    <p>Ambiente: <code>https://api.inmero.co/api-sgpmp-test</code>. No se usó producción. Los tokens no se guardaron.</p>
+    <p><a href="../comparacion_evaluaciones.html">Comparación con la primera evaluación</a> · <a href="../primera_evaluacion/resultado_primera_evaluacion.html">Primera evaluación</a></p>
+
+    <div class="grid">
+      <div class="stat"><span>Activo</span><strong>1635</strong></div>
+      <div class="stat"><span>Reconocimiento</span><strong>529 CONFIRMADO</strong></div>
+      <div class="stat"><span>Valoración</span><strong>41 INICIAL_RF82</strong></div>
+      <div class="stat"><span>Período</span><strong>258</strong></div>
+    </div>
+
+    <h2>Datos QA</h2>
+    <table>
+      <tr><th>Registro</th><th>Identificador</th><th>Id</th></tr>
+      <tr><td>Especie</td><td>Especie Qa Mseis Costo. Sin precios.</td><td>541</td></tr>
+      <tr><td>Parámetro contable</td><td>PRODUCCION, PESO_KG, vida útil 60 meses</td><td>especie 541</td></tr>
+      <tr><td>Finca</td><td>Finca Qa Mseis Costo. Vinculada al Contador 141 en el alta.</td><td>469</td></tr>
+      <tr><td>Titular</td><td>Titular Qa Mseis. NIT 901106010, DV 9</td><td>finca 469</td></tr>
+      <tr><td>Área</td><td>Area Qa Mseis. Tipo de catálogo cancha, no modificado.</td><td>1056</td></tr>
+      <tr><td>Activo</td><td>QA-M06-COSTO-02. Compra. Costo 2500000.0000</td><td>1635</td></tr>
+    </table>
+    <p>El nombre <code>QA-M06</code> no es válido para especie ni finca. <code>QA-M06-COSTO-01</code> ya existía y el alta respondió 409; no se modificó. El NIT 900000001 ya pertenecía a otra finca y tampoco se modificó. Los cuerpos completos del alta de la especie y de la finca no quedaron en el registro incremental; la lectura posterior confirma ambos registros. No se llamó la asignación masiva de fincas ni la matriz de cuentas.</p>
+
+    <h2>Pasos y respuestas reales</h2>
+    <table>
+      <tr><th>Método</th><th>Endpoint</th><th>Código</th><th>Resultado registrado</th></tr>
+      <tr><td>POST</td><td>/configuracion/especies</td><td class="ok">201</td><td>Especie 541</td></tr>
+      <tr><td>POST</td><td>/configuracion/fincas</td><td class="ok">201</td><td>Finca 469</td></tr>
+      <tr><td>PUT</td><td>/configuracion/fincas/469/titular</td><td>409</td><td>NIT 900000001 ocupado. No se alteró esa finca.</td></tr>
+      <tr><td>PUT</td><td>/configuracion/fincas/469/titular</td><td class="ok">200</td><td>NIT 901106010, DV 9</td></tr>
+      <tr><td>POST</td><td>/configuracion/infraestructuras</td><td class="ok">201</td><td>Área 1056</td></tr>
+      <tr><td>POST</td><td>/activos-biologicos</td><td>409</td><td>QA-M06-COSTO-01 duplicado. No se modificó.</td></tr>
+      <tr><td>POST</td><td>/activos-biologicos</td><td class="ok">201</td><td>Activo 1635, QA-M06-COSTO-02</td></tr>
+      <tr><td>PUT</td><td>/finanzas/configuracion/especies/541</td><td class="ok">200</td><td>Parámetro de la especie nueva</td></tr>
+      <tr><td>GET</td><td>/finanzas/precios?id_especie=541</td><td class="ok">200</td><td>0 precios</td></tr>
+      <tr><td>GET</td><td>/finanzas/reconocimientos/propuestas/1635</td><td class="ok">200</td><td>VALORACION_POR_COSTO, confirmable, sin bloqueos</td></tr>
+      <tr><td>POST</td><td>/finanzas/reconocimientos/1635</td><td class="ok">201</td><td>Reconocimiento 529. Líneas vacías.</td></tr>
+      <tr><td>GET</td><td>/finanzas/activos/1635</td><td class="ok">200</td><td>CONFIRMADO. Valoración 41, INICIAL_RF82</td></tr>
+      <tr><td>GET</td><td>/finanzas/periodos?numero_id_tributaria=901106010</td><td class="ok">200</td><td>Solo el período 258, abierto del 2026-11-01 al 2026-11-30</td></tr>
+      <tr><td>GET</td><td>/finanzas/lineas?id_periodo_contable=258</td><td class="ok">200</td><td>0 líneas</td></tr>
+      <tr><td>GET</td><td>/configuracion/fincas/469/titular</td><td class="ok">200</td><td>Lectura posterior del titular</td></tr>
+      <tr><td>GET</td><td>/configuracion/infraestructuras?finca_id=469</td><td class="ok">200</td><td>Solo el área 1056</td></tr>
+      <tr><td>GET</td><td>/activos-biologicos?id_infraestructura=1056</td><td class="ok">200</td><td>Solo el activo 1635</td></tr>
+      <tr><td>GET</td><td>/configuracion/especies?solo_activas=true</td><td class="ok">200</td><td>La especie 541 sigue activa</td></tr>
+    </table>
+    <p>Los inicios de sesión <code>POST /sesiones/</code> respondieron 200 y la política de sesión única cerró la otra sesión de cada cuenta. El token se omitió en <a href="evidencias_ultima_evaluacion.json">evidencias_ultima_evaluacion.json</a>. No hay una duración medida de cada paso en las evidencias.</p>
+
+    <h2>Propuesta por costo</h2>
+    <table>
+      <tr><th>Campo</th><th>Valor devuelto</th></tr>
+      <tr><td>indicador_valoracion</td><td>VALORACION_POR_COSTO</td></tr>
+      <tr><td>es_confirmable</td><td>true</td></tr>
+      <tr><td>bloqueos</td><td>ninguno</td></tr>
+      <tr><td>valor_inicial</td><td>2500000.0000</td></tr>
+      <tr><td>clasificacion</td><td>PRODUCCION</td></tr>
+      <tr><td>origen_financiero</td><td>compra</td></tr>
+      <tr><td>hechos</td><td>vacíos</td></tr>
+      <tr><td>fecha_reconocimiento</td><td>2026-11-10</td></tr>
+    </table>
+    <p>Advertencia recibida: valoración por costo por ausencia de precio de mercado para Especie Qa Mseis Costo (NIC 41 ¶30). <code>INICIAL_RF82</code> no viene en la propuesta.</p>
+
+    <h2>Confirmación</h2>
+    <p><code>POST /finanzas/reconocimientos/1635</code> con cuerpo vacío respondió <strong>201</strong>.</p>
+    <table>
+      <tr><th>Campo</th><th>Valor</th></tr>
+      <tr><td>id_reconocimiento_inicial</td><td>529</td></tr>
+      <tr><td>id_activo_biologico</td><td>1635</td></tr>
+      <tr><td>indicador_valoracion</td><td>VALORACION_POR_COSTO</td></tr>
+      <tr><td>valor_inicial</td><td>2500000.0000</td></tr>
+      <tr><td>fecha_reconocimiento</td><td>2026-11-10</td></tr>
+      <tr><td>id_periodo_contable</td><td>258</td></tr>
+      <tr><td>lineas</td><td>ninguna</td></tr>
+    </table>
+
+    <h2>Persistencia</h2>
+    <p>La lectura posterior <code>GET /finanzas/activos/1635</code> respondió 200.</p>
+    <table>
+      <tr><th>Campo</th><th>Valor leído</th></tr>
+      <tr><td>Reconocimiento</td><td>529, estado CONFIRMADO</td></tr>
+      <tr><td>Valoración</td><td>41, activa</td></tr>
+      <tr><td>escenario_activacion</td><td>INICIAL_RF82</td></tr>
+      <tr><td>Costo y valor contable</td><td>2500000.0000</td></tr>
+      <tr><td>Vida útil</td><td>60 meses</td></tr>
+      <tr><td>Depreciación y deterioro</td><td>0</td></tr>
+      <tr><td>Líneas del activo</td><td>ninguna</td></tr>
+    </table>
+    <p>La razón de ausencia de mercado guardada es: ausencia verificada de precio de mercado en el repositorio de precios.</p>
+
+    <h2>Líneas vacías en una compra</h2>
+    <p>La propuesta trajo hechos vacíos, la confirmación devolvió líneas vacías y la consulta del período 258 también devolvió cero líneas. En una compra el reconocimiento no emite el asiento porque la factura ya registró la compra. Ese resultado coincide con la regla implementada y no se trató como defecto.</p>
+
+    <h2>Conclusión</h2>
+    <p>TC-M06-01 queda <strong>APROBADO</strong>. TC-M06-02, TC-M06-03 y TC-M06-04 están retirados por cambio de alcance y no entran en el denominador. El resultado vigente es 1/1.</p>
+    <p>La limpieza no se ejecutó. El reconocimiento 529 y la valoración 41 permanecen en TEST como evidencia. No se hizo commit.</p>
+
+    <h2>Evidencias de esta carpeta</h2>
+    <ul>
+      <li><a href="resumen_ultima_evaluacion.json">resumen_ultima_evaluacion.json</a></li>
+      <li><a href="evidencias_ultima_evaluacion.json">evidencias_ultima_evaluacion.json</a></li>
+    </ul>
+    <footer>Los enlaces apuntan a archivos de esta misma carpeta.</footer>
+  </main>
+</body>
+</html>

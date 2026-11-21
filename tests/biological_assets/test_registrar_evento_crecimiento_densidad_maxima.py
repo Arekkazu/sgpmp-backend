@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """INC-M02-48-G25 / issue #394 (RF-36): densidad máxima por especie.
 
 La primera corrección usó ``infraestructuras.capacidad_maxima`` como si fuera
@@ -89,6 +92,9 @@ class EventoRepoFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def __init__(self, superficie: Decimal, capacidad_maxima: Optional[int]) -> None:
         self.superficie = superficie
         self.capacidad_maxima = capacidad_maxima

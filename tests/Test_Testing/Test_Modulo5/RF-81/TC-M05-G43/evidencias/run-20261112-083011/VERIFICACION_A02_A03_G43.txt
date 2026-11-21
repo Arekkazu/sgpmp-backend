@@ -1,0 +1,62 @@
+================================================================================
+VERIFICACION DE PREMISAS DE A02 Y A03 (SOLO LECTURA) - TC-M05-G43
+Fecha: 12/11/2026 | Autor: Juan Sebastian Gutierrez
+Salida: tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-083011/VERIFICACION_A02_A03_G43.txt
+================================================================================
+
+1. RUN CON TEST_FIELD_ENGINEER (run_id: tc-m05-g43-verif-eng-75a17119)
+- POST /sesiones/: HTTP 200 | X-Request-Id: db071ea9-fbc0-4cc1-99ae-ad5897461e8f
+- GET /usuarios/me: HTTP 200 | X-Request-Id: aebb1b24-bfad-44cf-b9d8-0d19d5f1afa3
+  * id_usuario: 30
+  * nombre_rol: "Gestor de Granja"
+  * lista de id_finca: [81, 464]
+- DELETE /test-control/runs/tc-m05-g43-verif-eng-75a17119:
+  * HTTP 200 | X-Request-Id: eecbddbc-b8f1-46eb-9e70-0c9b618e4a8c
+  * Body: {"status":"Rollback exitoso"}
+
+2. RUN CON TEST_PRODUCER (run_id: tc-m05-g43-verif-prod-b51b505e)
+- POST /sesiones/: HTTP 200 | X-Request-Id: 73217d0e-0f93-4f10-bf66-9b4330293c95
+- GET /usuarios/me: HTTP 200 | X-Request-Id: a41cbaeb-601a-44e4-9fc1-b7dace4f8677
+  * id_usuario: 2
+  * nombre_rol: "Productor"
+  * lista de id_finca: [3, 1, 8, 5, 6, 20, 140, 4, 2]
+- GET /activos-biologicos/957: HTTP 200 | X-Request-Id: bb6050ba-604d-41ee-a0b5-297d83375eab
+  * id_finca en respuesta: null
+  * id_infraestructura en respuesta: 389
+- DELETE /test-control/runs/tc-m05-g43-verif-prod-b51b505e:
+  * HTTP 200 | X-Request-Id: 7c0d0e85-440b-4a87-9a00-708d89b6aa14
+  * Body: {"status":"Rollback exitoso"}
+
+3. CONCLUSIONES (HECHO)
+- [HECHO] El rol de la cuenta TEST_FIELD_ENGINEER (id_usuario=30) ES exactamente
+  "Gestor de Granja".
+- [HECHO] Sus fincas asignadas segun GET /usuarios/me son [81, 464].
+- [HECHO] GET /activos-biologicos/957 (consultado como TEST_PRODUCER, HTTP 200)
+  retorna id_infraestructura=389 e id_finca=null (el endpoint no expone id_finca
+  directamente en el JSON).
+- [HECHO] La cuenta TEST_FIELD_ENGINEER recibe HTTP 404 (ACTIVO_NO_ENCONTRADO)
+  al consultar /suministros/historial?id_activo_biologico=957 (evidencia A02),
+  mientras TEST_PRODUCER (fincas [3, 1, 8, 5, 6, 20, 140, 4, 2]) recibe HTTP 200
+  tanto en GET /activos-biologicos/957 como en GET /suministros/historial?id_activo_biologico=957 (A04).
+- [INFERENCIA] La finca a la que pertenece la infraestructura 389 del activo 957
+  pertenece al conjunto del Productor ([3, 1, 8, 5, 6, 20, 140, 4, 2]) y NO a
+  las fincas del Gestor de Granja ([81, 464]).
+
+4. INSPECCION DE CODIGO (SIN EJECUTAR)
+(a) Obtencion del activo y lanzamiento de NotFoundError / AuthorizationError:
+- [HECHO] src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:112:
+  execute() llama a self._validar(filtros, id_usuario, id_rol) antes de cualquier consulta o auditoria.
+- [HECHO] consultar_historial_suministros_use_case.py:145-151:
+  ctivo = self.activo_port.obtener(filtros.id_activo_biologico) (L145); si ctivo is None, lanza NotFoundError(code="ACTIVO_NO_ENCONTRADO", ...) (L147-151).
+- [HECHO] consultar_historial_suministros_use_case.py:153-161:
+  Solo si ctivo is not None, llama ids_permitidos = self.alcance_port.listar_ids_activos_permitidos(id_usuario, id_rol) (L153) y, si iltros.id_activo_biologico not in ids_permitidos, lanza AuthorizationError(code="ACCESO_DENEGADO", ...) (L155-161).
+- [INFERENCIA] Cuando RLS oculta el activo ajeno en ctivo_port.obtener(957), devuelve None en L145 y se dispara NotFoundError (HTTP 404) en L147 antes de llegar a lcance_port en L153.
+
+(b) Llamada a _auditar_consulta respecto a las validaciones:
+- [HECHO] consultar_historial_suministros_use_case.py:128 -> _resultado(...) (L169) -> self._auditar_consulta(filtros, id_usuario, resultado) en L187 (definida en L190-214, donde siempre escribe esultado="EXITOSO" en L205).
+- [HECHO] _auditar_consulta queda DESPUES de _validar() (L112) y despues de self.historial_port.consultar(...) (L125). Por lo tanto, cualquier NotFoundError o AuthorizationError lanzado en _validar() (L146-161) aborta execute() antes de alcanzar _auditar_consulta.
+
+(c) Manejadores de excepciones / middlewares y auditorias_suministros:
+- [HECHO] src/shared/error_handlers.py:400 registra pp_error_handler para AppError (jerarquia que incluye NotFoundError y AuthorizationError).
+- [HECHO] src/shared/error_handlers.py:77-106: pp_error_handler unicamente registra en logger.error errores de infraestructura (InfrastructureError, ServiceUnavailableError, GatewayTimeoutError) y retorna _respuesta_error(...) (JSONResponse). NO recibe db ni AuditoriaSuministroPort y NO escribe en modulo5.auditorias_suministros.
+- [HECHO] La busqueda en src/ de AuditoriaSuministroPort y uditorias_suministros no mostro ningun middleware ni handler global de excepciones que registre eventos de rechazo/fallo de consulta de historial en modulo5.auditorias_suministros.

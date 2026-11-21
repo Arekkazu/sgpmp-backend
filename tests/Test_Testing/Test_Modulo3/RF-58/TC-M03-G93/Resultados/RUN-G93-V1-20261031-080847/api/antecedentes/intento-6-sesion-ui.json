@@ -1,0 +1,65 @@
+{
+    "intento":  6,
+    "caso":  "TC-M03-184",
+    "comprobacion":  "UI-184-01",
+    "criterio":  "INICIAL:CARGA_SIN_RESPUESTA_DIAGNOSTICO_PENDIENTE",
+    "peticiones":  [
+                       {
+                           "metodo":  "POST",
+                           "ruta":  "/sesiones/refresh",
+                           "http":  200,
+                           "eco_run":  true,
+                           "momento_inicio":  "2026-10-26T01:48:44.175Z",
+                           "momento_fin":  "2026-10-26T01:48:44.338Z"
+                       },
+                       {
+                           "metodo":  "GET",
+                           "ruta":  "/configuracion/interfaz/contexto",
+                           "http":  200,
+                           "eco_run":  true,
+                           "momento_inicio":  "2026-10-26T01:48:44.366Z",
+                           "momento_fin":  "2026-10-26T01:48:44.548Z"
+                       },
+                       {
+                           "metodo":  "GET",
+                           "ruta":  "/usuarios/me",
+                           "http":  500,
+                           "eco_run":  true,
+                           "momento_inicio":  "2026-10-26T01:48:44.370Z",
+                           "momento_fin":  "2026-10-26T01:48:44.519Z"
+                       },
+                       {
+                           "metodo":  "GET",
+                           "ruta":  "/sesiones/me/permisos",
+                           "http":  500,
+                           "eco_run":  true,
+                           "momento_inicio":  "2026-10-26T01:48:44.372Z",
+                           "momento_fin":  "2026-10-26T01:48:44.517Z"
+                       },
+                       {
+                           "metodo":  "GET",
+                           "ruta":  "/configuracion/personalizacion/idioma",
+                           "http":  200,
+                           "eco_run":  true,
+                           "momento_inicio":  "2026-10-26T01:48:44.949Z",
+                           "momento_fin":  "2026-10-26T01:48:45.092Z"
+                       },
+                       {
+                           "metodo":  "GET",
+                           "ruta":  "/configuracion/personalizacion/tema",
+                           "http":  200,
+                           "eco_run":  true,
+                           "momento_inicio":  "2026-10-26T01:48:44.980Z",
+                           "momento_fin":  "2026-10-26T01:48:45.124Z"
+                       },
+                       {
+                           "metodo":  "GET",
+                           "ruta":  "/notificaciones",
+                           "http":  200,
+                           "eco_run":  true,
+                           "momento_inicio":  "2026-10-26T01:48:45.064Z",
+                           "momento_fin":  "2026-10-26T01:48:45.213Z"
+                       }
+                   ],
+    "captura":  "intento-6-ui.png"
+}

@@ -1,0 +1,42 @@
+TC-M02-G12 rev7 RF-33/RF-16 TEST — diagnostico de contrato (POST 014 no ejecutado)
+Fecha UTC: 2026-10-04T18:42:53Z
+Rama: laura @ 023a5291
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario previsto: admin@pecuaria.co
+NO se sobrescribe rev1-rev6.
+
+ALCANCE
+- OpenAPI TEST desplegado (GET /openapi.json HTTP 200, sin token).
+- GET /configuracion/metricas sin token: HTTP 401 TOKEN_REQUERIDO (esperado).
+- Newman NO ejecutado: esta sesion no tiene SGPMP_TEST_PASSWORD ni CONTRASENA.
+- NO POST /activos-biologicos. NO DML. NO cambios de producto.
+
+CONTRATO OPENAPI TEST (antes rev6: schema sin min/max)
+MetricaProduccionResponse ahora incluye valor_min y valor_max.
+EditarMetricaDTO y RegistrarMetricaDTO tambien.
+GET /configuracion/metricas sigue documentado.
+
+CODIGO LOCAL (HEAD, sin modificar)
+GET metricas usa MetricaProduccionResponse con valor_min/valor_max.
+POST activo: _validar_atributos_dinamicos -> ATRIBUTO_FUERA_DE_RANGO HTTP 422 si NUMERICO/ENTERO fuera de min/max.
+Clave no configurada: ATRIBUTO_INVALIDO 400 (013).
+
+GET AUTENTICADO
+No realizado. No se puede afirmar que peso_destete activo tenga 20-40 en el JSON.
+Un GET 200 historico SIN min/max no basta; ahora el schema SI declara los campos, pero el body vivo no se leyo.
+
+TC-M02-013: APROBADO (antecedente rev5). No se reejecuta: no hay evidencia de cambio en ATRIBUTO_INVALIDO.
+
+TC-M02-014: BLOQUEADO en esta revision
+Motivos: (1) no hay secreto de login para GET autenticado; (2) por tanto no hay demostracion API de rango 20-40; (3) POST no enviado.
+No RECHAZADO. No APROBADO. El desbloqueo de Swagger no equivale a desbloqueo funcional de 014.
+
+TC-M02-G12 global: BLOQUEADO (014 pendiente de GET+POST en TEST con credenciales).
+
+Proximo paso QA:
+$env:SGPMP_TEST_PASSWORD o CONTRASENA
+powershell -File tests/Test_Testing/Test_Modulo2/RF-33/TC-M02-G12/ejecutar_tc_m02_g12_rev7.ps1
+Si GET muestra min/max 20-40, Newman enviara POST peso_destete=5 y exigira ATRIBUTO_FUERA_DE_RANGO (no 201).
+
+Si GET 200 pero valor_min/valor_max null: el bloqueo de contrato persiste (DBA/Dev: publicar rango en GET).
+Si GET 20-40 y POST 201: RECHAZADO de validacion de rango.

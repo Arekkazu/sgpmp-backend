@@ -1,0 +1,783 @@
+{
+  "info": {
+    "name": "TC-M02-G52 v3.0 - Control de acceso a datos clinicos sensibles (RF-46)",
+    "_postman_id": "tcm02g52v3-0000-0000-0000-000000000000",
+    "description": "Retest v3.0. Unico cambio funcional respecto a v2.0: SETUP-5 ahora elige una especie que YA tenga densidad_maxima_por_especie configurada en M09 (en vez de cualquier especie activa al azar). La corrida del 26-09 confirmo TC-097 correcto (RF-46 ya implementado, INC-M02-43-G52/#413), pero SETUP-6 (creacion directa de un activo POBLACIONAL nuevo) fallo con 422 DENSIDAD_MAXIMA_NO_CONFIGURADA porque la especie elegida al azar no tenia esa configuracion -- una regla de negocio distinta y ya conocida (INC-M02-37-G24/TC-M02-048), no un defecto de esta ficha. El workaround SETUP-6B absorbio el problema igual, pero el reporte de Newman quedaba con una falla ajena a RF-46. Este cambio evita esa falla eligiendo de entrada una especie compatible, para que el reporte de esta ficha quede limpio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_email", "value": "argeni.vargas1230@gmail.com" },
+    { "key": "admin_password", "value": "@Daniela1" },
+    { "key": "cuenta_email", "value": "daniiella.vargass@gmail.com" },
+    { "key": "cuenta_password", "value": "@Daniela1" },
+    { "key": "id_usuario_prueba", "value": "68" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_prueba", "value": "" },
+    { "key": "id_rol_original", "value": "" },
+    { "key": "id_rol_ingeniero_campo", "value": "" },
+    { "key": "id_finca", "value": "" },
+    { "key": "id_infraestructura", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "id_activo", "value": "" },
+    { "key": "tipo_area_nombre", "value": "" },
+    { "key": "sufijo_random_letras", "value": "" },
+    { "key": "activo_via_workaround", "value": "" },
+    { "key": "id_finca_workaround", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A - Login Admin",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('0A - RESPUESTA DEL LOGIN ADMIN (no fue 200): ' + pm.response.text());",
+              "}",
+              "pm.test('0A - Login admin devuelve 200 y token', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var token = body.token || body.access_token || (body.data && body.data.token);",
+              "    pm.expect(token, 'debe existir un token de acceso').to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token_admin', token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B - Consultar catalogo de roles y ubicar Ingeniero de Campo",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/roles/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('0B - Se puede leer el catalogo de roles', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var roles = pm.response.json();",
+              "    var lista = Array.isArray(roles) ? roles : (roles.items || []);",
+              "    pm.collectionVariables.set('roles_catalogo_json', JSON.stringify(lista));",
+              "    var ingeniero = lista.find(function (r) {",
+              "        return (r.nombre_rol || '').toLowerCase().indexOf('ingeniero de campo') !== -1;",
+              "    });",
+              "    pm.expect(ingeniero, 'debe existir el rol Ingeniero de Campo en el catalogo').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_rol_ingeniero_campo', String(ingeniero.id_rol));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "0C - Consultar detalle de la cuenta de prueba (rol original)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/usuarios/{{id_usuario_prueba}}/detalle"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('0C - RESPUESTA (no fue 200): ' + pm.response.text());",
+              "}",
+              "pm.test('0C - Se obtiene el detalle de la cuenta de prueba', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.nombre_rol, 'debe traer nombre_rol').to.not.be.undefined;",
+              "    var catalogo = JSON.parse(pm.collectionVariables.get('roles_catalogo_json') || '[]');",
+              "    var rolActual = catalogo.find(function (r) { return r.nombre_rol === body.nombre_rol; });",
+              "    pm.expect(rolActual, 'debe encontrarse el id_rol correspondiente a ' + body.nombre_rol + ' en el catalogo').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_rol_original', String(rolActual.id_rol));",
+              "    pm.collectionVariables.set('nombre_prueba', body.nombre);",
+              "    pm.collectionVariables.set('apellidos_prueba', body.apellidos);",
+              "    pm.collectionVariables.set('version_prueba', String(body.version));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1 - Reasignar temporalmente la cuenta de prueba a Ingeniero de Campo",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/usuarios/{{id_usuario_prueba}}",
+        "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"{{nombre_prueba}}\",\n  \"apellidos\": \"{{apellidos_prueba}}\",\n  \"version\": {{version_prueba}},\n  \"id_rol\": {{id_rol_ingeniero_campo}}\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('SETUP-1 - Reasignar temporalmente la cuenta de prueba a Ingeniero de Campo - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-1 - La cuenta de prueba queda como Ingeniero de Campo', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(String(body.id_rol)).to.eql(pm.collectionVariables.get('id_rol_ingeniero_campo'));",
+              "    pm.collectionVariables.set('version_prueba', String(body.version));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2 - Crear finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/fincas",
+        "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Finca Prueba Control Clinico Sensible {{sufijo_random_letras}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ficha\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 12.5\n}" }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var sufijo = '';",
+              "for (var i = 0; i < 8; i++) { sufijo += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_random_letras', sufijo);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-2 - Crear finca de prueba - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-2 - Finca de prueba creada', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.id_finca, 'debe devolver id_finca').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_finca', String(body.id_finca));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3 - Otorgar a la cuenta de prueba acceso a esa finca (RF-25)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/usuarios/{{id_usuario_prueba}}/fincas",
+        "body": { "mode": "raw", "raw": "{\n  \"ids_fincas\": [{{id_finca}}]\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('SETUP-3 - La finca queda asignada a la cuenta de prueba', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4 - Crear infraestructura de prueba en esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras",
+        "body": { "mode": "raw", "raw": "{\n  \"nombre_infraestructura\": \"Area TC-M02-G52 v3.0\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 300,\n  \"finca_id\": {{id_finca}}\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-4 - Crear infraestructura de prueba en esa finca - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-4 - Infraestructura de prueba creada', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.id_infraestructura, 'debe devolver id_infraestructura').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_infraestructura', String(body.id_infraestructura));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-5 v3.0 - Consultar catalogo de especies y elegir una con densidad maxima configurada",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('SETUP-5 v3.0 - Existe al menos una especie activa para usar en la prueba', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "var lista = Array.isArray(body) ? body : (body.items || []);",
+              "",
+              "// INC-M02-37-G24/TC-M02-048: crear un activo POBLACIONAL exige que la",
+              "// especie tenga densidad_maxima_por_especie configurada en M09",
+              "// (registrar_activo_use_case.py / calcular_y_validar_densidad). Elegir",
+              "// 'cualquier especie activa' al azar (como hacia v2.0) puede tocar una sin",
+              "// esa configuracion y disparar un 422 DENSIDAD_MAXIMA_NO_CONFIGURADA ajeno",
+              "// a RF-46 (el objeto de esta ficha). Se filtra por esa condicion, y entre",
+              "// las candidatas se prefiere la de mayor densidad_maxima_por_especie, para",
+              "// minimizar el riesgo de superar el limite con cantidad_inicial=50 sobre",
+              "// una infraestructura de 300 m2 (densidad objetivo ~0.167).",
+              "var idoneas = lista.filter(function (e) {",
+              "    return e.es_activo !== false &&",
+              "           e.densidad_maxima_por_especie !== null &&",
+              "           e.densidad_maxima_por_especie !== undefined;",
+              "});",
+              "idoneas.sort(function (a, b) { return Number(b.densidad_maxima_por_especie) - Number(a.densidad_maxima_por_especie); });",
+              "",
+              "var activa = idoneas[0];",
+              "if (!activa) {",
+              "    console.log('SETUP-5 v3.0 - ADVERTENCIA: ninguna especie activa tiene densidad_maxima_por_especie configurada; se usara la primera especie activa como en v2.0 y SETUP-6 probablemente caera en el workaround SETUP-6B (comportamiento correcto de INC-M02-37-G24, ajeno a RF-46).');",
+              "    activa = lista.find(function (e) { return e.es_activo !== false; }) || lista[0];",
+              "} else {",
+              "    console.log('SETUP-5 v3.0 - especie elegida: ' + activa.nombre + ' (id=' + activa.id_especie + ', densidad_maxima_por_especie=' + activa.densidad_maxima_por_especie + ')');",
+              "}",
+              "",
+              "pm.test('SETUP-5 v3.0 - se encuentra al menos una especie activa (con densidad maxima configurada, si existe alguna)', function () {",
+              "    pm.expect(activa, 'debe existir al menos una especie en el catalogo').to.not.be.undefined;",
+              "});",
+              "pm.collectionVariables.set('id_especie', String(activa.id_especie));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-6 - Registrar activo POBLACIONAL de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 500000,\n  \"soporte_documental\": \"Factura de compra No. TC-M02-G52-V3\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"cantidad_inicial\": 50,\n  \"peso_promedio_inicial\": 1.2\n}" }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-6 - Registrar activo POBLACIONAL de prueba - RESPUESTA: ' + pm.response.text());",
+              "    pm.collectionVariables.set('id_activo', '');",
+              "} else {",
+              "    var body = pm.response.json();",
+              "    pm.collectionVariables.set('id_activo', String(body.id_activo_biologico));",
+              "    pm.collectionVariables.set('activo_via_workaround', 'false');",
+              "}",
+              "pm.test('SETUP-6 - Registro directo de activo POBLACIONAL (informativo: si falla por un motivo distinto a RF-46, se usa el workaround SETUP-6B)', function () {",
+              "    pm.expect(true).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-6B - Workaround: buscar activo POBLACIONAL existente con datos clinicos (defecto 500 en creacion, ver TC-M02-G49)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos?tipo=POBLACIONAL&page_size=100&pagina=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('SETUP-6B - Buscar activo POBLACIONAL existente (catalogo) - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "",
+              "var idActivoActual = pm.collectionVariables.get('id_activo');",
+              "",
+              "if (idActivoActual) {",
+              "    console.log('SETUP-6B - OMITIDO: SETUP-6 ya registro un activo nuevo (id_activo=' + idActivoActual + '); no se necesita el workaround.');",
+              "    pm.collectionVariables.set('activo_via_workaround', 'false');",
+              "    pm.test('SETUP-6B - Paso informativo (omitido, SETUP-6 ya proveyo un activo nuevo)', function () {",
+              "        pm.expect(true).to.be.true;",
+              "    });",
+              "} else if (pm.response.code !== 200) {",
+              "    pm.collectionVariables.set('activo_via_workaround', 'false');",
+              "    pm.test('SETUP-6B - El catalogo de activos biologicos POBLACIONAL es consultable (workaround)', function () {",
+              "        pm.response.to.have.status(200);",
+              "    });",
+              "    postman.setNextRequest('CLEANUP-1 - Revocar el acceso a la finca de prueba');",
+              "} else {",
+              "    var body = pm.response.json();",
+              "    var candidatos = (body.registros || []).filter(function (a) { return a.tipo === 'POBLACIONAL'; });",
+              "    console.log('SETUP-6B - candidatos POBLACIONAL en TEST: ' + JSON.stringify(candidatos.map(function (a) { return a.id_activo_biologico; })));",
+              "",
+              "    var baseUrl = pm.collectionVariables.get('base_url');",
+              "    var tokenAdmin = pm.collectionVariables.get('token_admin');",
+              "    var idUsuarioPrueba = Number(pm.collectionVariables.get('id_usuario_prueba'));",
+              "    var idFincaOriginal = pm.collectionVariables.get('id_finca');",
+              "",
+              "    function candidatoTieneDatosClinicos(idActivoBiologico, callback) {",
+              "        pm.sendRequest({",
+              "            url: baseUrl + '/activos-biologicos/' + idActivoBiologico + '/eventos',",
+              "            method: 'GET',",
+              "            header: { Authorization: 'Bearer ' + tokenAdmin }",
+              "        }, function (err, res) {",
+              "            if (err) {",
+              "                console.log('SETUP-6B - error de red consultando eventos del activo ' + idActivoBiologico + ': ' + err.message);",
+              "                callback(false);",
+              "                return;",
+              "            }",
+              "            if (res.code !== 200) {",
+              "                console.log('SETUP-6B - activo ' + idActivoBiologico + ' - GET eventos respondio ' + res.code + ': ' + res.text());",
+              "                callback(false);",
+              "                return;",
+              "            }",
+              "            var eBody = res.json();",
+              "            var eventos = eBody.eventos || eBody.items || [];",
+              "            var conDatos = eventos.filter(function (e) {",
+              "                var s = e.sanitario;",
+              "                return s && ((s.diagnostico && s.diagnostico.length > 0) ||",
+              "                             (s.medicamento && s.medicamento.length > 0) ||",
+              "                             (s.dosis !== null && s.dosis !== undefined));",
+              "            });",
+              "            callback(conDatos.length > 0);",
+              "        });",
+              "    }",
+              "",
+              "    function resolverFincaDeCandidato(candidato, callback) {",
+              "        pm.sendRequest({",
+              "            url: baseUrl + '/configuracion/infraestructuras/' + candidato.id_infraestructura,",
+              "            method: 'GET',",
+              "            header: { Authorization: 'Bearer ' + tokenAdmin }",
+              "        }, function (err, resInfra) {",
+              "            if (err || resInfra.code !== 200) {",
+              "                console.log('SETUP-6B - no se pudo resolver la infraestructura ' + candidato.id_infraestructura + ' del activo ' + candidato.id_activo_biologico + (err ? (': ' + err.message) : (' - respuesta ' + resInfra.code)));",
+              "                callback(null);",
+              "                return;",
+              "            }",
+              "            callback(resInfra.json().id_finca);",
+              "        });",
+              "    }",
+              "",
+              "    function fincaEsOtorgable(idFinca, callback) {",
+              "        pm.sendRequest({",
+              "            url: baseUrl + '/configuracion/fincas/' + idFinca,",
+              "            method: 'GET',",
+              "            header: { Authorization: 'Bearer ' + tokenAdmin }",
+              "        }, function (err, resFinca) {",
+              "            if (err || resFinca.code !== 200) {",
+              "                console.log('SETUP-6B - no se pudo consultar el propietario de la finca ' + idFinca + (err ? (': ' + err.message) : (' - respuesta ' + resFinca.code)));",
+              "                callback(false);",
+              "                return;",
+              "            }",
+              "            var propietario = resFinca.json().id_usuario;",
+              "            var otorgable = (propietario === null || propietario === undefined || Number(propietario) === idUsuarioPrueba);",
+              "            if (!otorgable) {",
+              "                console.log('SETUP-6B - la finca ' + idFinca + ' ya pertenece a otro usuario (id_usuario=' + propietario + '); se descarta este candidato para no reasignarla.');",
+              "            }",
+              "            callback(otorgable);",
+              "        });",
+              "    }",
+              "",
+              "    function otorgarFinca(idFinca, callback) {",
+              "        var fincasAOtorgar = [Number(idFincaOriginal), Number(idFinca)].filter(function (n) { return !isNaN(n); });",
+              "        pm.sendRequest({",
+              "            url: baseUrl + '/usuarios/' + idUsuarioPrueba + '/fincas',",
+              "            method: 'PUT',",
+              "            header: { Authorization: 'Bearer ' + tokenAdmin, 'Content-Type': 'application/json' },",
+              "            body: { mode: 'raw', raw: JSON.stringify({ ids_fincas: fincasAOtorgar }) }",
+              "        }, function (err, resFincas) {",
+              "            if (err || resFincas.code !== 200) {",
+              "                console.log('SETUP-6B - no se pudo otorgar acceso a la finca ' + idFinca + (err ? (': ' + err.message) : (' - respuesta ' + resFincas.code + ': ' + resFincas.text())));",
+              "                callback(false);",
+              "                return;",
+              "            }",
+              "            callback(true);",
+              "        });",
+              "    }",
+              "",
+              "    function evaluarCandidato(indice, callback) {",
+              "        if (indice >= candidatos.length) {",
+              "            callback(null);",
+              "            return;",
+              "        }",
+              "        var candidato = candidatos[indice];",
+              "        candidatoTieneDatosClinicos(candidato.id_activo_biologico, function (calificaClinicamente) {",
+              "            if (!calificaClinicamente) {",
+              "                evaluarCandidato(indice + 1, callback);",
+              "                return;",
+              "            }",
+              "            console.log('SETUP-6B - activo ' + candidato.id_activo_biologico + ' tiene eventos sanitarios con datos clinicos; verificando si su finca es otorgable...');",
+              "            resolverFincaDeCandidato(candidato, function (idFinca) {",
+              "                if (!idFinca) {",
+              "                    evaluarCandidato(indice + 1, callback);",
+              "                    return;",
+              "                }",
+              "                fincaEsOtorgable(idFinca, function (otorgable) {",
+              "                    if (!otorgable) {",
+              "                        evaluarCandidato(indice + 1, callback);",
+              "                        return;",
+              "                    }",
+              "                    otorgarFinca(idFinca, function (otorgado) {",
+              "                        if (!otorgado) {",
+              "                            evaluarCandidato(indice + 1, callback);",
+              "                            return;",
+              "                        }",
+              "                        callback({ candidato: candidato, idFinca: idFinca });",
+              "                    });",
+              "                });",
+              "            });",
+              "        });",
+              "    }",
+              "",
+              "    evaluarCandidato(0, function (resultado) {",
+              "        if (!resultado) {",
+              "            pm.collectionVariables.set('activo_via_workaround', 'false');",
+              "            pm.test('SETUP-6B - Se encuentra un activo POBLACIONAL existente, con datos clinicos y con finca otorgable, para evaluar RF-46 (workaround)', function () {",
+              "                pm.expect.fail('No se encontro en TEST ningun activo POBLACIONAL con eventos sanitarios (diagnostico/medicamento/dosis) cuya finca se pudiera otorgar a la cuenta de prueba.');",
+              "            });",
+              "            postman.setNextRequest('CLEANUP-1 - Revocar el acceso a la finca de prueba');",
+              "            return;",
+              "        }",
+              "",
+              "        console.log('SETUP-6B - activo ' + resultado.candidato.id_activo_biologico + ' pertenece a la finca ' + resultado.idFinca + ', otorgada a la cuenta de prueba.');",
+              "",
+              "        pm.collectionVariables.set('id_activo', String(resultado.candidato.id_activo_biologico));",
+              "        pm.collectionVariables.set('id_finca_workaround', String(resultado.idFinca));",
+              "        pm.collectionVariables.set('activo_via_workaround', 'true');",
+              "",
+              "        pm.test('SETUP-6B - Se encuentra un activo POBLACIONAL existente con datos clinicos y se habilita el acceso de la cuenta de prueba (workaround)', function () {",
+              "            pm.expect(resultado.candidato.id_activo_biologico).to.be.a('number');",
+              "        });",
+              "",
+              "        postman.setNextRequest('DIAG-1 - Login con la cuenta de prueba (ya en rol Ingeniero de Campo)');",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-7 - Registrar evento DIAGNOSTICO sobre el activo",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"DIAGNOSTICO\",\n  \"diagnostico\": \"Diagnostico confidencial TC-M02-G52 v3.0 - parasitosis intestinal\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-7 - Registrar evento DIAGNOSTICO sobre el activo - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-7 - Evento DIAGNOSTICO registrado', function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-8 - Registrar evento VACUNACION (medicamento y dosis) sobre el activo",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"VACUNACION\",\n  \"medicamento\": \"Ivermectina 1% CONFIDENCIAL\",\n  \"dosis\": 2.5,\n  \"unidad_dosis\": \"ml\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-8 - Registrar evento VACUNACION (medicamento y dosis) sobre el activo - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-8 - Evento VACUNACION registrado con medicamento y dosis', function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DIAG-1 - Login con la cuenta de prueba (ya en rol Ingeniero de Campo)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{cuenta_email}}\",\n  \"contrasena\": \"{{cuenta_password}}\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('DIAG-1 - Login de la cuenta de prueba devuelve 200 y token', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var token = body.token || body.access_token || (body.data && body.data.token);",
+              "    pm.expect(token, 'debe existir un token de acceso').to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token_prueba', token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DIAG-2 - La cuenta de prueba consulta el detalle del activo (precondicion RF-25)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_prueba}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('DIAG-2 - La cuenta de prueba consulta el detalle del activo (precondicion RF-25) - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('DIAG-2 - El activo YA es visible para la cuenta de prueba (RF-25 satisfecho, no hay 404 misterioso)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-097 - La cuenta sin autorizacion clinica consulta el historial de eventos",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_prueba}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('TC-097 - La cuenta sin autorizacion clinica consulta el historial de eventos - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-097 - RF-46: el historial responde 200 sobre un activo POBLACIONAL', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('TC-097 - RF-46: un rol sin autorizacion clinica (Ingeniero de Campo) NO debe ver diagnostico/medicamento/dosis sin restriccion', function () {",
+              "    var body = pm.response.json();",
+              "    var eventos = body.eventos || body.items || [];",
+              "    var conSanitario = eventos.filter(function (e) { return e.sanitario; });",
+              "    pm.expect(conSanitario.length, 'debe existir al menos un evento sanitario en el historial para poder evaluar la restriccion').to.be.greaterThan(0);",
+              "",
+              "    var expuestos = conSanitario.filter(function (e) {",
+              "        var s = e.sanitario;",
+              "        return (s.diagnostico && s.diagnostico.length > 0) ||",
+              "               (s.medicamento && s.medicamento.length > 0) ||",
+              "               (s.dosis !== null && s.dosis !== undefined);",
+              "    });",
+              "",
+              "    pm.expect(",
+              "        expuestos.length,",
+              "        'RF-46 exige que el sistema no exponga registros de categorias no autorizadas para el rol del usuario: ' +",
+              "        'se encontraron ' + expuestos.length + ' evento(s) sanitario(s) con diagnostico/medicamento/dosis visibles ' +",
+              "        'para un rol (Ingeniero de Campo) sin autorizacion clinica declarada.'",
+              "    ).to.eql(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CONTROL - El Administrador SI ve el historial completo (referencia)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('CONTROL - El Administrador SI ve el historial completo (referencia) - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('CONTROL - El Administrador ve el historial de eventos con los datos clinicos completos', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var eventos = body.eventos || body.items || [];",
+              "    var conMedicamento = eventos.some(function (e) { return e.sanitario && e.sanitario.medicamento; });",
+              "    pm.expect(conMedicamento, 'el Administrador debe poder ver el medicamento registrado (control positivo)').to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP-1 - Revocar el acceso a la finca de prueba",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/usuarios/{{id_usuario_prueba}}/fincas",
+        "body": { "mode": "raw", "raw": "{\n  \"ids_fincas\": []\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('CLEANUP-1 - Acceso a la finca de prueba revocado', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP-2 - Restaurar el rol original de la cuenta de prueba",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/usuarios/{{id_usuario_prueba}}",
+        "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"{{nombre_prueba}}\",\n  \"apellidos\": \"{{apellidos_prueba}}\",\n  \"version\": {{version_prueba}},\n  \"id_rol\": {{id_rol_original}}\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('CLEANUP-2 - Restaurar el rol original de la cuenta de prueba - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('CLEANUP-2 - El rol original de la cuenta de prueba fue restaurado', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(String(body.id_rol)).to.eql(pm.collectionVariables.get('id_rol_original'));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP-3 - Verificacion de salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('CLEANUP-3 - Servicio saludable al cerrar la prueba', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

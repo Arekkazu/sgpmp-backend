@@ -1,0 +1,115 @@
+{
+  "run_origen": "RUN-G98-V2-20261031-172140",
+  "estado": "BLOQUEADO",
+  "motivo": "Sin área con activo, tres sensores activos de variables distintas y lecturas reales vinculadas; no se puede formar la precondición",
+  "areas_exploradas": [
+    1,
+    2,
+    3,
+    268,
+    389,
+    390
+  ],
+  "descartes": [
+    {
+      "motivo": "faltan tres severidades ACTIVA en sensores distintos",
+      "areas": [
+        1,
+        2,
+        3,
+        268,
+        389,
+        390
+      ]
+    },
+    {
+      "motivo": "activos no verificables",
+      "areas": [
+        3
+      ]
+    },
+    {
+      "motivo": "sin activo biológico vinculado",
+      "areas": [
+        390
+      ]
+    },
+    {
+      "motivo": "sin terna apta de sensores, variables y lecturas vinculadas",
+      "areas": [
+        1,
+        2,
+        268,
+        389
+      ]
+    }
+  ],
+  "peticiones_por_ruta_http": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": "no_aplica",
+      "total": 2
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas",
+      "http": 200,
+      "eco": "si",
+      "total": 2
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras",
+      "http": 200,
+      "eco": "si",
+      "total": 4
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas",
+      "http": 200,
+      "eco": "si",
+      "total": 6
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot",
+      "http": 200,
+      "eco": "si",
+      "total": 2
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/activos-biologicos",
+      "http": 200,
+      "eco": "si",
+      "total": 6
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/{id}/sensores",
+      "http": 200,
+      "eco": "si",
+      "total": 10
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "http": 422,
+      "eco": "si",
+      "total": 18
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/{RUN}",
+      "http": 200,
+      "eco": "no_aplica",
+      "total": 1
+    }
+  ],
+  "post_alertas": 0,
+  "cierre_http": 200,
+  "rollback_verificado": true
+}

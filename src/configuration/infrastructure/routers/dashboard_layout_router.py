@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                    |
+# |------------|----------|----------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-103: catálogo con opciones; `/datos` queda por un release |
 """Router FastAPI para layout del dashboard (`/configuracion/personalizacion/dashboard`).
 
 RF-28:
@@ -6,6 +9,8 @@ RF-28:
   C) POST  /configuracion/personalizacion/dashboard/restaurar  — Restaurar layout predeterminado.
   D) GET   /configuracion/personalizacion/dashboard/widgets    — Catálogo disponible para el rol.
   E) GET   /configuracion/personalizacion/dashboard/datos      — Datos de los widgets visibles.
+     Reemplazado por `GET /dashboard/widgets/{clave}` (RF-103); se conserva mientras el front de
+     PROD lo use.
 
 RBAC: id_recurso=25 (dashboard_layout). El catálogo aplica además el permiso de
 lectura del recurso propio de cada widget, así que dos roles distintos ven listas
@@ -88,7 +93,7 @@ def obtener_catalogo_widgets(
     **Acceso:** `dashboard_layout` · Leer.
     """
     use_case = ObtenerCatalogoWidgetsUseCase(widget_repo=SqlAlchemyWidgetRepository(db))
-    return [WidgetCatalogoResponse.model_validate(w) for w in use_case.execute(usuario_actual)]
+    return [WidgetCatalogoResponse.desde_widget(w) for w in use_case.execute(usuario_actual)]
 
 
 @router.get(
@@ -100,6 +105,7 @@ def obtener_catalogo_widgets(
         403: {"model": ErrorResponse},
     },
     summary="Datos de los widgets visibles del dashboard",
+    deprecated=True,
 )
 def obtener_datos_dashboard(
     db: Session = Depends(get_db),

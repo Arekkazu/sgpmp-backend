@@ -1,0 +1,44 @@
+TC-M09-G99 / RF-29 — ejecución oficial rev1 DEV
+Fecha: 2026-09-14T16:06:29.420Z
+Ambiente: DEV
+Frontend: https://sigab-frontenddev-pbw0py-757e2f-158-69-200-27.sslip.io
+API: https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp
+Usuario: admin.dev@gmail.com
+Navegador: Electron 130 (Cypress 14.5.4 headless)
+
+Resultado general: BLOQUEADO
+TC-M09-189: BLOQUEADO
+TC-M09-190: BLOQUEADO
+TC-M09-191: BLOQUEADO
+
+Logins realizados: 1 (máximo permitido: 1). No hubo segundo login.
+Login HTTP: 200
+Dashboard: accesible (URL /dashboard, screenshot G99-01-dashboard.png)
+
+Causa de bloqueo (no es veredicto de RF-29):
+Tras cy.visit(/configuracion) la SPA emitió
+  POST https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp/sesiones/refresh
+  HTTP 500
+y redirigió a /login (pantalla "Iniciar sesión").
+GET /configuracion/interfaz/contexto ocurrió en el mismo recinto.
+No se alcanzó Configuración → Personalización → Idioma.
+No se ejecutó GET ni PATCH /configuracion/personalizacion/idioma.
+No se tocó el panel "Idioma global".
+No se modificó locale persistido.
+Restauración: NO APLICA (no hubo precheck ni PATCH de idioma).
+
+Locale original: no capturado (bloqueo previo al GET).
+PATCH es-CO: no ejecutado
+PATCH en-US: no ejecutado
+html[lang]: no evaluado en el panel de idioma
+Marcador de documento: no aplicado en una sesión autenticada de Configuración
+Textos ES/EN: no observados (UI de login, no de idioma)
+
+Cypress: 0 passing, 1 failing (before all), 2 skipped.
+El before falló esperando h1/h2/button "Configuración|Settings" porque la URL ya era /login.
+Eso es dependencia de sesión/refresh (mismo patrón que G90/G95), no un fallo funcional de RF-29.
+
+No se reejecutó Cypress para "ver si ahora funciona".
+
+Herramienta: Cypress 14 (no Playwright).
+No se incluye password, JWT ni cookies.

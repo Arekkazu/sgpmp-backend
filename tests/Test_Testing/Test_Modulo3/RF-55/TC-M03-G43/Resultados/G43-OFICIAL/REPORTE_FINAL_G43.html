@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Informe final G43 — TC-M03-076 / 077 / 078 — APROBADO</title>
+  <style>
+    :root {
+      --ink: #1a2332;
+      --muted: #5b6778;
+      --line: #d8deea;
+      --paper: #f6f8fb;
+      --card: #ffffff;
+      --ok: #157347;
+      --ok-bg: #e7f6ee;
+      --warn: #9a6700;
+      --warn-bg: #fff6dd;
+      --accent: #1f4e79;
+      --mono: "Cascadia Mono", "Consolas", "Liberation Mono", monospace;
+      --sans: "Segoe UI", "Calibri", "Helvetica Neue", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 15px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--sans);
+      background: var(--paper);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 24px 64px; }
+    header.cover {
+      background: linear-gradient(135deg, #14324f 0%, #1f4e79 55%, #246b4f 100%);
+      color: #fff;
+      border-radius: 16px;
+      padding: 36px 40px 32px;
+      margin-bottom: 24px;
+    }
+    header.cover h1 { margin: 0 0 8px; font-size: 1.85rem; letter-spacing: -0.02em; }
+    header.cover p { margin: 4px 0; opacity: 0.92; }
+    .badge {
+      display: inline-block;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #2ecc71;
+      color: #083318;
+      margin-bottom: 14px;
+    }
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0 0; }
+    .kpi {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .kpi b { display: block; font-size: 1.45rem; }
+    .kpi span { font-size: 0.78rem; opacity: 0.88; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 22px 24px;
+      margin-bottom: 16px;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.15rem;
+      color: var(--accent);
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 8px;
+    }
+    h3 { margin: 18px 0 8px; font-size: 1rem; color: var(--ink); }
+    p, li { color: var(--ink); }
+    .muted { color: var(--muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #eef3f9; color: #243447; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfd; }
+    .ok { color: var(--ok); font-weight: 700; }
+    .pill-ok {
+      display: inline-block;
+      background: var(--ok-bg);
+      color: var(--ok);
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .pill-warn {
+      display: inline-block;
+      background: var(--warn-bg);
+      color: var(--warn);
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    code, .id {
+      font-family: var(--mono);
+      font-size: 0.82em;
+      word-break: break-all;
+    }
+    .id { font-size: 0.78rem; }
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0 4px;
+    }
+    .flow .box {
+      flex: 1 1 140px;
+      min-width: 120px;
+      background: #eef6f1;
+      border: 1px solid #c6e0d2;
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .flow .arrow { color: var(--accent); font-weight: 700; }
+    .note {
+      background: #f3f6fa;
+      border-left: 4px solid var(--accent);
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      margin: 10px 0;
+    }
+    .warnbox {
+      background: var(--warn-bg);
+      border-left: 4px solid #d4a017;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      margin: 8px 0;
+    }
+    footer {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 8px;
+    }
+    ul.tight { margin: 6px 0 0 18px; padding: 0; }
+    @media print {
+      body { background: #fff; }
+      .wrap { padding: 0; max-width: none; }
+      header.cover { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      section { break-inside: avoid; border-color: #ccc; }
+      .kpis { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      a { color: inherit; text-decoration: none; }
+    }
+    @media (max-width: 800px) {
+      .kpis { grid-template-columns: 1fr 1fr; }
+      header.cover { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="cover">
+      <div class="badge">DICTAMEN: APROBADO</div>
+      <h1>Informe final de pruebas — G43</h1>
+      <p>RF-55 / RF-56 · TC-M03-076 · TC-M03-077 · TC-M03-078</p>
+      <p>Integración oficial: Firmware Edge → Mosquitto G43 → Gateway real → POST /iot/eventos-edge → PostgreSQL <code>sgpmp_g43_test</code></p>
+      <p>Cierre documental: 2026-11-01 · Comprobación de servicios y SQL: 2026-11-01 03:17:14 −05:00</p>
+      <p>Corrida de integración (UTC, payloads MQTT): 2026-11-01 08:10:21Z – 08:11:34Z</p>
+      <div class="kpis">
+        <div class="kpi"><b>3 / 3</b><span>Casos aprobados</span></div>
+        <div class="kpi"><b>100 %</b><span>Cobertura del grupo</span></div>
+        <div class="kpi"><b>10 / 10</b><span>Criterios por caso</span></div>
+        <div class="kpi"><b>0</b><span>Publicaciones command</span></div>
+      </div>
+    </header>
+
+    <section>
+      <h2>1. Resumen ejecutivo</h2>
+      <p>La validación oficial G43 queda <strong class="ok">APROBADA</strong>. Los tres casos del grupo demostraron la cadena real de integración, con un identificador de evento único por caso, HTTP 201 del backend SGPMP y exactamente una fila en la base aislada <code>sgpmp_g43_test</code>.</p>
+      <ul class="tight">
+        <li>No se reutilizan evidencias de G43-PR1 ni de pytest offline / FakeLink.</li>
+        <li>No se escribió en <code>sgpmp</code> ni en <code>sgpmp_pr14_test</code>. El clúster de laboratorio no contiene esas bases.</li>
+        <li>Criterio de clasificación: CA-6 de trabajo (<code>DECISION_CA6_TRABAJO.md</code>). El CONTRATO §2 no se reescribe y no existe acta formal de Análisis.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>2. Resultados individuales</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Caso</th>
+            <th>Lectura</th>
+            <th>Clasificación / severidad</th>
+            <th>id_evento_edge</th>
+            <th>HTTP</th>
+            <th>PG</th>
+            <th>Criterios</th>
+            <th>Dictamen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>TC-M03-076</td>
+            <td>21.0 °C</td>
+            <td>NORMAL · severidad NULL<br><span class="muted">tipo_evento DATOS_PROCESADOS</span></td>
+            <td class="id">edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a</td>
+            <td>201</td>
+            <td>1 fila · umbral 90043</td>
+            <td>10/10</td>
+            <td><span class="pill-ok">APROBADO</span></td>
+          </tr>
+          <tr>
+            <td>TC-M03-077</td>
+            <td>35.0 °C</td>
+            <td>DESVIACION_SIMPLE / CRITICO<br><span class="muted">tipo_evento ALERTA_GENERADA</span></td>
+            <td class="id">edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2</td>
+            <td>201</td>
+            <td>1 fila · umbral 90043</td>
+            <td>10/10</td>
+            <td><span class="pill-ok">APROBADO</span></td>
+          </tr>
+          <tr>
+            <td>TC-M03-078</td>
+            <td>10.0 °C</td>
+            <td>DESVIACION_SIMPLE / CRITICO<br><span class="muted">tipo_evento ALERTA_GENERADA</span></td>
+            <td class="id">edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7</td>
+            <td>201</td>
+            <td>1 fila · umbral 90043</td>
+            <td>10/10</td>
+            <td><span class="pill-ok">APROBADO</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">Fuente: RESULTADO_FINAL_G43.md, MATRIZ_EVIDENCIAS_G43.md, firmware.json / mqtt.jsonl de cada caso, SQL de cierre 2026-11-01 03:17 −05:00.</p>
+    </section>
+
+    <section>
+      <h2>3. Cadena de integración demostrada</h2>
+      <div class="flow">
+        <div class="box">Edge<br><span class="muted">evaluar_simple + FakeLoraSource<br>G43-LAB-001</span></div>
+        <div class="arrow">→</div>
+        <div class="box">MQTT<br><span class="muted">Mosquitto G43<br>127.0.0.1:1884<br>sgpmp/G43-LAB-001/evento</span></div>
+        <div class="arrow">→</div>
+        <div class="box">Gateway<br><span class="muted">reenvio_nodo.evento_edge<br>127.0.0.1:18044</span></div>
+        <div class="arrow">→</div>
+        <div class="box">HTTP 201<br><span class="muted">POST /iot/eventos-edge<br>backend 127.0.0.1:18043</span></div>
+        <div class="arrow">→</div>
+        <div class="box">PostgreSQL<br><span class="muted">sgpmp_g43_test<br>127.0.0.1:5439</span></div>
+      </div>
+      <p class="muted">Serial de laboratorio G43-LAB-001. Dispositivo 52, sensor 43. EDGE_SOURCE=fake. Un disparo por caso.</p>
+    </section>
+
+    <section>
+      <h2>4. Trazabilidad de identificadores (valores completos)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Capa</th>
+            <th>TC-M03-076</th>
+            <th>TC-M03-077</th>
+            <th>TC-M03-078</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Firmware (historial)</td>
+            <td class="id">edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a</td>
+            <td class="id">edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2</td>
+            <td class="id">edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7</td>
+          </tr>
+          <tr>
+            <td>MQTT metadata_edge.id_evento</td>
+            <td class="id">edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a</td>
+            <td class="id">edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2</td>
+            <td class="id">edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7</td>
+          </tr>
+          <tr>
+            <td>Gateway (parseo)</td>
+            <td class="id">edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a<br>08:10:21Z · device_id=52</td>
+            <td class="id">edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2<br>08:11:06Z</td>
+            <td class="id">edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7<br>08:11:34Z</td>
+          </tr>
+          <tr>
+            <td>HTTP POST /iot/eventos-edge</td>
+            <td>201 · 08:10:22Z</td>
+            <td>201 · 08:11:06Z</td>
+            <td>201 · 08:11:34Z</td>
+          </tr>
+          <tr>
+            <td>PostgreSQL id_evento_edge</td>
+            <td class="id">edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a<br>count=1</td>
+            <td class="id">edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2<br>count=1</td>
+            <td class="id">edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7<br>count=1</td>
+          </tr>
+          <tr>
+            <td>Captura UTC (MQTT)</td>
+            <td>2026-11-01T08:10:21.564Z</td>
+            <td>2026-11-01T08:11:06.104Z</td>
+            <td>2026-11-01T08:11:34.331Z</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">mqtt.jsonl: 3 líneas en tópico evento, 0 coincidencias de /command. Tres UUID distintos.</p>
+    </section>
+
+    <section>
+      <h2>5. Persistencia en sgpmp_g43_test</h2>
+      <p>Reconsulta de solo lectura el 2026-11-01 03:17 −05:00 sobre el contenedor <code>g43-postgres</code> (host 127.0.0.1:5439). <code>SELECT current_database()</code> = <strong>sgpmp_g43_test</strong>. Bases no plantilla del clúster: <code>postgres</code>, <code>sgpmp_g43_test</code>.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>id_evento_edge</th>
+            <th>count</th>
+            <th>clasificacion_rf55</th>
+            <th>severidad</th>
+            <th>tipo_evento</th>
+            <th>valor</th>
+            <th>unidad</th>
+            <th>umbral</th>
+            <th>device / sensor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="id">edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a</td>
+            <td>1</td>
+            <td>NORMAL</td>
+            <td>(vacía / NULL)</td>
+            <td>DATOS_PROCESADOS</td>
+            <td>21.0</td>
+            <td>C</td>
+            <td>90043</td>
+            <td>52 / 43</td>
+          </tr>
+          <tr>
+            <td class="id">edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2</td>
+            <td>1</td>
+            <td>DESVIACION_SIMPLE</td>
+            <td>CRITICO</td>
+            <td>ALERTA_GENERADA</td>
+            <td>35.0</td>
+            <td>C</td>
+            <td>90043</td>
+            <td>52 / 43</td>
+          </tr>
+          <tr>
+            <td class="id">edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7</td>
+            <td>1</td>
+            <td>DESVIACION_SIMPLE</td>
+            <td>CRITICO</td>
+            <td>ALERTA_GENERADA</td>
+            <td>10.0</td>
+            <td>C</td>
+            <td>90043</td>
+            <td>52 / 43</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">Fuente: evidencias/run-2026-11-01-integracion/sql-cierre-solo-lectura-2026-11-01-0317.txt y sql-verificacion-tres-casos.txt. La clasificación vive en metadatos JSONB; no hay columna homónima clasificacion_rf55.</p>
+    </section>
+
+    <section>
+      <h2>6. Estado de servicios y entorno (cierre 03:17:14 −05:00)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Componente</th>
+            <th>Estado registrado</th>
+            <th>Método</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Backend SGPMP</td>
+            <td>127.0.0.1:18043 LISTENING, PID 35064 · GET /health 200 {"status":"ok",...}</td>
+            <td>netstat; HTTP GET</td>
+          </tr>
+          <tr>
+            <td>Gateway</td>
+            <td>127.0.0.1:18044 LISTENING, PID 28148 · GET /docs 200 · MQTT ESTABLISHED a :1884 · PG ESTABLISHED a :5439</td>
+            <td>netstat; HTTP GET</td>
+          </tr>
+          <tr>
+            <td>PostgreSQL lab</td>
+            <td>g43-postgres Up healthy · 127.0.0.1:5439 → 5432</td>
+            <td>docker ps / inspect</td>
+          </tr>
+          <tr>
+            <td>Mosquitto lab</td>
+            <td>g43-mosquitto Up · 127.0.0.1:1884 · conexiones establecidas · healthcheck Docker <span class="pill-warn">unhealthy</span></td>
+            <td>docker inspect; netstat</td>
+          </tr>
+          <tr>
+            <td>Clúster ajeno</td>
+            <td>infra-db-1 en puerto 5433 — no utilizado</td>
+            <td>netstat</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Configuración no sensible</h3>
+      <table>
+        <thead><tr><th>Clave</th><th>Valor</th></tr></thead>
+        <tbody>
+          <tr><td>POSTGRES_DB</td><td>sgpmp_g43_test</td></tr>
+          <tr><td>G43_PG_HOST_PORT</td><td>5439</td></tr>
+          <tr><td>MQTT</td><td>127.0.0.1:1884</td></tr>
+          <tr><td>BACKEND_URL</td><td>http://127.0.0.1:18043</td></tr>
+          <tr><td>EDGE_SERIALS / EDGE_SOURCE</td><td>G43-LAB-001 / fake</td></tr>
+          <tr><td>Compose / red / volumen</td><td>g43-lab / g43_lab / g43_pgdata</td></tr>
+          <tr><td>Dump / Alembic</td><td>backup_sgpmp_dev_2026-10-30.dump / b2e8c4a91f03</td></tr>
+          <tr><td>Firmware</td><td>worktree sgpmp-rf55-validation · commit e618a75f39d7b64bdabae4b3112490aca7ff628b · version_firmware 0.3.0 (payload MQTT)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>7. Criterios de aceptación (10 por caso)</h2>
+      <p>Todos los criterios de la matriz oficial resultaron S (sí, con ruta de evidencia). G43-PR1 y el offline FakeLink están excluidos.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Criterio</th>
+            <th>076</th>
+            <th>077</th>
+            <th>078</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Clasificación Edge real (evaluar_simple + FakeLora)</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>2</td><td>Publicación MQTT real sgpmp/G43-LAB-001/evento</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>3</td><td>id_evento_edge presente y único</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>4</td><td>Recepción Gateway (handlers)</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>5</td><td>POST /iot/eventos-edge</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>6</td><td>HTTP 201</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>7</td><td>Persistencia en sgpmp_g43_test</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>8</td><td>Exactamente un registro por identificador</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>9</td><td>Valor, unidad, clasificación y severidad coherentes</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+          <tr><td>10</td><td>id_umbral_ambiental = 90043</td><td class="ok">S</td><td class="ok">S</td><td class="ok">S</td></tr>
+        </tbody>
+      </table>
+      <div class="note">El access log del backend no imprime id_evento_edge. La correlación HTTP por caso está en el extracto del Gateway (parseo del id inmediatamente seguido de httpx 201), alineado con tres líneas uvicorn 201. No se archivó el cuerpo JSON de la respuesta 201; el status 201 sí está evidenciado.</div>
+    </section>
+
+    <section>
+      <h2>8. Incidentes iniciales (no son evidencia de caso)</h2>
+      <p>Corregidos en el arranque de laboratorio, antes de la corrida oficial que produjo los 201:</p>
+      <ol>
+        <li>Backend: faltaba SECRET_KEY de laboratorio.</li>
+        <li>Backend: ModuleNotFoundError defusedxml.</li>
+        <li>Gateway: aiomqtt con Proactor de Windows (add_reader NotImplementedError). Arranque lab con SelectorEventLoop; código del broker no modificado.</li>
+        <li>Mosquitto: CRLF en docker-entrypoint-g43.sh (convertido a LF). Volumen PostgreSQL no recreado.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>9. Limitaciones pendientes</h2>
+      <div class="warnbox"><strong>Mosquitto healthcheck Docker = unhealthy.</strong> El listener 127.0.0.1:1884 atendió la ejecución (tres eventos en mqtt.jsonl y conexiones ESTABLISHED). No se reinició el broker en el cierre.</div>
+      <div class="warnbox"><strong>CONTRATO_EVENTO_EDGE §2 vs CA-6.</strong> El contrato vigente dice que NORMAL no se emite. El criterio de trabajo QA exige evento estructurado también en banda normal. 076 emitió y persistió NORMAL. Eso no equivale a acta formal de Análisis. El contrato no se reescribió.</div>
+      <ul class="tight">
+        <li>Umbral 90043 es fixture de firmware (umbrales.json), no fila de catálogo M09.</li>
+        <li>Fuera de alcance de este informe: Raspberry, G38/G41, G43-PR1, publicación command.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>10. Conclusión</h2>
+      <p>Con evidencia de la corrida <code>evidencias/run-2026-11-01-integracion/</code> (MQTT UTC 2026-11-01 08:10:21Z–08:11:34Z) y reconsulta SQL del cierre 2026-11-01 03:17:14 −05:00, el grupo G43 (TC-M03-076, TC-M03-077 y TC-M03-078) se declara <strong class="ok">APROBADO</strong>: 3 de 3 casos, 10/10 criterios cada uno, trazabilidad completa de identificadores y una fila por evento en <code>sgpmp_g43_test</code>.</p>
+      <p class="muted">Fuentes Markdown no sustituidas: RESULTADO_FINAL_G43.md, MATRIZ_EVIDENCIAS_G43.md, TRAZABILIDAD_076_077_078.md, DECISION_CA6_TRABAJO.md.</p>
+    </section>
+
+    <footer>
+      SGPMP · Módulo 3 · RF-55 / RF-56 · Informe HTML autónomo generado a partir de evidencias existentes · Sin secretos · Listo para impresión o PDF desde el navegador.
+    </footer>
+  </div>
+</body>
+</html>

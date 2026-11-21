@@ -1,0 +1,134 @@
+{
+  "run_id": "tc-m05-g15-c2-c4-b8c49967-5d64-4912-bc2a-10ed4ce38daf",
+  "teardown_status": 200,
+  "teardown_body": "{\"status\":\"Rollback exitoso\"}",
+  "resultados": [
+    {
+      "escenario": "ACTIVO_9_POST_MEDICAMENTO",
+      "http": 422,
+      "resp": {
+        "error_code": "CICLO_NO_ABIERTO",
+        "message": "El activo 9 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar.",
+        "fields": [
+          {
+            "field": "id_activo_biologico",
+            "message": "El activo 9 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar."
+          }
+        ],
+        "timestamp": "2026-11-07T17:35:31.661259+00:00"
+      }
+    },
+    {
+      "escenario": "INACTIVO",
+      "id_activo": 2,
+      "http": 422,
+      "resp": {
+        "error_code": "ACTIVO_ESTADO_INVALIDO",
+        "message": "No es posible registrar una aplicación de medicamento para el activo 2 porque su estado actual es INACTIVO. Solo se permite el registro sobre activos en estado ACTIVO.",
+        "fields": [
+          {
+            "field": "id_activo_biologico",
+            "message": "No es posible registrar una aplicación de medicamento para el activo 2 porque su estado actual es INACTIVO. Solo se permite el registro sobre activos en estado ACTIVO."
+          }
+        ],
+        "timestamp": "2026-11-07T17:35:31.804094+00:00"
+      }
+    },
+    {
+      "escenario": "CERRADO",
+      "id_activo": 12,
+      "http": 422,
+      "resp": {
+        "error_code": "ACTIVO_ESTADO_INVALIDO",
+        "message": "No es posible registrar una aplicación de medicamento para el activo 12 porque su estado actual es CERRADO. Solo se permite el registro sobre activos en estado ACTIVO.",
+        "fields": [
+          {
+            "field": "id_activo_biologico",
+            "message": "No es posible registrar una aplicación de medicamento para el activo 12 porque su estado actual es CERRADO. Solo se permite el registro sobre activos en estado ACTIVO."
+          }
+        ],
+        "timestamp": "2026-11-07T17:35:31.949214+00:00"
+      }
+    },
+    {
+      "escenario": "BAJA",
+      "id_activo": 10,
+      "http": 422,
+      "resp": {
+        "error_code": "ACTIVO_ESTADO_INVALIDO",
+        "message": "No es posible registrar una aplicación de medicamento para el activo 10 porque su estado actual es BAJA. Solo se permite el registro sobre activos en estado ACTIVO.",
+        "fields": [
+          {
+            "field": "id_activo_biologico",
+            "message": "No es posible registrar una aplicación de medicamento para el activo 10 porque su estado actual es BAJA. Solo se permite el registro sobre activos en estado ACTIVO."
+          }
+        ],
+        "timestamp": "2026-11-07T17:35:32.094926+00:00"
+      }
+    },
+    {
+      "escenario": "AISLADO",
+      "id_activo": 812,
+      "http": 422,
+      "resp": {
+        "error_code": "ACTIVO_ESTADO_INVALIDO",
+        "message": "No es posible registrar una aplicación de medicamento para el activo 812 porque su estado actual es AISLADO. Solo se permite el registro sobre activos en estado ACTIVO.",
+        "fields": [
+          {
+            "field": "id_activo_biologico",
+            "message": "No es posible registrar una aplicación de medicamento para el activo 812 porque su estado actual es AISLADO. Solo se permite el registro sobre activos en estado ACTIVO."
+          }
+        ],
+        "timestamp": "2026-11-07T17:35:32.258955+00:00"
+      }
+    },
+    {
+      "escenario": "CICLO_NO_ABIERTO",
+      "id_activo": 853,
+      "http": 422,
+      "resp": {
+        "error_code": "CICLO_NO_ABIERTO",
+        "message": "El activo 853 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar.",
+        "fields": [
+          {
+            "field": "id_activo_biologico",
+            "message": "El activo 853 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar."
+          }
+        ],
+        "timestamp": "2026-11-07T17:35:32.411151+00:00"
+      }
+    },
+    {
+      "escenario": "INEXISTENTE",
+      "id_activo": 999999999,
+      "http": 404,
+      "resp": {
+        "error_code": "ACTIVO_NO_ENCONTRADO",
+        "message": "El activo biológico con ID 999999999 no existe.",
+        "fields": [
+          {
+            "field": "id_activo_biologico",
+            "message": "El activo biológico con ID 999999999 no existe."
+          }
+        ],
+        "timestamp": "2026-11-07T17:35:32.544502+00:00"
+      }
+    },
+    {
+      "escenario": "POBLACIONAL_CANTIDAD_NULL_462",
+      "id_activo": 462,
+      "http": 422,
+      "resp": {
+        "error_code": "POBLACIONAL_SIN_CANTIDAD",
+        "message": "No es posible registrar el medicamento para el activo 462 porque su cantidad actual de individuos es cero o no está definida.",
+        "fields": [
+          {
+            "field": "id_activo_biologico",
+            "message": "No es posible registrar el medicamento para el activo 462 porque su cantidad actual de individuos es cero o no está definida."
+          }
+        ],
+        "timestamp": "2026-11-07T17:35:32.877215+00:00"
+      }
+    }
+  ]
+}

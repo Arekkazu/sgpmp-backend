@@ -1,0 +1,79 @@
+{
+  "tc": "TC-M09-G05-v2.0",
+  "ambiente": "TEST",
+  "fecha": "2026-10-07T04:10:23.179Z",
+  "checkpoints": [
+    {
+      "paso": "NW-01",
+      "esperado": "HTTP 200 OK con token JWT administrativo válido",
+      "obtenido": "HTTP 200 recibido con token JWT emitido",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-02",
+      "esperado": "HTTP 200 OK; Fixture F-04 activo, estado capturado y ausencia previa de Alpaca QA2",
+      "obtenido": "HTTP 200 recibido; F-04 verificado activo y datos originales capturados",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-03",
+      "esperado": "HTTP 200 OK con token JWT de Ingeniero válido",
+      "obtenido": "HTTP 200 recibido con token de Ingeniero emitido",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-04",
+      "esperado": "HTTP 200 OK; Rol tiene (8,2) y (8,3), sin permisos (8,1) ni (8,4)",
+      "obtenido": "HTTP 200 recibido; matriz RBAC confirmada (sin permisos de creación ni desactivación)",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-05",
+      "esperado": "HTTP 403 Forbidden con error_code ACCESO_DENEGADO; sin persistencia en BD",
+      "obtenido": "HTTP 403 recibido con error_code ACCESO_DENEGADO; creación rechazada por RBAC",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-06",
+      "esperado": "HTTP 403 Forbidden con error_code ACCESO_DENEGADO; es_activo permanece inmutable",
+      "obtenido": "HTTP 403 recibido con error_code ACCESO_DENEGADO; estado es_activo inalterado",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-07",
+      "esperado": "HTTP 200 OK con descripción actualizada por Ingeniero",
+      "obtenido": "HTTP 200 recibido; descripción de especie modificada exitosamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-08",
+      "esperado": "Registro de auditoría UPDATE persistido en modulo9.auditorias_especies con id_usuario=4",
+      "obtenido": "Registro de auditoría UPDATE confirmado en BD con id_usuario=4 e id_especie=4",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-09",
+      "esperado": "HTTP 200 OK; descripción original restaurada en fixture F-04 con token Admin",
+      "obtenido": "HTTP 200 recibido; descripción original restaurada exitosamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-10",
+      "esperado": "Cero fugas de credenciales, contraseñas o tokens JWT en resultados/ y evidencias/",
+      "obtenido": "Auditoría superada: cero secretos expuestos en evidencias y reportes",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-11",
+      "esperado": "Integridad final en BD: F-04 activo con descripción original y cero residuales de Alpaca QA2",
+      "obtenido": "Integridad en BD confirmada: F-04 restaurado activo y cero registros residuales",
+      "estado": "OK"
+    }
+  ],
+  "checkpoints_no_contabilizados": [
+    {
+      "paso": "G05-v2.0-4",
+      "motivo": "Subcaso 4 excluido: edición de grupo_manejo pendiente de definición funcional"
+    }
+  ]
+}

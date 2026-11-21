@@ -1,0 +1,1 @@
+Este directorio no reejecuta G36. `TC-M03-G36-pytest.txt` es copia del log original en `Resultados/TC-M03-G36-pytest.txt`. Línea de este caso: `test_tc_m03_075_medicion_valida_con_conectividad SKIPPED`. El archivo de origen también lista otros tests del mismo script; no se fabricó un log de un solo ítem.

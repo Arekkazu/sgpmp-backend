@@ -1,0 +1,619 @@
+{
+  "inobase": {
+    "run_id": "tc-m05-g37-inobase-ad3a2aa5",
+    "login": {
+      "status_code": 200,
+      "x_request_id": "8ffc89b2-f37e-4eb2-aa72-7954d4b71f9e"
+    },
+    "health": {
+      "method": "GET",
+      "path": "/health",
+      "status_code": 200,
+      "x_request_id": "0d68e91f-718b-44fa-bf09-f4765fe49736",
+      "elapsed_s": 0.116,
+      "body": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      },
+      "raw_body": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      }
+    },
+    "snapshot": {
+      "total": 65983,
+      "total_rpp5": 65983,
+      "rpp5_len": 5,
+      "ultimo_id": 72166,
+      "x_request_id": "4cd40f6e-91dc-40a4-a197-31e22a954dc5"
+    },
+    "teardown": {
+      "run_id": "tc-m05-g37-inobase-ad3a2aa5",
+      "status_code": 200,
+      "x_request_id": "75979d8c-76e9-4830-9ae4-a4b82a26f4f3",
+      "body": {
+        "status": "Rollback exitoso"
+      }
+    }
+  },
+  "principal": {
+    "run_id": "tc-m05-g37-f1-main-1326a80f",
+    "login": {
+      "status_code": 200,
+      "x_request_id": "e831488a-cd2b-4f5d-8707-ccee77da6505"
+    },
+    "activo_creado": {
+      "id_activo_biologico": 1847,
+      "status_code": 201,
+      "x_request_id": "1e4a560a-15e5-4a5c-a70b-eaebaf3beb29"
+    },
+    "paso_3a": {
+      "snap_before": {
+        "total": 65983,
+        "total_rpp5": 65983,
+        "rpp5_len": 5,
+        "ultimo_id": 72166,
+        "x_request_id": "ea9a200a-4e31-4f10-8ff5-961f5bcd099d"
+      },
+      "uuid_solicitud": "08ddd939-524d-414a-bfe0-05cdb45f489e",
+      "response": {
+        "status_code": 409,
+        "x_request_id": "36345959-0ee0-457e-bf77-f1beb71d5fda",
+        "elapsed_s": 0.143,
+        "body": {
+          "error_code": "CICLO_NO_ACTIVO",
+          "message": "No existe un ciclo productivo activo para el activo 1847. Verifique el estado del ciclo en Activos biológicos antes de registrar suministros.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:21.328805+00:00"
+        }
+      },
+      "snap_after": {
+        "total": 65984,
+        "total_rpp5": 65984,
+        "rpp5_len": 5,
+        "ultimo_id": 72171,
+        "x_request_id": "54e237ef-6ef7-43a3-96a6-70acf29dab08"
+      }
+    },
+    "paso_3b": {
+      "polls": [
+        {
+          "segundo": 0,
+          "latencia_cliente_s": 0.143,
+          "total": 65984,
+          "nuevos_ids": [
+            72171
+          ],
+          "x_request_id": "50cc1b4e-547c-4f23-99bb-d19091b93f8d"
+        },
+        {
+          "segundo": 1,
+          "latencia_cliente_s": 1.45,
+          "total": 65984,
+          "nuevos_ids": [
+            72171
+          ],
+          "x_request_id": "aad4fe85-e6a4-4151-a2ac-78ad34b857a0"
+        },
+        {
+          "segundo": 2,
+          "latencia_cliente_s": 2.773,
+          "total": 65984,
+          "nuevos_ids": [
+            72171
+          ],
+          "x_request_id": "18f49bf0-a25b-4c37-856e-ab41128496d2"
+        }
+      ],
+      "eventos_nuevos": [
+        {
+          "id_auditoria_suministro": 72171,
+          "id_evento_m05": "e325dc7c-e658-428c-be3c-76f94f72c372",
+          "version_hash_integridad": 2,
+          "entidad_afectada": "registro_suministro",
+          "tipo_operacion": "REGISTRO_FALLIDO",
+          "id_usuario": 104,
+          "resultado": "RECHAZADO",
+          "fecha_evento": "2026-11-12T01:31:20.269705Z",
+          "datos_anteriores": null,
+          "datos_nuevos": null,
+          "ip_origen": null,
+          "id_sesion": null,
+          "fecha_emision": "2026-11-12T01:31:21.322659Z",
+          "id_activo_biologico": 1847,
+          "id_ciclo_productivo": null,
+          "costo_afectado": null,
+          "origen_precio": null,
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": "1 año",
+          "hash_integridad": "7fa9743e43c8a6020bd59e5db631be50d34b4aca9132ee73ffc3268b67bbb74f",
+          "registro_incompleto": true,
+          "detalle_causa": "Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1847. Solicitud: 08ddd939-524d-414a-bfe0-05cdb45f489e. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.",
+          "numero_reintentos": 0,
+          "fecha_intentos": null,
+          "id_gestion_fases": null
+        }
+      ]
+    },
+    "gate_ok": true,
+    "paso_3c": {
+      "detalle": {
+        "status_code": 200,
+        "x_request_id": "5df619dd-1907-42cc-a25c-23411ebab673",
+        "diffs_lista_vs_detalle": {}
+      },
+      "filtros": {
+        "por_activo": {
+          "status_code": 200,
+          "x_request_id": "75c37e9d-b755-4c01-bec3-b87ddaecb6ac",
+          "total": 1,
+          "encontrado": true
+        },
+        "por_tipo": {
+          "status_code": 200,
+          "x_request_id": "b77ffd5e-abf4-4906-b137-6c35999655ec",
+          "total": 1,
+          "encontrado": true
+        },
+        "por_resultado": {
+          "status_code": 200,
+          "x_request_id": "9a08a4e9-8c45-4bf0-87c3-9b29c6469766",
+          "total": 1,
+          "encontrado": true
+        },
+        "por_clasificacion": {
+          "status_code": 200,
+          "x_request_id": "59b20ae6-284b-4865-a225-bc0b361a7f16",
+          "total": 974,
+          "encontrado": true
+        },
+        "por_fechas": {
+          "status_code": 200,
+          "x_request_id": "facf88b3-3777-4b4e-b423-e5e24526128a",
+          "total": 1,
+          "encontrado": true
+        },
+        "combinado": {
+          "status_code": 200,
+          "x_request_id": "09bf0d2b-7311-4edb-86fb-d8c9f118a8c7",
+          "total": 1,
+          "encontrado": true
+        }
+      },
+      "test_control_query": {
+        "sql": "SELECT id_auditoria_suministro, tipo_operacion, resultado, clasificacion_registro, retencion_aplicable, registro_incompleto FROM modulo5.auditorias_suministros WHERE id_auditoria_suministro = 72171",
+        "status_code": 200,
+        "x_request_id": "928c594f-e9b9-4d62-bd6b-510b3ed6ec16",
+        "body": {
+          "data": []
+        }
+      }
+    },
+    "paso_3d": {
+      "acumulado_activo": {
+        "status_code": 404,
+        "x_request_id": "666e763d-5656-45aa-af8c-4a833c4ede71",
+        "body": {
+          "error_code": "CICLO_NO_ACTIVO",
+          "message": "El activo no tiene un ciclo productivo activo.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:26.253831+00:00"
+        }
+      },
+      "historial_activo": {
+        "status_code": 200,
+        "x_request_id": "aa28758f-f0e8-45f6-adb0-f88b99e8d8f7",
+        "items_count": 0,
+        "resumen": {
+          "total_registros_filtrados": 0,
+          "monto_total_filtrado": "0",
+          "desglose_por_tipo_suministro": {},
+          "desglose_por_ciclo": {},
+          "pagina_actual": 1,
+          "total_paginas": 1,
+          "datos_contexto_no_disponibles": false,
+          "datos_actualizados_hasta": "2026-11-12T01:31:26.815508Z",
+          "nivel_volumen": 1,
+          "mensaje": "No se encontraron registros de suministros con los filtros aplicados para el activo 1847."
+        }
+      },
+      "auditoria_por_consulta_3d": {
+        "before": {
+          "total": 65984,
+          "total_rpp5": 65984,
+          "rpp5_len": 5,
+          "ultimo_id": 72171,
+          "x_request_id": "ec8a23d9-da24-4c85-8cfa-dcda8c7c338a"
+        },
+        "after": {
+          "total": 65985,
+          "total_rpp5": 65985,
+          "rpp5_len": 5,
+          "ultimo_id": 72172,
+          "x_request_id": "37e64f07-8e14-49b1-9871-882df3112dbf"
+        }
+      },
+      "outbox": "no observable por la API"
+    },
+    "paso_3e": {
+      "uuid_solicitud": "faf0a4b2-5b0e-491a-80b6-9d3d4edec486",
+      "snap_before": {
+        "total": 65985,
+        "total_rpp5": 65985,
+        "rpp5_len": 5,
+        "ultimo_id": 72172,
+        "x_request_id": "b491d6e0-7519-4d9b-b9e4-d6bde21b360c"
+      },
+      "response": {
+        "status_code": 409,
+        "x_request_id": "b4666954-aadb-4f37-83a4-a678affbb31f",
+        "body": {
+          "error_code": "CICLO_NO_ACTIVO",
+          "message": "No existe un ciclo productivo activo para el activo 1847. Verifique el estado del ciclo en Activos biológicos antes de registrar suministros.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:27.788901+00:00"
+        }
+      },
+      "nuevos_eventos_count": 1,
+      "nuevos_eventos": [
+        {
+          "id_auditoria_suministro": 72173,
+          "id_evento_m05": "2a082b15-a8ce-4766-9530-ad7415a43054",
+          "version_hash_integridad": 2,
+          "entidad_afectada": "registro_suministro",
+          "tipo_operacion": "REGISTRO_FALLIDO",
+          "id_usuario": 104,
+          "resultado": "RECHAZADO",
+          "fecha_evento": "2026-11-12T01:31:20.269705Z",
+          "datos_anteriores": null,
+          "datos_nuevos": null,
+          "ip_origen": null,
+          "id_sesion": null,
+          "fecha_emision": "2026-11-12T01:31:27.784941Z",
+          "id_activo_biologico": 1847,
+          "id_ciclo_productivo": null,
+          "costo_afectado": null,
+          "origen_precio": null,
+          "clasificacion_registro": "TECNICO",
+          "retencion_aplicable": "1 año",
+          "hash_integridad": "c1a364072948ec0c684ccb4b19a95d18682adf1d21277efedd58851d13e4b165",
+          "registro_incompleto": true,
+          "detalle_causa": "Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1847. Solicitud: faf0a4b2-5b0e-491a-80b6-9d3d4edec486. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.",
+          "numero_reintentos": 0,
+          "fecha_intentos": null,
+          "id_gestion_fases": null
+        }
+      ],
+      "snap_after": {
+        "total": 65986,
+        "total_rpp5": 65986,
+        "rpp5_len": 5,
+        "ultimo_id": 72173,
+        "x_request_id": "016505a2-12f8-43cf-b971-6bd6475843e4"
+      }
+    },
+    "paso_3g": {
+      "negocio_cantidad_negativa": {
+        "snap_before": {
+          "total": 65990,
+          "total_rpp5": 65990,
+          "rpp5_len": 5,
+          "ultimo_id": 72177,
+          "x_request_id": "ed74a8c4-3a0b-4b28-a781-9748a8a04208"
+        },
+        "status_code": 422,
+        "x_request_id": "e722daa1-c2d3-4064-b71a-3d27dcbb0c8a",
+        "body": {
+          "error_code": "COSTO_REGISTRO_INVALIDO",
+          "message": "El costo del registro (cantidad × precio unitario) debe ser mayor a cero. Cantidad: -1.0000, precio unitario: 40000.00.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:31.467462+00:00"
+        },
+        "nuevos_eventos_count": 1,
+        "nuevos_eventos": [
+          {
+            "id_auditoria_suministro": 72178,
+            "id_evento_m05": "59715c2e-0509-4cf9-88a0-82e210f6da7a",
+            "version_hash_integridad": 2,
+            "entidad_afectada": "registro_suministro",
+            "tipo_operacion": "REGISTRO_FALLIDO",
+            "id_usuario": 104,
+            "resultado": "RECHAZADO",
+            "fecha_evento": "2026-11-12T01:31:20.269705Z",
+            "datos_anteriores": null,
+            "datos_nuevos": null,
+            "ip_origen": null,
+            "id_sesion": null,
+            "fecha_emision": "2026-11-12T01:31:31.463597Z",
+            "id_activo_biologico": 1847,
+            "id_ciclo_productivo": 1,
+            "costo_afectado": null,
+            "origen_precio": null,
+            "clasificacion_registro": "TECNICO",
+            "retencion_aplicable": "1 año",
+            "hash_integridad": "2a4f5b37957ee5821d5c929bda4aec2a74c05857362a7a81097f49204657962f",
+            "registro_incompleto": false,
+            "detalle_causa": "Registro de suministro rechazado: La cantidad y el precio deben producir un costo mayor que cero. Activo solicitado: 1847. Solicitud: b93f71d2-6e9c-4862-8f47-7dda702c599c.",
+            "numero_reintentos": 0,
+            "fecha_intentos": null,
+            "id_gestion_fases": 832
+          }
+        ],
+        "snap_after": {
+          "total": 65991,
+          "total_rpp5": 65991,
+          "rpp5_len": 5,
+          "ultimo_id": 72178,
+          "x_request_id": "2b4fd935-d150-41da-947e-8d728ee51496"
+        }
+      },
+      "esquema_invalido": {
+        "snap_before": {
+          "total": 65991,
+          "total_rpp5": 65991,
+          "rpp5_len": 5,
+          "ultimo_id": 72178,
+          "x_request_id": "2eb096c7-5b40-4678-8f24-da69d2be4b7b"
+        },
+        "status_code": 400,
+        "x_request_id": "7dba7fd8-2ff3-437c-90cf-ed26199cc31f",
+        "body": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "tipo_suministro",
+              "message": "String should have at least 1 character"
+            },
+            {
+              "field": "id_idempotencia",
+              "message": "Input should be a valid UUID, invalid character: found `n` at 1"
+            }
+          ],
+          "timestamp": "2026-11-12T01:31:32.697658+00:00"
+        },
+        "nuevos_eventos_count": 0,
+        "nuevos_eventos": [],
+        "snap_after": {
+          "total": 65991,
+          "total_rpp5": 65991,
+          "rpp5_len": 5,
+          "ultimo_id": 72178,
+          "x_request_id": "e57e7dd3-5018-4676-ac3f-c2510a71bf2a"
+        }
+      }
+    },
+    "paso_3f": {
+      "id_gestion_fases": 832,
+      "id_registro_suministro": "c901288a-8e92-42f4-9362-eee5afb3dabd",
+      "id_provision": 18,
+      "rf78_positivo": {
+        "status_code": 200,
+        "x_request_id": "59a2b12e-f000-4e67-a5a0-bbc1a3b260fd",
+        "snap_before": {
+          "total": 65986,
+          "total_rpp5": 65986,
+          "rpp5_len": 5,
+          "ultimo_id": 72173,
+          "x_request_id": "25365cc1-a688-422f-bdad-776aef6625ad"
+        },
+        "snap_after": {
+          "total": 65989,
+          "total_rpp5": 65989,
+          "rpp5_len": 5,
+          "ultimo_id": 72176,
+          "x_request_id": "ad45857e-390b-4d9d-99b2-a7415c38a609"
+        },
+        "eventos": [
+          {
+            "id_auditoria_suministro": 72174,
+            "tipo_operacion": "SUMINISTRO_REGISTRADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          },
+          {
+            "id_auditoria_suministro": 72175,
+            "tipo_operacion": "PRECIO_MANUAL_INGRESADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "TECNICO",
+            "retencion_aplicable": "1 año",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          },
+          {
+            "id_auditoria_suministro": 72176,
+            "tipo_operacion": "ACUMULADO_ACTUALIZADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          }
+        ]
+      },
+      "rf81_positivo": {
+        "status_code": 200,
+        "x_request_id": "577f34ea-e2b6-46f6-b639-6ef1c39f08cb",
+        "snap_before": {
+          "total": 65989,
+          "total_rpp5": 65989,
+          "rpp5_len": 5,
+          "ultimo_id": 72176,
+          "x_request_id": "c4251835-4266-4a00-8801-a8aa9665a8f4"
+        },
+        "snap_after": {
+          "total": 65990,
+          "total_rpp5": 65990,
+          "rpp5_len": 5,
+          "ultimo_id": 72177,
+          "x_request_id": "e50e74a5-92fa-4536-8d45-32613faf2a0b"
+        },
+        "eventos": [
+          {
+            "id_auditoria_suministro": 72177,
+            "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "TECNICO",
+            "retencion_aplicable": "1 año",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          }
+        ]
+      },
+      "rf79_cierre": {
+        "status_code": 200,
+        "x_request_id": "54567339-90ec-467e-9d36-a72063604e75",
+        "snap_before": {
+          "total": 65991,
+          "total_rpp5": 65991,
+          "rpp5_len": 5,
+          "ultimo_id": 72178,
+          "x_request_id": "12a6de80-26c2-4323-b85e-5b92b0e56580"
+        },
+        "snap_after": {
+          "total": 65994,
+          "total_rpp5": 65994,
+          "rpp5_len": 5,
+          "ultimo_id": 72181,
+          "x_request_id": "bd7115ed-bbec-4d3f-a0e1-46f6218d2e31"
+        },
+        "eventos": [
+          {
+            "id_auditoria_suministro": 72179,
+            "tipo_operacion": "INSERT",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          },
+          {
+            "id_auditoria_suministro": 72180,
+            "tipo_operacion": "CICLO_CONSOLIDADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          },
+          {
+            "id_auditoria_suministro": 72181,
+            "tipo_operacion": "REPORTE_COSTOS_GENERADO",
+            "resultado": "EXITOSO",
+            "clasificacion_registro": "NIC41",
+            "retencion_aplicable": "5 años",
+            "registro_incompleto": false,
+            "detalle_causa": null
+          }
+        ]
+      }
+    },
+    "paso_3h": {
+      "rf81_filtros_invalidos": {
+        "status_code": 422,
+        "x_request_id": "d8ec01a2-9ab4-47fa-ade6-4565bd96f1d1",
+        "body": {
+          "error_code": "COMBINACION_FILTROS_INVALIDA",
+          "message": "Combinación de filtros inválida: fecha_fin_filtro (2026-11-06) es anterior a fecha_inicio_filtro (2026-11-11).",
+          "fields": [
+            {
+              "field": "fecha_fin_filtro",
+              "message": "Combinación de filtros inválida: fecha_fin_filtro (2026-11-06) es anterior a fecha_inicio_filtro (2026-11-11)."
+            }
+          ],
+          "timestamp": "2026-11-12T01:31:33.887309+00:00"
+        },
+        "nuevos_eventos_count": 0
+      },
+      "rf81_activo_inexistente": {
+        "status_code": 404,
+        "x_request_id": "450921f1-9b33-4987-8644-1ac92eaf3cec",
+        "body": {
+          "error_code": "ACTIVO_NO_ENCONTRADO",
+          "message": "El activo biológico 999999999 no existe.",
+          "fields": [
+            {
+              "field": "id_activo_biologico",
+              "message": "El activo biológico 999999999 no existe."
+            }
+          ],
+          "timestamp": "2026-11-12T01:31:34.694907+00:00"
+        },
+        "nuevos_eventos_count": 0
+      },
+      "rf79_ciclo_activo": {
+        "status_code": 409,
+        "x_request_id": "fd974719-17b7-4570-804b-3509561c8a28",
+        "body": {
+          "error_code": "CICLO_ACTIVO",
+          "message": "El ciclo 832 está activo. El reporte consolidado solo está disponible tras el cierre del ciclo productivo.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:35.580912+00:00"
+        },
+        "nuevos_eventos_count": 0
+      },
+      "rf79_provision_inexistente": {
+        "status_code": 404,
+        "x_request_id": "73d0cafe-f08c-454e-943a-ea387dfc04d9",
+        "body": {
+          "error_code": "PROVISION_NO_ENCONTRADA",
+          "message": "El reporte de provisión 999999999 no existe.",
+          "fields": [],
+          "timestamp": "2026-11-12T01:31:38.089583+00:00"
+        },
+        "nuevos_eventos_count": 0
+      }
+    },
+    "teardown": {
+      "run_id": "tc-m05-g37-f1-main-1326a80f",
+      "status_code": 200,
+      "x_request_id": "6fc4ccbb-69b8-47d9-ae67-ccd7fee7a8e6",
+      "body": {
+        "status": "Rollback exitoso"
+      }
+    }
+  },
+  "inofin": {
+    "run_id": "tc-m05-g37-inofin-29afcce2",
+    "login": {
+      "status_code": 200,
+      "x_request_id": "c98bdd87-9cf9-449a-8c2c-53d16193109c"
+    },
+    "snapshot": {
+      "total": 65983,
+      "total_rpp5": 65983,
+      "rpp5_len": 5,
+      "ultimo_id": 72166,
+      "x_request_id": "fba9c572-b62c-4d9e-8b40-26dad8e9e5f4"
+    },
+    "checks_404": {
+      "activo": {
+        "status_code": 404,
+        "x_request_id": "c4a05bf1-139c-4725-9263-f6ec1bf84a2e"
+      },
+      "acumulado": {
+        "status_code": 404,
+        "x_request_id": "bd6ee2ed-3100-4ed3-a0eb-cad71a9a6123"
+      },
+      "historial": {
+        "status_code": 404,
+        "x_request_id": "26323633-eba5-4808-afc5-893dec92ffec"
+      },
+      "provision": {
+        "status_code": 404,
+        "x_request_id": "150b74a0-6301-4207-92b7-ceb9c10d6961"
+      }
+    },
+    "teardown": {
+      "run_id": "tc-m05-g37-inofin-29afcce2",
+      "status_code": 200,
+      "x_request_id": "3a1e90a3-f2d8-42e2-bbbe-f698ab640349",
+      "body": {
+        "status": "Rollback exitoso"
+      }
+    }
+  }
+}

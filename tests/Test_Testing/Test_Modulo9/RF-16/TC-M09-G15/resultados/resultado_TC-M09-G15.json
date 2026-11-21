@@ -1,0 +1,28 @@
+{
+  "tc": "TC-M09-G15",
+  "titulo": "Integridad de desactivación de parámetros en uso: etapas, patologías y métricas (RF-16)",
+  "rf": "RF-16",
+  "fecha": "2026-09-08",
+  "corrida": "V1",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M09-36: Impedir desactivación de etapa con activos biológicos asociados (PATCH /configuracion/ciclos/10/desactivar)",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: ETAPA_CON_ACTIVOS",
+      "obtenido": "HTTP 422 Unprocessable Entity, error_code: ETAPA_CON_ACTIVOS",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M09-37: Impedir desactivación de patología con dependencias sanitarias asociadas (PATCH /configuracion/patologias/7/desactivar)",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: PATOLOGIA_CON_DEPENDENCIAS",
+      "obtenido": "HTTP 200 OK. Vulnerabilidad de integridad INC-M09-03: adaptador stub retornaba False incondicionalmente, permitiendo desactivación destructiva de patología en uso",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TC-M09-38: Impedir desactivación de métrica de producción con registros asociados (PATCH /configuracion/metricas/1/desactivar)",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: METRICA_CON_REGISTROS",
+      "obtenido": "HTTP 200 OK. Vulnerabilidad de integridad INC-M09-03: adaptador stub retornaba False incondicionalmente, permitiendo desactivación destructiva de métrica en uso",
+      "estado": "FALLA"
+    }
+  ]
+}

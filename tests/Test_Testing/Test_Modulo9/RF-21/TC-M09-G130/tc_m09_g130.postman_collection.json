@@ -1,0 +1,528 @@
+{
+  "info": {
+    "name": "TC-M09-G130 - RF-21 atributos de vision: rangos e ignorado silencioso",
+    "description": "RF-21 (matriz corregida). Ejecutado en TEST. Rangos de fps (0/1/60/61), area (-1), atributos faltantes en CAMARA (400 esperado) y atributos de vision en SENSOR (201 con nulos). Las aserciones de 400 fallan mientras CAMARA no esté implementado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login adm",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_adm', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "CAMARA sin resolucion -> 400",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-nores-{{run}}\", \"descripcion\": \"QA M09 G130 nores\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 5, \"fps\": 20, \"area_cobertura_m2\": 20}"
+        }
+      }
+    },
+    {
+      "name": "CAMARA sin fps -> 400",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-nofps-{{run}}\", \"descripcion\": \"QA M09 G130 nofps\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 5, \"resolucion\": \"1280x720\", \"area_cobertura_m2\": 20}"
+        }
+      }
+    },
+    {
+      "name": "CAMARA sin area_cobertura_m2 -> 400",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-noarea-{{run}}\", \"descripcion\": \"QA M09 G130 noarea\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 5, \"resolucion\": \"1280x720\", \"fps\": 20}"
+        }
+      }
+    },
+    {
+      "name": "fps 0 -> 400",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-fps0-{{run}}\", \"descripcion\": \"QA M09 G130 fps0\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 5, \"resolucion\": \"1280x720\", \"fps\": 0, \"area_cobertura_m2\": 20}"
+        }
+      }
+    },
+    {
+      "name": "fps 1 -> 201",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-fps1-{{run}}\", \"descripcion\": \"QA M09 G130 fps1\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 5, \"resolucion\": \"1280x720\", \"fps\": 1, \"area_cobertura_m2\": 20}"
+        }
+      }
+    },
+    {
+      "name": "fps 60 -> 201",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-fps60-{{run}}\", \"descripcion\": \"QA M09 G130 fps60\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 5, \"resolucion\": \"1280x720\", \"fps\": 60, \"area_cobertura_m2\": 20}"
+        }
+      }
+    },
+    {
+      "name": "fps 61 -> 400",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-fps61-{{run}}\", \"descripcion\": \"QA M09 G130 fps61\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 5, \"resolucion\": \"1280x720\", \"fps\": 61, \"area_cobertura_m2\": 20}"
+        }
+      }
+    },
+    {
+      "name": "area_cobertura_m2 -1 -> 400",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-areaneg-{{run}}\", \"descripcion\": \"QA M09 G130 areaneg\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 5, \"resolucion\": \"1280x720\", \"fps\": 20, \"area_cobertura_m2\": -1}"
+        }
+      }
+    },
+    {
+      "name": "Atributos de vision en SENSOR -> 201 con atributos nulos",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });",
+              "pm.test(\"atributos de vision nulos en SENSOR\", () => { pm.expect(j.fps).to.be.null; pm.expect(j.resolucion).to.be.null; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G130-sensvis-{{run}}\", \"descripcion\": \"QA M09 G130 sensvis\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3, \"resolucion\": \"640x480\", \"fps\": 30, \"area_cobertura_m2\": 10}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tok_adm",
+      "value": ""
+    }
+  ]
+}

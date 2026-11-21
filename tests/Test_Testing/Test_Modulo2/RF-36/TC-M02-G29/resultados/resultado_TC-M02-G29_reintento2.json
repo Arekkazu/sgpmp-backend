@@ -1,0 +1,40 @@
+{
+  "tc": "TC-M02-G29",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G29-REEVAL-V3-20260919-101500",
+  "veredicto": "Aprobado",
+  "checkpoints": [
+    {
+      "paso": "Autenticación admin",
+      "esperado": "HTTP 200 con JWT válido",
+      "obtenido": "HTTP 200 OK, token emitido correctamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M02-203: Crecimiento registrado + auditoría con tipo_evento CRECIMIENTO + rf_origen RF40",
+      "esperado": "HTTP 201 Created y registro en bitácora RF40 con tipo_evento CRECIMIENTO y resultado EXITOSO",
+      "obtenido": "HTTP 201 Created, registro bitácora id 3038 rf_origen RF40 tipo_evento EVENTO_CRECIMIENTO_REGISTRADO EXITOSO",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M02-204: Baja registrada + auditoría con tipo_evento BAJA + rf_origen RF45",
+      "esperado": "HTTP 201 Created y registro en bitácora RF45 con tipo_evento BAJA y resultado EXITOSO",
+      "obtenido": "HTTP 201 Created, cantidad_actual decrementada, registro bitácora id 3039 rf_origen RF45 tipo_evento BAJA_REGISTRADA EXITOSO",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M02-205: PATCH rechazado 400 + auditoría con resultado FALLIDO",
+      "esperado": "HTTP 400 Bad Request (VAL_ENTRADA) y registro en bitácora con resultado FALLIDO y rf_origen RF36",
+      "obtenido": "HTTP 400 Bad Request VAL_ENTRADA, biomasa_total inalterada, registro bitácora id 3040 rf_origen RF36 tipo_evento VALIDACION_RECHAZADA resultado FALLIDO",
+      "estado": "OK"
+    },
+    {
+      "paso": "Consulta de auditoría general",
+      "esperado": "HTTP 200 OK al consultar endpoint central de auditoría con registros completos",
+      "obtenido": "HTTP 200 OK, historial de auditoría recuperado con hashes de integridad válidos",
+      "estado": "OK"
+    }
+  ]
+}

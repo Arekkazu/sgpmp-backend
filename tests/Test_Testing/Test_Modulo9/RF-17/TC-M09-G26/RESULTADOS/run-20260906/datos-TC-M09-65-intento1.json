@@ -1,0 +1,269 @@
+{
+  "grupo": "TC-M09-G26",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "rol": "Administrador",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T00:27:47.886Z",
+  "preflight": [
+    {
+      "url": "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/login",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+      "status": 200
+    },
+    {
+      "contrato": "POST /configuracion/umbrales",
+      "respuestasDeclaradas": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ]
+    }
+  ],
+  "loginStatus": 200,
+  "plan": {
+    "caso": "TC-M09-65",
+    "variante": "intento1",
+    "catalogoEspecies": {
+      "total": 7,
+      "ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        10,
+        11
+      ],
+      "activas": [
+        4,
+        3,
+        5,
+        10,
+        2
+      ],
+      "inactivas": [
+        11,
+        1
+      ]
+    },
+    "catalogoVariables": {
+      "total": 16,
+      "ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "items": [
+        {
+          "id": 16,
+          "nombre": "Actividad/Movimiento",
+          "unidad": "m/s²",
+          "fisicoMin": 0,
+          "fisicoMax": 200
+        },
+        {
+          "id": 11,
+          "nombre": "Amoniaco (NH3)",
+          "unidad": "ppm",
+          "fisicoMin": 0,
+          "fisicoMax": 500
+        },
+        {
+          "id": 4,
+          "nombre": "Amoniaco total",
+          "unidad": "mg/L",
+          "fisicoMin": 0,
+          "fisicoMax": 10
+        },
+        {
+          "id": 8,
+          "nombre": "Conductividad eléctrica",
+          "unidad": "µS/cm",
+          "fisicoMin": 0,
+          "fisicoMax": 5000
+        },
+        {
+          "id": 12,
+          "nombre": "Dióxido de Carbono (CO2)",
+          "unidad": "ppm",
+          "fisicoMin": 0,
+          "fisicoMax": 100000
+        },
+        {
+          "id": 14,
+          "nombre": "Frecuencia Cardiaca",
+          "unidad": "bpm",
+          "fisicoMin": 0,
+          "fisicoMax": 500
+        },
+        {
+          "id": 15,
+          "nombre": "Frecuencia Respiratoria",
+          "unidad": "rpm",
+          "fisicoMin": 0,
+          "fisicoMax": 200
+        },
+        {
+          "id": 10,
+          "nombre": "Humedad Relativa",
+          "unidad": "%",
+          "fisicoMin": 0,
+          "fisicoMax": 100
+        },
+        {
+          "id": 5,
+          "nombre": "Nitrito",
+          "unidad": "mg/L",
+          "fisicoMin": 0,
+          "fisicoMax": 5
+        },
+        {
+          "id": 3,
+          "nombre": "Oxígeno disuelto",
+          "unidad": "mg/L",
+          "fisicoMin": 0,
+          "fisicoMax": 20
+        },
+        {
+          "id": 2,
+          "nombre": "pH del agua",
+          "unidad": "pH",
+          "fisicoMin": 0,
+          "fisicoMax": 14
+        },
+        {
+          "id": 6,
+          "nombre": "Salinidad",
+          "unidad": "ppt",
+          "fisicoMin": 0,
+          "fisicoMax": 45
+        },
+        {
+          "id": 9,
+          "nombre": "Temperatura Ambiental",
+          "unidad": "°C",
+          "fisicoMin": -50,
+          "fisicoMax": 100
+        },
+        {
+          "id": 13,
+          "nombre": "Temperatura Corporal",
+          "unidad": "°C",
+          "fisicoMin": 30,
+          "fisicoMax": 50
+        },
+        {
+          "id": 1,
+          "nombre": "Temperatura del agua",
+          "unidad": "°C",
+          "fisicoMin": 0,
+          "fisicoMax": 45
+        },
+        {
+          "id": 7,
+          "nombre": "Turbidez",
+          "unidad": "NTU",
+          "fisicoMin": 0,
+          "fisicoMax": 500
+        }
+      ]
+    },
+    "especie": {
+      "id": 4,
+      "nombre": "Cachama Blanca",
+      "es_activo": true
+    },
+    "variable": {
+      "id": 916,
+      "perteneceAlCatalogo": false,
+      "tipoEnviado": "integer"
+    },
+    "evidenciaVariable": {
+      "metodo": "GET /configuracion/variables-ambientales",
+      "totalCatalogo": 16,
+      "idsCatalogo": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "idEnviado": 916,
+      "presenteEnCatalogo": false
+    },
+    "invalidezIntencional": "id_variable_ambiental=916 no pertenece al catalogo predefinido",
+    "umbralesPrevios": [
+      {
+        "id": 10,
+        "id_variable_ambiental": 1,
+        "es_activo": true
+      },
+      {
+        "id": 11,
+        "id_variable_ambiental": 3,
+        "es_activo": true
+      }
+    ],
+    "payload": {
+      "id_especie": 4,
+      "id_variable_ambiental": 916,
+      "valor_min": 10,
+      "valor_max": 40,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": 10,
+          "limite_superior": 20
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": 20,
+          "limite_superior": 30
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": 30,
+          "limite_superior": 40
+        }
+      ]
+    }
+  }
+}

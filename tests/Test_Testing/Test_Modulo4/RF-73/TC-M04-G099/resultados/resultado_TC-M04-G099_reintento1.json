@@ -1,0 +1,30 @@
+{
+  "tc": "TC-M04-G099",
+  "rf": "RF-73",
+  "summary": {
+    "total": 3,
+    "ok": 3,
+    "falla": 0,
+    "veredicto": "APROBADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "test_tc_m04_305a_timestamp_futuro",
+      "esperado": "RF-73 E7 (Caso A): corrección de timestamp futuro (> 60s) a hora servidor y emisión de TIMESTAMP_CORREGIDO (WARNING, motivo=FUTURO)",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_tc_m04_305b_timestamp_desordenado",
+      "esperado": "RF-73 E7 (Caso B): corrección de timestamp desordenado a hora servidor y emisión de TIMESTAMP_CORREGIDO (WARNING, motivo=DESORDENADO)",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_tc_m04_305c_sin_timestamp_evento",
+      "esperado": "RF-73 E7 (Caso C): persistencia con hora del servidor sin TIMESTAMP_CORREGIDO al omitir timestamp_evento",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    }
+  ]
+}

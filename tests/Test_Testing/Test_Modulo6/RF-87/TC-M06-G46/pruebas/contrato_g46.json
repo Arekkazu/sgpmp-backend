@@ -1,0 +1,381 @@
+{
+    "version":  "ORD-G46-001",
+    "fuente":  "CÃ³digo local citado; sin TEST",
+    "error_respuesta":  {
+                            "cuerpo":  {
+                                           "error_code":  "string",
+                                           "message":  "string",
+                                           "fields":  "array",
+                                           "timestamp":  "string"
+                                       },
+                            "cita":  "src/shared/error_handlers.py:40-68"
+                        },
+    "rutas":  [
+                  {
+                      "metodo":  "POST",
+                      "ruta":  "/sesiones/",
+                      "http":  200,
+                      "dto":  "LoginDTO",
+                      "cuerpo":  {
+                                     "correo_electronico":  "string",
+                                     "contrasena":  "string"
+                                 },
+                      "respuesta":  {
+                                        "token":  "string"
+                                    },
+                      "cita":  "src/identity_access/infrastructure/dto/usuario_dto.py:26-30; src/identity_access/infrastructure/routers/sesiones_routers.py:91-140,215-235"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/sesiones/me/permisos",
+                      "http":  200,
+                      "respuesta":  {
+                                        "permisos":  [
+                                                         {
+                                                             "nombre_recurso":  "string",
+                                                             "id_accion":  "integer"
+                                                         }
+                                                     ]
+                                    },
+                      "cita":  "src/identity_access/infrastructure/dto/usuario_dto.py:26-30; src/identity_access/infrastructure/routers/sesiones_routers.py:91-140,215-235"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/periodos",
+                      "http":  200,
+                      "respuesta":  [
+                                        {
+                                            "id_periodo_contable":  "integer",
+                                            "numero_id_tributaria":  "string|null",
+                                            "fecha_inicio":  "date",
+                                            "fecha_cierre":  "datetime|null",
+                                            "estado":  "string",
+                                            "ultimo_cierre":  {
+                                                                  "id_cierre":  "integer|null",
+                                                                  "id_usuario_ejecutor":  "integer|null",
+                                                                  "fecha_fin":  "datetime|null",
+                                                                  "hash_cierre":  "string|null",
+                                                                  "_nullable":  true,
+                                                                  "precios_congelados":  [
+                                                                                             {
+                                                                                                 "id_especie":  "integer",
+                                                                                                 "id_precio_mercado":  "integer",
+                                                                                                 "precio_unitario":  "decimal",
+                                                                                                 "fuente":  "string",
+                                                                                                 "fecha_vigencia":  "date"
+                                                                                             }
+                                                                                         ]
+                                                              },
+                                            "fecha_fin":  "date"
+                                        }
+                                    ],
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:295-299; src/financial_valuation/infrastructure/repositories/periodo_repository.py:19-20,65,68-72,124-130; src/financial_valuation/domain/entities/contabilidad.py:16-23; numero_id_tributaria null observado en RUN-G42-V1-20261109-203716 para periodo ajeno; precios_congelados: src/financial_valuation/infrastructure/repositories/periodo_repository.py:124-130; campos congelados: src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:287-291"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/lineas",
+                      "http":  200,
+                      "respuesta":  [
+                                        {
+                                            "id_linea_asiento_nic41":  "integer",
+                                            "id_activo_biologico":  "integer",
+                                            "estado":  "string",
+                                            "tipo_hecho":  "string",
+                                            "sentido":  "string",
+                                            "id_especie":  "integer|null",
+                                            "subtipo_costo":  "string|null",
+                                            "valor":  "decimal",
+                                            "tipo_evidencia":  "string|null",
+                                            "cuenta_debito":  "string|null",
+                                            "cuenta_credito":  "string|null",
+                                            "numero_id_tributaria":  "string",
+                                            "id_periodo_contable":  "integer",
+                                            "estado_trazabilidad":  "string|null?"
+                                        }
+                                    ],
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:225-230; src/financial_valuation/infrastructure/repositories/asiento_repository.py:18-21,72-83; src/financial_valuation/domain/entities/contabilidad.py:71-97 (cuenta_debito/cuenta_credito Optional[str])"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/periodos/{id}/prevalidacion",
+                      "http":  200,
+                      "respuesta":  {
+                                        "bloqueos":  [
+                                                         {
+                                                             "codigo":  "string",
+                                                             "mensaje":  "string|null?"
+                                                         }
+                                                     ],
+                                        "activos_sin_precio":  [
+                                                                   {
+                                                                       "id_activo_biologico":  "integer",
+                                                                       "identificador":  "string",
+                                                                       "especie":  "string"
+                                                                   }
+                                                               ],
+                                        "lineas_sin_trazabilidad":  [
+                                                                        {
+                                                                            "id_linea":  "integer",
+                                                                            "tipo_hecho":  "string",
+                                                                            "id_activo_biologico":  "integer",
+                                                                            "faltantes":  [
+                                                                                              "string"
+                                                                                          ],
+                                                                            "nivel_fallo":  "string"
+                                                                        }
+                                                                    ],
+                                        "puede_cerrar":  "boolean",
+                                        "requiere_autorizacion":  "boolean"
+                                    },
+                      "cita":  "src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:63-66,93-127; src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:31-42"
+                  },
+                  {
+                      "metodo":  "POST",
+                      "ruta":  "/finanzas/periodos/{id}/cierre",
+                      "http":  200,
+                      "dto":  "CierreDTO",
+                      "cuerpo":  {
+                                     "autorizar_exclusiones":  "boolean",
+                                     "incluir_activos_sin_precio":  "boolean"
+                                 },
+                      "respuesta":  {
+                                        "id_cierre":  "integer",
+                                        "id_periodo_contable":  "integer",
+                                        "periodo":  "string",
+                                        "estado":  "string",
+                                        "activos_procesados":  "integer",
+                                        "activos_excluidos":  [
+                                                                  {
+                                                                      "id_activo_biologico":  "integer",
+                                                                      "identificador":  "string",
+                                                                      "motivo":  "string",
+                                                                      "detalle":  "string|null?"
+                                                                  }
+                                                              ],
+                                        "lineas_excluidas":  [
+                                                                 {
+                                                                     "id_linea":  "integer",
+                                                                     "tipo_hecho":  "string",
+                                                                     "id_activo_biologico":  "integer",
+                                                                     "faltantes":  [
+                                                                                       "string"
+                                                                                   ],
+                                                                     "nivel_fallo":  "string"
+                                                                 }
+                                                             ],
+                                        "comprobantes":  [
+
+                                                         ],
+                                        "hash_cierre":  "string",
+                                        "id_periodo_siguiente":  "integer",
+                                        "reportes":  {
+                                                         "estado_resultados":  "object|string",
+                                                         "informe_revelaciones":  "object|string"
+                                                     }
+                                    },
+                      "cita":  "src/financial_valuation/infrastructure/dto/m06_dto.py:132-134; src/financial_valuation/infrastructure/routers/m06_router.py:312-318; src/financial_valuation/application/use_cases/cierre/ejecutar_cierre_periodo_use_case.py:298-302"
+                  },
+                  {
+                      "metodo":  "DELETE",
+                      "ruta":  "/test-control/runs/{id}",
+                      "http":  200,
+                      "respuesta":  {
+
+                                    },
+                      "cita":  "src/shared/rollback/presentation/test_control_router.py:31-40"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/periodos/{id}/comprobantes",
+                      "http":  200,
+                      "respuesta":  [
+                                        {
+                                            "id_comprobante_nic41":  "integer",
+                                            "codigo":  "string",
+                                            "numero_id_tributaria":  "string",
+                                            "tipo_hecho":  "string",
+                                            "id_especie":  "integer",
+                                            "fecha_comprobante":  "date",
+                                            "lineas":  [
+                                                           {
+                                                               "cuenta_debito":  "string",
+                                                               "cuenta_credito":  "string",
+                                                               "valor":  "decimal"
+                                                           }
+                                                       ],
+                                            "hash_integridad":  "string"
+                                        }
+                                    ],
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:321-325; src/financial_valuation/infrastructure/repositories/periodo_repository.py:116-122"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/periodos/{id}/variaciones",
+                      "http":  200,
+                      "respuesta":  [
+                                        {
+                                            "id_variacion_valor_razonable":  "integer",
+                                            "tipo_evidencia":  "string|null"
+                                        }
+                                    ],
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:241-245; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:309-319"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/costos",
+                      "http":  200,
+                      "respuesta":  [
+                                        {
+                                            "id_registro_costo":  "integer",
+                                            "subtipo_costo":  "string",
+                                            "naturaleza_costo":  "string",
+                                            "monto_costo":  "decimal",
+                                            "fecha_costo":  "date",
+                                            "id_periodo_contable":  "integer",
+                                            "id_activo_biologico":  "integer"
+                                        }
+                                    ],
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:267-273; src/financial_valuation/infrastructure/repositories/costo_repository.py:21-30,110-114"
+                  },
+                  {
+                      "metodo":  "POST",
+                      "ruta":  "/finanzas/costos",
+                      "http":  201,
+                      "dto":  "CostoDTO",
+                      "cuerpo":  {
+                                     "subtipo_costo":  "string",
+                                     "origen_costo":  "string",
+                                     "monto_costo":  "decimal",
+                                     "fecha_costo":  "date",
+                                     "id_activo_biologico":  "integer",
+                                     "naturaleza_costo":  "MANTENIMIENTO",
+                                     "tercero_nit":  "string?",
+                                     "tercero_dv":  "string?",
+                                     "tercero_razon_social":  "string?",
+                                     "factura_numero":  "string?",
+                                     "fecha_factura":  "date?",
+                                     "fecha_vencimiento_factura":  "date?"
+                                 },
+                      "respuesta":  {
+                                        "registros":  [
+                                                          {
+                                                              "id_registro_costo":  "integer"
+                                                          }
+                                                      ]
+                                    },
+                      "cita":  "src/financial_valuation/infrastructure/dto/m06_dto.py:103-124; src/financial_valuation/application/use_cases/costos/registrar_costo_use_case.py:74-130; src/financial_valuation/infrastructure/routers/m06_router.py:277-281"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/activos/{id}",
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:196-203; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:30-34,178-183,273-293; src/financial_valuation/domain/entities/activo_financiero.py:17-37",
+                      "respuesta":  {
+                                        "activo":  {
+                                                       "id_activo_biologico":  "integer",
+                                                       "estado":  "string",
+                                                       "id_finca":  "integer"
+                                                   },
+                                        "reconocimientos":  [
+                                                                {
+                                                                    "id_reconocimiento_inicial":  "integer",
+                                                                    "id_activo_biologico":  "integer",
+                                                                    "estado":  "string",
+                                                                    "id_periodo_contable":  "integer",
+                                                                    "fecha_reversion":  "datetime|null",
+                                                                    "justificacion_reversion":  "string|null"
+                                                                }
+                                                            ],
+                                        "calculos":  [
+
+                                                     ],
+                                        "mediciones":  [
+
+                                                       ],
+                                        "productos":  [
+
+                                                      ],
+                                        "valoracion_costo":  {
+                                                                 "id_valoracion_por_costo": "integer",
+                                                                 "es_activa": "boolean",
+                                                                 "vida_util_meses": "integer",
+                                                                 "depreciacion_acumulada": "decimal",
+                                                                 "valor_contable_por_costo": "decimal",
+                                                                 "_nullable": true
+                                                             },
+                                        "lineas":  [
+
+                                                   ]
+                                    }
+                  },
+                  {
+                      "metodo":  "POST",
+                      "ruta":  "/finanzas/reconocimientos/{id}/reversion",
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:177-182",
+                      "respuesta":  {
+
+                                    }
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/openapi.json",
+                      "cita":  "OpenAPI p?blica de TEST; lectura complementaria aprobada en ORD-G45-001",
+                      "respuesta":  {
+
+                                    }
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/docs/openapi.json",
+                      "cita":  "OpenAPI p?blica de TEST; fallback 404 aprobado en ORD-G45-001",
+                      "respuesta":  {
+
+                                    }
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/auditoria",
+                      "http":  200,
+                      "respuesta":  {
+                                        "total_registros":  "integer",
+                                        "pagina_actual":  "integer",
+                                        "registros_por_pagina":  "integer",
+                                        "eventos":  [
+                                                        {
+                                                            "id_evento":  "integer",
+                                                            "tipo_evento":  "string",
+                                                            "timestamp_evento":  "datetime",
+                                                            "tipo_actor":  "string",
+                                                            "id_usuario":  "integer|null",
+                                                            "id_periodo_contable":  "integer|null",
+                                                            "id_referencia":  "integer|null",
+                                                            "payload_evento":  {
+
+                                                                               },
+                                                            "hash_integridad":  "string|null",
+                                                            "payload_truncado":  "boolean"
+                                                        }
+                                                    ]
+                                    },
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:498-508; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-77"
+                  },
+                  {
+                      "metodo":  "GET",
+                      "ruta":  "/finanzas/configuracion",
+                      "http":  200,
+                      "respuesta":  {
+                                        "matriz":  [
+                                                       {
+                                                           "id_asignacion_cuenta_contable":  "integer",
+                                                           "tipo_hecho":  "string",
+                                                           "sentido":  "string",
+                                                           "id_especie":  "integer|null",
+                                                           "subtipo_costo":  "string|null",
+                                                           "cuenta_debito":  "string",
+                                                           "cuenta_credito":  "string"
+                                                       }
+                                                   ]
+                                    },
+                      "cita":  "src/financial_valuation/infrastructure/routers/m06_router.py:79-85; src/financial_valuation/infrastructure/repositories/configuracion_contable_repository.py:103-108"
+                  }
+              ]
+}

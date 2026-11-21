@@ -1,11 +1,28 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
+# | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
+# | 2026-10-29 | Arekkazu     | RLS modulo4 RF-69/71: el registro interno actúa como usuario de servicio |
+# | 2026-10-29 | Arekkazu     | INC-M04-214 RF-69: campos obligatorios ausentes responden 422 |
+# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU09 H-04 RF-73: consultar versiones no deja evento |
+# | 2026-10-31 | Arekkazu     | RF-71: estado de datos para reentrenar los modelos individuales |
+# | 2026-10-31 | Arekkazu     | RF-71/RF-73: solicitar el reentrenamiento (evento de auditoría) |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
+# | 2026-11-03 | Arekkazu     | QA-M04 RF-69: la versión trae el identificador del animal además del id |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
   POST  /prediccion/modelos                     — Registro interno desde RF-71 (multipart/form-data)
   GET   /prediccion/modelos                     — Listar versiones (filtros: tipo_modelo, estado)
+  GET   /prediccion/modelos/reentrenamiento     — Datos nuevos para reentrenar (RF-71)
+  POST  /prediccion/modelos/reentrenamiento/solicitudes — Solicitar reentrenamiento (RF-71/RF-73); por animal abre un proceso (AJF-14)
+  GET   /prediccion/modelos/reentrenamiento/procesos — Procesos de reentrenamiento con fases (AJF-14)
+  GET   /prediccion/modelos/reentrenamiento/procesos/{id} — Un proceso (AJF-14)
   GET   /prediccion/modelos/{id_version}        — Obtener versión por id
   PATCH /prediccion/modelos/{id_version}/notas  — Registrar notas de validación clínica
-  POST  /prediccion/modelos/{id_version}/activar — Activar versión APROBADA (atómico)
+  POST  /prediccion/modelos/{id_version}/activar — Activar versión APROBADA o en SOMBRA (atómico)
+  POST  /prediccion/modelos/{id_version}/sombra  — Poner en SOMBRA una versión APROBADA (RFC-010)
 
 Autorización RBAC:
   recurso version_modelo = id_recurso 43
@@ -15,23 +32,54 @@ Autorización RBAC:
 from __future__ import annotations
 
 from typing import Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Response
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.prediction.application.use_cases.versiones_modelo.activar_version_modelo_use_case import ActivarVersionModeloUseCase
+from src.prediction.application.use_cases.versiones_modelo.consultar_estado_reentrenamiento_use_case import (
+    ConsultarEstadoReentrenamientoUseCase,
+)
 from src.prediction.application.use_cases.versiones_modelo.consultar_versiones_use_case import ConsultarVersionesUseCase
+from src.prediction.application.use_cases.versiones_modelo.solicitar_reentrenamiento_use_case import (
+    SolicitarReentrenamientoUseCase,
+)
 from src.prediction.application.use_cases.versiones_modelo.registrar_notas_version_use_case import RegistrarNotasVersionUseCase
 from src.prediction.application.use_cases.versiones_modelo.registrar_version_modelo_use_case import RegistrarVersionModeloUseCase
+from src.prediction.infrastructure.adapters.aviso_version_modelo_email_adapter import AvisoVersionModeloEmailAdapter
 from src.prediction.infrastructure.adapters.variable_i3p1_m09_adapter import VariableI3P1M09Adapter
 from src.prediction.infrastructure.dto.registrar_notas_version_dto import RegistrarNotasVersionDTO
+from src.prediction.infrastructure.dto.solicitar_reentrenamiento_dto import SolicitarReentrenamientoDTO
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+from src.prediction.infrastructure.repositories.retroalimentacion_clinica_repository import (
+    SqlAlchemyRetroalimentacionClinicaRepository,
+)
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
 from src.prediction.infrastructure.repositories.version_modelo_repository import SqlAlchemyVersionModeloRepository
+from src.prediction.infrastructure.schema.estado_reentrenamiento_schema import (
+    EstadoReentrenamientoResponse,
+    SolicitudReentrenamientoResponse,
+)
 from src.prediction.infrastructure.schema.version_modelo_schema import VersionModeloListResponse, VersionModeloResponse
-from src.shared.database import get_db
+from src.shared.database import get_db, get_db_sistema, sesion_sistema
+from src.shared.fechas import FechaHoraUtc
 from src.shared.rbac import require_permission
+from src.prediction.application.use_cases.reentrenamiento.consultar_procesos_reentrenamiento_use_case import (
+    ConsultarProcesosReentrenamientoUseCase,
+)
+from src.prediction.application.use_cases.reentrenamiento.solicitar_reentrenamiento_animal_use_case import (
+    SolicitarReentrenamientoAnimalUseCase,
+)
+from src.prediction.infrastructure.repositories.proceso_reentrenamiento_repository import (
+    SqlAlchemyProcesoReentrenamientoRepository,
+)
+from src.prediction.infrastructure.schema.proceso_reentrenamiento_schema import (
+    ListaProcesosReentrenamientoResponse, ProcesoReentrenamientoResponse,
+)
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/prediccion/modelos", tags=["Predicción M04 - Versiones de Modelos IA"])
@@ -39,21 +87,40 @@ router = APIRouter(prefix="/prediccion/modelos", tags=["Predicción M04 - Versio
 _RECURSO = 43  # modulo1.recursos: 'version_modelo'
 
 
+def _respuestas(db: Session, entidades) -> list[VersionModeloResponse]:
+    """Lectura simple del identificador del animal de cada versión INDIVIDUAL."""
+    respuestas = [VersionModeloResponse.from_entity(e) for e in entidades]
+    ids = list({r.id_activo_biologico for r in respuestas if r.id_activo_biologico is not None})
+    if ids:
+        nombres = dict(db.execute(
+            text("SELECT id_activo_biologico, identificador FROM modulo2.activos_biologicos "
+                 "WHERE id_activo_biologico = ANY(:ids)"),
+            {"ids": ids},
+        ).all())
+        for r in respuestas:
+            r.identificador_activo = nombres.get(r.id_activo_biologico)
+    return respuestas
+
+
 @router.post(
     "",
     response_model=VersionModeloResponse,
     status_code=201,
     responses={
+        200: {"model": VersionModeloResponse, "description": "Versión registrada con estado RECHAZADO (RF-69 E3)"},
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
     summary="Registrar nueva versión de modelo IA desde RF-71 (RF-69 — solo interno)",
+    openapi_extra={"x-codigo-validacion": 422},
 )
 async def registrar_version_modelo(
+    response: Response,
     x_rf71_internal_key: Optional[str] = Header(None, alias="X-RF71-Internal-Key"),
-    db: Session = Depends(get_db),
+    # Sin JWT: con la RLS de modulo4 (FORCE) el INSERT solo pasa como usuario de servicio.
+    db: Session = Depends(get_db_sistema),
     dto: RegistrarVersionModeloDTO = Depends(),
 ) -> VersionModeloResponse:
     use_case = RegistrarVersionModeloUseCase(
@@ -61,9 +128,13 @@ async def registrar_version_modelo(
         repo=SqlAlchemyVersionModeloRepository(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
         variable_port=VariableI3P1M09Adapter(db),
+        aviso_port=AvisoVersionModeloEmailAdapter(db),
     )
     entidad = use_case.execute(dto, internal_key=x_rf71_internal_key)
-    return VersionModeloResponse.from_entity(entidad)
+    # RF-69 E3 (DEV-34): la versión se registra igual, pero RECHAZADO por métricas responde 200.
+    if entidad.estado_version == "RECHAZADO":
+        response.status_code = 200
+    return _respuestas(db, [entidad])[0]
 
 
 @router.get(
@@ -82,24 +153,132 @@ def listar_versiones(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VersionModeloListResponse:
-    use_case = ConsultarVersionesUseCase(
-        repo=SqlAlchemyVersionModeloRepository(db),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-        db=db,
-    )
+    use_case = ConsultarVersionesUseCase(repo=SqlAlchemyVersionModeloRepository(db))
     items, total = use_case.listar(
         tipo_modelo=tipo_modelo,
         estado=estado,
         limit=limit,
         offset=offset,
-        id_usuario=usuario_actual.id_usuario,
     )
     return VersionModeloListResponse(
         total=total,
-        items=[VersionModeloResponse.from_entity(e) for e in items],
+        items=_respuestas(db, items),
     )
+
+
+@router.get(
+    "/reentrenamiento",
+    response_model=list[EstadoReentrenamientoResponse],
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        503: {"model": ErrorResponse, "description": "Mínimo configurado en M09 inválido"},
+    },
+    summary="Datos nuevos para reentrenar los modelos individuales (RF-71)",
+)
+def consultar_estado_reentrenamiento(
+    db: Session = Depends(get_db),
+) -> list[EstadoReentrenamientoResponse]:
+    """Por modelo individual: retroalimentaciones RF-72 desde su última versión y si alcanzan.
+
+    ``INSUFICIENTE`` (por debajo de ``minimo_solicitud``, 200 por defecto) → el front avisa que
+    no hay datos para reentrenar; ``PUEDE_SOLICITARSE`` → ya se puede pedir; ``LISTO`` → cumple
+    la precondición de RF-71 (``minimo_reentrenamiento``, 500). Cuenta bajo la RLS del usuario:
+    el Administrador ve todas las fincas.
+    """
+    return [EstadoReentrenamientoResponse.from_entity(e) for e in _estado_reentrenamiento(db).execute()]
+
+
+def _estado_reentrenamiento(db: Session) -> ConsultarEstadoReentrenamientoUseCase:
+    return ConsultarEstadoReentrenamientoUseCase(
+        retroalimentacion_repo=SqlAlchemyRetroalimentacionClinicaRepository(db),
+        parametros_port=SqlAlchemyParametrosMLOpsRepository(db),
+    )
+
+
+@router.post(
+    "/reentrenamiento/solicitudes",
+    response_model=SolicitudReentrenamientoResponse,
+    status_code=201,
+    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    responses={
+        400: {"model": ErrorResponse, "description": "tipo_modelo no es un modelo individual"},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse, "description": "ACTIVO_NO_ENCONTRADO (por animal)"},
+        409: {"model": ErrorResponse, "description": "REENTRENAMIENTO_EN_CURSO: el animal ya tiene un proceso abierto"},
+        422: {"model": ErrorResponse, "description": "DATOS_INSUFICIENTES_REENTRENAMIENTO o LECTURAS_INSUFICIENTES"},
+    },
+    summary="Solicitar el reentrenamiento de un modelo individual (RF-71, queda en la bitácora RF-73)",
+)
+def solicitar_reentrenamiento(
+    dto: SolicitarReentrenamientoDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> SolicitudReentrenamientoResponse:
+    """No ejecuta RF-71: registra ``REENTRENAMIENTO_SOLICITADO`` con el solicitante y los datos
+    nuevos. Solo desde ``minimo_solicitud`` (200 por defecto)."""
+    use_case = SolicitarReentrenamientoUseCase(
+        db=db, estado_use_case=_estado_reentrenamiento(db),
+        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+    )
+    if dto.id_activo_biologico is not None:
+        # AJF-14 BE-1: por animal abre el proceso que ejecuta el motor de IA.
+        # Los días de lecturas se cuentan con una sesión de sistema aparte (no la del usuario: la
+        # RLS de telemetrias depende de permisos de monitoreo que quien reentrena puede no tener).
+        db_sistema = sesion_sistema()
+        try:
+            estado, id_evento, proceso = SolicitarReentrenamientoAnimalUseCase(
+                db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+                estado_use_case=_estado_reentrenamiento(db), auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+                lecturas=SqlAlchemyProcesoReentrenamientoRepository(db_sistema),
+            ).execute(id_activo_biologico=dto.id_activo_biologico, motivo=dto.motivo, id_usuario=usuario_actual.id_usuario)
+        finally:
+            db_sistema.close()
+        return SolicitudReentrenamientoResponse(
+            id_evento=id_evento, estado=EstadoReentrenamientoResponse.from_entity(estado),
+            id_proceso_reentrenamiento=proceso.id_proceso_reentrenamiento)
+    estado, id_evento = use_case.execute(dto.tipo_modelo, dto.motivo, usuario_actual.id_usuario)
+    return SolicitudReentrenamientoResponse(id_evento=id_evento, estado=EstadoReentrenamientoResponse.from_entity(estado))
+
+
+@router.get(
+    "/reentrenamiento/procesos",
+    response_model=ListaProcesosReentrenamientoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="Procesos de reentrenamiento con sus fases (RF-71)",
+)
+def listar_procesos_reentrenamiento(
+    tipo_modelo: Optional[str] = Query(None),
+    id_activo_biologico: Optional[int] = Query(None, gt=0),
+    estado: Optional[str] = Query(None, description="PENDIENTE | EN_CURSO | COMPLETADO | FALLIDO | INTERRUMPIDO | CANCELADO"),
+    desde: Optional[FechaHoraUtc] = Query(None),
+    hasta: Optional[FechaHoraUtc] = Query(None),
+    pagina: int = Query(1),
+    por_pagina: int = Query(20),
+    db: Session = Depends(get_db),
+) -> ListaProcesosReentrenamientoResponse:
+    """AJF-14 BE-4: lo que ve la pantalla de Reentrenamiento. La RLS limita a los animales de las fincas del usuario."""
+    items, total = ConsultarProcesosReentrenamientoUseCase(SqlAlchemyProcesoReentrenamientoRepository(db)).listar(
+        tipo_modelo=tipo_modelo, id_activo_biologico=id_activo_biologico, estado=estado, desde=desde, hasta=hasta,
+        pagina=pagina, por_pagina=por_pagina)
+    return ListaProcesosReentrenamientoResponse(
+        items=[ProcesoReentrenamientoResponse.from_entity(p) for p in items], total=total, pagina=pagina, por_pagina=por_pagina)
+
+
+@router.get(
+    "/reentrenamiento/procesos/{id_proceso}",
+    response_model=ProcesoReentrenamientoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Un proceso de reentrenamiento con sus fases (RF-71)",
+)
+def obtener_proceso_reentrenamiento(id_proceso: UUID, db: Session = Depends(get_db)) -> ProcesoReentrenamientoResponse:
+    return ProcesoReentrenamientoResponse.from_entity(
+        ConsultarProcesosReentrenamientoUseCase(SqlAlchemyProcesoReentrenamientoRepository(db)).obtener(id_proceso))
 
 
 @router.get(
@@ -116,15 +295,10 @@ def listar_versiones(
 def obtener_version(
     id_version: int,
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VersionModeloResponse:
-    use_case = ConsultarVersionesUseCase(
-        repo=SqlAlchemyVersionModeloRepository(db),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-        db=db,
-    )
-    entidad = use_case.obtener_por_id(id_version, id_usuario=usuario_actual.id_usuario)
-    return VersionModeloResponse.from_entity(entidad)
+    use_case = ConsultarVersionesUseCase(repo=SqlAlchemyVersionModeloRepository(db))
+    entidad = use_case.obtener_por_id(id_version)
+    return _respuestas(db, [entidad])[0]
 
 
 @router.patch(
@@ -151,7 +325,7 @@ def registrar_notas(
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
     entidad = use_case.execute(id_version, dto, id_usuario=usuario_actual.id_usuario)
-    return VersionModeloResponse.from_entity(entidad)
+    return _respuestas(db, [entidad])[0]
 
 
 @router.post(
@@ -162,6 +336,7 @@ def registrar_notas(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse, "description": "La versión no está en estado APROBADO (RF-69 E4)"},
         422: {"model": ErrorResponse},
     },
     summary="Activar versión APROBADA de modelo IA (RF-69 Fase 5 — atómico)",
@@ -177,4 +352,37 @@ def activar_version(
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
     entidad = use_case.execute(id_version, id_usuario=usuario_actual.id_usuario)
-    return VersionModeloResponse.from_entity(entidad)
+    return _respuestas(db, [entidad])[0]
+
+
+@router.post(
+    "/{id_version}/sombra",
+    response_model=VersionModeloResponse,
+    # Mismo permiso que activar: decide qué versión corre en el motor.
+    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse, "description": "La versión no está en estado APROBADO"},
+        422: {"model": ErrorResponse},
+    },
+    summary="Poner en SOMBRA una versión APROBADA de modelo IA (RFC-010 — atómico)",
+)
+def poner_en_sombra_version(
+    id_version: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> VersionModeloResponse:
+    """La versión corre en el motor y registra resultados, pero no genera alertas.
+
+    Una versión SOMBRA por llave (tipo_modelo, componente, id_activo_biologico): la anterior
+    pasa a DEPRECADO. Después se puede promover con ``/activar`` (salvo fuente SINTETICA).
+    """
+    use_case = ActivarVersionModeloUseCase(
+        db=db,
+        repo=SqlAlchemyVersionModeloRepository(db),
+        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+    )
+    entidad = use_case.execute(id_version, id_usuario=usuario_actual.id_usuario, en_sombra=True)
+    return _respuestas(db, [entidad])[0]

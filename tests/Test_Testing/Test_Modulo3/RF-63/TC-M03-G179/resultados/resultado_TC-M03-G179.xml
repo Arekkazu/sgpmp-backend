@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M03-G179 - Clasificación NIC41 vs TECNICO Auditoría IoT (RF-63)" tests="16" time="4.231">
+  <testsuite name="00-Setup-Autenticacion / 00-Login-ADMIN" id="a46739a3-4c62-442e-84fb-f33198078a7f" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.879">
+    <testcase name="Status 200 - Login exitoso de ADMIN" time="0.879" classname="00SetupAutenticacion00LoginAdmin"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-342-Filtro-Clasificacion / 08-TC-M03-342-Filtro-NIC41-Retencion-5" id="b5e7f10e-95c1-4ab2-8c23-8a13ce0ea260" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.428">
+    <testcase name="Tipo clasificacion_registro=NIC41 es NIC41 con retencion 5" time="0.428" classname="03TcM03342FiltroClasificacion08TcM03342FiltroNic41Retencion5"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-342-Filtro-Clasificacion / 09-TC-M03-342-Filtro-TECNICO-Retencion-1" id="28a005ad-89ce-4c2a-ab1a-876f271e3cc4" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.377">
+    <testcase name="Tipo clasificacion_registro=TECNICO es TECNICO con retencion 1" time="0.377" classname="03TcM03342FiltroClasificacion09TcM03342FiltroTecnicoRetencion1"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-342-Filtro-Clasificacion / 10-TC-M03-342-Evento-Ambiguo-E8-RESTAURAR" id="ed318724-272c-4a65-9834-19b0e59c87a8" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="1" errors="0" time="0.317">
+    <testcase name="E8 - Evento ambiguo (registro_incompleto=true) => NIC41" time="0.317" classname="03TcM03342FiltroClasificacion10TcM03342EventoAmbiguoE8Restaurar">
+      <failure type="AssertionFailure" message="Sin eventos ambiguos en la muestra de 10. El endpoint no expone query param registro_incompleto. INC: no hay forma publica de verificar E8.: expected +0 to be at least 1">
+        <![CDATA[Failed 1 times.]]>
+        <![CDATA[Collection JSON ID: tc-m03-g179-clasificacion-nic41-v1.]]>
+        <![CDATA[Collection name: TC-M03-G179 - Clasificación NIC41 vs TECNICO Auditoría IoT (RF-63).]]>
+        <![CDATA[Request name: 03-TC-M03-342-Filtro-Clasificacion / 10-TC-M03-342-Evento-Ambiguo-E8-RESTAURAR.]]>
+        <![CDATA[Test description: E8 - Evento ambiguo (registro_incompleto=true) => NIC41.]]>
+        <![CDATA[Error message: Sin eventos ambiguos en la muestra de 10. El endpoint no expone query param registro_incompleto. INC: no hay forma publica de verificar E8.: expected +0 to be at least 1.]]>
+        <![CDATA[Stacktrace: AssertionError: Sin eventos ambiguos en la muestra de 10. El endpoint no expone query param registro_incompleto. INC: no hay forma publica de verificar E8.: expected +0 to be at least 1
+   at Object.eval sandbox-script.js:1:4).]]>
+      </failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 11-TC-M03-344-RF62-EVALUACION_CALIDAD_COMPLETADA" id="2af2b306-c16b-4fb1-a358-cf370044d062" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.314">
+    <testcase name="Tipo EVALUACION_CALIDAD_COMPLETADA es NIC41 con retencion 5" time="0.314" classname="04TcM03344PositivosNic4111TcM03344Rf62EvaluacionCalidadCompletada"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 12-TC-M03-344-RF62-REEVALUACION_CALIDAD_SOLICITADA" id="2fd89503-910d-472f-89c2-3cb21b855cd4" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.156">
+    <testcase name="Tipo REEVALUACION_CALIDAD_SOLICITADA es NIC41 con retencion 5" time="0.156" classname="04TcM03344PositivosNic4112TcM03344Rf62ReevaluacionCalidadSolicitada"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 13-TC-M03-344-RF56-PAQUETE_INFERENCIA_GENERADO-RESTAURAR" id="55576eb4-b60f-411d-8651-87ee7c147a06" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="1" errors="0" time="0.175">
+    <testcase name="RF-56 PAQUETE_INFERENCIA_GENERADO existe y es NIC41 ret 5" time="0.175" classname="04TcM03344PositivosNic4113TcM03344Rf56PaqueteInferenciaGeneradoRestaurar">
+      <failure type="AssertionFailure" message="0 eventos de PAQUETE_INFERENCIA_GENERADO en BD. Backend no emite este tipo de auditoria.: expected +0 to be at least 1">
+        <![CDATA[Failed 1 times.]]>
+        <![CDATA[Collection JSON ID: tc-m03-g179-clasificacion-nic41-v1.]]>
+        <![CDATA[Collection name: TC-M03-G179 - Clasificación NIC41 vs TECNICO Auditoría IoT (RF-63).]]>
+        <![CDATA[Request name: 04-TC-M03-344-Positivos-NIC41 / 13-TC-M03-344-RF56-PAQUETE_INFERENCIA_GENERADO-RESTAURAR.]]>
+        <![CDATA[Test description: RF-56 PAQUETE_INFERENCIA_GENERADO existe y es NIC41 ret 5.]]>
+        <![CDATA[Error message: 0 eventos de PAQUETE_INFERENCIA_GENERADO en BD. Backend no emite este tipo de auditoria.: expected +0 to be at least 1.]]>
+        <![CDATA[Stacktrace: AssertionError: 0 eventos de PAQUETE_INFERENCIA_GENERADO en BD. Backend no emite este tipo de auditoria.: expected +0 to be at least 1
+   at Object.eval sandbox-script.js:1:7).]]>
+      </failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 14-TC-M03-344-RF61-VINCULACION_AUTOMATICA-CON-ASSERT" id="e6f2bc4d-557c-499e-832e-c789a6010110" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.206">
+    <testcase name="RF-61 VINCULACION_AUTOMATICA es NIC41 ret 5" time="0.206" classname="04TcM03344PositivosNic4114TcM03344Rf61VinculacionAutomaticaConAssert"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-344-Positivos-NIC41 / 15-TC-M03-344-RF53-TELEMETRIA_VALIDADA-NUEVO" id="e610d425-4496-422f-ad65-286a547bd6a4" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.221">
+    <testcase name="Tipo TELEMETRIA_VALIDADA es NIC41 con retencion 5" time="0.221" classname="04TcM03344PositivosNic4115TcM03344Rf53TelemetriaValidadaNuevo"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 16-TC-M03-345-RF60-TRANSICION_MANTENIMIENTO_MANUAL" id="2167420c-39b8-41b1-8b37-2b88d4c49388" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.114">
+    <testcase name="Tipo TRANSICION_MANTENIMIENTO_MANUAL es TECNICO con retencion 1" time="0.114" classname="05TcM03345NegativosTecnico16TcM03345Rf60TransicionMantenimientoManual"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 17-TC-M03-345-RF54-BUFFER_ACTIVADO-NUEVO" id="0bbf920a-5b9f-42fb-bba2-e8feb7cce404" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.121">
+    <testcase name="Tipo BUFFER_ACTIVADO es TECNICO con retencion 1" time="0.121" classname="05TcM03345NegativosTecnico17TcM03345Rf54BufferActivadoNuevo"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 18-TC-M03-345-RF55-DESVIACION_DETECTADA-NUEVO" id="2e4201f5-b7d1-4652-a951-537f0fcd1ddd" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="1" errors="0" time="0.156">
+    <testcase name="Tipo DESVIACION_DETECTADA es TECNICO con retencion 1" time="0.156" classname="05TcM03345NegativosTecnico18TcM03345Rf55DesviacionDetectadaNuevo">
+      <failure type="AssertionFailure" message="Sin eventos de DESVIACION_DETECTADA en BD: expected +0 to be at least 1">
+        <![CDATA[Failed 1 times.]]>
+        <![CDATA[Collection JSON ID: tc-m03-g179-clasificacion-nic41-v1.]]>
+        <![CDATA[Collection name: TC-M03-G179 - Clasificación NIC41 vs TECNICO Auditoría IoT (RF-63).]]>
+        <![CDATA[Request name: 05-TC-M03-345-Negativos-TECNICO / 18-TC-M03-345-RF55-DESVIACION_DETECTADA-NUEVO.]]>
+        <![CDATA[Test description: Tipo DESVIACION_DETECTADA es TECNICO con retencion 1.]]>
+        <![CDATA[Error message: Sin eventos de DESVIACION_DETECTADA en BD: expected +0 to be at least 1.]]>
+        <![CDATA[Stacktrace: AssertionError: Sin eventos de DESVIACION_DETECTADA en BD: expected +0 to be at least 1
+   at Object.eval sandbox-script.js:1:12).]]>
+      </failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 19-TC-M03-345-RF57-ALERTA_GENERADA-NUEVO" id="b589a805-12e2-44a9-88aa-4ac693a27793" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.169">
+    <testcase name="Tipo ALERTA_GENERADA es TECNICO con retencion 1" time="0.169" classname="05TcM03345NegativosTecnico19TcM03345Rf57AlertaGeneradaNuevo"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 20-TC-M03-345-RF60-DISPOSITIVO_SIN_SENAL-NUEVO" id="dca75439-994c-4efa-84eb-75ebe3eb7dbf" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.127">
+    <testcase name="Tipo DISPOSITIVO_SIN_SEÑAL es TECNICO con retencion 1" time="0.127" classname="05TcM03345NegativosTecnico20TcM03345Rf60DispositivoSinSenalNuevo"/>
+  </testsuite>
+  <testsuite name="05-TC-M03-345-Negativos-TECNICO / 21-TC-M03-345-RF58-RF59-Sonda" id="04d203bc-f8c8-4801-a577-c5eeb7a03d16" timestamp="2026-10-24T22:39:41.701Z" tests="0" failures="0" errors="0" time="0.282"/>
+  <testsuite name="99-Teardown-Rollback / 99-Teardown-Rollback-Sandbox" id="faec7d5e-5347-4f23-ab59-380d0d589a0b" timestamp="2026-10-24T22:39:41.701Z" tests="1" failures="0" errors="0" time="0.189">
+    <testcase name="Status 200 - Rollback exitoso" time="0.189" classname="99TeardownRollback99TeardownRollbackSandbox"/>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,2646 @@
+{
+  "grupo": "G45",
+  "rf": "RF-87 v1.1",
+  "run_id": "RUN-G45-V2-20261113-122125",
+  "version": 2,
+  "autorizacion_referencia": "AUT-G45-V2-R7-20261113",
+  "commit_referencia": "453277e4",
+  "casos": {
+    "TC-M06-031": {
+      "estado": "APROBADO",
+      "motivo": "Criterios conformes",
+      "comprobaciones": [
+        {
+          "id": "031_en_cierre",
+          "esperado": "409 EXCLUSION_REQUIERE_AUTORIZACION, EN_CIERRE y último cierre EN_PROCESO paso 3",
+          "estado": "APROBADO",
+          "observado": "HTTP 409; error EXCLUSION_REQUIERE_AUTORIZACION; estado EN_CIERRE; último cierre {\"id_cierre\":124,\"estado\":\"EN_PROCESO\",\"paso_actual\":3,\"activos_procesados\":0,\"activos_pendientes\":0,\"activos_excluidos\":null,\"precios_congelados\":null,\"error_detalle\":null,\"fecha_inicio\":\"2026-11-13T12:21:27.836101Z\",\"fecha_fin\":null,\"tiempo_ejecucion_ms\":null,\"hash_cierre\":null,\"id_usuario_ejecutor\":5,\"nombre_usuari",
+          "evidencia": "G45-048"
+        },
+        {
+          "id": "031_costo",
+          "esperado": "cualquier 4xx sin cambio de líneas, costos ni variaciones",
+          "estado": "APROBADO",
+          "observado": "HTTP 422; contenido idéntico true",
+          "evidencia": "G45-054"
+        },
+        {
+          "id": "031_m02",
+          "esperado": "evento M02 encolado con timestamp_original y sin efectos en período EN_CIERRE",
+          "estado": "APROBADO",
+          "observado": "crecimiento HTTP 201; error_code ninguno; mensaje ninguno; evento 1949; fecha 2026-11-13; cola ENCOLADO_CIERRE visible; auditoria []; sin medicion propia en pausa true",
+          "evidencia": "G45-066"
+        },
+        {
+          "id": "031_escenario_b",
+          "esperado": "cancelación ABIERTO; registro propio de B en el período actual con fecha original",
+          "estado": "APROBADO",
+          "observado": "cancelación HTTP 200; estado ABIERTO; procesamiento HTTP 200; evidencia [{\"fuente\":\"AUDITORIA\",\"tipo\":\"MEDICION_SIN_VARIACION\",\"id_evento_m02\":1949,\"id_periodo_contable\":266}]; fecha original comprobada con historial M02",
+          "evidencia": "G45-077"
+        },
+        {
+          "id": "031_escenario_a",
+          "esperado": "segunda pausa; evento M02 encolado y procesado en período siguiente nuevo con fecha original",
+          "estado": "APROBADO",
+          "observado": "segunda pausa HTTP 409; cierre HTTP 200; período siguiente 547; nuevo true; procesamiento HTTP 200; exclusion 1644 true; evidencia [{\"fuente\":\"AUDITORIA\",\"tipo\":\"MEDICION_SIN_VARIACION\",\"id_evento_m02\":1950,\"id_periodo_contable\":547}]; efecto siguiente true; efecto en cerrado false; fecha original comprobada con historial M02",
+          "evidencia": "G45-105"
+        }
+      ]
+    },
+    "TC-M06-032": {
+      "estado": "APROBADO",
+      "motivo": "Criterios conformes",
+      "comprobaciones": [
+        {
+          "id": "032_alta_costo",
+          "esperado": "Rechazo por período cerrado (CA-3: 409) y período 7 idéntico",
+          "estado": "APROBADO",
+          "observado": "HTTP 422; error_code PERIODO_CONTABLE_CERRADO; mensaje La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto.; íntegro true",
+          "evidencia": "G45-110"
+        },
+        {
+          "id": "032_eliminar_reconocimiento",
+          "esperado": "HTTP 409 REVERSION_BLOQUEADA y 7 idéntico",
+          "estado": "APROBADO",
+          "observado": "HTTP 409; error REVERSION_BLOQUEADA; íntegro true",
+          "evidencia": "G45-115"
+        },
+        {
+          "id": "032_integridad",
+          "esperado": "7 y 219 idénticos en estado, fecha, líneas, comprobantes y variaciones",
+          "estado": "APROBADO",
+          "observado": "integridad true",
+          "evidencia": "G45-123"
+        }
+      ]
+    },
+    "TC-M06-033": {
+      "estado": "APROBADO",
+      "motivo": "Criterios conformes",
+      "comprobaciones": [
+        {
+          "id": "033_ajuste",
+          "esperado": "201; AJUSTE_PERIODO_ANTERIOR en 260 con referencia 2625, justificación y auditoría",
+          "estado": "APROBADO",
+          "observado": "HTTP 201; período obtenido 260; línea true; auditoría true",
+          "evidencia": "G45-126"
+        },
+        {
+          "id": "033_cerrado_intacto",
+          "esperado": "219 CERRADO con líneas, comprobantes, variaciones y fecha idénticos",
+          "estado": "APROBADO",
+          "observado": "integridad true",
+          "evidencia": "G45-130"
+        }
+      ]
+    }
+  },
+  "preflight": {
+    "grupo": "G45",
+    "run_id": "RUN-G45-V2-20261113-122125",
+    "version": 2,
+    "referencia": "AUT-G45-V2-R7-20261113",
+    "ok": true,
+    "barreras": [],
+    "efectos": [
+      "inicios de sesión Contador y Administrador",
+      "2 POST cierre del período 266, 241 o 220 sin autorizar",
+      "1 POST cancelación del cierre",
+      "1 POST cierre autorizado con exclusiones y posible creación del período siguiente",
+      "2 POST crecimiento M02 por Administrador",
+      "3 POST procesamiento M02/M05 por Contador",
+      "1 POST costo durante EN_CIERRE",
+      "1 POST costo cerrado y 1 POST reversión (rechazos esperados)",
+      "1 POST ajuste de línea 2625",
+      "lecturas API, auditoria y Newman",
+      "DELETE del RUN y lecturas poscierre sin cabeceras"
+    ]
+  },
+  "preflight_datos": [
+    {
+      "requisito": "permiso_cierre_periodo_5",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "permiso_cierre_periodo_2",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "permiso_costos_activos_1",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "permiso_reconocimiento_inicial_4",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "permiso_valoracion_activos_5",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "permiso_valoracion_activos_2",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "permiso_auditoria_financiera_2",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "permiso_administrador_activos_biologicos_1",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "periodo_7_estado",
+      "esperado": "CERRADO",
+      "observado": "CERRADO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_8_estado",
+      "esperado": "EN_CIERRE, cierre 67",
+      "observado": {
+        "estado": "EN_CIERRE",
+        "id_cierre": 67
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_219_estado",
+      "esperado": "CERRADO",
+      "observado": "CERRADO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_260_estado",
+      "esperado": "ABIERTO",
+      "observado": "ABIERTO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_266_estado",
+      "esperado": "ABIERTO sin cierre",
+      "observado": {
+        "estado": "ABIERTO",
+        "ultimo_cierre": null
+      },
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "linea_2625_en_219",
+      "esperado": "REGISTRADA y VERIFICADO",
+      "observado": {
+        "estado": "REGISTRADA",
+        "trazabilidad": "VERIFICADO"
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "activo_944",
+      "esperado": "ACTIVO con reconocimiento en 7",
+      "observado": {
+        "estado": "ACTIVO",
+        "reconocimiento": true
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "activo_949",
+      "esperado": "ACTIVO con reconocimiento 20 en 7",
+      "observado": {
+        "estado": "ACTIVO",
+        "reconocimiento": "CONFIRMADO"
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "periodo_260_sin_ajustes",
+      "esperado": 0,
+      "observado": 0,
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "031_configuracion_especies",
+      "esperado": "categorías por especie",
+      "observado": "HTTP 200; especies 322",
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "031_220_sin_precio_especie_422",
+      "esperado": "activos 1569/1570/1571 sin precio vigente de especie 422",
+      "observado": {
+        "activos_sin_precio": [],
+        "especie_422_sin_precio_vigente": false
+      },
+      "cumple": false,
+      "bloqueante": false
+    },
+    {
+      "requisito": "031_candidato_220",
+      "esperado": "ABIERTO, contiene hoy, sin bloqueos, causa de pausa y activo de la finca accesible; 266 admite ausencia de precio",
+      "observado": {
+        "estado": "ABIERTO",
+        "dentro": true,
+        "bloqueos": 0,
+        "lineas_sin_trazabilidad": 0,
+        "activos_sin_precio": 0,
+        "activo_id": null,
+        "estado_m02": null,
+        "peso": null,
+        "fecha_peso": null,
+        "tipo": null,
+        "cantidad": null
+      },
+      "cumple": false,
+      "bloqueante": false
+    },
+    {
+      "requisito": "031_1644_tipo_cantidad",
+      "esperado": "ficha o activo con tipo POBLACIONAL y cantidad actual positiva",
+      "observado": {
+        "tipo": "POBLACIONAL",
+        "cantidad": 1
+      },
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "031_1644_fase_activa",
+      "esperado": "fase productiva activa si la API la expone",
+      "observado": {
+        "fase_activa": null
+      },
+      "cumple": false,
+      "bloqueante": false
+    },
+    {
+      "requisito": "031_candidato_266",
+      "esperado": "ABIERTO, contiene hoy, sin bloqueos, causa de pausa y activo de la finca accesible; 266 admite ausencia de precio",
+      "observado": {
+        "estado": "ABIERTO",
+        "dentro": true,
+        "bloqueos": 0,
+        "lineas_sin_trazabilidad": 0,
+        "activos_sin_precio": 1,
+        "activo_id": 1644,
+        "estado_m02": "ACTIVO",
+        "peso": null,
+        "fecha_peso": null,
+        "tipo": "POBLACIONAL",
+        "cantidad": 1
+      },
+      "cumple": true,
+      "bloqueante": false
+    }
+  ],
+  "solicitudes": [
+    {
+      "id": "G45-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:25.828Z",
+      "eco": false
+    },
+    {
+      "id": "G45-002",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:27.049Z",
+      "eco": true
+    },
+    {
+      "id": "G45-003",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:27.455Z",
+      "eco": false
+    },
+    {
+      "id": "G45-004",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:27.865Z",
+      "eco": true
+    },
+    {
+      "id": "G45-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:28.133Z",
+      "eco": true
+    },
+    {
+      "id": "G45-006",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:28.320Z",
+      "eco": true
+    },
+    {
+      "id": "G45-007",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:28.478Z",
+      "eco": true
+    },
+    {
+      "id": "G45-008",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:28.658Z",
+      "eco": true
+    },
+    {
+      "id": "G45-009",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:28.934Z",
+      "eco": true
+    },
+    {
+      "id": "G45-010",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:29.089Z",
+      "eco": true
+    },
+    {
+      "id": "G45-011",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:29.242Z",
+      "eco": true
+    },
+    {
+      "id": "G45-012",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:29.401Z",
+      "eco": true
+    },
+    {
+      "id": "G45-013",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:29.548Z",
+      "eco": true
+    },
+    {
+      "id": "G45-014",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:29.697Z",
+      "eco": true
+    },
+    {
+      "id": "G45-015",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:29.918Z",
+      "eco": true
+    },
+    {
+      "id": "G45-016",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:30.070Z",
+      "eco": true
+    },
+    {
+      "id": "G45-017",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:30.208Z",
+      "eco": true
+    },
+    {
+      "id": "G45-018",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:30.368Z",
+      "eco": true
+    },
+    {
+      "id": "G45-019",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:30.525Z",
+      "eco": true
+    },
+    {
+      "id": "G45-020",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:30.667Z",
+      "eco": true
+    },
+    {
+      "id": "G45-021",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:30.807Z",
+      "eco": true
+    },
+    {
+      "id": "G45-022",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:30.952Z",
+      "eco": true
+    },
+    {
+      "id": "G45-023",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:31.109Z",
+      "eco": true
+    },
+    {
+      "id": "G45-024",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:31.332Z",
+      "eco": true
+    },
+    {
+      "id": "G45-025",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:31.468Z",
+      "eco": true
+    },
+    {
+      "id": "G45-026",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:31.620Z",
+      "eco": true
+    },
+    {
+      "id": "G45-027",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:31.777Z",
+      "eco": true
+    },
+    {
+      "id": "G45-028",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:31.922Z",
+      "eco": true
+    },
+    {
+      "id": "G45-029",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:32.062Z",
+      "eco": true
+    },
+    {
+      "id": "G45-030",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/949",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:32.214Z",
+      "eco": true
+    },
+    {
+      "id": "G45-031",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:32.370Z",
+      "eco": true
+    },
+    {
+      "id": "G45-032",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:32.521Z",
+      "eco": true
+    },
+    {
+      "id": "G45-033",
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:32.754Z",
+      "eco": true
+    },
+    {
+      "id": "G45-034",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:33.089Z",
+      "eco": true
+    },
+    {
+      "id": "G45-035",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:33.263Z",
+      "eco": true
+    },
+    {
+      "id": "G45-036",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1644",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:33.423Z",
+      "eco": true
+    },
+    {
+      "id": "G45-037",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1644/ficha-integral",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:33.613Z",
+      "eco": true
+    },
+    {
+      "id": "G45-038",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:33.797Z",
+      "eco": true
+    },
+    {
+      "id": "G45-039",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:34.130Z",
+      "eco": true
+    },
+    {
+      "id": "G45-040",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:34.278Z",
+      "eco": true
+    },
+    {
+      "id": "G45-041",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:34.417Z",
+      "eco": true
+    },
+    {
+      "id": "G45-042",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:34.568Z",
+      "eco": true
+    },
+    {
+      "id": "G45-043",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1644/eventos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:34.717Z",
+      "eco": true
+    },
+    {
+      "id": "G45-044",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/266/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-13T12:21:34.877Z",
+      "eco": true,
+      "error": "EXCLUSION_REQUIERE_AUTORIZACION",
+      "error_contrato": true
+    },
+    {
+      "id": "G45-045",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:35.079Z",
+      "eco": true
+    },
+    {
+      "id": "G45-046",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:35.316Z",
+      "eco": true
+    },
+    {
+      "id": "G45-047",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:35.469Z",
+      "eco": true
+    },
+    {
+      "id": "G45-048",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:35.618Z",
+      "eco": true
+    },
+    {
+      "id": "G45-049",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "http": 422,
+      "hora_utc": "2026-11-13T12:21:35.763Z",
+      "eco": true,
+      "error": "PERIODO_EN_CIERRE",
+      "error_contrato": true
+    },
+    {
+      "id": "G45-050",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:35.916Z",
+      "eco": true
+    },
+    {
+      "id": "G45-051",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:36.234Z",
+      "eco": true
+    },
+    {
+      "id": "G45-052",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:36.379Z",
+      "eco": true
+    },
+    {
+      "id": "G45-053",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:36.516Z",
+      "eco": true
+    },
+    {
+      "id": "G45-054",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:36.664Z",
+      "eco": true
+    },
+    {
+      "id": "G45-055",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/1644/eventos/crecimiento",
+      "http": 201,
+      "hora_utc": "2026-11-13T12:21:36.808Z",
+      "eco": true
+    },
+    {
+      "id": "G45-056",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1644/eventos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:37.024Z",
+      "eco": true
+    },
+    {
+      "id": "G45-057",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:37.188Z",
+      "eco": true
+    },
+    {
+      "id": "G45-058",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:37.354Z",
+      "eco": true
+    },
+    {
+      "id": "G45-059",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:37.510Z",
+      "eco": true
+    },
+    {
+      "id": "G45-060",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:37.738Z",
+      "eco": true
+    },
+    {
+      "id": "G45-061",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:37.894Z",
+      "eco": true
+    },
+    {
+      "id": "G45-062",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:38.047Z",
+      "eco": true
+    },
+    {
+      "id": "G45-063",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:38.200Z",
+      "eco": true
+    },
+    {
+      "id": "G45-064",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:38.356Z",
+      "eco": true
+    },
+    {
+      "id": "G45-065",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:38.520Z",
+      "eco": true
+    },
+    {
+      "id": "G45-066",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:38.664Z",
+      "eco": true
+    },
+    {
+      "id": "G45-067",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/266/cierre/cancelacion",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:38.806Z",
+      "eco": true
+    },
+    {
+      "id": "G45-068",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:39.262Z",
+      "eco": true
+    },
+    {
+      "id": "G45-069",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:39.583Z",
+      "eco": true
+    },
+    {
+      "id": "G45-070",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:39.732Z",
+      "eco": true
+    },
+    {
+      "id": "G45-071",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:39.882Z",
+      "eco": true
+    },
+    {
+      "id": "G45-072",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:40.036Z",
+      "eco": true
+    },
+    {
+      "id": "G45-073",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:40.211Z",
+      "eco": true
+    },
+    {
+      "id": "G45-074",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:40.378Z",
+      "eco": true
+    },
+    {
+      "id": "G45-075",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:40.691Z",
+      "eco": true
+    },
+    {
+      "id": "G45-076",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:40.840Z",
+      "eco": true
+    },
+    {
+      "id": "G45-077",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:40.980Z",
+      "eco": true
+    },
+    {
+      "id": "G45-078",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/266/cierre",
+      "http": 409,
+      "hora_utc": "2026-11-13T12:21:41.130Z",
+      "eco": true,
+      "error": "EXCLUSION_REQUIERE_AUTORIZACION",
+      "error_contrato": true
+    },
+    {
+      "id": "G45-079",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:41.314Z",
+      "eco": true
+    },
+    {
+      "id": "G45-080",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:41.486Z",
+      "eco": true
+    },
+    {
+      "id": "G45-081",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:41.641Z",
+      "eco": true
+    },
+    {
+      "id": "G45-082",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:41.786Z",
+      "eco": true
+    },
+    {
+      "id": "G45-083",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/1644/eventos/crecimiento",
+      "http": 201,
+      "hora_utc": "2026-11-13T12:21:41.924Z",
+      "eco": true
+    },
+    {
+      "id": "G45-084",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1644/eventos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:42.144Z",
+      "eco": true
+    },
+    {
+      "id": "G45-085",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:42.316Z",
+      "eco": true
+    },
+    {
+      "id": "G45-086",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:42.490Z",
+      "eco": true
+    },
+    {
+      "id": "G45-087",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:42.649Z",
+      "eco": true
+    },
+    {
+      "id": "G45-088",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:42.807Z",
+      "eco": true
+    },
+    {
+      "id": "G45-089",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:42.962Z",
+      "eco": true
+    },
+    {
+      "id": "G45-090",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:43.116Z",
+      "eco": true
+    },
+    {
+      "id": "G45-091",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/266/cierre",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:43.267Z",
+      "eco": true
+    },
+    {
+      "id": "G45-092",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:43.537Z",
+      "eco": true
+    },
+    {
+      "id": "G45-093",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:43.847Z",
+      "eco": true
+    },
+    {
+      "id": "G45-094",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:43.997Z",
+      "eco": true
+    },
+    {
+      "id": "G45-095",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:44.139Z",
+      "eco": true
+    },
+    {
+      "id": "G45-096",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:44.291Z",
+      "eco": true
+    },
+    {
+      "id": "G45-097",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:44.457Z",
+      "eco": true
+    },
+    {
+      "id": "G45-098",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:44.626Z",
+      "eco": true
+    },
+    {
+      "id": "G45-099",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:44.936Z",
+      "eco": true
+    },
+    {
+      "id": "G45-100",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:45.088Z",
+      "eco": true
+    },
+    {
+      "id": "G45-101",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:45.234Z",
+      "eco": true
+    },
+    {
+      "id": "G45-102",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:45.387Z",
+      "eco": true
+    },
+    {
+      "id": "G45-103",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:45.696Z",
+      "eco": true
+    },
+    {
+      "id": "G45-104",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/547/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:45.849Z",
+      "eco": true
+    },
+    {
+      "id": "G45-105",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/547/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:45.986Z",
+      "eco": true
+    },
+    {
+      "id": "G45-106",
+      "metodo": "POST",
+      "ruta": "/finanzas/costos",
+      "http": 422,
+      "hora_utc": "2026-11-13T12:21:46.136Z",
+      "eco": true,
+      "error": "PERIODO_CONTABLE_CERRADO",
+      "error_contrato": true
+    },
+    {
+      "id": "G45-107",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:46.282Z",
+      "eco": true
+    },
+    {
+      "id": "G45-108",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:46.443Z",
+      "eco": true
+    },
+    {
+      "id": "G45-109",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:46.812Z",
+      "eco": true
+    },
+    {
+      "id": "G45-110",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:46.961Z",
+      "eco": true
+    },
+    {
+      "id": "G45-111",
+      "metodo": "POST",
+      "ruta": "/finanzas/reconocimientos/949/reversion",
+      "http": 409,
+      "hora_utc": "2026-11-13T12:21:47.170Z",
+      "eco": true,
+      "error": "REVERSION_BLOQUEADA",
+      "error_contrato": true
+    },
+    {
+      "id": "G45-112",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:47.341Z",
+      "eco": true
+    },
+    {
+      "id": "G45-113",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:47.639Z",
+      "eco": true
+    },
+    {
+      "id": "G45-114",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:47.862Z",
+      "eco": true
+    },
+    {
+      "id": "G45-115",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:48.037Z",
+      "eco": true
+    },
+    {
+      "id": "G45-116",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:48.198Z",
+      "eco": true
+    },
+    {
+      "id": "G45-117",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:48.502Z",
+      "eco": true
+    },
+    {
+      "id": "G45-118",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:48.657Z",
+      "eco": true
+    },
+    {
+      "id": "G45-119",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:48.832Z",
+      "eco": true
+    },
+    {
+      "id": "G45-120",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:49.062Z",
+      "eco": true
+    },
+    {
+      "id": "G45-121",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:49.358Z",
+      "eco": true
+    },
+    {
+      "id": "G45-122",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:49.517Z",
+      "eco": true
+    },
+    {
+      "id": "G45-123",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:49.670Z",
+      "eco": true
+    },
+    {
+      "id": "G45-124",
+      "metodo": "POST",
+      "ruta": "/finanzas/lineas-asiento/2625/ajustes",
+      "http": 201,
+      "hora_utc": "2026-11-13T12:21:49.823Z",
+      "eco": true
+    },
+    {
+      "id": "G45-125",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:49.987Z",
+      "eco": true
+    },
+    {
+      "id": "G45-126",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:50.131Z",
+      "eco": true
+    },
+    {
+      "id": "G45-127",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:50.283Z",
+      "eco": true
+    },
+    {
+      "id": "G45-128",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:50.479Z",
+      "eco": true
+    },
+    {
+      "id": "G45-129",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:50.653Z",
+      "eco": true
+    },
+    {
+      "id": "G45-130",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:50.801Z",
+      "eco": true
+    },
+    {
+      "id": "G45-131",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G45-V2-20261113-122125",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:55.842Z",
+      "eco": true
+    },
+    {
+      "id": "G45-132",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:56.246Z",
+      "eco": false
+    },
+    {
+      "id": "G45-133",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:56.741Z",
+      "eco": false
+    },
+    {
+      "id": "G45-134",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:56.973Z",
+      "eco": false
+    },
+    {
+      "id": "G45-135",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/7/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:57.126Z",
+      "eco": false
+    },
+    {
+      "id": "G45-136",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:57.291Z",
+      "eco": false
+    },
+    {
+      "id": "G45-137",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:57.525Z",
+      "eco": false
+    },
+    {
+      "id": "G45-138",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:57.750Z",
+      "eco": false
+    },
+    {
+      "id": "G45-139",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:57.899Z",
+      "eco": false
+    },
+    {
+      "id": "G45-140",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:58.055Z",
+      "eco": false
+    },
+    {
+      "id": "G45-141",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:58.220Z",
+      "eco": false
+    },
+    {
+      "id": "G45-142",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:58.371Z",
+      "eco": false
+    },
+    {
+      "id": "G45-143",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/219/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:58.514Z",
+      "eco": false
+    },
+    {
+      "id": "G45-144",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:58.668Z",
+      "eco": false
+    },
+    {
+      "id": "G45-145",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:58.839Z",
+      "eco": false
+    },
+    {
+      "id": "G45-146",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:59.058Z",
+      "eco": false
+    },
+    {
+      "id": "G45-147",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:59.204Z",
+      "eco": false
+    },
+    {
+      "id": "G45-148",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:59.351Z",
+      "eco": false
+    },
+    {
+      "id": "G45-149",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:59.512Z",
+      "eco": false
+    },
+    {
+      "id": "G45-150",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:59.658Z",
+      "eco": false
+    },
+    {
+      "id": "G45-151",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/260/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:59.806Z",
+      "eco": false
+    },
+    {
+      "id": "G45-152",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:21:59.967Z",
+      "eco": false
+    },
+    {
+      "id": "G45-153",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:00.133Z",
+      "eco": false
+    },
+    {
+      "id": "G45-154",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:00.287Z",
+      "eco": false
+    },
+    {
+      "id": "G45-155",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:00.432Z",
+      "eco": false
+    },
+    {
+      "id": "G45-156",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:00.580Z",
+      "eco": false
+    },
+    {
+      "id": "G45-157",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:00.745Z",
+      "eco": false
+    },
+    {
+      "id": "G45-158",
+      "metodo": "GET",
+      "ruta": "/finanzas/costos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:01.405Z",
+      "eco": false
+    },
+    {
+      "id": "G45-159",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/1644/eventos",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:01.554Z",
+      "eco": false
+    },
+    {
+      "id": "G45-160",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/949",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:01.721Z",
+      "eco": false
+    },
+    {
+      "id": "G45-161",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-13T12:22:01.961Z",
+      "eco": false
+    }
+  ],
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-031",
+      "id": "031_en_cierre",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-031",
+      "id": "031_costo",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-031",
+      "id": "031_m02",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-031",
+      "id": "031_escenario_b",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-031",
+      "id": "031_escenario_a",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-032",
+      "id": "032_alta_costo",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-032",
+      "id": "032_eliminar_reconocimiento",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-032",
+      "id": "032_integridad",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-033",
+      "id": "033_ajuste",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-033",
+      "id": "033_cerrado_intacto",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "incidencias": [],
+  "evidencias": [
+    "newman/newman-G45.html",
+    "newman/newman-G45.json"
+  ],
+  "observaciones": [
+    "032: las rutas públicas de modificación y eliminación histórica de costos y variaciones no están disponibles; se comprueban las escrituras públicas pertinentes y la integridad.",
+    "El vencimiento temporal de precios de la especie 422 y la asignacion temporal de usuarios_fincas fila 3493 se hacen fuera del RUN; el responsable QA revierte ambos al cerrar G45.",
+    "OBS-G45-01 para Desarrollo: CA-3 pide 409; el producto responde HTTP 422 PERIODO_CONTABLE_CERRADO. Mensaje: La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto.."
+  ],
+  "problemas_tecnicos": [],
+  "respuestas": {
+    "crecimientos": [
+      {
+        "solicitud": "G45-055",
+        "http": 201,
+        "cuerpo": {
+          "evento": {
+            "id_eventos": 1949,
+            "id_activo_biologico": 1644,
+            "fecha": "2026-11-13T12:21:36.808000Z",
+            "descripcion": "Pesaje de verificacion G45",
+            "id_usuario": 104,
+            "crecimiento": {
+              "tipo_medicion": "PESO",
+              "valor_medicion": "30.00",
+              "unidad_medida": "kg",
+              "tipo_agregacion": "PROMEDIO",
+              "frecuencia": null,
+              "nuevo_peso_promedio": "30.0000",
+              "cantidad_medida": 1
+            },
+            "baja": null,
+            "sanitario": null,
+            "productivo": null,
+            "reproductivo": null,
+            "ingreso": null
+          },
+          "fase_avanzada": false
+        },
+        "escenario": "B",
+        "cuerpo_enviado": {
+          "tipo_medicion": "PESO",
+          "valor_medicion": "30",
+          "unidad_medida": "kg",
+          "fecha": "2026-11-13T12:21:36.808Z",
+          "descripcion": "Pesaje de verificacion G45",
+          "nuevo_peso_promedio": "30",
+          "cantidad_medida": 1,
+          "tipo_agregacion": "PROMEDIO"
+        }
+      },
+      {
+        "solicitud": "G45-083",
+        "http": 201,
+        "cuerpo": {
+          "evento": {
+            "id_eventos": 1950,
+            "id_activo_biologico": 1644,
+            "fecha": "2026-11-13T12:21:41.924000Z",
+            "descripcion": "Pesaje de verificacion G45",
+            "id_usuario": 104,
+            "crecimiento": {
+              "tipo_medicion": "PESO",
+              "valor_medicion": "35.00",
+              "unidad_medida": "kg",
+              "tipo_agregacion": "PROMEDIO",
+              "frecuencia": null,
+              "nuevo_peso_promedio": "35.0000",
+              "cantidad_medida": 1
+            },
+            "baja": null,
+            "sanitario": null,
+            "productivo": null,
+            "reproductivo": null,
+            "ingreso": null
+          },
+          "fase_avanzada": false
+        },
+        "escenario": "A",
+        "cuerpo_enviado": {
+          "tipo_medicion": "PESO",
+          "valor_medicion": "35",
+          "unidad_medida": "kg",
+          "fecha": "2026-11-13T12:21:41.924Z",
+          "descripcion": "Pesaje de verificacion G45",
+          "nuevo_peso_promedio": "35",
+          "cantidad_medida": 1,
+          "tipo_agregacion": "PROMEDIO"
+        }
+      }
+    ],
+    "procesamientos": [
+      {
+        "solicitud": "G45-057",
+        "http": 200,
+        "cuerpo": {
+          "eventos": {
+            "ENCOLADO_CIERRE": 1
+          },
+          "provisiones_m05": {}
+        },
+        "escenario": "B_en_cierre"
+      },
+      {
+        "solicitud": "G45-072",
+        "http": 200,
+        "cuerpo": {
+          "eventos": {
+            "SIN_EFECTO": 1
+          },
+          "provisiones_m05": {}
+        },
+        "escenario": "B_abierto"
+      },
+      {
+        "solicitud": "G45-085",
+        "http": 200,
+        "cuerpo": {
+          "eventos": {
+            "ENCOLADO_CIERRE": 1
+          },
+          "provisiones_m05": {}
+        },
+        "escenario": "A_en_cierre"
+      },
+      {
+        "solicitud": "G45-096",
+        "http": 200,
+        "cuerpo": {
+          "eventos": {
+            "SIN_EFECTO": 1
+          },
+          "provisiones_m05": {}
+        },
+        "escenario": "A_siguiente"
+      }
+    ],
+    "auditorias": [
+      {
+        "solicitud": "G45-058",
+        "http": 200,
+        "cuerpo": {
+          "total_registros": 1,
+          "pagina_actual": 1,
+          "registros_por_pagina": 500,
+          "resumen_severidad": {
+            "INFO": 1,
+            "WARNING": 0,
+            "ERROR": 0,
+            "CRITICAL": 0
+          },
+          "eventos": [
+            {
+              "id_evento": 13065,
+              "tipo_evento": "RECONOCIMIENTO_INICIAL",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-10T19:53:49.643165Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": 141,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": null,
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 533,
+              "payload_evento": {
+                "lineas": [
+                  3726
+                ],
+                "es_apertura": false,
+                "advertencias": [],
+                "clasificacion": "PRODUCCION",
+                "valor_inicial": "940000.0000",
+                "id_precio_mercado": 492,
+                "origen_financiero": "compra",
+                "indicador_valoracion": "VALOR_RAZONABLE"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "18ee33fed0ff5f3c2351ec63ad45352ce95130c3c5867173f7074960d6786b33",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": "940000.0000",
+              "identificador_activo": "[RESERVADO]"
+            }
+          ]
+        },
+        "escenario": "B_en_cierre",
+        "id_evento": 1949,
+        "pagina": 1
+      },
+      {
+        "solicitud": "G45-073",
+        "http": 200,
+        "cuerpo": {
+          "total_registros": 2,
+          "pagina_actual": 1,
+          "registros_por_pagina": 500,
+          "resumen_severidad": {
+            "INFO": 2,
+            "WARNING": 0,
+            "ERROR": 0,
+            "CRITICAL": 0
+          },
+          "eventos": [
+            {
+              "id_evento": 23703,
+              "tipo_evento": "MEDICION_SIN_VARIACION",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-13T12:21:27.836101Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": null,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": "M06_PROCESO_AUTOMATICO",
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 1949,
+              "payload_evento": {
+                "origen": "EVENTO",
+                "id_evento": 1949,
+                "valor_neto": "940000.0000"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "ebdcf57da72fc22d21f840eabf01ba3685b9c39cf4f39745a99b4ed472d4c360",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": null,
+              "identificador_activo": "[RESERVADO]"
+            },
+            {
+              "id_evento": 13065,
+              "tipo_evento": "RECONOCIMIENTO_INICIAL",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-10T19:53:49.643165Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": 141,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": null,
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 533,
+              "payload_evento": {
+                "lineas": [
+                  3726
+                ],
+                "es_apertura": false,
+                "advertencias": [],
+                "clasificacion": "PRODUCCION",
+                "valor_inicial": "940000.0000",
+                "id_precio_mercado": 492,
+                "origen_financiero": "compra",
+                "indicador_valoracion": "VALOR_RAZONABLE"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "18ee33fed0ff5f3c2351ec63ad45352ce95130c3c5867173f7074960d6786b33",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": "940000.0000",
+              "identificador_activo": "[RESERVADO]"
+            }
+          ]
+        },
+        "escenario": "B_abierto",
+        "id_evento": 1949,
+        "pagina": 1
+      },
+      {
+        "solicitud": "G45-086",
+        "http": 200,
+        "cuerpo": {
+          "total_registros": 2,
+          "pagina_actual": 1,
+          "registros_por_pagina": 500,
+          "resumen_severidad": {
+            "INFO": 2,
+            "WARNING": 0,
+            "ERROR": 0,
+            "CRITICAL": 0
+          },
+          "eventos": [
+            {
+              "id_evento": 23703,
+              "tipo_evento": "MEDICION_SIN_VARIACION",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-13T12:21:27.836101Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": null,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": "M06_PROCESO_AUTOMATICO",
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 1949,
+              "payload_evento": {
+                "origen": "EVENTO",
+                "id_evento": 1949,
+                "valor_neto": "940000.0000"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "ebdcf57da72fc22d21f840eabf01ba3685b9c39cf4f39745a99b4ed472d4c360",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": null,
+              "identificador_activo": "[RESERVADO]"
+            },
+            {
+              "id_evento": 13065,
+              "tipo_evento": "RECONOCIMIENTO_INICIAL",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-10T19:53:49.643165Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": 141,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": null,
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 533,
+              "payload_evento": {
+                "lineas": [
+                  3726
+                ],
+                "es_apertura": false,
+                "advertencias": [],
+                "clasificacion": "PRODUCCION",
+                "valor_inicial": "940000.0000",
+                "id_precio_mercado": 492,
+                "origen_financiero": "compra",
+                "indicador_valoracion": "VALOR_RAZONABLE"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "18ee33fed0ff5f3c2351ec63ad45352ce95130c3c5867173f7074960d6786b33",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": "940000.0000",
+              "identificador_activo": "[RESERVADO]"
+            }
+          ]
+        },
+        "escenario": "A_en_cierre",
+        "id_evento": 1950,
+        "pagina": 1
+      },
+      {
+        "solicitud": "G45-097",
+        "http": 200,
+        "cuerpo": {
+          "total_registros": 4,
+          "pagina_actual": 1,
+          "registros_por_pagina": 500,
+          "resumen_severidad": {
+            "INFO": 4,
+            "WARNING": 0,
+            "ERROR": 0,
+            "CRITICAL": 0
+          },
+          "eventos": [
+            {
+              "id_evento": 23708,
+              "tipo_evento": "MEDICION_SIN_VARIACION",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-13T12:21:27.836101Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": null,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": "M06_PROCESO_AUTOMATICO",
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 547,
+              "id_referencia": 1950,
+              "payload_evento": {
+                "origen": "EVENTO",
+                "id_evento": 1950,
+                "valor_neto": "940000.0000"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "80b02de1b662ca462a2493a8c58746827b5a67436feea9ced18b835364a2783c",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": null,
+              "identificador_activo": "[RESERVADO]"
+            },
+            {
+              "id_evento": 23705,
+              "tipo_evento": "CADENA_TRAZABILIDAD_VERIFICADA",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-13T12:21:27.836101Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": 5,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": null,
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 3726,
+              "payload_evento": {
+                "faltantes": [],
+                "resultado": "CADENA_COMPLETA",
+                "nivel_fallo": null,
+                "tipo_evidencia": "REGISTRO_MANUAL"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "8f12e74c3b4676c83cc6f7d71f4f17d944167f4566c0c9500f277e9dae338287",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": null,
+              "identificador_activo": "[RESERVADO]"
+            },
+            {
+              "id_evento": 23703,
+              "tipo_evento": "MEDICION_SIN_VARIACION",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-13T12:21:27.836101Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": null,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": "M06_PROCESO_AUTOMATICO",
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 1949,
+              "payload_evento": {
+                "origen": "EVENTO",
+                "id_evento": 1949,
+                "valor_neto": "940000.0000"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "ebdcf57da72fc22d21f840eabf01ba3685b9c39cf4f39745a99b4ed472d4c360",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": null,
+              "identificador_activo": "[RESERVADO]"
+            },
+            {
+              "id_evento": 13065,
+              "tipo_evento": "RECONOCIMIENTO_INICIAL",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-10T19:53:49.643165Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": 141,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": null,
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 533,
+              "payload_evento": {
+                "lineas": [
+                  3726
+                ],
+                "es_apertura": false,
+                "advertencias": [],
+                "clasificacion": "PRODUCCION",
+                "valor_inicial": "940000.0000",
+                "id_precio_mercado": 492,
+                "origen_financiero": "compra",
+                "indicador_valoracion": "VALOR_RAZONABLE"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "18ee33fed0ff5f3c2351ec63ad45352ce95130c3c5867173f7074960d6786b33",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": "940000.0000",
+              "identificador_activo": "[RESERVADO]"
+            }
+          ]
+        },
+        "escenario": "A_siguiente",
+        "id_evento": 1950,
+        "pagina": 1
+      }
+    ],
+    "evidencias_medicion": [
+      {
+        "escenario": "B_en_cierre",
+        "id_evento": 1949,
+        "registros": []
+      },
+      {
+        "escenario": "B_abierto",
+        "id_evento": 1949,
+        "registros": [
+          {
+            "fuente": "AUDITORIA",
+            "registro": {
+              "id_evento": 23703,
+              "tipo_evento": "MEDICION_SIN_VARIACION",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-13T12:21:27.836101Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": null,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": "M06_PROCESO_AUTOMATICO",
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 266,
+              "id_referencia": 1949,
+              "payload_evento": {
+                "origen": "EVENTO",
+                "id_evento": 1949,
+                "valor_neto": "940000.0000"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "ebdcf57da72fc22d21f840eabf01ba3685b9c39cf4f39745a99b4ed472d4c360",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": null,
+              "identificador_activo": "[RESERVADO]"
+            },
+            "id_periodo_contable": 266
+          }
+        ]
+      },
+      {
+        "escenario": "A_en_cierre",
+        "id_evento": 1950,
+        "registros": []
+      },
+      {
+        "escenario": "A_siguiente",
+        "id_evento": 1950,
+        "registros": [
+          {
+            "fuente": "AUDITORIA",
+            "registro": {
+              "id_evento": 23708,
+              "tipo_evento": "MEDICION_SIN_VARIACION",
+              "modulo": "M06",
+              "timestamp_evento": "2026-11-13T12:21:27.836101Z",
+              "tipo_actor": "[RESERVADO]",
+              "id_usuario": null,
+              "nombre_usuario": "[RESERVADO]",
+              "id_sistema": "M06_PROCESO_AUTOMATICO",
+              "id_activo_biologico": 1644,
+              "id_periodo_contable": 547,
+              "id_referencia": 1950,
+              "payload_evento": {
+                "origen": "EVENTO",
+                "id_evento": 1950,
+                "valor_neto": "940000.0000"
+              },
+              "datos_anteriores": null,
+              "severidad_evento": "INFO",
+              "hash_integridad": "80b02de1b662ca462a2493a8c58746827b5a67436feea9ced18b835364a2783c",
+              "payload_truncado": false,
+              "origen_registro": "REPOSITORIO",
+              "monto_afectado": null,
+              "identificador_activo": "[RESERVADO]"
+            },
+            "id_periodo_contable": 547
+          }
+        ]
+      }
+    ],
+    "exclusion_031": {
+      "presente": true
+    },
+    "exclusion_1644": {
+      "presente": true
+    },
+    "cierre": {
+      "primero": {
+        "http": 409,
+        "error": "EXCLUSION_REQUIERE_AUTORIZACION"
+      },
+      "segundo": {
+        "http": 409,
+        "error": "EXCLUSION_REQUIERE_AUTORIZACION"
+      },
+      "autorizado": {
+        "http": 200,
+        "cuerpo": {
+          "id_cierre": 125,
+          "id_periodo_contable": 266,
+          "periodo": "2026-11",
+          "estado": "CERRADO",
+          "activos_procesados": 1,
+          "activos_excluidos": [
+            {
+              "id_activo_biologico": 1644,
+              "identificador": "[RESERVADO]",
+              "motivo": "PENDIENTE_PRECIO"
+            }
+          ],
+          "lineas_excluidas": [],
+          "comprobantes": [
+            {
+              "codigo": "NIC-[RESERVADO]-202611-RECONOCIMIENTO_DIFERENCIA-544",
+              "hash": "fd6b7ab64f147bb33e553eba3eeda73faebe9792aacd08d0ed49f3d6dd54c926",
+              "valor_total": "40000.00"
+            }
+          ],
+          "hash_cierre": "9933e9e42b6729615b4bad33bb57b59191c2283859574801947a78210afe876d",
+          "reportes": {
+            "estado_resultados": {
+              "id_estado": 105,
+              "resultado_neto": "0.0000"
+            },
+            "informe_revelaciones": {
+              "id_informe": 115,
+              "version": "2026-M11-V1"
+            }
+          },
+          "id_periodo_siguiente": 547,
+          "activos_al_costo_con_precio": []
+        }
+      }
+    },
+    "costo_en_cierre": {
+      "http": 422,
+      "cuerpo": {
+        "error_code": "PERIODO_EN_CIERRE",
+        "message": "El período 2026-11 está en cierre. El registro se procesará en el período siguiente.",
+        "fields": [],
+        "timestamp": "2026-11-13T12:21:36.319740+00:00"
+      }
+    },
+    "costo_cerrado": {
+      "http": 422,
+      "cuerpo": {
+        "error_code": "PERIODO_CONTABLE_CERRADO",
+        "message": "La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto.",
+        "fields": [
+          {
+            "field": "fecha_costo",
+            "message": "La fecha del costo pertenece a un período cerrado. Regístrelo como ajuste en el período abierto."
+          }
+        ],
+        "timestamp": "2026-11-13T12:21:46.685784+00:00"
+      }
+    },
+    "reversion": {
+      "http": 409,
+      "cuerpo": {
+        "error_code": "REVERSION_BLOQUEADA",
+        "message": "No es posible revertir el reconocimiento inicial del activo Lote 949. Existen registros contables dependientes: cierre del período del 2026-11-07; cierre del período del 2026-11-30. Para corregir la valoración use un ajuste en el período vigente.",
+        "fields": [],
+        "timestamp": "2026-11-13T12:21:47.741110+00:00"
+      }
+    },
+    "auditoria_033": {
+      "solicitud": "G45-126",
+      "http": 200,
+      "cuerpo": {
+        "total_registros": 1,
+        "pagina_actual": 1,
+        "registros_por_pagina": 100,
+        "resumen_severidad": {
+          "INFO": 1,
+          "WARNING": 0,
+          "ERROR": 0,
+          "CRITICAL": 0
+        },
+        "eventos": [
+          {
+            "id_evento": 23710,
+            "tipo_evento": "LINEA_ASIENTO_REGISTRADA",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T12:21:27.836101Z",
+            "tipo_actor": "[RESERVADO]",
+            "id_usuario": 5,
+            "nombre_usuario": "[RESERVADO]",
+            "id_sistema": null,
+            "id_activo_biologico": 1568,
+            "id_periodo_contable": 260,
+            "id_referencia": 6364,
+            "payload_evento": {
+              "tipo_ajuste": "AUMENTAR",
+              "justificacion": "Ajuste QA autorizado por error del período anterior",
+              "periodo_corregido": "2026-11",
+              "id_linea_corregida": 2625,
+              "ajuste_periodo_anterior": true
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": "f30aced32ddbaf1eab420375684b9c35670043e13f6f746a47284370be97e016",
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "10.0000",
+            "identificador_activo": "[RESERVADO]"
+          }
+        ]
+      }
+    },
+    "ajuste": {
+      "http": 201,
+      "cuerpo": {
+        "id_linea_asiento_nic41": 6364,
+        "id_linea_corregida": 2625,
+        "hecho_corregido": "Mano de obra propia",
+        "tipo_ajuste": "AUMENTAR",
+        "valor": "10.00",
+        "estado": "REGISTRADA",
+        "id_periodo_contable": 260,
+        "periodo": "2026-12",
+        "periodo_corregido": "2026-11"
+      },
+      "linea_id": 6364,
+      "auditoria_hallada": true
+    }
+  },
+  "cypress": {
+    "paneles": {},
+    "total_pruebas": 0
+  },
+  "rollback": {
+    "verificado": true,
+    "motivo": "{\"periodo_7\":true,\"periodo_8\":true,\"periodo_219\":true,\"periodo_220\":true,\"periodo_260\":true,\"periodo_266\":true,\"periodos_nuevos\":true,\"periodo_siguiente_ausente\":true,\"costos_944\":true,\"costos_031\":true,\"crecimientos_ausentes\":true,\"reconocimiento_949\":true,\"ajustes_ausentes\":true}"
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "codigo": 0,
+      "fallos": 0,
+      "solicitudes": 5,
+      "reportes": true
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "periodo_031": {
+    "id": 266,
+    "activo_id": 1644,
+    "tipo": "POBLACIONAL",
+    "cantidad_actual": 1,
+    "precio_peso": false,
+    "categoria_precio": "POR_CABEZA",
+    "categoria_efectiva": "POR_CABEZA",
+    "categoria_por_defecto": false,
+    "ultimo_peso": 0,
+    "fecha_ultimo_peso": null,
+    "causa_pausa": {
+      "lineas_sin_trazabilidad": 0,
+      "activos_sin_precio": 1
+    },
+    "activos_sin_precio_ids": [
+      1644
+    ]
+  },
+  "m02": {
+    "activo_id": 1644,
+    "ultimo_peso": 0,
+    "fecha_ultimo_peso": null,
+    "evento_ids": [
+      1949,
+      1950
+    ],
+    "crecimientos": [
+      {
+        "escenario": "B",
+        "id_evento": 1949,
+        "timestamp_original": "2026-11-13T12:21:36.808000Z",
+        "peso_nuevo": "30",
+        "autor": "Administrador QA"
+      },
+      {
+        "escenario": "A",
+        "id_evento": 1950,
+        "timestamp_original": "2026-11-13T12:21:41.924000Z",
+        "peso_nuevo": "35",
+        "autor": "Administrador QA"
+      }
+    ]
+  },
+  "bases": {
+    "7": {
+      "estado": "CERRADO",
+      "fecha_cierre": "2026-11-07T20:11:44.408365Z",
+      "ultimo_cierre": {
+        "id_cierre": 1,
+        "estado": "COMPLETADO",
+        "paso_actual": 9,
+        "activos_procesados": 8,
+        "activos_pendientes": 0,
+        "activos_excluidos": [
+          {
+            "id_linea": 9,
+            "faltantes": [
+              "lecturas_nic41"
+            ],
+            "tipo_hecho": "VARIACION_VR_TB",
+            "nivel_fallo": 1,
+            "id_activo_biologico": 943
+          }
+        ],
+        "precios_congelados": [
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 39,
+            "fecha_vigencia": "2026-11-07",
+            "precio_unitario": "9300.00",
+            "id_precio_mercado": 17
+          },
+          {
+            "fuente": "UPRA",
+            "id_especie": 421,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "14500.00",
+            "id_precio_mercado": 16
+          }
+        ],
+        "error_detalle": null,
+        "fecha_inicio": "2026-11-07T20:11:36.147116Z",
+        "fecha_fin": "2026-11-07T20:11:44.408365Z",
+        "tiempo_ejecucion_ms": 8261,
+        "hash_cierre": "4537aa86903869b2e7df2d1e3a11a6531dd2f7f00b65233abdfe86adfbb9819f",
+        "id_usuario_ejecutor": 141,
+        "nombre_usuario_ejecutor": "[RESERVADO]"
+      },
+      "hash_contenido": "83b5bb2b3bbece6e8f4770bf40ddc07a74e8600b0c05e0993dcd427291baf3a7",
+      "lineas": 14,
+      "comprobantes": 5,
+      "variaciones": 6
+    },
+    "8": {
+      "estado": "EN_CIERRE",
+      "fecha_cierre": null,
+      "ultimo_cierre": {
+        "id_cierre": 67,
+        "estado": "EN_PROCESO",
+        "paso_actual": 3,
+        "activos_procesados": 0,
+        "activos_pendientes": 0,
+        "activos_excluidos": null,
+        "precios_congelados": null,
+        "error_detalle": null,
+        "fecha_inicio": "2026-11-11T16:37:53.108598Z",
+        "fecha_fin": null,
+        "tiempo_ejecucion_ms": null,
+        "hash_cierre": null,
+        "id_usuario_ejecutor": 141,
+        "nombre_usuario_ejecutor": "[RESERVADO]"
+      },
+      "hash_contenido": "dd30f25ce91d108c875c27ccebe0b53a913e615520053b3bf5d4910055a90cd5",
+      "lineas": 8,
+      "comprobantes": 0,
+      "variaciones": 4
+    },
+    "219": {
+      "estado": "CERRADO",
+      "fecha_cierre": "2026-11-10T06:18:00.098094Z",
+      "ultimo_cierre": {
+        "id_cierre": 43,
+        "estado": "COMPLETADO",
+        "paso_actual": 9,
+        "activos_procesados": 2,
+        "activos_pendientes": 0,
+        "activos_excluidos": [],
+        "precios_congelados": [
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 423,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "4300000.00",
+            "id_precio_mercado": 438
+          },
+          {
+            "fuente": "MERCADO_ACTIVO",
+            "id_especie": 422,
+            "fecha_vigencia": "2026-11-01",
+            "precio_unitario": "4000000.00",
+            "id_precio_mercado": 435
+          }
+        ],
+        "error_detalle": null,
+        "fecha_inicio": "2026-11-10T06:18:00.058864Z",
+        "fecha_fin": "2026-11-10T06:18:00.098094Z",
+        "tiempo_ejecucion_ms": 39,
+        "hash_cierre": "70ba6bac95ab4843d810d916cd4cb1b7b780cb51e1ddb2f4a4a14d4427b4a5a6",
+        "id_usuario_ejecutor": 141,
+        "nombre_usuario_ejecutor": "[RESERVADO]"
+      },
+      "hash_contenido": "3950075070f64a63b828f3a6b141cc2cb5ad67e79c2f039a6983cfd9c11b00af",
+      "lineas": 3,
+      "comprobantes": 3,
+      "variaciones": 0
+    },
+    "220": {
+      "estado": "ABIERTO",
+      "fecha_cierre": null,
+      "ultimo_cierre": null,
+      "hash_contenido": "c238a059263325f477d68c4e62a17deef614e39f75c6a091c3edd95a7ef7f855",
+      "lineas": 7,
+      "comprobantes": 0,
+      "variaciones": 0
+    },
+    "260": {
+      "estado": "ABIERTO",
+      "fecha_cierre": null,
+      "ultimo_cierre": null,
+      "hash_contenido": "f60fcd6df6def381155269129bb2c2b396f6b9c9c97129b28b4f75c441ae0962",
+      "lineas": 0,
+      "comprobantes": 0,
+      "variaciones": 0
+    },
+    "266": {
+      "estado": "ABIERTO",
+      "fecha_cierre": null,
+      "ultimo_cierre": null,
+      "hash_contenido": "da78934d2287e4b487a6c67d60491908cc942fc15a38dbd59f2ec8ad65f5ebd7",
+      "lineas": 1,
+      "comprobantes": 0,
+      "variaciones": 0
+    }
+  },
+  "seguimiento_v1": {
+    "INC-M06-G45-01": "CORREGIDA",
+    "INC-M06-G45-02": "CORREGIDA",
+    "INC-M06-G45-03": "CORREGIDA"
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "{\"periodo_7\":true,\"periodo_8\":true,\"periodo_219\":true,\"periodo_220\":true,\"periodo_260\":true,\"periodo_266\":true,\"periodos_nuevos\":true,\"periodo_siguiente_ausente\":true,\"costos_944\":true,\"costos_031\":true,\"crecimientos_ausentes\":true,\"reconocimiento_949\":true,\"ajustes_ausentes\":true}"
+    }
+  },
+  "total_solicitudes_api": 166,
+  "duracion_segundos": 37,
+  "clasificacion_fallo": "NINGUNO",
+  "sha256": {
+    "ejecutor": "bb4cc5162f4e5f60c2b5085abf72fea2404bf0f71a3d7b59bd5d814a799661a8",
+    "infraestructura": {
+      "lib/infra.mjs": "a24e9fb3ce7ecdd5186a2ee73e47f97c7ebf48b8e6c6da8e5973d453fec324fc",
+      "lib/contrato.mjs": "aa9fcb905b890d536a363ec094d0cf81d6cbdb098a174447da5d561467b71600",
+      "lib/informe.mjs": "ebe57ee821d3d1fe8d1d08430275a5a5df855f5d2e2548d536cb4ca6413596e9",
+      "lib/flujo_v2.mjs": "005b591102e39514addab8ef563981f9efc183c8bc69eb8aab21b78ba3a13030",
+      "pruebas/newman_hijo.mjs": "242b7aca90f056ac3fb1e5448f777b52ab6d78f43ec4688950aa0b331302b936",
+      "pruebas/verificar.mjs": "0c270d47b1d9705711c4bee3ee25cf4c91d17010c0999605a50ce4253ff9b60a"
+    }
+  }
+}

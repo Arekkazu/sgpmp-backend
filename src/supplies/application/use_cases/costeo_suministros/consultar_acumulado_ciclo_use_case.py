@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 """Caso de uso: consultar el acumulado de inversión de una instancia de ciclo (RF-78).
 
 Dos formas de acceso: por activo (resuelve la fase productiva actualmente
@@ -25,7 +28,7 @@ class ConsultarAcumuladoCicloUseCase:
         if ciclo is None or ciclo.id_gestion_fases is None:
             raise NotFoundError(
                 code="CICLO_NO_ACTIVO",
-                message=f"El activo {id_activo_biologico} no tiene un ciclo productivo activo.",
+                message="El activo no tiene un ciclo productivo activo.",
             )
         return self.por_gestion_fase(ciclo.id_gestion_fases)
 

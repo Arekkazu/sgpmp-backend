@@ -1,0 +1,29 @@
+{
+  "tc": "TC-M04-G086",
+  "summary": {
+    "total": 3,
+    "ok": 0,
+    "falla": 3,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "test_tc_m04_264_payload_sin_campos_minimos",
+      "esperado": "RF-73 CA-15: rechazo de payload sin campos mínimos",
+      "obtenido": "AssertionError: RF-73 CA-15: evento INFERENCIA_EJECUTADA con payload sin campos mínimos debe ser rechazado. Se persistieron 1 fila(s) con tipo_evento='INFERENCIA_EJECUTADA'. assert 1 == 0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "test_tc_m04_268_id_referencia_null",
+      "esperado": "RF-73 Fase 2.4: rechazo de id_referencia=NULL",
+      "obtenido": "AssertionError: RF-73 Flujo E1: evento con id_referencia=NULL debe ser rechazado. Se persistieron 1 fila(s). assert 1 == 0",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "test_tc_m04_269_payload_evento_vacio",
+      "esperado": "RF-73 CA-15: rechazo de payload_evento vacío",
+      "obtenido": "AssertionError: RF-73 CA-15: payload_evento vacío debe ser rechazado. Se persistieron 1 fila(s). assert 1 == 0",
+      "estado": "FALLA"
+    }
+  ]
+}

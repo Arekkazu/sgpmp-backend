@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G101 — evaluación aprobada</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 920px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    code { font-family: Consolas, monospace; }
+    .ok { display: inline-block; background: #e5f6ea; border: 1px solid #8bc79a; border-radius: 4px; padding: .1rem .45rem; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-88 · Caso TC-M06-G101</p>
+  <h1>Retorno del activo 1572 de costo a valor razonable</h1>
+  <p>Identificador vigente TC-M06-G101. Nombre histórico TC-M06-G73. Issue #974. Entorno TEST. 2026-11-10. America/Bogota. Usuario Contador.</p>
+  <p><span class="ok">APROBADO</span> Se envió un solo POST. No se repitió.</p>
+
+  <h2>Antes del POST</h2>
+  <p>El activo 1572, <code>QA-M06O-COSTO-01</code>, estaba ACTIVO, al costo, con valor contable 4200000.0000. La simulación dio 4042000.0000. El precio vigente era 4300000 por cabeza, fuente MERCADO_ACTIVO. Los costos de venta GENERAL eran 0,0200, 0,0300 y 0,0100. El período 220 estaba ABIERTO. No había eventos de cambio de método. El activo 1573 seguía al costo.</p>
+
+  <h2>Operación</h2>
+  <p><code>POST /finanzas/activos/1572/valor-razonable</code> sin cuerpo. HTTP 200. Valor razonable 4042000.0000. Valor por costo 4200000.0000. Diferencia −158000.0000.</p>
+  <p>La línea guarda el importe en positivo y el sentido indica la pérdida: 4.042.000 − 4.200.000 = −158.000.</p>
+
+  <h2>Después</h2>
+  <table>
+    <tr><th>Comprobación</th><th>Lectura</th></tr>
+    <tr><td>Método</td><td>Valor razonable. Cálculo 874, valor neto 4042000.0000, precio 4300000.0000, magnitud 1 cabeza, período 220.</td></tr>
+    <tr><td>Valoración por costo</td><td>Id 25, inactiva. El valor contable permanece 4200000.0000.</td></tr>
+    <tr><td>Línea 2665</td><td><code>VARIACION_VR_PM</code>, sentido PERDIDA, 158000.00, activo 1572, fecha 2026-11-10. Es la única línea del activo.</td></tr>
+    <tr><td>Evento 9660</td><td><code>METODO_VALORACION_CAMBIADO</code>, 2026-11-10T06:53:06Z, período 220, referencia 25. Una sola ocurrencia.</td></tr>
+    <tr><td>Activo 1573</td><td>QA-M06O-COSTO-02, ACTIVO, valoración 26 activa, valor 4000000.0000.</td></tr>
+    <tr><td>Período 220</td><td>ABIERTO. No se envió cierre. El activo 951 no se consultó ni se modificó.</td></tr>
+  </table>
+
+  <h2>Validaciones</h2>
+  <table>
+    <tr><th>Validación</th><th>Resultado</th></tr>
+    <tr><td>Cambio a valor razonable</td><td>APROBADO</td></tr>
+    <tr><td>Valor neto 4042000.0000</td><td>APROBADO</td></tr>
+    <tr><td>Valoración por costo inactiva</td><td>APROBADO</td></tr>
+    <tr><td>Diferencia VARIACION_VR_PM</td><td>APROBADO</td></tr>
+    <tr><td>Evento de auditoría único</td><td>APROBADO</td></tr>
+    <tr><td>Activo 1573 sin cambios de método</td><td>APROBADO</td></tr>
+    <tr><td>Período 220 abierto</td><td>APROBADO</td></tr>
+  </table>
+  <ul>
+    <li><a href="resumen_ultima_evaluacion.json">resumen_ultima_evaluacion.json</a></li>
+    <li><a href="evidencias_ultima_evaluacion.json">evidencias_ultima_evaluacion.json</a></li>
+    <li><a href="../comparacion_evaluaciones.html">Comparación</a></li>
+  </ul>
+</body>
+</html>

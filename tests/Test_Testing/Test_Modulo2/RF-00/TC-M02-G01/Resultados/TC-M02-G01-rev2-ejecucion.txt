@@ -1,0 +1,85 @@
+
+============================================================
+ TC-M02-G01 rev2 - RF-00 PRUEBAS GENERALES MODULO 02
+ Ambiente: TEST
+ Base URL: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+ Coleccion: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-00\TC-M02-G01\tc_m02_g01_rev2.json
+ Runner: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-00\TC-M02-G01\ejecutar_tc_m02_g01_rev2.ps1
+ Fecha UTC: 2026-09-14T23:01:21.5581395Z
+ Login: un intento. Password via env-var (no en JSON).
+============================================================
+
+
+Newman exit code: 0
+HTML: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-00\TC-M02-G01\Resultados\TC-M02-G01-rev2-Newman.html
+JSON: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-00\TC-M02-G01\Resultados\TC-M02-G01-rev2-Newman.json
+
+Auditoria de creacion: registrada por el caso de uso segun revision de codigo, pero no verificable mediante API publica disponible.
+Disponibilidad intermodular no verificada directamente en esta ejecucion; el catalogo devuelve la especie activa.
+Desactivar no elimina ni libera el nombre (unicidad sobre todas las filas).
+
+============================================================
+ RESUMEN DE EJECUCION (TEST)
+============================================================
+Requests: 11 ejecutados, 0 fallidos.
+Assertions: 32 ejecutadas, 0 fallidas.
+Newman exit code: 0.
+Escenarios skip: ninguno (login y alta OK).
+
+HTTP por escenario:
+  01 Login Admin unico                         POST /sesiones/                         200
+  02 GET catalogo inicial                      GET  /configuracion/especies            200
+  03 TC-M02-001 POST alta valida               POST /configuracion/especies            201
+  04 GET verificar alta                        GET  /configuracion/especies            200
+  05 TC-M02-002 POST duplicado exacto          POST /configuracion/especies            409
+  06 GET tras duplicado exacto                 GET  /configuracion/especies            200
+  07 TC-M02-002 POST duplicado case-insensitive POST /configuracion/especies           409
+  08 GET tras case-insensitive                 GET  /configuracion/especies            200
+  09 PATCH desactivar especie creada           PATCH /configuracion/especies/56/desactivar 200
+  10 GET solo_activas=true                     GET  /configuracion/especies?solo_activas=true 200
+  11 GET catalogo completo (residuo)           GET  /configuracion/especies            200
+
+Dato de prueba: nombre "Especie Prueba Laura" (solo letras y espacios).
+id_especie creado: 56.
+No se uso Bovino como precondicion.
+No se envio estado/es_activo en el POST.
+
+Subcasos:
+  TC-M02-001 = APROBADO
+    Alta 201, id_especie presente, nombre y descripcion coinciden,
+    es_activo true asignado por backend, exactamente un registro en GET.
+
+  TC-M02-002 exacto = APROBADO
+    HTTP 409, error_code ESPECIE_DUPLICADA, fields.field = nombre,
+    GET confirma exactamente una especie.
+
+  TC-M02-002 case-insensitive = APROBADO
+    POST del nombre en minusculas: HTTP 409, ESPECIE_DUPLICADA,
+    GET confirma exactamente una especie.
+
+Restauracion:
+  PATCH desactivar 200, es_activo false.
+  Ya no aparece en GET ?solo_activas=true.
+  Sigue existiendo en GET completo (residuo inactivo).
+  NO fue eliminada. El nombre sigue ocupado por unicidad global.
+
+Contaminacion:
+  Queda la fila id_especie=56 inactiva "Especie Prueba Laura".
+  No se creo Bovino.
+
+Resultado funcional global: APROBADO
+
+Limitaciones de cobertura:
+  Auditoria de creacion: registrada por el caso de uso segun revision de codigo, pero no verificable mediante API publica disponible.
+  Disponibilidad intermodular no verificada directamente en esta ejecucion; el catalogo devuelve la especie activa.
+
+Nota automatizacion:
+  Un intento previo de esta misma evidencia rev2 fallo con 401 porque
+  {{token}} vacio del environment pisa la variable de coleccion.
+  Se corrigio la coleccion/environment (set de token en environment +
+  no dejar token vacio que opaquezca el Bearer). No es defecto del endpoint.
+  Esta evidencia corresponde a la ejecucion posterior, ya corregida.
+
+Historico tc_m02_g01.json y Newman historicos: no modificados.
+
+

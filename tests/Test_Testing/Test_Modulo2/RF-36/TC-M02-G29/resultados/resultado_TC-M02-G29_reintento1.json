@@ -1,0 +1,30 @@
+{
+  "tc": "TC-M02-G29",
+  "titulo": "Gestión Poblacional y Auditoría de Activos Biológicos (RF-36 / RF-52)",
+  "rf": "RF-36, RF-52",
+  "fecha": "2026-09-15",
+  "ronda": "V2",
+  "reintento": 1,
+  "run_id": "G29-REEVAL-V2-20260915-000800",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-203: Auditoría tras evento CRECIMIENTO válido (POST /activos-biologicos/300/eventos/crecimiento)",
+      "esperado": "HTTP 200 o 201 y registro en bitácora con resultado EXITOSO",
+      "obtenido": "HTTP 500 Internal Server Error - Bloqueo en backend por columna inexistente metricas_produccion.tipo_dato (migración M09 pendiente).",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TC-M02-204: Auditoría tras evento BAJA válido (POST /activos-biologicos/300/eventos/baja)",
+      "esperado": "HTTP 200 o 201 y registro en bitácora con resultado EXITOSO",
+      "obtenido": "HTTP 201 Created y registro en bitácora confirmado con resultado EXITOSO (trigger de base de datos corregido).",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M02-205: Auditoría tras intento rechazado de modificación (PATCH /activos-biologicos/300)",
+      "esperado": "HTTP 400 Bad Request y registro de intento rechazado en bitácora de auditoría",
+      "obtenido": "HTTP 400 Bad Request y traza de rechazo registrada en modulo2.bitacora_auditoria_m02 con resultado RECHAZADO (fix commit 9c5f3b63).",
+      "estado": "OK"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "grupo": "TC-M06-G96",
+  "tipo_evento": "VALOR_LIBROS_AJUSTADO_A_CERO",
+  "estado": "COMPROBADA_EN_BD_TEMPORAL_AISLADA",
+  "entorno": {
+    "host": "127.0.0.1",
+    "port": 55496,
+    "database": "g96_ab_test",
+    "container": "g96-ab-postgres-tmp",
+    "persistido_en_TEST_compartido": false
+  },
+  "resultado_deterioro": {
+    "valor_contable": "0",
+    "valor_libros_calculado": "-2000000.0000",
+    "aviso_presente": true
+  },
+  "consulta_use_case": {
+    "total_registros": 1,
+    "eventos": [
+      {
+        "id_evento": 54,
+        "descripcion_evento": "Valor en libros negativo ajustado a cero",
+        "tipo_evento": "VALOR_LIBROS_AJUSTADO_A_CERO",
+        "fecha_hora": "2026-11-13 06:49:56.053866+00:00",
+        "actor": "Integracion Prueba",
+        "activo": "M06-113857383",
+        "id_periodo_contable": 8,
+        "resumen_payload": {
+          "origen": "DETERIORO",
+          "valor_aplicado": "0.0000",
+          "valor_calculado": "-2000000.0000",
+          "costo_adquisicion": "10000000.0000",
+          "deterioro_acumulado": "5000000.0000",
+          "depreciacion_acumulada": "7000000.0000"
+        },
+        "monto_afectado": "2000000.0000",
+        "severidad": "WARNING",
+        "integridad_verificable": true,
+        "hash_integridad": "42879d6f795a38fdeea5b7c9ae643667506ad386b910643bf3b24b979602acf8",
+        "informacion_adicional_truncada": false,
+        "origen": "Repositorio central"
+      }
+    ]
+  },
+  "consulta_sql_en_transaccion": [
+    {
+      "tipo_evento": "VALOR_LIBROS_AJUSTADO_A_CERO",
+      "severidad": "WARNING",
+      "payload": "{\"origen\": \"DETERIORO\", \"valor_aplicado\": \"0.0000\", \"valor_calculado\": \"-2000000.0000\", \"costo_adquisicion\": \"10000000.0000\", \"deterioro_acumulado\": \"5000000.0000\", \"depreciacion_acumulada\": \"7000000.0000\"}",
+      "id_activo_biologico": 113857383
+    }
+  ],
+  "notificacion": {
+    "cantidad_avisos": 2,
+    "avisos": [
+      {
+        "mensaje": "Falta la cuenta contable de Deterioro (modelo de costo) (único) para Camarón Blanco. El registro quedó pendiente de cuenta y el período no podrá cerrarse hasta configurarla en Configuración contable.",
+        "detalle": {
+          "tipo_hecho": "DETERIORO_ACTIVO_COSTO",
+          "sentido": "UNICO",
+          "id_especie": 3,
+          "subtipo_costo": null,
+          "id_periodo_contable": 8
+        },
+        "tipo": "ALERTA_FINANCIERA_NIC41"
+      },
+      {
+        "mensaje": "El valor en libros del activo M06-113857383 dio −$ 2.000.000 (costo menos depreciación y deterioro) y se ajustó a $ 0. Evalúe registrar su baja.",
+        "detalle": {
+          "id_activo_biologico": 113857383,
+          "valor_calculado": "-2000000.0000",
+          "valor_aplicado": "0"
+        },
+        "tipo": "ALERTA_FINANCIERA_NIC41"
+      }
+    ]
+  },
+  "id_activo_sintetico": 113857383,
+  "nota_rollback": "Evidencia capturada dentro de la transaccion de prueba; al finalizar se hace rollback y no queda residuo."
+}

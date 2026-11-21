@@ -1,0 +1,366 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g08-rf33-rev4",
+    "name": "TC-M02-G08 rev4 - Poblacional densidad",
+    "description": "Reevaluacion TEST. No sobrescribe rev3. 004 no se reejecuta. 005 solo si GET especies muestra densidad_maxima_por_especie no nula. Password via --env-var. Sin DML.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "token", "value": "" },
+    { "key": "loginOk", "value": "0" },
+    { "key": "precheckOk", "value": "0" },
+    { "key": "densidadOk", "value": "0" },
+    { "key": "finca_id", "value": "" },
+    { "key": "especie_id", "value": "" },
+    { "key": "especie_nombre", "value": "" },
+    { "key": "densidad_maxima", "value": "" },
+    { "key": "infraestructura_id", "value": "" },
+    { "key": "activo_poblacional_id", "value": "" },
+    { "key": "altaPoblacionalOk", "value": "0" },
+    { "key": "error005", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Productor",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (!pm.environment.get('contrasena')) { throw new Error('BLOQUEADO: --env-var contrasena'); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "pm.test('Token presente', function () { pm.expect(json.token).to.be.a('string').and.not.empty; });",
+              "if (pm.response.code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token', json.token);",
+              "  pm.collectionVariables.set('loginOk', '1');",
+              "} else { pm.collectionVariables.set('loginOk', '0'); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 - GET fincas activas",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET fincas HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const items = ((pm.response.json() || {}).items) || [];",
+              "pm.test('Hay finca activa', function () { pm.expect(items.length).to.be.above(0); });",
+              "const f1 = items.find(function (f) { return Number(f.id_finca) === 1; }) || items[0];",
+              "if (f1 && f1.id_finca) { pm.collectionVariables.set('finca_id', String(f1.id_finca)); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/fincas?solo_activas=true"
+      }
+    },
+    {
+      "name": "03 - GET especies (precondicion densidad_maxima_por_especie)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET especies HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const items = (((pm.response.json() || {}).items) || []).filter(function (e) { return e.es_activo === true; });",
+              "const e4 = items.find(function (e) { return Number(e.id_especie) === 4; });",
+              "if (e4) {",
+              "  pm.test('Especie 4 Cachama sigue activa (historico)', function () {",
+              "    pm.expect(String(e4.nombre || '').toLowerCase()).to.include('cachama');",
+              "  });",
+              "}",
+              "function tieneDens(e) {",
+              "  const v = e.densidad_maxima_por_especie;",
+              "  return v !== undefined && v !== null && String(v).trim() !== '' && Number(v) > 0;",
+              "}",
+              "const conDens = items.filter(tieneDens);",
+              "pm.test('Inventario de especies con densidad (registro, no fuerza 005)', function () {",
+              "  pm.expect(conDens.length).to.be.a('number');",
+              "});",
+              "if (!conDens.length) {",
+              "  pm.collectionVariables.set('densidadOk', '0');",
+              "  pm.test.skip('005 BLOQUEADO: ninguna especie activa con densidad_maxima_por_especie');",
+              "  return;",
+              "}",
+              "const chosen = conDens.find(function (e) { return Number(e.id_especie) === 5; }) || conDens[0];",
+              "pm.collectionVariables.set('especie_id', String(chosen.id_especie));",
+              "pm.collectionVariables.set('especie_nombre', String(chosen.nombre || ''));",
+              "pm.collectionVariables.set('densidad_maxima', String(chosen.densidad_maxima_por_especie));",
+              "pm.collectionVariables.set('densidadOk', '1');",
+              "pm.test('Especie candidata 005 tiene densidad_maxima_por_especie', function () {",
+              "  pm.expect(tieneDens(chosen)).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "04 - GET infraestructuras activas finca",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1' || !pm.collectionVariables.get('finca_id')) { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET infra HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const items = (((pm.response.json() || {}).items) || []).filter(function (i) { return i.es_activo === true; });",
+              "pm.test('Hay infraestructura activa', function () { pm.expect(items.length).to.be.above(0); });",
+              "const i3 = items.find(function (i) { return Number(i.id_infraestructura) === 3; });",
+              "const chosen = i3 || items[0];",
+              "if (chosen && chosen.id_infraestructura) {",
+              "  pm.collectionVariables.set('infraestructura_id', String(chosen.id_infraestructura));",
+              "  if (pm.collectionVariables.get('densidadOk') === '1') { pm.collectionVariables.set('precheckOk', '1'); }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/infraestructuras?finca_id={{finca_id}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "05 - TC-M02-005 POST POBLACIONAL",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (pm.collectionVariables.get('precheckOk') !== '1') { pm.execution.skipRequest(); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('precheckOk') !== '1') {",
+              "  pm.test.skip('TC-M02-005 NO EJECUTABLE: sin especie con densidad_maxima o sin infra');",
+              "  return;",
+              "}",
+              "const json = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+              "pm.collectionVariables.set('error005', String(json.error_code || pm.response.code));",
+              "pm.test('TC-M02-005 POST HTTP 201', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code !== 201) { pm.collectionVariables.set('altaPoblacionalOk', '0'); return; }",
+              "const id = json.id_activo_biologico;",
+              "const det = json.detalle_poblacional || {};",
+              "pm.collectionVariables.set('activo_poblacional_id', String(id));",
+              "pm.collectionVariables.set('altaPoblacionalOk', '1');",
+              "pm.test('TC-M02-005 id_activo_biologico', function () { pm.expect(id).to.be.a('number'); });",
+              "pm.test('TC-M02-005 tipo POBLACIONAL', function () { pm.expect(json.tipo).to.eql('POBLACIONAL'); });",
+              "pm.test('TC-M02-005 identificador null', function () { pm.expect(json.identificador).to.eql(null); });",
+              "pm.test('TC-M02-005 origen nacimiento', function () { pm.expect(json.origen_financiero).to.eql('nacimiento'); });",
+              "pm.test('TC-M02-005 costo_adquisicion null', function () { pm.expect(json.costo_adquisicion).to.eql(null); });",
+              "pm.test('TC-M02-005 soporte_documental null', function () { pm.expect(json.soporte_documental).to.eql(null); });",
+              "pm.test('TC-M02-005 id_especie candidata', function () { pm.expect(String(json.id_especie)).to.eql(pm.collectionVariables.get('especie_id')); });",
+              "pm.test('TC-M02-005 id_infraestructura', function () { pm.expect(String(json.id_infraestructura)).to.eql(pm.collectionVariables.get('infraestructura_id')); });",
+              "pm.test('TC-M02-005 cantidad_inicial > 0', function () { pm.expect(Number(det.cantidad_inicial)).to.be.above(0); });",
+              "pm.test('TC-M02-005 cantidad_actual == cantidad_inicial', function () {",
+              "  pm.expect(Number(det.cantidad_actual)).to.eql(Number(det.cantidad_inicial));",
+              "});",
+              "pm.test('TC-M02-005 peso_promedio_inicial persistido', function () {",
+              "  pm.expect(Number(det.peso_promedio_inicial)).to.eql(2.5);",
+              "});",
+              "pm.test('TC-M02-005 estado ACTIVO', function () {",
+              "  const nom = String(json.nombre_estado || '').toUpperCase();",
+              "  pm.expect(json.id_estado === 1 || nom === 'ACTIVO').to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"detalles_procedencia\": \"Nacimiento lote TC-M02-005 rev4\",\n  \"origen_financiero\": \"nacimiento\",\n  \"costo_adquisicion\": null,\n  \"soporte_documental\": null,\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": 25,\n  \"peso_promedio_inicial\": 2.5\n}"
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      }
+    },
+    {
+      "name": "06 - GET activo POBLACIONAL",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaPoblacionalOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaPoblacionalOk') !== '1') { pm.test.skip('Alta poblacional no OK'); return; }",
+              "pm.test('GET poblacional HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "const det = json.detalle_poblacional || {};",
+              "pm.test('GET poblacional id', function () { pm.expect(String(json.id_activo_biologico)).to.eql(pm.collectionVariables.get('activo_poblacional_id')); });",
+              "pm.test('GET poblacional tipo', function () { pm.expect(json.tipo).to.eql('POBLACIONAL'); });",
+              "pm.test('GET poblacional ACTIVO', function () {",
+              "  const nom = String(json.nombre_estado || '').toUpperCase();",
+              "  pm.expect(json.id_estado === 1 || nom === 'ACTIVO').to.eql(true);",
+              "});",
+              "pm.test('GET poblacional identificador null', function () { pm.expect(json.identificador).to.eql(null); });",
+              "pm.test('GET poblacional cantidades', function () {",
+              "  pm.expect(Number(det.cantidad_inicial)).to.eql(25);",
+              "  pm.expect(Number(det.cantidad_actual)).to.eql(25);",
+              "});",
+              "pm.test('GET poblacional peso_promedio_inicial', function () { pm.expect(Number(det.peso_promedio_inicial)).to.eql(2.5); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_poblacional_id}}"
+      }
+    },
+    {
+      "name": "07 - GET historial POBLACIONAL",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaPoblacionalOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaPoblacionalOk') !== '1') { pm.test.skip('Alta poblacional no OK'); return; }",
+              "pm.test('Historial poblacional HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Historial total_registros > 0', function () { pm.expect(json.total_registros).to.be.a('number').and.above(0); });",
+              "const creacion = (json.registros || []).find(function (r) { return r.categoria === 'CREACION'; });",
+              "pm.test('Historial categoria CREACION', function () { pm.expect(creacion).to.exist; });",
+              "if (creacion) {",
+              "  pm.test('Snapshot detalle_especifico', function () {",
+              "    pm.expect(creacion.detalle_especifico).to.be.an('object');",
+              "  });",
+              "  pm.test('Snapshot id_activo coincide', function () {",
+              "    pm.expect(String(creacion.detalle_especifico.id_activo_biologico)).to.eql(pm.collectionVariables.get('activo_poblacional_id'));",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_poblacional_id}}/historial"
+      }
+    },
+    {
+      "name": "08 - Restaurar PATCH estado INACTIVO poblacional",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaPoblacionalOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaPoblacionalOk') !== '1') { pm.test.skip('Sin poblacional'); return; }",
+              "pm.test('Desactivar poblacional HTTP 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"INACTIVO\",\n  \"fecha_cambio_estado\": \"2026-09-25\",\n  \"motivo_cambio\": \"Restauracion datos de prueba TC-M02-G08 rev4\"\n}"
+        },
+        "url": "{{base_url}}/activos-biologicos/{{activo_poblacional_id}}/estado"
+      }
+    },
+    {
+      "name": "09 - GET poblacional tras restauracion",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaPoblacionalOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaPoblacionalOk') !== '1') { pm.test.skip('Sin poblacional'); return; }",
+              "pm.test('GET post-restore HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Estado INACTIVO tras restore', function () {",
+              "  const nom = String(json.nombre_estado || '').toUpperCase();",
+              "  pm.expect(json.id_estado === 2 || nom === 'INACTIVO').to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_poblacional_id}}"
+      }
+    }
+  ]
+}

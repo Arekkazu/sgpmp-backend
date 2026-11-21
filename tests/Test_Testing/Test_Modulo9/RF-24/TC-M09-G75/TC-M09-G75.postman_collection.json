@@ -1,0 +1,536 @@
+{
+  "info": {
+    "name": "TC-M09-G75 - RF-24 valor_referencia: limites tecnicos y validacion",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M09-142",
+      "item": [
+        {
+          "name": "TC-M09-142 POST calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Dispositivo activo y sensor asociado a el',()=>{pm.expect(c.dispositivo.es_activo).to.eql(true);pm.expect(c.sensor.es_activo).to.eql(true);pm.expect(c.sensor.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(p.id_dispositivo_iot).to.eql(c.dispositivo.id);});",
+                  "pm.test('Area de la asociacion vigente es la enviada',()=>{pm.expect(c.area.fecha_finalizacion,'asociacion vigente').to.eql(null);pm.expect(p.id_infraestructura).to.eql(c.area.id_infraestructura);});",
+                  "pm.test('Rango tecnico descubierto por API, no supuesto',()=>{pm.expect(c.rangoTecnico.fuente).to.include('rangos-calibracion');pm.expect(c.rangoTecnico.categoria).to.eql(c.sensor.categoria);pm.expect(num(c.rangoTecnico.min)).to.be.below(num(c.rangoTecnico.max));});",
+                  "pm.test('Valor enviado es exactamente el minimo tecnico',()=>{pm.expect(String(p.valor_referencia)).to.eql(String(c.rangoTecnico.min));pm.expect(num(p.valor_referencia)).to.eql(num(c.rangoTecnico.min));});",
+                  "pm.test('HTTP 201 segun el contrato',()=>pm.response.to.have.status(201));",
+                  "pm.test('ID de calibracion valido',()=>{pm.expect(b.id_calibracion).to.be.a('number');pm.expect(b.id_calibracion).to.be.above(0);pm.environment.set('id_creado',String(b.id_calibracion));});",
+                  "pm.test('Asociado al dispositivo y sensor correctos',()=>{pm.expect(b.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(b.id_sensor).to.eql(c.sensor.id);});",
+                  "pm.test('Valor persistido igual al enviado, sin perdida de precision',()=>pm.expect(num(b.valor_referencia)).to.eql(num(p.valor_referencia)));",
+                  "pm.test('Trazabilidad: responsable y fecha',()=>{pm.expect(b.id_usuario,'usuario responsable').to.be.a('number');pm.expect(b.fecha_calibracion,'fecha de calibracion').to.be.a('string');});",
+                  "pm.test('Observaciones correlacionables con la ejecucion',()=>pm.expect(String(b.observaciones||'')).to.eql(p.observaciones));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-142 GET historial de calibraciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibraciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const num=x=>Number(x);",
+                  "const id=Number(pm.environment.get('id_creado'));",
+                  "pm.test('GET historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('El historial contiene la calibracion exactamente una vez',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(x=>x.id_calibracion===id)).to.have.lengthOf(1);});",
+                  "pm.test('El historial crecio en exactamente un registro',()=>pm.expect(b.total).to.eql(c.historialPrevio.total+1));",
+                  "pm.test('Las calibraciones anteriores siguen intactas',()=>{const ids=b.items.map(x=>x.id_calibracion);c.historialPrevio.ids.forEach(prev=>pm.expect(ids,'historico conservado').to.include(prev));});",
+                  "pm.test('Valor conservado en el historial',()=>{const u=b.items.find(x=>x.id_calibracion===id);pm.expect(num(u.valor_referencia)).to.eql(num(p.valor_referencia));});",
+                  "pm.test('Queda como calibracion mas reciente, disponible para su aplicacion posterior',()=>{const u=b.items.find(x=>x.id_calibracion===id);const masReciente=b.items.reduce((a,x)=>new Date(x.fecha_calibracion)>new Date(a.fecha_calibracion)?x:a,b.items[0]);pm.expect(masReciente.id_calibracion,'la seleccionada por fecha_calibracion DESC').to.eql(u.id_calibracion);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-143",
+      "item": [
+        {
+          "name": "TC-M09-143 POST calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Dispositivo activo y sensor asociado a el',()=>{pm.expect(c.dispositivo.es_activo).to.eql(true);pm.expect(c.sensor.es_activo).to.eql(true);pm.expect(c.sensor.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(p.id_dispositivo_iot).to.eql(c.dispositivo.id);});",
+                  "pm.test('Area de la asociacion vigente es la enviada',()=>{pm.expect(c.area.fecha_finalizacion,'asociacion vigente').to.eql(null);pm.expect(p.id_infraestructura).to.eql(c.area.id_infraestructura);});",
+                  "pm.test('Rango tecnico descubierto por API, no supuesto',()=>{pm.expect(c.rangoTecnico.fuente).to.include('rangos-calibracion');pm.expect(c.rangoTecnico.categoria).to.eql(c.sensor.categoria);pm.expect(num(c.rangoTecnico.min)).to.be.below(num(c.rangoTecnico.max));});",
+                  "pm.test('Valor enviado es exactamente el maximo tecnico',()=>{pm.expect(String(p.valor_referencia)).to.eql(String(c.rangoTecnico.max));pm.expect(num(p.valor_referencia)).to.eql(num(c.rangoTecnico.max));});",
+                  "pm.test('HTTP 201 segun el contrato',()=>pm.response.to.have.status(201));",
+                  "pm.test('ID de calibracion valido',()=>{pm.expect(b.id_calibracion).to.be.a('number');pm.expect(b.id_calibracion).to.be.above(0);pm.environment.set('id_creado',String(b.id_calibracion));});",
+                  "pm.test('Asociado al dispositivo y sensor correctos',()=>{pm.expect(b.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(b.id_sensor).to.eql(c.sensor.id);});",
+                  "pm.test('Valor persistido igual al enviado, sin perdida de precision',()=>pm.expect(num(b.valor_referencia)).to.eql(num(p.valor_referencia)));",
+                  "pm.test('Trazabilidad: responsable y fecha',()=>{pm.expect(b.id_usuario,'usuario responsable').to.be.a('number');pm.expect(b.fecha_calibracion,'fecha de calibracion').to.be.a('string');});",
+                  "pm.test('Observaciones correlacionables con la ejecucion',()=>pm.expect(String(b.observaciones||'')).to.eql(p.observaciones));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-143 GET historial de calibraciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibraciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const num=x=>Number(x);",
+                  "const id=Number(pm.environment.get('id_creado'));",
+                  "pm.test('GET historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('El historial contiene la calibracion exactamente una vez',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(x=>x.id_calibracion===id)).to.have.lengthOf(1);});",
+                  "pm.test('El historial crecio en exactamente un registro',()=>pm.expect(b.total).to.eql(c.historialPrevio.total+1));",
+                  "pm.test('Las calibraciones anteriores siguen intactas',()=>{const ids=b.items.map(x=>x.id_calibracion);c.historialPrevio.ids.forEach(prev=>pm.expect(ids,'historico conservado').to.include(prev));});",
+                  "pm.test('Valor conservado en el historial',()=>{const u=b.items.find(x=>x.id_calibracion===id);pm.expect(num(u.valor_referencia)).to.eql(num(p.valor_referencia));});",
+                  "pm.test('Queda como calibracion mas reciente, disponible para su aplicacion posterior',()=>{const u=b.items.find(x=>x.id_calibracion===id);const masReciente=b.items.reduce((a,x)=>new Date(x.fecha_calibracion)>new Date(a.fecha_calibracion)?x:a,b.items[0]);pm.expect(masReciente.id_calibracion,'la seleccionada por fecha_calibracion DESC').to.eql(u.id_calibracion);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-144-LOW",
+      "item": [
+        {
+          "name": "TC-M09-144-LOW POST calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Dispositivo activo y sensor asociado a el',()=>{pm.expect(c.dispositivo.es_activo).to.eql(true);pm.expect(c.sensor.es_activo).to.eql(true);pm.expect(c.sensor.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(p.id_dispositivo_iot).to.eql(c.dispositivo.id);});",
+                  "pm.test('Area de la asociacion vigente es la enviada',()=>{pm.expect(c.area.fecha_finalizacion,'asociacion vigente').to.eql(null);pm.expect(p.id_infraestructura).to.eql(c.area.id_infraestructura);});",
+                  "pm.test('Rango tecnico descubierto por API, no supuesto',()=>{pm.expect(c.rangoTecnico.fuente).to.include('rangos-calibracion');pm.expect(c.rangoTecnico.categoria).to.eql(c.sensor.categoria);pm.expect(num(c.rangoTecnico.min)).to.be.below(num(c.rangoTecnico.max));});",
+                  "pm.test('El valor enviado esta por debajo del minimo tecnico',()=>{pm.expect(num(p.valor_referencia)).to.be.below(num(c.rangoTecnico.min));pm.expect(String(p.valor_referencia)).to.eql(String(c.valores.bajoInvalido));});",
+                  "pm.test('HTTP 400 segun RF-24 y el contrato',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo especifico por valor fuera del rango tecnico',()=>{pm.expect(b.error_code).to.eql('VALOR_FUERA_DE_RANGO');pm.expect(b.message).to.include('rangos de seguridad');pm.expect(b.fields.map(f=>f.field)).to.include('valor_referencia');});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-24',()=>{pm.expect(b.error_code).to.not.be.oneOf(['DISPOSITIVO_NO_ENCONTRADO','DISPOSITIVO_INACTIVO','SENSOR_NO_ENCONTRADO','SENSOR_DISPOSITIVO_INVALIDO','SENSOR_AREA_INVALIDA','AUDITORIA_CALIBRACION_FALLIDA','ERROR_INTERNO','VAL_ENTRADA']);pm.expect(pm.response.code).to.not.be.oneOf([201,404,422,500]);});",
+                  "pm.test('Sin calibracion creada',()=>{pm.expect(b).not.to.have.property('id_calibracion');pm.expect(pm.response.code).to.not.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-144-LOW GET historial de calibraciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibraciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('GET historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('No se creo ninguna calibracion: el historial no crecio',()=>pm.expect(b.total).to.eql(c.historialPrevio.total));",
+                  "pm.test('No aparece ningun ID nuevo atribuible al request',()=>{const ids=b.items.map(x=>x.id_calibracion).sort((a,z)=>a-z);pm.expect(ids).to.eql([...c.historialPrevio.ids].sort((a,z)=>a-z));});",
+                  "pm.test('No existe calibracion con el valor invalido enviado',()=>{const invalido=String(p.valor_referencia);const coincide=b.items.filter(x=>String(x.valor_referencia)===invalido||(invalido!==''&&!Number.isNaN(Number(invalido))&&num(x.valor_referencia)===num(invalido)));pm.expect(coincide,'ninguna calibracion con el valor rechazado').to.have.lengthOf(0);});",
+                  "pm.test('La calibracion valida anterior sigue intacta',()=>{if(!c.ultimaValida){pm.expect(c.historialPrevio.total,'sin calibracion valida previa que conservar').to.eql(0);return;}const u=b.items.find(x=>x.id_calibracion===c.ultimaValida.id_calibracion);pm.expect(u,'la calibracion valida anterior debe seguir existiendo').to.not.be.undefined;pm.expect(num(u.valor_referencia)).to.eql(num(c.ultimaValida.valor_referencia));});",
+                  "pm.test('Sigue siendo la calibracion mas reciente para su aplicacion posterior',()=>{if(!c.ultimaValida)return;const masReciente=b.items.reduce((a,x)=>new Date(x.fecha_calibracion)>new Date(a.fecha_calibracion)?x:a,b.items[0]);pm.expect(masReciente.id_calibracion).to.eql(c.ultimaValida.id_calibracion);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-144-HIGH",
+      "item": [
+        {
+          "name": "TC-M09-144-HIGH POST calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Dispositivo activo y sensor asociado a el',()=>{pm.expect(c.dispositivo.es_activo).to.eql(true);pm.expect(c.sensor.es_activo).to.eql(true);pm.expect(c.sensor.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(p.id_dispositivo_iot).to.eql(c.dispositivo.id);});",
+                  "pm.test('Area de la asociacion vigente es la enviada',()=>{pm.expect(c.area.fecha_finalizacion,'asociacion vigente').to.eql(null);pm.expect(p.id_infraestructura).to.eql(c.area.id_infraestructura);});",
+                  "pm.test('Rango tecnico descubierto por API, no supuesto',()=>{pm.expect(c.rangoTecnico.fuente).to.include('rangos-calibracion');pm.expect(c.rangoTecnico.categoria).to.eql(c.sensor.categoria);pm.expect(num(c.rangoTecnico.min)).to.be.below(num(c.rangoTecnico.max));});",
+                  "pm.test('El valor enviado esta por encima del maximo tecnico',()=>{pm.expect(num(p.valor_referencia)).to.be.above(num(c.rangoTecnico.max));pm.expect(String(p.valor_referencia)).to.eql(String(c.valores.altoInvalido));});",
+                  "pm.test('HTTP 400 segun RF-24 y el contrato',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo especifico por valor fuera del rango tecnico',()=>{pm.expect(b.error_code).to.eql('VALOR_FUERA_DE_RANGO');pm.expect(b.message).to.include('rangos de seguridad');pm.expect(b.fields.map(f=>f.field)).to.include('valor_referencia');});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-24',()=>{pm.expect(b.error_code).to.not.be.oneOf(['DISPOSITIVO_NO_ENCONTRADO','DISPOSITIVO_INACTIVO','SENSOR_NO_ENCONTRADO','SENSOR_DISPOSITIVO_INVALIDO','SENSOR_AREA_INVALIDA','AUDITORIA_CALIBRACION_FALLIDA','ERROR_INTERNO','VAL_ENTRADA']);pm.expect(pm.response.code).to.not.be.oneOf([201,404,422,500]);});",
+                  "pm.test('Sin calibracion creada',()=>{pm.expect(b).not.to.have.property('id_calibracion');pm.expect(pm.response.code).to.not.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-144-HIGH GET historial de calibraciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibraciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('GET historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('No se creo ninguna calibracion: el historial no crecio',()=>pm.expect(b.total).to.eql(c.historialPrevio.total));",
+                  "pm.test('No aparece ningun ID nuevo atribuible al request',()=>{const ids=b.items.map(x=>x.id_calibracion).sort((a,z)=>a-z);pm.expect(ids).to.eql([...c.historialPrevio.ids].sort((a,z)=>a-z));});",
+                  "pm.test('No existe calibracion con el valor invalido enviado',()=>{const invalido=String(p.valor_referencia);const coincide=b.items.filter(x=>String(x.valor_referencia)===invalido||(invalido!==''&&!Number.isNaN(Number(invalido))&&num(x.valor_referencia)===num(invalido)));pm.expect(coincide,'ninguna calibracion con el valor rechazado').to.have.lengthOf(0);});",
+                  "pm.test('La calibracion valida anterior sigue intacta',()=>{if(!c.ultimaValida){pm.expect(c.historialPrevio.total,'sin calibracion valida previa que conservar').to.eql(0);return;}const u=b.items.find(x=>x.id_calibracion===c.ultimaValida.id_calibracion);pm.expect(u,'la calibracion valida anterior debe seguir existiendo').to.not.be.undefined;pm.expect(num(u.valor_referencia)).to.eql(num(c.ultimaValida.valor_referencia));});",
+                  "pm.test('Sigue siendo la calibracion mas reciente para su aplicacion posterior',()=>{if(!c.ultimaValida)return;const masReciente=b.items.reduce((a,x)=>new Date(x.fecha_calibracion)>new Date(a.fecha_calibracion)?x:a,b.items[0]);pm.expect(masReciente.id_calibracion).to.eql(c.ultimaValida.id_calibracion);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-145-EMPTY",
+      "item": [
+        {
+          "name": "TC-M09-145-EMPTY POST calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Dispositivo activo y sensor asociado a el',()=>{pm.expect(c.dispositivo.es_activo).to.eql(true);pm.expect(c.sensor.es_activo).to.eql(true);pm.expect(c.sensor.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(p.id_dispositivo_iot).to.eql(c.dispositivo.id);});",
+                  "pm.test('Area de la asociacion vigente es la enviada',()=>{pm.expect(c.area.fecha_finalizacion,'asociacion vigente').to.eql(null);pm.expect(p.id_infraestructura).to.eql(c.area.id_infraestructura);});",
+                  "pm.test('Rango tecnico descubierto por API, no supuesto',()=>{pm.expect(c.rangoTecnico.fuente).to.include('rangos-calibracion');pm.expect(c.rangoTecnico.categoria).to.eql(c.sensor.categoria);pm.expect(num(c.rangoTecnico.min)).to.be.below(num(c.rangoTecnico.max));});",
+                  "pm.test('El valor enviado es la cadena vacia',()=>{pm.expect(p.valor_referencia).to.eql('');pm.expect(typeof p.valor_referencia).to.eql('string');});",
+                  "pm.test('HTTP 400 segun RF-24 y el contrato',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo especifico por valor vacio no numerico',()=>{pm.expect(b.error_code).to.eql('VALOR_CALIBRACION_INVALIDO');pm.expect(b.message).to.include('decimal');pm.expect(b.fields.map(f=>f.field)).to.include('valor_referencia');});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-24',()=>{pm.expect(b.error_code).to.not.be.oneOf(['DISPOSITIVO_NO_ENCONTRADO','DISPOSITIVO_INACTIVO','SENSOR_NO_ENCONTRADO','SENSOR_DISPOSITIVO_INVALIDO','SENSOR_AREA_INVALIDA','AUDITORIA_CALIBRACION_FALLIDA','ERROR_INTERNO','VAL_ENTRADA']);pm.expect(pm.response.code).to.not.be.oneOf([201,404,422,500]);});",
+                  "pm.test('Sin calibracion creada',()=>{pm.expect(b).not.to.have.property('id_calibracion');pm.expect(pm.response.code).to.not.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-145-EMPTY GET historial de calibraciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibraciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('GET historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('No se creo ninguna calibracion: el historial no crecio',()=>pm.expect(b.total).to.eql(c.historialPrevio.total));",
+                  "pm.test('No aparece ningun ID nuevo atribuible al request',()=>{const ids=b.items.map(x=>x.id_calibracion).sort((a,z)=>a-z);pm.expect(ids).to.eql([...c.historialPrevio.ids].sort((a,z)=>a-z));});",
+                  "pm.test('No existe calibracion con el valor invalido enviado',()=>{const invalido=String(p.valor_referencia);const coincide=b.items.filter(x=>String(x.valor_referencia)===invalido||(invalido!==''&&!Number.isNaN(Number(invalido))&&num(x.valor_referencia)===num(invalido)));pm.expect(coincide,'ninguna calibracion con el valor rechazado').to.have.lengthOf(0);});",
+                  "pm.test('La calibracion valida anterior sigue intacta',()=>{if(!c.ultimaValida){pm.expect(c.historialPrevio.total,'sin calibracion valida previa que conservar').to.eql(0);return;}const u=b.items.find(x=>x.id_calibracion===c.ultimaValida.id_calibracion);pm.expect(u,'la calibracion valida anterior debe seguir existiendo').to.not.be.undefined;pm.expect(num(u.valor_referencia)).to.eql(num(c.ultimaValida.valor_referencia));});",
+                  "pm.test('Sigue siendo la calibracion mas reciente para su aplicacion posterior',()=>{if(!c.ultimaValida)return;const masReciente=b.items.reduce((a,x)=>new Date(x.fecha_calibracion)>new Date(a.fecha_calibracion)?x:a,b.items[0]);pm.expect(masReciente.id_calibracion).to.eql(c.ultimaValida.id_calibracion);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-145-NONNUMERIC",
+      "item": [
+        {
+          "name": "TC-M09-145-NONNUMERIC POST calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Dispositivo activo y sensor asociado a el',()=>{pm.expect(c.dispositivo.es_activo).to.eql(true);pm.expect(c.sensor.es_activo).to.eql(true);pm.expect(c.sensor.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(p.id_dispositivo_iot).to.eql(c.dispositivo.id);});",
+                  "pm.test('Area de la asociacion vigente es la enviada',()=>{pm.expect(c.area.fecha_finalizacion,'asociacion vigente').to.eql(null);pm.expect(p.id_infraestructura).to.eql(c.area.id_infraestructura);});",
+                  "pm.test('Rango tecnico descubierto por API, no supuesto',()=>{pm.expect(c.rangoTecnico.fuente).to.include('rangos-calibracion');pm.expect(c.rangoTecnico.categoria).to.eql(c.sensor.categoria);pm.expect(num(c.rangoTecnico.min)).to.be.below(num(c.rangoTecnico.max));});",
+                  "pm.test('El valor enviado es inequivocamente no numerico',()=>{pm.expect(typeof p.valor_referencia).to.eql('string');pm.expect(Number.isNaN(Number(p.valor_referencia)),'no convertible a numero').to.eql(true);});",
+                  "pm.test('HTTP 400 segun RF-24 y el contrato',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo especifico por valor no numerico',()=>{pm.expect(b.error_code).to.eql('VALOR_CALIBRACION_INVALIDO');pm.expect(b.message).to.include('decimal');pm.expect(b.fields.map(f=>f.field)).to.include('valor_referencia');});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-24',()=>{pm.expect(b.error_code).to.not.be.oneOf(['DISPOSITIVO_NO_ENCONTRADO','DISPOSITIVO_INACTIVO','SENSOR_NO_ENCONTRADO','SENSOR_DISPOSITIVO_INVALIDO','SENSOR_AREA_INVALIDA','AUDITORIA_CALIBRACION_FALLIDA','ERROR_INTERNO','VAL_ENTRADA']);pm.expect(pm.response.code).to.not.be.oneOf([201,404,422,500]);});",
+                  "pm.test('Sin calibracion creada',()=>{pm.expect(b).not.to.have.property('id_calibracion');pm.expect(pm.response.code).to.not.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-145-NONNUMERIC GET historial de calibraciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibraciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('GET historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('No se creo ninguna calibracion: el historial no crecio',()=>pm.expect(b.total).to.eql(c.historialPrevio.total));",
+                  "pm.test('No aparece ningun ID nuevo atribuible al request',()=>{const ids=b.items.map(x=>x.id_calibracion).sort((a,z)=>a-z);pm.expect(ids).to.eql([...c.historialPrevio.ids].sort((a,z)=>a-z));});",
+                  "pm.test('No existe calibracion con el valor invalido enviado',()=>{const invalido=String(p.valor_referencia);const coincide=b.items.filter(x=>String(x.valor_referencia)===invalido||(invalido!==''&&!Number.isNaN(Number(invalido))&&num(x.valor_referencia)===num(invalido)));pm.expect(coincide,'ninguna calibracion con el valor rechazado').to.have.lengthOf(0);});",
+                  "pm.test('La calibracion valida anterior sigue intacta',()=>{if(!c.ultimaValida){pm.expect(c.historialPrevio.total,'sin calibracion valida previa que conservar').to.eql(0);return;}const u=b.items.find(x=>x.id_calibracion===c.ultimaValida.id_calibracion);pm.expect(u,'la calibracion valida anterior debe seguir existiendo').to.not.be.undefined;pm.expect(num(u.valor_referencia)).to.eql(num(c.ultimaValida.valor_referencia));});",
+                  "pm.test('Sigue siendo la calibracion mas reciente para su aplicacion posterior',()=>{if(!c.ultimaValida)return;const masReciente=b.items.reduce((a,x)=>new Date(x.fecha_calibracion)>new Date(a.fecha_calibracion)?x:a,b.items[0]);pm.expect(masReciente.id_calibracion).to.eql(c.ultimaValida.id_calibracion);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

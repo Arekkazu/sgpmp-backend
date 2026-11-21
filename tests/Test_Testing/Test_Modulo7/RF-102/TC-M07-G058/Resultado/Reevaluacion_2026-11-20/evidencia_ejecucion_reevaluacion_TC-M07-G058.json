@@ -1,0 +1,408 @@
+{
+  "caso": "TC-M07-G058",
+  "rf": "RF-102",
+  "issue": "#1165",
+  "tipo": "REEVALUACION",
+  "fecha_ejecucion_utc": "2026-11-21T00:27:47.756010+00:00",
+  "estado_final": "APROBADO",
+  "resumen": {
+    "aprobados": 6,
+    "rechazados": 0,
+    "bloqueados": 0,
+    "no_aplica": 0,
+    "estado_final": "APROBADO"
+  },
+  "escenarios": [
+    {
+      "id": "E1",
+      "nombre": "Políticas de retención 5 y 10 años",
+      "caso_original": "TC-M07-102-015",
+      "estado": "APROBADO",
+      "validacion": "Configuración y comportamiento verificable 5y/10y",
+      "esperado": "5 años generales y 10 años AAEF aplicados al archivar",
+      "obtenido": "codigo_retencion=True; schema_test=True; aislado={'fn_retencion_existe': True, 'general_lt_5y_permanece_activo': True, 'general_ge_5y_archivado': True, 'aaef_probado': True, 'aaef_ge_10y_archivado': True, 'aaef_lt_10y_activo': True}",
+      "evidencia": "evidencia_reevaluacion_e1_retencion_TC-M07-G058.json",
+      "pasos": [
+        "Inspección migración f11651020001 / fn_fin_retencion_rf102",
+        "Catálogo TEST: funciones y tabla histórica",
+        "BD aislada: archivar alrededor de cortes 5y y 10y"
+      ],
+      "observaciones": "APROBADO solo con evidencia comportamental en ambos plazos.",
+      "referencia_original": "Resultado/evidencia_e1_retencion_TC-M07-G058.json",
+      "fecha_utc": "2026-11-21T00:27:47.742223+00:00",
+      "ambiente": {
+        "api_test": "https://api.inmero.co/api-sgpmp-test",
+        "codigo": "origin/test (inspección RF-102 #1165)",
+        "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+      },
+      "evidencia_tecnica": {
+        "fn_retencion_existe": true,
+        "general_lt_5y_permanece_activo": true,
+        "general_ge_5y_archivado": true,
+        "aaef_probado": true,
+        "aaef_ge_10y_archivado": true,
+        "aaef_lt_10y_activo": true
+      }
+    },
+    {
+      "id": "E2",
+      "nombre": "Archivado automático",
+      "caso_original": "TC-M07-102-015",
+      "estado": "APROBADO",
+      "validacion": "Proceso real de archivado ejecutable",
+      "esperado": "Worker/lote traslada elegibles al histórico sin pérdida ni duplicados",
+      "obtenido": "worker=True; aislado={'ejecutar_archivado_ok': True, 'n_activos': 5, 'n_historicos': 4, 'viejos_en_historico': True, 'vigentes_siguen_activos': True, 'sin_aviso': True, 'idempotente': True}",
+      "evidencia": "evidencia_reevaluacion_e2_archivado_TC-M07-G058.json",
+      "pasos": [
+        "Worker archivo_auditoria_worker (1h / reintento 15m)",
+        "Ejecución ejecutar_archivado() en BD aislada",
+        "Verificación idempotencia segundo pase"
+      ],
+      "observaciones": "Proceso verificado en BD aislada; en TEST el worker corre al lifespan del backend desplegado.",
+      "referencia_original": "Resultado/evidencia_e2_archivado_TC-M07-G058.json",
+      "fecha_utc": "2026-11-21T00:27:47.742251+00:00",
+      "ambiente": {
+        "api_test": "https://api.inmero.co/api-sgpmp-test",
+        "codigo": "origin/test (inspección RF-102 #1165)",
+        "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+      },
+      "evidencia_tecnica": {
+        "ejecutar_archivado_ok": true,
+        "n_activos": 5,
+        "n_historicos": 4,
+        "viejos_en_historico": true,
+        "vigentes_siguen_activos": true,
+        "sin_aviso": true,
+        "idempotente": true
+      }
+    },
+    {
+      "id": "E3",
+      "nombre": "Integridad del hash durante el archivado",
+      "caso_original": "TC-M07-102-015",
+      "estado": "APROBADO",
+      "validacion": "SHA-256 conservado antes/después del traslado",
+      "esperado": "Hash idéntico en activo→histórico y recuperable",
+      "obtenido": "aislado={'hashes_antes': {'44fa0c37-5521-4406-83d9-a235d3143fd5': '982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be', '34d132af-a303-4044-9d4e-f4b198d748e2': 'e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813', 'a89b0a75-27c0-48e7-90e0-bd4d36fe6f07': 'f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519'}, 'n_comparados': 4, 'todos_conservados': True, 'detalle': [{'id': '44fa0c37-5521-4406-83d9-a235d3143fd5', 'antes': '982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be', 'despues': '982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be', 'igual': True}, {'id': '34d132af-a303-4044-9d4e-f4b198d748e2', 'antes': 'e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813', 'despues': 'e34909be0c0d2176cd4e049783fa63d4eba1…",
+      "evidencia": "evidencia_reevaluacion_e3_hash_TC-M07-G058.json",
+      "pasos": [
+        "Captura hash previo al archivar",
+        "Traslado y lectura en eventos_integracion_archivados",
+        "Comparación 1:1 (no se reutiliza 160/160 original)"
+      ],
+      "observaciones": "Evidencia nueva de conservación durante archivado en BD aislada.",
+      "referencia_original": "Resultado/evidencia_e3_hash_TC-M07-G058.json",
+      "fecha_utc": "2026-11-21T00:27:47.742297+00:00",
+      "ambiente": {
+        "api_test": "https://api.inmero.co/api-sgpmp-test",
+        "codigo": "origin/test (inspección RF-102 #1165)",
+        "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+      },
+      "evidencia_tecnica": {
+        "aislado": {
+          "hashes_antes": {
+            "44fa0c37-5521-4406-83d9-a235d3143fd5": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+            "34d132af-a303-4044-9d4e-f4b198d748e2": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+            "a89b0a75-27c0-48e7-90e0-bd4d36fe6f07": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519"
+          },
+          "n_comparados": 4,
+          "todos_conservados": true,
+          "detalle": [
+            {
+              "id": "44fa0c37-5521-4406-83d9-a235d3143fd5",
+              "antes": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+              "despues": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+              "igual": true
+            },
+            {
+              "id": "34d132af-a303-4044-9d4e-f4b198d748e2",
+              "antes": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+              "despues": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+              "igual": true
+            },
+            {
+              "id": "a89b0a75-27c0-48e7-90e0-bd4d36fe6f07",
+              "antes": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519",
+              "despues": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519",
+              "igual": true
+            },
+            {
+              "id": "635fa775-1f24-4937-b2de-7cc6a404f62c",
+              "antes": "14e6b8994209d189cafb668e7e1d2a4f59cfd889284a25349f65da31aa910681",
+              "despues": "14e6b8994209d189cafb668e7e1d2a4f59cfd889284a25349f65da31aa910681",
+              "igual": true
+            }
+          ]
+        },
+        "api_test_actual": {
+          "integro": 781,
+          "corrupto": 0
+        }
+      }
+    },
+    {
+      "id": "E4",
+      "nombre": "Consulta y recuperación de registros históricos",
+      "caso_original": "TC-M07-102-015",
+      "estado": "APROBADO",
+      "validacion": "Recuperación real de archivados vía almacenamiento histórico",
+      "esperado": "Vista/consulta unificada activos+archivados con integridad",
+      "obtenido": "vista_test=True; aislado={'total_vista_historial': 9, 'esperado': 9, 'cubre_activos_y_archivados': True, 'consulta_dual_implementada': True}; api_http=200",
+      "evidencia": "evidencia_reevaluacion_e4_historicos_TC-M07-G058.json",
+      "pasos": [
+        "Confirmación v_historial_eventos_integracion en TEST",
+        "Repositorio consulta v_historial_*",
+        "BD aislada: count vista = activos + archivados del endpoint de prueba",
+        "API TEST responde GET /integracion/auditoria (contrato unificado)"
+      ],
+      "observaciones": "La API no expone flag 'archivado'; la recuperación se demuestra por la vista unificada.",
+      "referencia_original": "Resultado/evidencia_e4_historicos_TC-M07-G058.json",
+      "fecha_utc": "2026-11-21T00:27:47.742314+00:00",
+      "ambiente": {
+        "api_test": "https://api.inmero.co/api-sgpmp-test",
+        "codigo": "origin/test (inspección RF-102 #1165)",
+        "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+      },
+      "evidencia_tecnica": {
+        "total_vista_historial": 9,
+        "esperado": 9,
+        "cubre_activos_y_archivados": true,
+        "consulta_dual_implementada": true
+      }
+    },
+    {
+      "id": "E5",
+      "nombre": "Verificación de antigüedad 5 y 10 años",
+      "caso_original": "TC-M07-102-015",
+      "estado": "APROBADO",
+      "validacion": "Límites exactos con datos históricos controlados",
+      "esperado": "Escenarios <, =margen, > para 5y y 10y",
+      "obtenido": "api_test_ge5y=0 aaef_ge10y=0; aislado={'n_viejos': 4, 'n_vigentes': 5, 'cinco_corte': '2021-11-21T00:27:47.600566+00:00', 'diez_corte': '2016-11-21T00:27:47.600566+00:00', 'cliente_id': 1, 'tipos_aaef_incluidos': True}",
+      "evidencia": "evidencia_reevaluacion_e5_antiguedad_TC-M07-G058.json",
+      "pasos": [
+        "TEST compartido sin registros >=5/10y (esperado)",
+        "BD aislada con fechas sintéticas alrededor de cortes",
+        "Margen ±1h respecto a fn_fin_retencion_rf102"
+      ],
+      "observaciones": "Datos sintéticos documentados; no representan producción.",
+      "referencia_original": "Resultado/evidencia_e5_antiguedad_TC-M07-G058.json",
+      "fecha_utc": "2026-11-21T00:27:47.742331+00:00",
+      "ambiente": {
+        "api_test": "https://api.inmero.co/api-sgpmp-test",
+        "codigo": "origin/test (inspección RF-102 #1165)",
+        "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+      },
+      "evidencia_tecnica": {
+        "api_test": {
+          "ge_5y": 0,
+          "aaef_ge_10y": 0
+        },
+        "aislado": {
+          "n_viejos": 4,
+          "n_vigentes": 5,
+          "cinco_corte": "2021-11-21T00:27:47.600566+00:00",
+          "diez_corte": "2016-11-21T00:27:47.600566+00:00",
+          "cliente_id": 1,
+          "tipos_aaef_incluidos": true
+        }
+      }
+    },
+    {
+      "id": "E6",
+      "nombre": "Comportamiento ante fallos de archivado",
+      "caso_original": "TC-M07-102-015",
+      "estado": "APROBADO",
+      "validacion": "Rollback, alerta, reintento, sin pérdida/duplicados",
+      "esperado": "Fallo controlado revierte lote; reintento archiva válidos; corruptos quedan activos",
+      "obtenido": "aislado={'fallo_detectado': True, 'causa_alerta': 'FALLO_ARCHIVADO', 'rollback_sin_historico_del_lote': True, 'ambos_siguen_activos_tras_fallo': True, 'reintento_ok': True, 'bueno_archivado_tras_reintento': True, 'corrupto_permanece_activo': True, 'hash_bueno_conservado': True}",
+      "evidencia": "evidencia_reevaluacion_e6_fallos_archivado_TC-M07-G058.json",
+      "pasos": [
+        "Mock de archivar() que vacía copias tras INSERT",
+        "Verificación rollback + causa FALLO_ARCHIVADO",
+        "Reintento posterior y conservación de hash"
+      ],
+      "observaciones": "Ejecutado en BD aislada; no se provocaron fallos en infraestructura compartida.",
+      "referencia_original": "Resultado/evidencia_e6_fallos_archivado_TC-M07-G058.json",
+      "fecha_utc": "2026-11-21T00:27:47.742344+00:00",
+      "ambiente": {
+        "api_test": "https://api.inmero.co/api-sgpmp-test",
+        "codigo": "origin/test (inspección RF-102 #1165)",
+        "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+      },
+      "evidencia_tecnica": {
+        "fallo_detectado": true,
+        "causa_alerta": "FALLO_ARCHIVADO",
+        "rollback_sin_historico_del_lote": true,
+        "ambos_siguen_activos_tras_fallo": true,
+        "reintento_ok": true,
+        "bueno_archivado_tras_reintento": true,
+        "corrupto_permanece_activo": true,
+        "hash_bueno_conservado": true
+      }
+    }
+  ],
+  "comparacion": [
+    {
+      "escenario": "E1 Políticas de retención 5 y 10 años",
+      "original": "RECHAZADO",
+      "reevaluacion": "APROBADO",
+      "cambio": "MEJORA",
+      "evidencia": "evidencia_reevaluacion_e1_retencion_TC-M07-G058.json"
+    },
+    {
+      "escenario": "E2 Archivado automático",
+      "original": "RECHAZADO",
+      "reevaluacion": "APROBADO",
+      "cambio": "MEJORA",
+      "evidencia": "evidencia_reevaluacion_e2_archivado_TC-M07-G058.json"
+    },
+    {
+      "escenario": "E3 Integridad del hash durante el archivado",
+      "original": "APROBADO",
+      "reevaluacion": "APROBADO",
+      "cambio": "SIN CAMBIO",
+      "evidencia": "evidencia_reevaluacion_e3_hash_TC-M07-G058.json"
+    },
+    {
+      "escenario": "E4 Consulta y recuperación de registros históricos",
+      "original": "RECHAZADO",
+      "reevaluacion": "APROBADO",
+      "cambio": "MEJORA",
+      "evidencia": "evidencia_reevaluacion_e4_historicos_TC-M07-G058.json"
+    },
+    {
+      "escenario": "E5 Verificación de antigüedad 5 y 10 años",
+      "original": "BLOQUEADO",
+      "reevaluacion": "APROBADO",
+      "cambio": "MEJORA",
+      "evidencia": "evidencia_reevaluacion_e5_antiguedad_TC-M07-G058.json"
+    },
+    {
+      "escenario": "E6 Comportamiento ante fallos de archivado",
+      "original": "NO APLICA",
+      "reevaluacion": "APROBADO",
+      "cambio": "MEJORA",
+      "evidencia": "evidencia_reevaluacion_e6_fallos_archivado_TC-M07-G058.json"
+    }
+  ],
+  "diagnostico": {
+    "implementacion": {
+      "code_root": "origin/test (inspección RF-102 #1165)",
+      "archivos_clave": {
+        "alembic/versions/f11651020001_rf102_archivo_auditoria_integracion.py": true,
+        "src/accounting_integration/application/use_cases/auditoria/archivar_auditoria_integracion_use_case.py": true,
+        "src/accounting_integration/infrastructure/archivo_auditoria_worker.py": true,
+        "src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py": true,
+        "tests/integration/test_inc_m07_371_g58_archivado_auditoria.py": true,
+        "anotaciones/modulo_7/inc_m07_371_g58_retencion_auditoria_rf102.md": true,
+        "main.py": true
+      },
+      "retencion_5y_10y": true,
+      "tabla_historica": true,
+      "vista_historial": true,
+      "fn_archivar": true,
+      "worker_periodico": true,
+      "consulta_dual_almacen": true,
+      "reintento_15m": true,
+      "tipos_aaef_10y": [
+        "PAQUETE_AAEF_CONSULTADO",
+        "VISTA_AAEF_GENERADA",
+        "CONTRATO_ACTIVADO"
+      ],
+      "proteccion_salida": true,
+      "intervalo_1h": true,
+      "metodos_archivo": true,
+      "worker_en_lifespan": true,
+      "implementacion_codigo_completa": true,
+      "refs": {
+        "issue": "#1165",
+        "pr": "#1191",
+        "pr_lote": "#1202",
+        "commit_fix": "98f8b5c8822f4a169fb90cc1092cbe8bbb2f2b6a",
+        "migracion": "f11651020001"
+      }
+    },
+    "schema_test": {
+      "readonly": true,
+      "ok": true,
+      "tablas": [
+        "eventos_integracion",
+        "eventos_integracion_archivados",
+        "identidades_eventos_integracion"
+      ],
+      "vista_historial": true,
+      "funciones": [
+        "fn_archivar_eventos_rf102",
+        "fn_fin_retencion_rf102"
+      ],
+      "retencion_tiene_5y": true,
+      "retencion_tiene_10y": true,
+      "retencion_tipos_aaef": true,
+      "esquema_archivo_presente": true
+    },
+    "api_test": {
+      "disponible": true,
+      "n_registros": 781,
+      "integro": 781,
+      "corrupto": 0,
+      "pct_integro": 100.0,
+      "ge_5y": 0,
+      "aaef_ge_10y": 0,
+      "fecha_min": "2026-08-05T10:00:00+00:00",
+      "fecha_max": "2026-11-22T10:00:00+00:00"
+    },
+    "bd_aislada_ok": true
+  },
+  "limitaciones": [
+    "TEST no contiene registros naturales de antigüedad ≥5/10 años.",
+    "E5 se validó con datos sintéticos en BD aislada (no representan histórico real de producción/TEST).",
+    "La API no expone flag 'archivado'; la recuperación histórica se demuestra vía vista unificada.",
+    "pytest oficial tests/integration/test_inc_m07_371_g58_archivado_auditoria.py no ejecutado en Windows (dependencia fcntl).",
+    "Se ejecutó harness equivalente (ejecutar_reevaluacion_tc_m07_g58.py) sobre el mismo código de origin/test / PR #1191.",
+    "En API TEST no hay aún filas archivables por antigüedad; el worker no tiene candidatos reales en datos compartidos."
+  ],
+  "evidencias_originales": {
+    "intactos": true,
+    "estado_final_original": "RECHAZADO",
+    "archivos": {
+      "evidencia_ejecucion_TC-M07-G058.json": {
+        "existe": true,
+        "nbytes": 6873
+      },
+      "evidencia_e1_retencion_TC-M07-G058.json": {
+        "existe": true,
+        "nbytes": 1104
+      },
+      "evidencia_e2_archivado_TC-M07-G058.json": {
+        "existe": true,
+        "nbytes": 722
+      },
+      "evidencia_e3_hash_TC-M07-G058.json": {
+        "existe": true,
+        "nbytes": 391
+      },
+      "evidencia_e4_historicos_TC-M07-G058.json": {
+        "existe": true,
+        "nbytes": 236
+      },
+      "evidencia_e5_antiguedad_TC-M07-G058.json": {
+        "existe": true,
+        "nbytes": 406
+      },
+      "evidencia_e6_fallos_archivado_TC-M07-G058.json": {
+        "existe": true,
+        "nbytes": 235
+      },
+      "resultado_TC-M07-G058.html": {
+        "existe": true,
+        "nbytes": 10424
+      }
+    }
+  },
+  "conclusiones_issue_1165": {
+    "codigo_implementado": true,
+    "migracion_en_test": true,
+    "comportamiento_verificado_aislado": true,
+    "caso_aprobable": true
+  }
+}

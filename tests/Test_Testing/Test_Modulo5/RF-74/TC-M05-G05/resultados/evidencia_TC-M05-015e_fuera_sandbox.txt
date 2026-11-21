@@ -1,0 +1,7 @@
+TC-M05-015e - Reactivacion del batch ICA con solo_cola=true, corrida FUERA del sandbox (autorizada por el DBA)
+Fecha: 2026-11-09 09:22 UTC | Ambiente: TEST | Usuario: Administrador
+Antes: GET batch/estado -> ninguna corrida EN_EJECUCION (ultima: 59 COMPLETADO AUTOMATICO); la 52 ya estaba INTERRUMPIDO con causa MANUAL (validado en TC-M05-015d). GET batch/cola -> {"total":0,"items":[]}
+POST /suministros/eficiencia-alimenticia/batch/ejecutar {"solo_cola":true} -> HTTP 200 en 0.47 s
+Respuesta: {"id_ejecucion":60,"estado":"COMPLETADO","tipo_disparo":"MANUAL","cantidad_activos_total":0,"cantidad_activos_procesados":0,"cantidad_activos_pendientes":0,"cantidad_fallidos":0,"num_workers":1,"limite_configurado":5000}
+Despues: GET batch/estado muestra la corrida 60 primero, COMPLETADO.
+Resultado: APROBADO. La reactivacion responde 200 y queda COMPLETADO (procesa 0 activos porque la cola estaba vacia).

@@ -1,0 +1,906 @@
+{
+  "item": [
+    {
+      "request": {
+        "url": "{{base_url}}/prediccion/modelos",
+        "method": "POST",
+        "body": {
+          "formdata": [
+            {
+              "key": "tipo_modelo",
+              "type": "text",
+              "value": "{{tipo_1}}"
+            },
+            {
+              "key": "hash_artefacto_sha256",
+              "type": "text",
+              "value": "{{hash_1}}"
+            },
+            {
+              "key": "dataset_entrenamiento_hash",
+              "type": "text",
+              "value": "{{dataset_hash}}"
+            },
+            {
+              "key": "metricas_validacion",
+              "type": "text",
+              "value": "{{metricas_1}}"
+            },
+            {
+              "key": "fecha_entrenamiento",
+              "type": "text",
+              "value": "{{fecha_entrenamiento}}"
+            },
+            {
+              "key": "compatibilidad_variables",
+              "type": "text",
+              "value": "{{compatibilidad_variables}}"
+            },
+            {
+              "key": "id_proceso_rf71",
+              "type": "text",
+              "value": "{{proceso_1}}"
+            },
+            {
+              "key": "archivo_modelo",
+              "type": "file",
+              "src": "{{archivo_1}}"
+            }
+          ],
+          "mode": "formdata"
+        },
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-RF71-Internal-Key",
+            "value": "{{rf71_internal_key}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-POST-V1",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G050');}"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        },
+        {
+          "script": {
+            "exec": [
+              "let x={};try{x=pm.response.json()}catch{};const id=x.id_version_modelo??x.id_version;pm.environment.set('version_1',String(id??''));if(pm.response.code===403||pm.response.code>=500)pm.execution.setNextRequest(null);"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ]
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/prediccion/modelos/{{version_1}}",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-GET-V1",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "if(!pm.environment.get('version_1'))pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        }
+      ]
+    },
+    {
+      "request": {
+        "url": "{{base_url}}/prediccion/modelos",
+        "method": "POST",
+        "body": {
+          "formdata": [
+            {
+              "key": "tipo_modelo",
+              "type": "text",
+              "value": "{{tipo_2}}"
+            },
+            {
+              "key": "hash_artefacto_sha256",
+              "type": "text",
+              "value": "{{hash_2}}"
+            },
+            {
+              "key": "dataset_entrenamiento_hash",
+              "type": "text",
+              "value": "{{dataset_hash}}"
+            },
+            {
+              "key": "metricas_validacion",
+              "type": "text",
+              "value": "{{metricas_2}}"
+            },
+            {
+              "key": "fecha_entrenamiento",
+              "type": "text",
+              "value": "{{fecha_entrenamiento}}"
+            },
+            {
+              "key": "compatibilidad_variables",
+              "type": "text",
+              "value": "{{compatibilidad_variables}}"
+            },
+            {
+              "key": "id_proceso_rf71",
+              "type": "text",
+              "value": "{{proceso_2}}"
+            },
+            {
+              "key": "archivo_modelo",
+              "type": "file",
+              "src": "{{archivo_2}}"
+            }
+          ],
+          "mode": "formdata"
+        },
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-RF71-Internal-Key",
+            "value": "{{rf71_internal_key}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-POST-V2",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G050');}"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        },
+        {
+          "script": {
+            "exec": [
+              "let x={};try{x=pm.response.json()}catch{};const id=x.id_version_modelo??x.id_version;pm.environment.set('version_2',String(id??''));const error=String(x.error_code??x.code??x.codigo??x.detail?.error_code??x.detail?.code??x.message??x.detail?.message??(typeof x.detail==='string'?x.detail:''));pm.environment.set('usar_v2b',String(!id&&pm.response.code>=400&&pm.response.code<500&&/FORMATO|ARTEFACTO/i.test(error)));if(pm.response.code===403||pm.response.code>=500)pm.execution.setNextRequest(null);"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ]
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/prediccion/modelos/{{version_2}}",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-GET-V2",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "if(!pm.environment.get('version_2'))pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        }
+      ]
+    },
+    {
+      "request": {
+        "url": "{{base_url}}/prediccion/modelos",
+        "method": "POST",
+        "body": {
+          "formdata": [
+            {
+              "key": "tipo_modelo",
+              "type": "text",
+              "value": "{{tipo_2b}}"
+            },
+            {
+              "key": "hash_artefacto_sha256",
+              "type": "text",
+              "value": "{{hash_2b}}"
+            },
+            {
+              "key": "dataset_entrenamiento_hash",
+              "type": "text",
+              "value": "{{dataset_hash}}"
+            },
+            {
+              "key": "metricas_validacion",
+              "type": "text",
+              "value": "{{metricas_2b}}"
+            },
+            {
+              "key": "fecha_entrenamiento",
+              "type": "text",
+              "value": "{{fecha_entrenamiento}}"
+            },
+            {
+              "key": "compatibilidad_variables",
+              "type": "text",
+              "value": "{{compatibilidad_variables}}"
+            },
+            {
+              "key": "id_proceso_rf71",
+              "type": "text",
+              "value": "{{proceso_2b}}"
+            },
+            {
+              "key": "archivo_modelo",
+              "type": "file",
+              "src": "{{archivo_2b}}"
+            }
+          ],
+          "mode": "formdata"
+        },
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-RF71-Internal-Key",
+            "value": "{{rf71_internal_key}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-POST-V2b",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G050');}",
+              "if(pm.environment.get('usar_v2b')!=='true')pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        },
+        {
+          "script": {
+            "exec": [
+              "let x={};try{x=pm.response.json()}catch{};const id=x.id_version_modelo??x.id_version;pm.environment.set('version_2b',String(id??''));if(pm.response.code===403||pm.response.code>=500)pm.execution.setNextRequest(null);"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ]
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/prediccion/modelos/{{version_2b}}",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-GET-V2b",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "if(!pm.environment.get('usar_v2b')||pm.environment.get('usar_v2b')!=='true'||!pm.environment.get('version_2b'))pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        }
+      ]
+    },
+    {
+      "request": {
+        "url": "{{base_url}}/prediccion/modelos",
+        "method": "POST",
+        "body": {
+          "formdata": [
+            {
+              "key": "tipo_modelo",
+              "type": "text",
+              "value": "{{tipo_3}}"
+            },
+            {
+              "key": "hash_artefacto_sha256",
+              "type": "text",
+              "value": "{{hash_3}}"
+            },
+            {
+              "key": "dataset_entrenamiento_hash",
+              "type": "text",
+              "value": "{{dataset_hash}}"
+            },
+            {
+              "key": "metricas_validacion",
+              "type": "text",
+              "value": "{{metricas_3}}"
+            },
+            {
+              "key": "fecha_entrenamiento",
+              "type": "text",
+              "value": "{{fecha_entrenamiento}}"
+            },
+            {
+              "key": "compatibilidad_variables",
+              "type": "text",
+              "value": "{{compatibilidad_variables}}"
+            },
+            {
+              "key": "id_proceso_rf71",
+              "type": "text",
+              "value": "{{proceso_3}}"
+            },
+            {
+              "key": "archivo_modelo",
+              "type": "file",
+              "src": "{{archivo_3}}"
+            }
+          ],
+          "mode": "formdata"
+        },
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-RF71-Internal-Key",
+            "value": "{{rf71_internal_key}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-POST-V3",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G050');}"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        },
+        {
+          "script": {
+            "exec": [
+              "let x={};try{x=pm.response.json()}catch{};const id=x.id_version_modelo??x.id_version;pm.environment.set('version_3',String(id??''));if(pm.response.code===403||pm.response.code>=500)pm.execution.setNextRequest(null);"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ]
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/prediccion/modelos/{{version_3}}",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-GET-V3",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "if(!pm.environment.get('version_3'))pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        }
+      ]
+    },
+    {
+      "request": {
+        "url": "{{base_url}}/prediccion/modelos",
+        "method": "POST",
+        "body": {
+          "formdata": [
+            {
+              "key": "tipo_modelo",
+              "type": "text",
+              "value": "{{tipo_4}}"
+            },
+            {
+              "key": "hash_artefacto_sha256",
+              "type": "text",
+              "value": "{{hash_4}}"
+            },
+            {
+              "key": "dataset_entrenamiento_hash",
+              "type": "text",
+              "value": "{{dataset_hash}}"
+            },
+            {
+              "key": "metricas_validacion",
+              "type": "text",
+              "value": "{{metricas_4}}"
+            },
+            {
+              "key": "fecha_entrenamiento",
+              "type": "text",
+              "value": "{{fecha_entrenamiento}}"
+            },
+            {
+              "key": "compatibilidad_variables",
+              "type": "text",
+              "value": "{{compatibilidad_variables}}"
+            },
+            {
+              "key": "id_proceso_rf71",
+              "type": "text",
+              "value": "{{proceso_4}}"
+            },
+            {
+              "key": "archivo_modelo",
+              "type": "file",
+              "src": "{{archivo_4}}"
+            },
+            {
+              "key": "componente",
+              "type": "text",
+              "value": "{{componente_4}}"
+            }
+          ],
+          "mode": "formdata"
+        },
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-RF71-Internal-Key",
+            "value": "{{rf71_internal_key}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-POST-V4",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G050');}"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        },
+        {
+          "script": {
+            "exec": [
+              "let x={};try{x=pm.response.json()}catch{};const id=x.id_version_modelo??x.id_version;pm.environment.set('version_4',String(id??''));if(pm.response.code===403||pm.response.code>=500)pm.execution.setNextRequest(null);"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ]
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/prediccion/modelos/{{version_4}}",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-GET-V4",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "if(!pm.environment.get('version_4'))pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        }
+      ]
+    },
+    {
+      "request": {
+        "url": "{{base_url}}/prediccion/modelos",
+        "method": "POST",
+        "body": {
+          "formdata": [
+            {
+              "key": "tipo_modelo",
+              "type": "text",
+              "value": "{{tipo_5}}"
+            },
+            {
+              "key": "hash_artefacto_sha256",
+              "type": "text",
+              "value": "{{hash_5}}"
+            },
+            {
+              "key": "dataset_entrenamiento_hash",
+              "type": "text",
+              "value": "{{dataset_hash}}"
+            },
+            {
+              "key": "metricas_validacion",
+              "type": "text",
+              "value": "{{metricas_5}}"
+            },
+            {
+              "key": "fecha_entrenamiento",
+              "type": "text",
+              "value": "{{fecha_entrenamiento}}"
+            },
+            {
+              "key": "compatibilidad_variables",
+              "type": "text",
+              "value": "{{compatibilidad_variables}}"
+            },
+            {
+              "key": "id_proceso_rf71",
+              "type": "text",
+              "value": "{{proceso_5}}"
+            },
+            {
+              "key": "archivo_modelo",
+              "type": "file",
+              "src": "{{archivo_5}}"
+            },
+            {
+              "key": "componente",
+              "type": "text",
+              "value": "{{componente_5}}"
+            }
+          ],
+          "mode": "formdata"
+        },
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-RF71-Internal-Key",
+            "value": "{{rf71_internal_key}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-POST-V5",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G050');}"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        },
+        {
+          "script": {
+            "exec": [
+              "let x={};try{x=pm.response.json()}catch{};const id=x.id_version_modelo??x.id_version;pm.environment.set('version_5',String(id??''));if(pm.response.code===403||pm.response.code>=500)pm.execution.setNextRequest(null);"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ]
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/prediccion/modelos/{{version_5}}",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-GET-V5",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "if(!pm.environment.get('version_5'))pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        }
+      ]
+    },
+    {
+      "request": {
+        "url": "{{base_url}}/prediccion/modelos",
+        "method": "POST",
+        "body": {
+          "formdata": [
+            {
+              "key": "tipo_modelo",
+              "type": "text",
+              "value": "{{tipo_6}}"
+            },
+            {
+              "key": "hash_artefacto_sha256",
+              "type": "text",
+              "value": "{{hash_6}}"
+            },
+            {
+              "key": "dataset_entrenamiento_hash",
+              "type": "text",
+              "value": "{{dataset_hash}}"
+            },
+            {
+              "key": "metricas_validacion",
+              "type": "text",
+              "value": "{{metricas_6}}"
+            },
+            {
+              "key": "fecha_entrenamiento",
+              "type": "text",
+              "value": "{{fecha_entrenamiento}}"
+            },
+            {
+              "key": "compatibilidad_variables",
+              "type": "text",
+              "value": "{{compatibilidad_variables}}"
+            },
+            {
+              "key": "id_proceso_rf71",
+              "type": "text",
+              "value": "{{proceso_6}}"
+            },
+            {
+              "key": "archivo_modelo",
+              "type": "file",
+              "src": "{{archivo_6}}"
+            },
+            {
+              "key": "componente",
+              "type": "text",
+              "value": "{{componente_6}}"
+            }
+          ],
+          "mode": "formdata"
+        },
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-RF71-Internal-Key",
+            "value": "{{rf71_internal_key}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-POST-V6",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G050');}"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        },
+        {
+          "script": {
+            "exec": [
+              "let x={};try{x=pm.response.json()}catch{};const id=x.id_version_modelo??x.id_version;pm.environment.set('version_6',String(id??''));if(pm.response.code===403||pm.response.code>=500)pm.execution.setNextRequest(null);"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ]
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/prediccion/modelos/{{version_6}}",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          }
+        ]
+      },
+      "name": "API-G050-GET-V6",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "if(!pm.environment.get('version_6'))pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        }
+      ]
+    }
+  ],
+  "info": {
+    "name": "TC-M04-G050 RF-69 formatos y tipos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  }
+}

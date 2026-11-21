@@ -1,0 +1,164 @@
+{
+  "grupo": "G98",
+  "run_id": "RUN-G98-V1-20261026-181259",
+  "version": 1,
+  "operacion": "evaluar",
+  "autorizacion": "AUT-G98-V1-20261026",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M03-191": {
+      "estado": "RECHAZADO",
+      "motivo": "Respuesta 200 sin panel de alertas activas (total + lista)"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-191",
+      "fuente": "API",
+      "id": "API-191-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "Respuesta 200 sin panel de alertas activas (total + lista)",
+      "evidencia": "newman/newman-G98.json"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G98.json",
+    "newman/newman-G98.html",
+    "resultado.json",
+    "TC-M03-G98_resultado.md"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas?solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=80&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard/1?pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G98-V1-20261026-181259",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    }
+  ],
+  "paginas": [
+    {
+      "unidad": 1,
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total_sensores": 4,
+      "alertas_detectadas": true,
+      "estructura": [
+        "total",
+        "pagina",
+        "por_pagina",
+        "resumen_unidades",
+        "sensores",
+        "conteo_semaforo"
+      ],
+      "conteos_unidad": [
+        {
+          "id_infraestructura": 1,
+          "alertas_activas_count": 1
+        }
+      ],
+      "severidades_sensor": [
+        null
+      ],
+      "panel": {
+        "estado": "RECHAZADO",
+        "motivo": "Respuesta 200 sin panel de alertas activas (total + lista)",
+        "panel": {
+          "presente": false,
+          "campos": [
+            "total",
+            "pagina",
+            "por_pagina",
+            "resumen_unidades",
+            "sensores",
+            "conteo_semaforo"
+          ],
+          "candidatos": [
+            {
+              "ruta": "raiz",
+              "campos": [
+                "total",
+                "pagina",
+                "por_pagina",
+                "resumen_unidades",
+                "sensores",
+                "conteo_semaforo"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "unidades": [
+    1,
+    268,
+    337,
+    3,
+    390,
+    2
+  ],
+  "observaciones": [],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Bitácora: 4 GET con eco, ninguna escritura de escenario; DELETE 200"
+    }
+  },
+  "inicio": "2026-10-26T18:12:59.772Z",
+  "fin": "2026-10-26T18:13:30.687Z"
+}

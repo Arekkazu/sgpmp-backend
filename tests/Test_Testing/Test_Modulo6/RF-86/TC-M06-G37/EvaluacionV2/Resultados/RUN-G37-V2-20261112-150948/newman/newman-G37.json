@@ -1,0 +1,398 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "b352342c-b515-42fc-b386-c5a5572636ff",
+        "name": "acumulado",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "{{periodo}}",
+              "estado-resultados",
+              "acumulado"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "ebc3af56-5116-4edd-a00a-de538e4aad44",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200 o defecto conocido 422', () => pm.expect(pm.response.code === 200 || (pm.response.code === 422 && pm.response.json().error_code === 'PERIODO_NO_CERRADO')).to.equal(true));",
+                "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                "if (pm.response.code === 200) pm.test('Acumulado RF-86', () => pm.expect(pm.response.json()).to.have.property('componentes'));"
+              ],
+              "_lastExecutionId": "d2e74f49-6fc5-4a5c-80cd-8d444881b2bb"
+            }
+          }
+        ]
+      },
+      {
+        "id": "3af86395-76c7-4a87-a7ee-fc57da492da3",
+        "name": "cadena",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "lineas",
+              "{{linea}}",
+              "cadena"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "f662f888-1db1-4171-ac76-a6516b9a122c",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                "pm.test('Cadena navegable', () => pm.expect(pm.response.json()).to.have.property('eslabones'));"
+              ],
+              "_lastExecutionId": "abf2d697-aefb-477f-ab07-a53120a51542"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "4ab2bebe-0793-43c0-aaa7-da643ddfdb0d",
+      "name": "TC-M06-G37 RF-86",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "88b923a6-c73a-4281-9e37-fb189bcc03fd",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G37-V2-20261112-150948",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "contador_token"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "admin_token"
+      },
+      {
+        "type": "any",
+        "value": "241",
+        "key": "periodo"
+      },
+      {
+        "type": "any",
+        "value": "5649",
+        "key": "linea"
+      }
+    ]
+  },
+  "globals": {
+    "id": "ebcf3bea-429f-4f24-ab82-eb568cac1aa4",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 372,
+      "responseMin": 162,
+      "responseMax": 582,
+      "responseSd": 210,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1794496234643,
+      "completed": 1794496235563
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 2,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "cf4dc054-9c08-4eee-a64d-bcf408772f90",
+          "httpRequestId": "844d9be8-daee-4f8e-9685-bf286b5c817c"
+        },
+        "item": {
+          "id": "b352342c-b515-42fc-b386-c5a5572636ff",
+          "name": "acumulado",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "{{periodo}}",
+                "estado-resultados",
+                "acumulado"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "ebc3af56-5116-4edd-a00a-de538e4aad44",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 o defecto conocido 422', () => pm.expect(pm.response.code === 200 || (pm.response.code === 422 && pm.response.json().error_code === 'PERIODO_NO_CERRADO')).to.equal(true));",
+                  "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                  "if (pm.response.code === 200) pm.test('Acumulado RF-86', () => pm.expect(pm.response.json()).to.have.property('componentes'));"
+                ],
+                "_lastExecutionId": "d2e74f49-6fc5-4a5c-80cd-8d444881b2bb"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "241",
+              "estado-resultados",
+              "acumulado"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "15de23d0-bba2-4cda-9e82-f865654bd31f",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 582,
+          "responseSize": 1105
+        },
+        "id": "b352342c-b515-42fc-b386-c5a5572636ff",
+        "assertions": [
+          {
+            "assertion": "HTTP 200 o defecto conocido 422",
+            "skipped": false
+          },
+          {
+            "assertion": "Eco del RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "Acumulado RF-86",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "9dbfb8d3-b7bb-49aa-ab8e-97aa1316160f",
+          "length": 2,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "dc309d52-b98f-455d-b922-9e70b103ee0c"
+        },
+        "item": {
+          "id": "3af86395-76c7-4a87-a7ee-fc57da492da3",
+          "name": "cadena",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "lineas",
+                "{{linea}}",
+                "cadena"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f662f888-1db1-4171-ac76-a6516b9a122c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                  "pm.test('Cadena navegable', () => pm.expect(pm.response.json()).to.have.property('eslabones'));"
+                ],
+                "_lastExecutionId": "abf2d697-aefb-477f-ab07-a53120a51542"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "lineas",
+              "5649",
+              "cadena"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "b5486570-984a-4f83-832d-cd10f4371113",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 162,
+          "responseSize": 742
+        },
+        "id": "3af86395-76c7-4a87-a7ee-fc57da492da3",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Eco del RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "Cadena navegable",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1847
+    },
+    "failures": [],
+    "error": null
+  }
+}

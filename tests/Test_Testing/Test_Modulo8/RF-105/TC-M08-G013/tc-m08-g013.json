@@ -1,0 +1,601 @@
+{
+  "info": {
+    "name": "TC-M08-G013 Bandeja, paginación y lectura (RF-105)",
+    "description": "TC-M08-013, 014 y 015. Productor qa.m08.productor y Administrador admin.rol. Corre en el sandbox.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo.",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (pm.request.headers.has('X-Fuera-Sandbox')) {",
+          "  pm.request.headers.remove('X-Fuera-Sandbox');  // TC-001: solo login y lecturas, fuera del sandbox",
+          "} else if (!secreto) {",
+          "  console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Zona-Horaria', value: 'America/Bogota' });",
+          "// Si el login de ese rol fallo, la peticion no se envia (el fallo queda en el test del login).",
+          "const auth = (pm.request.headers.get('Authorization') || '').match(/\\{\\{(tok_\\w+)\\}\\}/);",
+          "if (auth && !pm.collectionVariables.get(auth[1])) { console.warn('Sin ' + auth[1] + ': se omite ' + pm.info.requestName); pm.execution.skipRequest(); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_finca_ajena",
+      "value": "495"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "catalogo",
+      "value": ""
+    },
+    {
+      "key": "patch_body",
+      "value": ""
+    },
+    {
+      "key": "tok_admin",
+      "value": ""
+    },
+    {
+      "key": "tok_prod",
+      "value": ""
+    },
+    {
+      "key": "tok_prod_real",
+      "value": ""
+    },
+    {
+      "key": "tok_admin_real",
+      "value": ""
+    },
+    {
+      "key": "tok_vet",
+      "value": ""
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "tok_ing",
+      "value": ""
+    },
+    {
+      "key": "tok_gestor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "item": [
+        {
+          "name": "PRE - Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Administrador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_admin', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_admin', t); pm.collectionVariables.set('id_admin', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_prod', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_prod', t); pm.collectionVariables.set('id_productor', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M08-013 Bandeja propia con contador de no leídas",
+      "item": [
+        {
+          "name": "TC-M08-013 - Productor GET /notificaciones?pagina=1&tamano=50",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "const rango = n => ({ CRITICA: 0, ADVERTENCIA: 1, INFORMATIVA: 2 })[n.nivel];",
+                  "const ordenada = it => it.every((n, k) => k === 0 || rango(it[k - 1]) < rango(n) || (rango(it[k - 1]) === rango(n) && Date.parse(it[k - 1].fecha_envio) >= Date.parse(n.fecha_envio)));",
+                  "pm.test('TC-M08-013 - Productor: bandeja (200) en ≤ 2 s (RNF-03): ' + pm.response.responseTime + ' ms con ' + b.total + ' notificaciones', () => { pm.response.to.have.status(200); pm.expect(pm.response.responseTime).to.be.at.most(2000); });",
+                  "pm.test('TC-M08-013 - Productor: trae total, no_leidas y los items', () => { pm.expect(b.total).to.be.a('number'); pm.expect(b.no_leidas).to.be.a('number').and.at.most(b.total); pm.expect(it.length).to.be.above(0); });",
+                  "pm.test('TC-M08-013 - Productor: orden crítica > advertencia > informativa y de la más reciente a la más antigua', () => pm.expect(ordenada(it)).to.be.true);",
+                  "if (b.total <= 500) console.warn('DATO: la bandeja del Productor tiene ' + b.total + ' notificaciones; RNF-03 pide más de 500 (cuenta 182 del DBA).');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-013 - Administrador GET /notificaciones?pagina=1&tamano=50",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "const rango = n => ({ CRITICA: 0, ADVERTENCIA: 1, INFORMATIVA: 2 })[n.nivel];",
+                  "const ordenada = it => it.every((n, k) => k === 0 || rango(it[k - 1]) < rango(n) || (rango(it[k - 1]) === rango(n) && Date.parse(it[k - 1].fecha_envio) >= Date.parse(n.fecha_envio)));",
+                  "pm.test('TC-M08-013 - Administrador: bandeja (200) en ≤ 2 s (RNF-03): ' + pm.response.responseTime + ' ms con ' + b.total + ' notificaciones', () => { pm.response.to.have.status(200); pm.expect(pm.response.responseTime).to.be.at.most(2000); });",
+                  "pm.test('TC-M08-013 - Administrador: trae total, no_leidas y los items', () => { pm.expect(b.total).to.be.a('number'); pm.expect(b.no_leidas).to.be.a('number').and.at.most(b.total); pm.expect(it.length).to.be.above(0); });",
+                  "pm.test('TC-M08-013 - Administrador: orden crítica > advertencia > informativa y de la más reciente a la más antigua', () => pm.expect(ordenada(it)).to.be.true);",
+                  "if (b.total <= 500) console.warn('DATO: la bandeja del Administrador tiene ' + b.total + ' notificaciones; RNF-03 pide más de 500 (cuenta 182 del DBA).');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-014 Paginación de la bandeja",
+      "item": [
+        {
+          "name": "TC-M08-014 - tamano=50",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-014 - tamano=50: 200 con 50 items', () => { pm.response.to.have.status(200); pm.expect(it.length).to.equal(Math.min(50, b.total)); });",
+                  "pm.collectionVariables.set('total_prod', String(b.total));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-014 - tamano=51",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-014 - tamano=51: 400 VAL_ENTRADA', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=51"
+          }
+        },
+        {
+          "name": "TC-M08-014 - pagina=0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-014 - pagina=0: 400 VAL_ENTRADA', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=0&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-014 - sin tamano",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-014 - sin tamano: 200', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M08-014 - sin tamano: 50 por página, como pide el RF (R7, R10); hoy trae ' + it.length, () => pm.expect(it.length).to.equal(Math.min(50, b.total)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1"
+          }
+        },
+        {
+          "name": "TC-M08-014 - última página y recorrido completo sin repetir ni saltar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = (tok, fuera) => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) },",
+                  "  { key: 'X-Zona-Horaria', value: 'America/Bogota' }, { key: 'Content-Type', value: 'application/json' }].concat(fuera ? [] : [",
+                  "  { key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') || '' },",
+                  "  { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }]);",
+                  "const pedir = (metodo, ruta, tok, fuera) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta,",
+                  "  method: metodo, header: H(tok, fuera) }, (e, r) => ok({ e, r, json: (() => { try { return r.json(); } catch (x) { return null; } })() })));",
+                  "const cat = JSON.parse(pm.collectionVariables.get('catalogo') || '{}');",
+                  "// En serie dentro del sandbox (una sola transaccion por corrida no admite peticiones simultaneas).",
+                  "const enSerie = (claves, f) => claves.reduce((p, k) => p.then(acc => f(k).then(x => acc.concat([x]))), Promise.resolve([]));",
+                  "const total = pm.response.json().total; const paginas = Math.ceil(total / 50);",
+                  "const nums = Array.from({ length: paginas }, (_, k) => k + 1);",
+                  "enSerie(nums, p => pedir('GET', '/notificaciones?pagina=' + p + '&tamano=50', 'tok_prod')).then(rs => {",
+                  "  const ult = (rs[rs.length - 1].json || {}).items || [];",
+                  "  const ids = [].concat(...rs.map(x => ((x.json || {}).items || []).map(n => n.id_notificacion)));",
+                  "  console.log('total ' + total + ', páginas ' + paginas + ', última ' + ult.length + ', ids ' + ids.length + ' (únicos ' + new Set(ids).size + ')');",
+                  "  pm.test('TC-M08-014 - la última página (' + paginas + ') trae solo el resto: ' + (total - 50 * (paginas - 1)), () => pm.expect(ult.length).to.equal(total - 50 * (paginas - 1)));",
+                  "  pm.test('TC-M08-014 - recorrer todas las páginas da el total sin repetir ni saltar notificaciones', () => { pm.expect(ids.length).to.equal(total); pm.expect(new Set(ids).size).to.equal(total); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M08-015 Marcar una como leída y marcar todas",
+      "item": [
+        {
+          "name": "TC-M08-015 - Productor GET una no leída",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-015 - el Productor tiene notificaciones sin leer', () => pm.expect(it.length).to.equal(1));",
+                  "pm.collectionVariables.set('id_n', String(it[0].id_notificacion)); pm.collectionVariables.set('no_leidas_0', String(b.no_leidas));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?solo_no_leidas=true&tamano=1"
+          }
+        },
+        {
+          "name": "TC-M08-015 - PATCH /notificaciones/{{id_n}}/leida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "const n = pm.response.json();",
+                  "pm.test('TC-M08-015 - 200 con es_leido=true y estado LEIDA', () => { pm.response.to.have.status(200); pm.expect(n.es_leido).to.be.true; pm.expect(n.estado).to.equal('LEIDA'); });",
+                  "pm.collectionVariables.set('fecha_lectura', String(n.fecha_lectura));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_n}}/leida"
+          }
+        },
+        {
+          "name": "TC-M08-015 - GET después de marcar una",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-015 - no_leidas baja en 1', () => pm.expect(b.no_leidas).to.equal(Number(pm.collectionVariables.get('no_leidas_0')) - 1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?tamano=1"
+          }
+        },
+        {
+          "name": "TC-M08-015 - PATCH la misma otra vez",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "const n = pm.response.json();",
+                  "pm.test('TC-M08-015 - repetir responde 200 sin cambios (misma fecha de lectura)', () => { pm.response.to.have.status(200); pm.expect(n.estado).to.equal('LEIDA'); pm.expect(String(n.fecha_lectura)).to.equal(pm.collectionVariables.get('fecha_lectura')); }});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/{{id_n}}/leida"
+          }
+        },
+        {
+          "name": "TC-M08-015 - GET después de repetir",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-015 - repetir no cambia no_leidas', () => pm.expect(b.no_leidas).to.equal(Number(pm.collectionVariables.get('no_leidas_0')) - 1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?tamano=1"
+          }
+        },
+        {
+          "name": "TC-M08-015 - PATCH /notificaciones/leidas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 600));",
+                  "pm.test('TC-M08-015 - marcadas = las que quedaban sin leer', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().marcadas).to.equal(Number(pm.collectionVariables.get('no_leidas_0')) - 1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones/leidas"
+          }
+        },
+        {
+          "name": "TC-M08-015 - GET al final",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "pm.test('TC-M08-015 - no_leidas = 0', () => pm.expect(b.no_leidas).to.equal(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?tamano=1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset('run_id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

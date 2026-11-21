@@ -1,0 +1,38 @@
+TC-M02-G13 rev3 RF-33 TEST - INC-M02-46-G13
+Coleccion: tests/Test_Testing/Test_Modulo2/RF-33/TC-M02-G13/tc_m02_g13_rev3.json
+Fecha UTC: 2026-09-26T06:02:03.3782293Z
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: productor@pecuaria.co (id 2). Password via env. JWT redactado.
+No sobrescribe rev2.
+
+Newman: 14 requests, 38 assertions, 1 fallida.
+Fallida = intento B esperaba HTTP 200 (modelo laura extra ignored) y TEST respondio 400 VAL_ENTRADA.
+Exit 1 NO es veredicto de G13. El 400 rechaza costo_adquisicion en RF-35.
+
+PRECHECK:
+Login 200. Finca 1. Especie 5 Mojarra densidad_maxima=5.0000. Infra 3 Alevinera-01.
+
+DTO registro: NO tiene campo estado. extra se ignora en POST (201). ActivoBiologico.crear fija EstadoActivo.ACTIVO=1.
+PATCH RF-35 ActualizarActivoIndividualDTO: raza, sexo, fecha_nacimiento, peso_inicial. NO costo.
+No existe RF-82 en src. No hay endpoint que acepte actualizar costo.
+
+TC-M02-015 APROBADO
+POST poblacional con estado=INACTIVO extra. HTTP 201 id=503. nombre_estado=ACTIVO id_estado=1. GET 503 ACTIVO.
+
+TC-M02-020 APROBADO
+GET /503/historial HTTP 200 total=1 categoria=CREACION. API no expone version.
+snapshot detalle_poblacional cantidad_inicial=10 cantidad_actual=10 peso_promedio_inicial=2.5000.
+
+TC-M02-021 APROBADO
+POST individual compra costo=1000000 HTTP 201 id=504 identificador=QAG13IND1790402529904.
+GET 504 costo=1000000.0000.
+PATCH /504 {"costo_adquisicion":2000000} HTTP 400 VAL_ENTRADA field=costo_adquisicion "Este campo no está permitido en esta solicitud."
+PATCH /504 {"raza":"Mojarra","costo_adquisicion":2000000} HTTP 400 mismo VAL_ENTRADA.
+GET final costo=1000000.0000 no 2000000.
+
+TC-M02-G13 APROBADO (015+020+021).
+INC-M02-46-G13: NO REPRODUCIBLE (POST 201, no 500).
+
+Restore oficial: PATCH estado INACTIVO 503 y 504 HTTP 200. Sin DML. Sin DELETE historial.
+
+Sin commit. Sin push. Sin codigo productivo.

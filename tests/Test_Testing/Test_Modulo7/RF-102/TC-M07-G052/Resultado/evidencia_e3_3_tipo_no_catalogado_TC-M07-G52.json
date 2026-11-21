@@ -1,0 +1,50 @@
+{
+  "escenario": "E3.3",
+  "caso": "TC-M07-G052",
+  "fecha_utc": "2026-11-18T01:21:21.821018+00:00",
+  "bd": "sgpmp_g052_e3_tmp",
+  "container": "infra-db-1",
+  "tipo_ficticio": "TIPO_NO_CATALOGADO_QA_G52",
+  "uuid_ficticio": "33333333-3333-4333-8333-333333333353",
+  "funcion_evaluada": "CAST / columna tipo_evento modulo7.enum_evento_integracion_tipo_evento",
+  "migracion_origen": "94b14a6931d6_m07_integracion_aaef_rfc017.py",
+  "entrada": {
+    "tipo_evento": "TIPO_NO_CATALOGADO_QA_G52"
+  },
+  "esperado": "INSERT rechazado por enum inválido (invalid input value for enum / SQLSTATE 22P02)",
+  "pasos": [
+    {
+      "intento": 1,
+      "ok": false,
+      "stdout": "",
+      "stderr": "ERROR:  invalid input value for enum modulo7.enum_evento_integracion_tipo_evento: \"TIPO_NO_CATALOGADO_QA_G52\"\nLINE 6:   'TIPO_NO_CATALOGADO_QA_G52'::modulo7.enum_evento_integraci...\n          ^\n",
+      "error": {
+        "sqlstate": "22P02",
+        "es_unique_violation": false,
+        "es_invalid_enum": true,
+        "es_conexion": false,
+        "es_permiso": false,
+        "es_estructura": false,
+        "mensaje": "ERROR:  invalid input value for enum modulo7.enum_evento_integracion_tipo_evento: \"TIPO_NO_CATALOGADO_QA_G52\"\nLINE 6:   'TIPO_NO_CATALOGADO_QA_G52'::modulo7.enum_evento_integraci...\n          ^"
+      }
+    },
+    {
+      "control_tipo_valido": "TOKEN_CANAL_RECHAZADO",
+      "ok": true,
+      "stdout": "INSERT 0 1\n",
+      "stderr": ""
+    }
+  ],
+  "estado": "APROBADO",
+  "filas_con_uuid_invalido": "0",
+  "obtenido": {
+    "insert_invalido_ok": false,
+    "rechazo_enum": true,
+    "sqlstate": "22P02",
+    "confusion_conexion": false,
+    "confusion_permiso": false,
+    "confusion_estructura": false,
+    "control_valido_ok": true,
+    "filas_invalidas": "0"
+  }
+}

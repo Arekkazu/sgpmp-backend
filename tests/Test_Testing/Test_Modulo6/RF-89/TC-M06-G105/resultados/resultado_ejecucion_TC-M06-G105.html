@@ -1,0 +1,286 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G105</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}.b{font-weight:700}
+pre{white-space:pre-wrap;background:#fafafa;padding:.8rem}</style></head><body>
+<h1>Módulo 6 — RF-89 — TC-M06-G105</h1>
+<p>Selección de precio por fuente y vigencia. Fecha de consulta: 2026-11-08. Generado: 2026-11-08T08:27:05.252103+00:00.</p>
+<table>
+<tr><th>Aprobados</th><td>2</td></tr>
+<tr><th>Rechazados</th><td>0</td></tr>
+<tr><th>Bloqueados</th><td>0</td></tr>
+<tr><th>Porcentaje</th><td class="b">100 %</td></tr>
+</table>
+<h2>Subcasos</h2><table><tr><th>Subcaso</th><th>Estado</th><th>Motivo</th></tr><tr><td>TC-M06-27</td><td class='b'>APROBADO</td><td>La simulación del activo 943 usó el precio 18 de MERCADO_ACTIVO. Las fuentes aplicables eran ESTIMADA, MERCADO_ACTIVO. UPRA no tiene un precio aplicable simultáneo en esta especie.</td></tr><tr><td>TC-M06-28</td><td class='b'>APROBADO</td><td>La simulación usó el precio 18, con vigencia 2026-11-07, la más reciente de MERCADO_ACTIVO.</td></tr></table>
+<h2>Inventario</h2><pre>{
+  &quot;39&quot;: {
+    &quot;fuentes&quot;: [
+      &quot;ESTIMADA&quot;,
+      &quot;MERCADO_ACTIVO&quot;
+    ],
+    &quot;aplicables&quot;: [
+      {
+        &quot;id&quot;: 19,
+        &quot;fuente&quot;: &quot;ESTIMADA&quot;,
+        &quot;precio_unitario&quot;: &quot;9500.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;ACTIVO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      },
+      {
+        &quot;id&quot;: 18,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;9600.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;ACTIVO&quot;,
+        &quot;es_aplicado&quot;: true,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      },
+      {
+        &quot;id&quot;: 17,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;9300.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;SUPERADO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      },
+      {
+        &quot;id&quot;: 15,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;9800.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-01&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;SUPERADO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      }
+    ],
+    &quot;no_aplicables&quot;: []
+  },
+  &quot;421&quot;: {
+    &quot;fuentes&quot;: [
+      &quot;UPRA&quot;
+    ],
+    &quot;aplicables&quot;: [
+      {
+        &quot;id&quot;: 16,
+        &quot;fuente&quot;: &quot;UPRA&quot;,
+        &quot;precio_unitario&quot;: &quot;14500.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-01&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;ACTIVO&quot;,
+        &quot;es_aplicado&quot;: true,
+        &quot;categoria&quot;: &quot;POR_CABEZA&quot;
+      }
+    ],
+    &quot;no_aplicables&quot;: []
+  },
+  &quot;1&quot;: {
+    &quot;fuentes&quot;: [
+      &quot;ESTIMADA&quot;,
+      &quot;MERCADO_ACTIVO&quot;,
+      &quot;UPRA&quot;
+    ],
+    &quot;aplicables&quot;: [
+      {
+        &quot;id&quot;: 5,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;1.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-05-10&quot;,
+        &quot;fecha_vencimiento&quot;: null,
+        &quot;estado&quot;: &quot;ACTIVO&quot;,
+        &quot;es_aplicado&quot;: true,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      }
+    ],
+    &quot;no_aplicables&quot;: [
+      {
+        &quot;id&quot;: 7,
+        &quot;fuente&quot;: &quot;UPRA&quot;,
+        &quot;precio_unitario&quot;: &quot;9800.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-04-01&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-06-30&quot;,
+        &quot;estado&quot;: &quot;VENCIDO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      },
+      {
+        &quot;id&quot;: 6,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;4500000.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-04-01&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-06-30&quot;,
+        &quot;estado&quot;: &quot;VENCIDO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;POR_CABEZA&quot;
+      },
+      {
+        &quot;id&quot;: 10,
+        &quot;fuente&quot;: &quot;ESTIMADA&quot;,
+        &quot;precio_unitario&quot;: &quot;9500.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-01-01&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-03-31&quot;,
+        &quot;estado&quot;: &quot;VENCIDO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      }
+    ]
+  },
+  &quot;3&quot;: {
+    &quot;fuentes&quot;: [
+      &quot;MERCADO_ACTIVO&quot;
+    ],
+    &quot;aplicables&quot;: [],
+    &quot;no_aplicables&quot;: [
+      {
+        &quot;id&quot;: 9,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;8500.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-04-01&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-06-30&quot;,
+        &quot;estado&quot;: &quot;VENCIDO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      }
+    ]
+  },
+  &quot;2&quot;: {
+    &quot;fuentes&quot;: [
+      &quot;MERCADO_ACTIVO&quot;
+    ],
+    &quot;aplicables&quot;: [],
+    &quot;no_aplicables&quot;: [
+      {
+        &quot;id&quot;: 8,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;5200.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-04-01&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-06-30&quot;,
+        &quot;estado&quot;: &quot;VENCIDO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      }
+    ]
+  }
+}</pre>
+<h2>Comparaciones</h2><pre>[
+  {
+    &quot;especie&quot;: 39,
+    &quot;fuentes_aplicables&quot;: [
+      &quot;ESTIMADA&quot;,
+      &quot;MERCADO_ACTIVO&quot;
+    ],
+    &quot;esperado&quot;: {
+      &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+      &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+      &quot;candidatos&quot;: [
+        {
+          &quot;id&quot;: 18,
+          &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+          &quot;precio_unitario&quot;: &quot;9600.00&quot;,
+          &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+          &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+          &quot;estado&quot;: &quot;ACTIVO&quot;,
+          &quot;es_aplicado&quot;: true,
+          &quot;categoria&quot;: &quot;PESO_KG&quot;
+        },
+        {
+          &quot;id&quot;: 17,
+          &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+          &quot;precio_unitario&quot;: &quot;9300.00&quot;,
+          &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+          &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+          &quot;estado&quot;: &quot;SUPERADO&quot;,
+          &quot;es_aplicado&quot;: false,
+          &quot;categoria&quot;: &quot;PESO_KG&quot;
+        }
+      ]
+    },
+    &quot;seleccionado&quot;: {
+      &quot;id_especie&quot;: 39,
+      &quot;activo&quot;: 943,
+      &quot;http&quot;: 200,
+      &quot;es_valido&quot;: true,
+      &quot;motivo&quot;: null,
+      &quot;id_precio&quot;: 18,
+      &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+      &quot;precio_unitario&quot;: &quot;9600.00&quot;,
+      &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;
+    }
+  },
+  {
+    &quot;especie&quot;: 39,
+    &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+    &quot;candidatos&quot;: [
+      {
+        &quot;id&quot;: 18,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;9600.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;ACTIVO&quot;,
+        &quot;es_aplicado&quot;: true,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      },
+      {
+        &quot;id&quot;: 17,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;9300.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;SUPERADO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      },
+      {
+        &quot;id&quot;: 15,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;9800.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-01&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;SUPERADO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      }
+    ],
+    &quot;esperado&quot;: [
+      {
+        &quot;id&quot;: 18,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;9600.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;ACTIVO&quot;,
+        &quot;es_aplicado&quot;: true,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      },
+      {
+        &quot;id&quot;: 17,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;precio_unitario&quot;: &quot;9300.00&quot;,
+        &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+        &quot;fecha_vencimiento&quot;: &quot;2026-12-31&quot;,
+        &quot;estado&quot;: &quot;SUPERADO&quot;,
+        &quot;es_aplicado&quot;: false,
+        &quot;categoria&quot;: &quot;PESO_KG&quot;
+      }
+    ],
+    &quot;seleccionado&quot;: {
+      &quot;id_especie&quot;: 39,
+      &quot;activo&quot;: 943,
+      &quot;http&quot;: 200,
+      &quot;es_valido&quot;: true,
+      &quot;motivo&quot;: null,
+      &quot;id_precio&quot;: 18,
+      &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+      &quot;precio_unitario&quot;: &quot;9600.00&quot;,
+      &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;
+    }
+  }
+]</pre>
+<h2>Hallazgos</h2><ul><li>La prueba unitaria test_prioridad_de_fuente_prevalece_sobre_fecha_y_vencimiento cubre la regla en memoria. No sustituye esta consulta al API.</li><li>Cuando dos precios de la misma fuente comparten la fecha de vigencia, el código desempata por el identificador más alto. El diseño del caso no define ese empate.</li></ul>
+</body></html>

@@ -1,0 +1,128 @@
+{
+  "tc": "TC-M05-G43",
+  "titulo": "RF-81 / RF-80 - Auditoria de consultas y exportaciones de historial de suministros",
+  "reintento": 1,
+  "fecha_utc": "2026-11-12T13:23:34.736522+00:00",
+  "staging": "C:/Users/Juansegutt/Integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-082314",
+  "repro": "powershell -ExecutionPolicy Bypass -File \"tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1\" -Reintento 1",
+  "summary": {
+    "total": 10,
+    "ok": 8,
+    "falla": 2,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Setup de activo C y línea base (Admin)",
+      "test_fn": "test_00_setup_linea_base_y_activo_c",
+      "esperado": "Linea base de auditoria en T00, usuario autenticado y creacion de activo C + fase + 3 suministros en sandbox (HTTP 201)",
+      "fuente": "Testing Harness / Setup de linea base",
+      "obtenido": "T00_auditoria_inicial HTTP 200 (total=NO_ENCONTRADO:contexto.auditoria_inicial_total, ultimo_id=NO_ENCONTRADO:contexto.auditoria_inicial_ultimo_id); T00_usuarios_me HTTP 200 (id_usuario=NO_ENCONTRADO:contexto.id_usuario_ref); T00_crear_activo_c HTTP 201 (id_activo_biologico=NO_ENCONTRADO:contexto.id_activo_c, id_ciclo=NO_ENCONTRADO:contexto.id_ciclo_c, X-Request-Id=a94f15ce-0c8e-47e5-b03a-90fccaac4322)",
+      "estado": "OK",
+      "tiempo_s": 4.73
+    },
+    {
+      "paso": "B01 Auditoría de consulta con resultados (105 / 040)",
+      "test_fn": "test_b01_consulta_con_resultados_auditoria",
+      "esperado": "CONSULTA_HISTORIAL_EJECUTADA registrado via GET /suministros/auditoria con id_usuario, id_activo, resultado EXITOSO, filtros_aplicados, pagina, registros_por_pagina, total_registros_retornados y total_registros_filtrados en <= 2 s",
+      "fuente": "RF-81 Fase 6 a / Fase 7 / CA-8 / Postcondicion 2 / E1",
+      "obtenido": "B01_consultar_historial HTTP 200 (registros=3, X-Request-Id=efc29ea8-a17a-4c14-b6bc-77ee4dbcb35e); B01_auditoria_despues_p* HTTP 200 (eventos=[76843:CONSULTA_HISTORIAL_EJECUTADA:EXITOSO], total_registros_retornados=3, filtros_aplicados={\"id_activo_biologico\": 1878, \"id_ciclo_productivo\": 5, \"fecha_inicio_filtro\": \"2026-08-01\", \"fecha_fin_filtro\": \"2026-08-31\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null})",
+      "estado": "OK",
+      "tiempo_s": 0.409
+    },
+    {
+      "paso": "B02 Auditoría de consulta sin resultados (105 / 040, CU04 FA-01)",
+      "test_fn": "test_b02_consulta_sin_resultados_auditoria",
+      "esperado": "Consulta vacia genera CONSULTA_HISTORIAL_EJECUTADA con filtros_aplicados, total_registros_retornados=0 y total_registros_filtrados=0 en la bitacora",
+      "fuente": "RF-81 Fase 6 a / Fase 7 / CA-8 / Postcondicion 2 / E1",
+      "obtenido": "B02_consulta_vacia HTTP 200 (registros=0, X-Request-Id=aac64efb-a8ce-426e-98be-e7baadb42a01); B02_auditoria_despues_p* HTTP 200 (eventos=[76844:CONSULTA_HISTORIAL_EJECUTADA:EXITOSO], total_registros_retornados=0, filtros_aplicados={\"id_activo_biologico\": 1878, \"id_ciclo_productivo\": 5, \"fecha_inicio_filtro\": \"2026-08-01\", \"fecha_fin_filtro\": \"2026-08-05\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null})",
+      "estado": "OK",
+      "tiempo_s": 0.403
+    },
+    {
+      "paso": "B03 Auditoría de exportación síncrona PDF y Excel (105 / 040)",
+      "test_fn": "test_b03_exportacion_sincrona_auditoria",
+      "esperado": "Exportaciones PDF y EXCEL generan EXPORTACION_HISTORIAL_GENERADA con filtros_aplicados, formato_exportacion y total_registros_retornados en <= 2 s",
+      "fuente": "RF-81 Fase 6 a / Fase 7 / CA-8 / Postcondicion 2 / E1",
+      "obtenido": "B03_exportar_pdf HTTP 200 (X-Request-Id=12053d61-6e82-40fb-b6b4-6b204d763f96); audit HTTP 200 (eventos=[76845:EXPORTACION_HISTORIAL_GENERADA:EXITOSO], total_registros_retornados=3, filtros_aplicados={\"id_activo_biologico\": 1878, \"id_ciclo_productivo\": 5, \"fecha_inicio_filtro\": \"2026-08-01\", \"fecha_fin_filtro\": \"2026-08-31\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null}) | B03_exportar_excel HTTP 200 (X-Request-Id=f26170a7-9504-4ca8-b765-8114e6304019); audit HTTP 200 (eventos=[76846:EXPORTACION_HISTORIAL_GENERADA:EXITOSO], total_registros_retornados=3, filtros_aplicados={\"id_activo_biologico\": 1878, \"id_ciclo_productivo\": 5, \"fecha_inicio_filtro\": \"2026-08-01\", \"fecha_fin_filtro\": \"2026-08-31\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null})",
+      "estado": "OK",
+      "tiempo_s": 1.026
+    },
+    {
+      "paso": "B04 Naturaleza de solo lectura e inmutabilidad (102 / 037)",
+      "test_fn": "test_b04_solo_lectura_restr_4",
+      "esperado": "POST, PUT, PATCH, DELETE sobre /suministros/historial rechazados con 405 Method Not Allowed; historial inalterado",
+      "fuente": "RF-81 Restr. 4 / TC-M05-102 (037)",
+      "obtenido": "POST=405, PUT=405, PATCH=405, DELETE=405 sobre /suministros/historial; B04_despues items=3",
+      "estado": "OK",
+      "tiempo_s": 1.291
+    },
+    {
+      "paso": "A01 Gestor de Granja consulta activo de su unidad (102 / 037)",
+      "test_fn": "test_a01_gestor_granja_consulta_su_unidad",
+      "esperado": "HTTP 200 con items y resumen para activo 1042 en finca 464 asignada; PUT/DELETE rechazados (405)",
+      "fuente": "RF-81 Restr. 1 / CA-3 / TC-M05-102 (037)",
+      "obtenido": "A01_gestor_su_finca HTTP 200 (items=50, X-Request-Id=1ae2e9da-1922-447c-8096-02d9f7971035); A01_gestor_put HTTP 405",
+      "estado": "OK",
+      "tiempo_s": 1.583
+    },
+    {
+      "paso": "A02 Rechazo a usuario sin la unidad del activo (102 / 037)",
+      "test_fn": "test_a02_gestor_granja_rechazo_sin_unidad",
+      "esperado": "HTTP 403 con mensaje de E2 ('No tiene permisos para consultar el historial del activo [id]. Verifique su rol y unidades productivas asignadas.') y sin fuga de datos",
+      "fuente": "RF-81 Restr. 1 / E2 / CA-3 / TC-M05-102 (037)",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | AssertionError: DEFECTO DE PRODUCTO (E2 / CA-3): Se esperaba HTTP 403 con mensaje de permisos por rol y unidades, pero el backend respondio HTTP 404 ({\"error_code\":\"ACTIVO_NO_ENCONTRADO\",\"message\":\"El activo biológico 957 no existe.\",\"field | A02_gestor_finca_ajena HTTP 404 (error_code=ACTIVO_NO_ENCONTRADO, X-Request-Id=16e5130b-8e14-4d00-b947-79250badc17a)",
+      "estado": "FALLA",
+      "tiempo_s": 0.124,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "A03 Auditoría de consulta rechazada (102 / 037, CU04 FA-04)",
+      "test_fn": "test_a03_auditoria_intento_rechazado",
+      "esperado": "Registro de al menos 1 evento de auditoría en la bitácora con resultado RECHAZADO tras el intento denegado",
+      "fuente": "Caso CU04 FA-04 / TC-M05-102 (037)",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | AssertionError: DEFECTO DE PRODUCTO (CU04 FA-04): No se registro evento de auditoria con resultado != 'EXITOSO' tras consulta no autorizada al activo 957 (HTTP 404). Eventos nuevos desde id 76708: 0. | A03_intento_rechazado HTTP 404 (error_code=ACTIVO_NO_ENCONTRADO, X-Request-Id=519066f2-66f7-4202-bde7-a3d666b8eed8); id_base=NO_ENCONTRADO:A03_antes_audit_max_id, eventos_nuevos=NO_ENCONTRADO:A03_despues_audit_p*, teardown_a03_admin HTTP 200",
+      "estado": "FALLA",
+      "tiempo_s": 3.558,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "A04 [OBSERVACION] Productor consulta activo de su unidad",
+      "test_fn": "test_a04_observacion_productor_consulta_su_unidad",
+      "esperado": "Productor consulta activo 957 de su unidad -> HTTP 200 (observacion fuera de spec RF-81)",
+      "fuente": "Observacion de interoperabilidad (fuera de spec RF-81)",
+      "obtenido": "A04_productor_su_finca HTTP 200 (items=50, X-Request-Id=5c0719d4-7914-42a2-bbb0-03dae5a010e9)",
+      "estado": "OBS",
+      "tiempo_s": 1.573
+    },
+    {
+      "paso": "T98 Cierre estricto de todas las corridas sandbox",
+      "test_fn": "test_98_cierre_corridas",
+      "esperado": "Todas las corridas previas (t00, admin, gestor, productor) cerradas con DELETE /test-control/runs/{run_id} -> HTTP 200 ('Rollback exitoso')",
+      "fuente": "Testing Harness / Sandbox Protocol",
+      "obtenido": "NO_ENCONTRADO:contexto.corridas_cerradas",
+      "estado": "OK",
+      "tiempo_s": 0.004
+    },
+    {
+      "paso": "T99 Inocuidad final en sandbox",
+      "test_fn": "test_99_inocuidad_final",
+      "esperado": "Inocuidad en sandbox: total y max id de auditoria restaurados a T00; activo C y su historial retornan 404 y run t99 cierra con 200 Rollback exitoso",
+      "fuente": "Testing Harness / Sandbox Protocol",
+      "obtenido": "T99_audit_inocuidad HTTP 200 (total=69503), T99_activo_c_404 HTTP 404, T99_historial_c_404 HTTP 404, teardown_t99 HTTP 200",
+      "estado": "OK",
+      "tiempo_s": 2.052
+    }
+  ],
+  "observaciones": {
+    "obs_pag": null,
+    "obs_r8": [],
+    "obs_hash": [],
+    "obs_otros": [],
+    "datos_nuevos_literales": {}
+  },
+  "runs_orden": [],
+  "corridas_cerradas": {},
+  "a03": {},
+  "total_trazas_http": 52
+}

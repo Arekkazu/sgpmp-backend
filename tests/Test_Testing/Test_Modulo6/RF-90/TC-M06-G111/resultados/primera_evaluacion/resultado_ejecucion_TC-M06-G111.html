@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G111</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}</style></head><body>
+<h1>Módulo 6 — RF-90 / RF-87 — TC-M06-G111</h1>
+<p>Generado: 2026-11-08T09:26:08.767585+00:00. Cierre de período: no ejecutado.</p>
+<table><tr><th>Porcentaje</th><td>50 %</td></tr>
+<tr><th>Aprobados / rechazados / bloqueados</th><td>1 / 0 / 1</td></tr></table>
+<h2>Subcasos</h2><table><tr><th>Subcaso</th><th>Estado</th><th>Motivo</th></tr><tr><td>TC-M06-37</td><td>APROBADO</td><td>La fecha 2026-11-01 pertenece al período cerrado 7. El registro respondió 422 PERIODO_CONTABLE_CERRADO. Los costos, la auditoría y el valor en libros quedaron iguales.</td></tr><tr><td>TC-M06-41</td><td>BLOQUEADO</td><td>No se envió el cierre. No existe un costo OTRO pendiente en un período aislado. La prevalidación de los períodos abiertos se consultó sin modificarlos.</td></tr></table>
+<h2>Contrato</h2><pre>POST /finanzas/costos y POST /finanzas/periodos/{id}/cierre están publicados. El Contador registra y clasifica costos y puede ejecutar el cierre. El Administrador y el Revisor Fiscal consultan el cierre. Una fecha que cae en un período CERRADO no se guarda allí: el sistema busca el primer período ABIERTO posterior y, como esa fecha no le pertenece, responde 422 PERIODO_CONTABLE_CERRADO antes del INSERT. Si no hubiera un período abierto posterior, la búsqueda podría crear uno; por eso este script no envía el costo en ese caso. Un subtipo OTRO sin naturaleza queda PENDIENTE_CLASIFICACION. GET /finanzas/periodos/{id}/prevalidacion informa COSTOS_PENDIENTE_CLASIFICACION. El POST de cierre, si hay bloqueos, responde 422 CIERRE_BLOQUEADO antes de pasar el período a EN_CIERRE. Si no hay bloqueos, el cierre sí cambia el período. Esa operación no se envía. La clasificación es POST /finanzas/costos/{id}/clasificacion y tampoco se envía.</pre>
+<h2>Períodos</h2><pre>[
+  {
+    &quot;id&quot;: 8,
+    &quot;estado&quot;: &quot;ABIERTO&quot;,
+    &quot;inicio&quot;: &quot;2026-12-01&quot;,
+    &quot;fin&quot;: &quot;2026-12-31&quot;
+  },
+  {
+    &quot;id&quot;: 7,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;inicio&quot;: &quot;2026-11-01&quot;,
+    &quot;fin&quot;: &quot;2026-11-30&quot;
+  },
+  {
+    &quot;id&quot;: 1,
+    &quot;estado&quot;: &quot;ABIERTO&quot;,
+    &quot;inicio&quot;: &quot;2026-05-10&quot;,
+    &quot;fin&quot;: &quot;2026-05-11&quot;
+  },
+  {
+    &quot;id&quot;: 2,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;inicio&quot;: &quot;2026-05-10&quot;,
+    &quot;fin&quot;: &quot;2026-06-10&quot;
+  },
+  {
+    &quot;id&quot;: 6,
+    &quot;estado&quot;: &quot;ABIERTO&quot;,
+    &quot;inicio&quot;: &quot;2024-10-01&quot;,
+    &quot;fin&quot;: &quot;2024-12-31&quot;
+  },
+  {
+    &quot;id&quot;: 5,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;inicio&quot;: &quot;2024-07-01&quot;,
+    &quot;fin&quot;: &quot;2024-09-30&quot;
+  },
+  {
+    &quot;id&quot;: 4,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;inicio&quot;: &quot;2024-04-01&quot;,
+    &quot;fin&quot;: &quot;2024-06-30&quot;
+  },
+  {
+    &quot;id&quot;: 3,
+    &quot;estado&quot;: &quot;CERRADO&quot;,
+    &quot;inicio&quot;: &quot;2024-01-01&quot;,
+    &quot;fin&quot;: &quot;2024-03-31&quot;
+  }
+]</pre>
+<h2>Prevalidaciones</h2><pre>[
+  {
+    &quot;puede_cerrar&quot;: true,
+    &quot;codigos&quot;: [],
+    &quot;activos_sin_precio&quot;: 0,
+    &quot;lineas_sin_trazabilidad&quot;: 1,
+    &quot;id_periodo&quot;: 8
+  },
+  {
+    &quot;puede_cerrar&quot;: true,
+    &quot;codigos&quot;: [],
+    &quot;activos_sin_precio&quot;: 0,
+    &quot;lineas_sin_trazabilidad&quot;: 0,
+    &quot;id_periodo&quot;: 1
+  },
+  {
+    &quot;puede_cerrar&quot;: true,
+    &quot;codigos&quot;: [],
+    &quot;activos_sin_precio&quot;: 0,
+    &quot;lineas_sin_trazabilidad&quot;: 0,
+    &quot;id_periodo&quot;: 6
+  }
+]</pre>
+<h2>Hallazgos</h2><ul><li>BLOQUEO DE PRUEBA: no hay un período aislado con un costo OTRO pendiente, y el cierre de un período compartido puede dejarlo EN_CIERRE.</li></ul>
+</body></html>

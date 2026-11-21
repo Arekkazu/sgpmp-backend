@@ -1,0 +1,149 @@
+{
+  "tc": "TC-M05-G25",
+  "summary": {
+    "total": 23,
+    "ok": 23,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "A01 Generación de reporte sincrónico por Productor",
+      "esperado": "HTTP 200, respuesta con id_reporte_gasto_acumulado y gasto acumulado calculado (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "HTTP 200, id_reporte_gasto_acumulado=244, gasto_total_acumulado=10.0000",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Exportación de reporte a formato CSV por Productor",
+      "esperado": "HTTP 201, generación de archivo CSV con vigencia de 24 horas y prefijo Gastos_ (Fuente: RF-77 RNF Exportación (TC-M05-024 / CU04))",
+      "obtenido": "HTTP 201, id_archivo=62f64d67-3f84-4814-a419-734d2aafa4b9, formato=CSV, nombre_archivo=Gastos_INFRA2_2026-06-01_2026-11-01.csv",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Exportación de reporte a formato PDF por Productor",
+      "esperado": "HTTP 201, generación de archivo PDF con prefijo Reporte_Gastos_ (Fuente: RF-77 RNF Exportación (TC-M05-024 / CU04))",
+      "obtenido": "HTTP 201, id_archivo=d9fecbd0-acb8-4fda-ac2b-6acc60c9b2b7, formato=PDF, nombre_archivo=Reporte_Gastos_INFRA2_2026-06-01_2026-11-01.pdf",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Descarga de exportación propia por Productor",
+      "esperado": "HTTP 200, Content-Type text/csv, Content-Disposition attachment (Fuente: RF-77 RNF Exportación (TC-M05-024))",
+      "obtenido": "HTTP 200, descarga CSV verificada para id_archivo=62f64d67-3f84-4814-a419-734d2aafa4b9",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05 Restricción de acceso a auditoría de M05 para Productor",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Recurso 57 restringido a Administrador/Contador) (Fuente: RF-80 / RBAC Centralizado)",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en GET /suministros/auditoria",
+      "estado": "OK"
+    },
+    {
+      "paso": "A98 Cierre ordenado de sandbox Productor y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "HTTP 200 (Rollback exitoso) en DELETE /test-control/runs/tc-m05-g25-prod-7ec72c86",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Restricción de generación de reporte para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Solo Productor y Administrador pueden generar) (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en POST /suministros/reportes-gastos",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Restricción de exportación de reporte para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en POST /suministros/reportes-gastos/19/exportacion",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03 Restricción de descarga de exportación real para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO sin contenido CSV al descargar archivo real exportado por Administrador (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO, sin text/csv ni contenido CSV al descargar archivo real de Admin (id_archivo=c9d0b296-6ed7-4274-a21e-125dcdf23caf, id_reporte=245)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B04 Restricción de acceso a auditoría para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-80 / RBAC Centralizado)",
+      "obtenido": "HTTP 403 ACCESO_DENEGADO en GET /suministros/auditoria",
+      "estado": "OK"
+    },
+    {
+      "paso": "B98 Cierre ordenado de sandbox Veterinario y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "HTTP 200 (Rollback exitoso) en DELETE /test-control/runs/tc-m05-g25-vet-8bfaa938",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 Generación y exportación de reporte por Administrador",
+      "esperado": "HTTP 200 en generación y HTTP 201 en exportación CSV (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Generacion HTTP 200 (id_reporte=246); exportacion CSV HTTP 201 (id_archivo=119f3c2e-b105-40b7-931a-f707d7d0196d)",
+      "estado": "OK"
+    },
+    {
+      "paso": "C02 Registro en bitácora de auditoría de M05 de generación y exportación de Admin",
+      "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Admin, fecha_evento y registro <= 2 s (Fuente: RF-77 CA-11 / Postcondición 3 (TC-M05-025))",
+      "obtenido": "HTTP 200; evento GENERACION id=72140 y EXPORTACION id=72141, actor id_usuario=104, resultado=EXITOSO, latencias=0.49s/0.348s (<= 2.0s), id_reporte=246, id_archivo=119f3c2e-b105-40b7-931a-f707d7d0196d",
+      "estado": "OK"
+    },
+    {
+      "paso": "C03 Registro en bitácora de auditoría de M05 de generación y exportación de Productor",
+      "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Productor, fecha_evento y registro <= 2 s (Fuente: RF-77 CA-11 / Postcondición 3 (TC-M05-025))",
+      "obtenido": "HTTP 200; evento GENERACION id=72142 y EXPORTACION id=72143, actor id_usuario=2, resultado=EXITOSO, latencias=0.591s/0.442s (<= 2.0s), id_reporte=247, id_archivo=f70ce7d4-1b86-4c83-878a-2bd84476b488",
+      "estado": "OK"
+    },
+    {
+      "paso": "C98 Cierre ordenado de sandbox Administrador y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "HTTP 200 (Rollback exitoso) en DELETE /test-control/runs/tc-m05-g25-adm-7dfa7199",
+      "estado": "OK"
+    },
+    {
+      "paso": "D01 Rechazo de solicitudes no autenticadas",
+      "esperado": "HTTP 401 sin Authorization (con cabeceras sandbox) en generación, exportación, descarga, historial y auditoría (Fuente: RF-02 / RF-77 RNF Seguridad)",
+      "obtenido": "5/5 endpoints sin Authorization rechazados con 401 TOKEN_REQUERIDO",
+      "estado": "OK"
+    },
+    {
+      "paso": "D02 Prevención de IDOR en descarga de exportaciones ajenas",
+      "esperado": "HTTP 403 (ARCHIVO_DE_OTRO_USUARIO) o 404 (ARCHIVO_NO_ENCONTRADO por RLS de modulo5) sin contenido del archivo al descargar CSV exportado por otro usuario en el mismo sandbox (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "HTTP 404 ARCHIVO_NO_ENCONTRADO, sin text/csv ni attachment ni contenido (id_archivo=78cd718e-b4a9-492d-a6f1-761f1cdc8994)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D03 Validación de tipos y resistencia ante IDs inexistentes o inválidos",
+      "esperado": "HTTP 404 en inexistentes, HTTP 400/422 en tipos inválidos; jamás HTTP 500 (Fuente: Guía de Pruebas / Robustez de la API)",
+      "obtenido": "5/5 casos sin HTTP 500: /suministros/reportes-gastos/999999999->404(REPORTE_NO_ENCONTRADO); /suministros/reportes-gastos/-1->404(REPORTE_NO_ENCONTRADO); /suministros/reportes-gastos/id_invalido->400(VAL_ENTRADA); /suministros/reportes-gastos/exportaciones/00000000-0000-0000-0000-000000000000->404(ARCHIVO_NO_ENCONTRADO); /suministros/reportes-gastos/exportaciones/no-es-uuid->400(VAL_ENTRADA)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D04 Aislamiento estricto de historial por usuario",
+      "esperado": "GET /historial devuelve los reportes propios del usuario y excluye por completo los de otro usuario (Fuente: RF-77 RNF Historial (TC-M05-024))",
+      "obtenido": "HTTP 200 en reporte Productor (id_reporte=249) y en GET /historial (Productor total=56, Admin total=100; conjuntos disjuntos sin fuga IDOR)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05a Prevención de IDOR al consultar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin datos del reporte ajeno ni eventos indebidos en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "HTTP 404 REPORTE_NO_ENCONTRADO, 0 eventos atribuibles (id_reporte=250, id_activo=1839)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05b Prevención de IDOR al regenerar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin datos del reporte ajeno ni evento REGENERACION en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "HTTP 404 REPORTE_NO_ENCONTRADO, 0 eventos atribuibles (id_reporte=250)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D05c Prevención de IDOR al exportar reporte de otro usuario",
+      "esperado": "HTTP 403 o 404 sin creación de archivo ni evento EXPORTACION en auditoría (Fuente: RF-77 RNF Seguridad / TC-M05-024)",
+      "obtenido": "HTTP 404 REPORTE_NO_ENCONTRADO, 0 eventos atribuibles (id_reporte=250)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D98 Cierre ordenado de sandbox IDOR/Aislamiento y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "HTTP 200 (Rollback exitoso) en DELETE /test-control/runs/tc-m05-g25-idor-fad42743",
+      "estado": "OK"
+    }
+  ]
+}

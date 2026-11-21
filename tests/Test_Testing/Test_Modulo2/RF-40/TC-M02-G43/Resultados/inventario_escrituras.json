@@ -1,0 +1,59 @@
+{
+  "caso": "TC-M02-G43",
+  "setup": {
+    "escrituras_de_datos_de_prueba": 0,
+    "evidencia": [
+      "reporte_setup_tc_m02_g43.json",
+      "consultas_bd.sql"
+    ],
+    "detalle": "Solo GET a OpenAPI y SELECT en PostgreSQL."
+  },
+  "autenticacion": {
+    "observacion": "Los POST a /sesiones/ autentican cada ejecución y no forman parte de los datos de negocio del caso."
+  },
+  "posts_negocio": [
+    {
+      "actor": "Productor",
+      "activo": 279,
+      "evento": 227,
+      "estado": "Metodológico: consulta API posterior apuntó a endpoint solo poblacional."
+    },
+    {
+      "actor": "Productor",
+      "activo": 279,
+      "evento": 228,
+      "estado": "Metodológico: fecha no posterior al evento 227."
+    },
+    {
+      "actor": "Veterinario",
+      "activo": 311,
+      "evento": 229,
+      "estado": "OFICIAL: válido."
+    },
+    {
+      "actor": "Ingeniero de campo",
+      "activo": 312,
+      "evento": 230,
+      "estado": "Metodológico: verificación directa de auditoría encontró permiso RF-52 separado."
+    },
+    {
+      "actor": "Ingeniero de campo",
+      "activo": 312,
+      "evento": 231,
+      "estado": "Metodológico: fecha no posterior al evento 230."
+    },
+    {
+      "actor": "Productor",
+      "activo": 279,
+      "evento": 232,
+      "estado": "OFICIAL: válido."
+    },
+    {
+      "actor": "Ingeniero de campo",
+      "activo": 312,
+      "evento": 233,
+      "estado": "OFICIAL: válido."
+    }
+  ],
+  "criterio_veredicto": "Solo 232, 229 y 233 forman parte del veredicto oficial; los cuatro anteriores quedan trazados y excluidos."
+}

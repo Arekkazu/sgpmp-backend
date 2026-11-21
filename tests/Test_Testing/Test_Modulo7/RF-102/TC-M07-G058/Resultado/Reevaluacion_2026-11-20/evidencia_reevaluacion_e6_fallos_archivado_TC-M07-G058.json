@@ -1,0 +1,33 @@
+{
+  "id": "E6",
+  "nombre": "Comportamiento ante fallos de archivado",
+  "caso_original": "TC-M07-102-015",
+  "estado": "APROBADO",
+  "validacion": "Rollback, alerta, reintento, sin pérdida/duplicados",
+  "esperado": "Fallo controlado revierte lote; reintento archiva válidos; corruptos quedan activos",
+  "obtenido": "aislado={'fallo_detectado': True, 'causa_alerta': 'FALLO_ARCHIVADO', 'rollback_sin_historico_del_lote': True, 'ambos_siguen_activos_tras_fallo': True, 'reintento_ok': True, 'bueno_archivado_tras_reintento': True, 'corrupto_permanece_activo': True, 'hash_bueno_conservado': True}",
+  "evidencia": "evidencia_reevaluacion_e6_fallos_archivado_TC-M07-G058.json",
+  "pasos": [
+    "Mock de archivar() que vacía copias tras INSERT",
+    "Verificación rollback + causa FALLO_ARCHIVADO",
+    "Reintento posterior y conservación de hash"
+  ],
+  "observaciones": "Ejecutado en BD aislada; no se provocaron fallos en infraestructura compartida.",
+  "referencia_original": "Resultado/evidencia_e6_fallos_archivado_TC-M07-G058.json",
+  "fecha_utc": "2026-11-21T00:27:47.742344+00:00",
+  "ambiente": {
+    "api_test": "https://api.inmero.co/api-sgpmp-test",
+    "codigo": "origin/test (inspección RF-102 #1165)",
+    "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+  },
+  "evidencia_tecnica": {
+    "fallo_detectado": true,
+    "causa_alerta": "FALLO_ARCHIVADO",
+    "rollback_sin_historico_del_lote": true,
+    "ambos_siguen_activos_tras_fallo": true,
+    "reintento_ok": true,
+    "bueno_archivado_tras_reintento": true,
+    "corrupto_permanece_activo": true,
+    "hash_bueno_conservado": true
+  }
+}

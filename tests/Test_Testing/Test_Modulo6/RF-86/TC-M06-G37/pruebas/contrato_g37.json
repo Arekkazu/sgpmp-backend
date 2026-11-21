@@ -1,0 +1,769 @@
+{
+  "version": 1,
+  "base": "api-sgpmp-test",
+  "lectura_permisos": {
+    "ruta": "/sesiones/me/permisos",
+    "metodo": "GET",
+    "http": 200,
+    "actores": [
+      "contador",
+      "admin"
+    ],
+    "campos": {
+      "permisos": [
+        {
+          "id_recurso": "number",
+          "id_accion": "number",
+          "nombre_recurso": "string|null"
+        }
+      ]
+    },
+    "fuente": "src/identity_access/infrastructure/schema/permisos_schema.py:7-20; src/identity_access/infrastructure/routers/sesiones_routers.py:217-243"
+  },
+  "evidencia_escrituras": {
+    "evento_crecimiento": {
+      "http": 201,
+      "campos_usados": [
+        "evento.id_eventos"
+      ],
+      "evidencia": "G32 TEST, resultado.json solicitudes y g32.mjs:502-580"
+    },
+    "precios_post": {
+      "http": 201,
+      "campos_usados": [
+        "id_precio_mercado"
+      ],
+      "evidencia": "G32 TEST, resultado.json solicitudes y g32.mjs:502-580"
+    },
+    "estado_patch": {
+      "http": 200,
+      "campos_usados": [],
+      "evidencia": "G32 TEST, resultado.json solicitudes"
+    },
+    "procesar": {
+      "http": 200,
+      "campos_usados": [
+        "eventos",
+        "provisiones_m05"
+      ],
+      "evidencia": "G32 TEST HTTP; cuerpo del código m06_router.py:218-223"
+    },
+    "estado_post_abierto": {
+      "http": 422,
+      "campos_usados": [
+        "error_code"
+      ],
+      "codigo": "PERIODO_NO_CERRADO",
+      "evidencia": "código generar_estado_resultados_use_case.py:28-35; sin TEST G32"
+    },
+    "trazabilidad_ok": {
+      "http": 200,
+      "campos_usados": [
+        "verificadas",
+        "pendientes"
+      ],
+      "evidencia": "código m06_router.py:401-407; sin éxito TEST G32"
+    },
+    "trazabilidad_error": {
+      "http": 500,
+      "campos_usados": [
+        "error_code"
+      ],
+      "codigo": "ERROR_INTERNO",
+      "evidencia": "G32 TEST, resultado.json solicitudes"
+    }
+  },
+  "roles": {
+    "contador": {
+      "id": 5,
+      "token": "QA_CONTADOR_TOKEN",
+      "permisos": {
+        "precios_mercado": [
+          1,
+          2
+        ],
+        "valoracion_activos": [
+          2,
+          5
+        ],
+        "cierre_periodo": [
+          2,
+          5
+        ],
+        "trazabilidad_contable": [
+          2,
+          5
+        ],
+        "estado_resultados": [
+          1,
+          2,
+          3
+        ],
+        "auditoria_financiera": [
+          2
+        ],
+        "historial_telemetria": [
+          2
+        ]
+      },
+      "fuentes": [
+        "alembic/versions/c4d81e6f2a95_m06_nic41_esquema_rfc018.py:89-98",
+        "alembic/versions/a7f3c92e4d18_rf28_catalogo_widgets_y_defaults.py:95,132"
+      ]
+    },
+    "admin": {
+      "id": 1,
+      "token": "QA_ADMIN_TOKEN",
+      "permisos": {
+        "valoracion_activos": [
+          2
+        ],
+        "trazabilidad_contable": [
+          2
+        ],
+        "activos_biologicos": [
+          1,
+          2,
+          5
+        ]
+      },
+      "fuentes": [
+        "alembic/versions/c4d81e6f2a95_m06_nic41_esquema_rfc018.py:89-98",
+        "src/biological_assets/infrastructure/routers/activo_biologico_router.py:1176-1190,1344-1355,1690-1705"
+      ]
+    }
+  },
+  "peticiones": [
+    {
+      "id": "activos",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "actor": "contador",
+      "permiso": "valoracion_activos:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:190-194",
+      "respuesta": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270",
+      "tipo": "array",
+      "campos": {
+        "id_activo_biologico": "number",
+        "id_especie": "number",
+        "especie": "string",
+        "tipo": "string",
+        "estado": "string",
+        "valorado_por_costo": "boolean",
+        "valor_razonable_neto": "decimal|null"
+      },
+      "fuentes_campos": {
+        "id_activo_biologico": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:190-194",
+        "id_especie": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:190-194",
+        "especie": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:190-194",
+        "tipo": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:190-194",
+        "estado": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:190-194",
+        "valorado_por_costo": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:190-194",
+        "valor_razonable_neto": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:246-270; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:190-194"
+      }
+    },
+    {
+      "id": "periodos",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "actor": "contador",
+      "permiso": "cierre_periodo:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
+      "respuesta": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30",
+      "tipo": "array",
+      "campos": {
+        "id_periodo_contable": "number",
+        "numero_id_tributaria": "string|null",
+        "fecha_inicio": "string",
+        "fecha_fin": "string",
+        "estado": "string",
+        "ultimo_cierre": "object|null"
+      },
+      "fuentes_campos": {
+        "id_periodo_contable": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
+        "numero_id_tributaria": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
+        "fecha_inicio": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
+        "fecha_fin": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
+        "estado": "src/financial_valuation/infrastructure/routers/m06_router.py:298-300; src/financial_valuation/domain/entities/contabilidad.py:16-30; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:295-300",
+        "ultimo_cierre": "src/financial_valuation/infrastructure/routers/m06_router.py:433-438; src/financial_valuation/infrastructure/repositories/periodo_repository.py:141-147",
+        "ultimo_cierre.precios_congelados[].precio_unitario": "src/financial_valuation/infrastructure/routers/m06_router.py:433-438; src/financial_valuation/infrastructure/repositories/periodo_repository.py:141-147"
+      },
+      "subcampos_ultimo_cierre": {
+        "paso_actual": "number|null",
+        "activos_procesados": "number|null",
+        "activos_pendientes": "number|null",
+        "activos_excluidos": "number|null",
+        "precios_congelados": "array|null",
+        "error_detalle": "string|null",
+        "fecha_fin": "string|null",
+        "tiempo_ejecucion_ms": "number|null",
+        "hash_cierre": "string|null"
+      },
+      "subcampos_precios_congelados": [
+          {
+            "precio_unitario": "decimal"
+          }
+        ]
+    },
+    {
+      "id": "activo_detalle",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/{activo}",
+      "actor": "contador",
+      "permiso": "valoracion_activos:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+      "respuesta": "src/financial_valuation/infrastructure/routers/m06_router.py:198-203; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:273-294",
+      "tipo": "object",
+      "campos": {
+        "activo": {
+          "numero_id_tributaria": "string",
+          "id_dispositivo_iot": "number|null"
+        },
+        "calculos": [
+          {
+            "id_calculo_valor_razonable": "number",
+            "id_precio_mercado": "number|null",
+            "estado": "string",
+            "magnitud": "decimal|number",
+            "valor_neto": "decimal|number",
+            "fecha_calculo": "string",
+            "json_metodo_costo": "object|null"
+          }
+        ],
+        "mediciones": [
+          {
+            "id_medicion_posterior": "number",
+            "id_evento": "number|null"
+          }
+        ]
+      },
+      "fuentes_campos": {
+        "activo.numero_id_tributaria": "src/financial_valuation/infrastructure/routers/m06_router.py:198-203; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:273-294; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "activo.id_dispositivo_iot": "src/financial_valuation/infrastructure/routers/m06_router.py:198-203; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:273-294; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "calculos[].id_calculo_valor_razonable": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:24-28,273-278; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "calculos[].id_precio_mercado": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:24-28,273-278; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "calculos[].estado": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:24-28,273-278; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "calculos[].magnitud": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:24-28,273-278; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "calculos[].valor_neto": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:24-28,273-278; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "calculos[].fecha_calculo": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:24-28,273-278; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "calculos[].json_metodo_costo": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:24-28,273-278; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "mediciones[].id_medicion_posterior": "src/financial_valuation/infrastructure/routers/m06_router.py:198-203; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:273-294; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203",
+        "mediciones[].id_evento": "src/financial_valuation/infrastructure/routers/m06_router.py:198-203; src/financial_valuation/infrastructure/repositories/valoracion_repository.py:273-294; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:196-203"
+      }
+    },
+    {
+      "id": "ficha",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/{activo}/ficha-integral",
+      "actor": "admin",
+      "permiso": "activos_biologicos:2",
+      "router": "src/biological_assets/infrastructure/routers/activo_biologico_router.py:1690-1705",
+      "respuesta": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:403-440",
+      "tipo": "object",
+      "campos": {
+        "peso_actual": "decimal|null",
+        "unidad_peso": "string|null",
+        "estado_actual": "string"
+      },
+      "fuentes_campos": {
+        "peso_actual": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:403-440; respuesta src/biological_assets/infrastructure/routers/activo_biologico_router.py:1690-1705; DTO src/biological_assets/infrastructure/schema/activo_biologico_schema.py:403-431",
+        "unidad_peso": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:403-440; respuesta src/biological_assets/infrastructure/routers/activo_biologico_router.py:1690-1705; DTO src/biological_assets/infrastructure/schema/activo_biologico_schema.py:403-431",
+        "estado_actual": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:403-440; respuesta src/biological_assets/infrastructure/routers/activo_biologico_router.py:1690-1705; DTO src/biological_assets/infrastructure/schema/activo_biologico_schema.py:403-431"
+      }
+    },
+    {
+      "id": "precios_get",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios?id_especie={especie}",
+      "actor": "contador",
+      "permiso": "precios_mercado:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:137-141",
+      "respuesta": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60",
+      "tipo": "array",
+      "campos": {
+        "id_precio_mercado": "number",
+        "id_especie": "number",
+        "categoria": "string",
+        "fuente": "string",
+        "precio_unitario": "decimal|number",
+        "fecha_vigencia": "string",
+        "fecha_vencimiento": "string|null"
+      },
+      "fuentes_campos": {
+        "id_precio_mercado": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:137-141",
+        "id_especie": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:137-141",
+        "categoria": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:137-141",
+        "fuente": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:137-141",
+        "precio_unitario": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:137-141",
+        "fecha_vigencia": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:137-141",
+        "fecha_vencimiento": "src/financial_valuation/infrastructure/repositories/precio_repository.py:20-60; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:137-141"
+      }
+    },
+    {
+      "id": "precios_post",
+      "metodo": "POST",
+      "ruta": "/finanzas/precios",
+      "actor": "contador",
+      "permiso": "precios_mercado:1",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:143-148",
+      "respuesta": "src/financial_valuation/application/use_cases/precios/registrar_precio_use_case.py:55-100",
+      "tipo": "object",
+      "campos": {
+        "id_precio_mercado": "number",
+        "estado": "string",
+        "unidad_medida": "string",
+        "desviacion_pct": "decimal|null",
+        "fecha_vigencia": "string"
+      },
+      "http": 201,
+      "fuentes_campos": {
+        "id_precio_mercado": "src/financial_valuation/application/use_cases/precios/registrar_precio_use_case.py:55-100; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:143-148",
+        "estado": "src/financial_valuation/application/use_cases/precios/registrar_precio_use_case.py:55-100; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:143-148",
+        "unidad_medida": "src/financial_valuation/application/use_cases/precios/registrar_precio_use_case.py:55-100; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:143-148",
+        "desviacion_pct": "src/financial_valuation/application/use_cases/precios/registrar_precio_use_case.py:99-100; RUN-G37-V1-20261108-230500/resultado.json discrepancias_contrato[].esquema_real",
+        "fecha_vigencia": "src/financial_valuation/application/use_cases/precios/registrar_precio_use_case.py:99-100; RUN-G37-V1-20261108-230500/resultado.json discrepancias_contrato[].esquema_real"
+      }
+    },
+    {
+      "id": "evento_crecimiento",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/{activo}/eventos/crecimiento",
+      "actor": "admin",
+      "permiso": "activos_biologicos:1",
+      "router": "src/biological_assets/infrastructure/routers/activo_biologico_router.py:1176-1190",
+      "respuesta": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:325-356",
+      "tipo": "object",
+      "campos": {
+        "evento": {
+          "id_eventos": "number"
+        }
+      },
+      "http": 201,
+      "fuentes_campos": {
+        "evento.id_eventos": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:325-356; respuesta src/biological_assets/infrastructure/routers/activo_biologico_router.py:1176-1190"
+      }
+    },
+    {
+      "id": "estado_patch",
+      "metodo": "PATCH",
+      "ruta": "/activos-biologicos/{activo}/estado",
+      "actor": "admin",
+      "permiso": "activos_biologicos:5",
+      "router": "src/biological_assets/infrastructure/routers/activo_biologico_router.py:1344-1365",
+      "respuesta": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:290-324",
+      "tipo": "object",
+      "campos": {},
+      "fuentes_campos": {}
+    },
+    {
+      "id": "procesar",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "actor": "contador",
+      "permiso": "valoracion_activos:5",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:218-223",
+      "respuesta": "src/financial_valuation/infrastructure/routers/m06_router.py:221-223",
+      "tipo": "object",
+      "campos": {},
+      "fuentes_campos": {}
+    },
+    {
+      "id": "variaciones",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{periodo}/variaciones",
+      "actor": "contador",
+      "permiso": "valoracion_activos:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+      "respuesta": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319",
+      "tipo": "array",
+      "campos": {
+        "id_variacion_valor_razonable": "number",
+        "id_activo_biologico": "number",
+        "tipo": "string",
+        "monto_variacion": "decimal|number",
+        "valor_razonable_anterior": "decimal|number",
+        "valor_razonable_nuevo": "decimal|number",
+        "fecha_registro": "string",
+        "id_linea": "number|null",
+        "tipo_evidencia": "string|null",
+        "estado_trazabilidad": "string"
+      },
+      "fuentes_campos": {
+        "id_variacion_valor_razonable": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "id_activo_biologico": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "tipo": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "monto_variacion": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "valor_razonable_anterior": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "valor_razonable_nuevo": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "fecha_registro": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "id_linea": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "tipo_evidencia": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245",
+        "estado_trazabilidad": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:307-319; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:241-245"
+      }
+    },
+    {
+      "id": "mediciones",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{periodo}/mediciones",
+      "actor": "contador",
+      "permiso": "valoracion_activos:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:234-238",
+      "respuesta": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:297-305",
+      "tipo": "array",
+      "campos": {
+        "id_medicion_posterior": "number",
+        "id_activo_biologico": "number",
+        "estado": "string",
+        "ganancia_perdida_transformacion": "decimal|number",
+        "ganancia_perdida_precio_mercado": "decimal|number",
+        "variacion_total": "decimal|number"
+      },
+      "fuentes_campos": {
+        "id_medicion_posterior": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:297-305; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:234-238",
+        "id_activo_biologico": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:297-305; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:234-238",
+        "estado": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:297-305; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:234-238",
+        "ganancia_perdida_transformacion": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:297-305; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:234-238",
+        "ganancia_perdida_precio_mercado": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:297-305; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:234-238",
+        "variacion_total": "src/financial_valuation/infrastructure/repositories/valoracion_repository.py:297-305; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:234-238"
+      }
+    },
+    {
+      "id": "lineas",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas?id_periodo_contable={periodo}",
+      "actor": "contador",
+      "permiso": "valoracion_activos:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:225-232",
+      "respuesta": "src/financial_valuation/infrastructure/routers/m06_router.py:228-232; src/financial_valuation/domain/entities/contabilidad.py:65-95",
+      "tipo": "array",
+      "campos": {
+        "id_linea_asiento_nic41": "number",
+        "id_origen": "number",
+        "tabla_origen": "string",
+        "estado_trazabilidad": "string",
+        "tipo_evidencia": "string"
+      },
+      "fuentes_campos": {
+        "id_linea_asiento_nic41": "src/financial_valuation/infrastructure/routers/m06_router.py:228-232; src/financial_valuation/domain/entities/contabilidad.py:65-95; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:225-232",
+        "id_origen": "src/financial_valuation/infrastructure/routers/m06_router.py:228-232; src/financial_valuation/domain/entities/contabilidad.py:65-95; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:225-232",
+        "tabla_origen": "src/financial_valuation/infrastructure/routers/m06_router.py:228-232; src/financial_valuation/domain/entities/contabilidad.py:65-95; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:225-232",
+        "estado_trazabilidad": "src/financial_valuation/infrastructure/routers/m06_router.py:228-232; src/financial_valuation/domain/entities/contabilidad.py:65-95; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:225-232",
+        "tipo_evidencia": "src/financial_valuation/infrastructure/routers/m06_router.py:228-232; src/financial_valuation/domain/entities/contabilidad.py:65-95; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:225-232"
+      }
+    },
+    {
+      "id": "cadena",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas/{linea}/cadena",
+      "actor": "contador",
+      "permiso": "trazabilidad_contable:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+      "respuesta": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:106-117",
+      "tipo": "object",
+      "campos": {
+        "id_linea_asiento_nic41": "number",
+        "id_origen": "number",
+        "estado_trazabilidad": "string",
+        "estado_verificacion": "string|null",
+        "nivel_fallo": "number|null",
+        "eslabones": "object|null"
+      },
+      "subcampos_eslabones": {
+        "nivel_fallo": "number|null",
+        "ids": {
+          "id_evento": "number|null",
+          "ids_lectura_iot": [
+            "number"
+          ],
+          "id_precio_mercado": "number|null"
+        }
+      },
+      "fuentes_campos": {
+        "id_linea_asiento_nic41": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "id_origen": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "estado_trazabilidad": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "estado_verificacion": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "nivel_fallo": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:91-103,106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "eslabones": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:91-103,106-117 (LEFT JOIN y json_eslabones); respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "eslabones.nivel_fallo": "src/financial_valuation/domain/services/trazabilidad.py:25-34 (int | None); src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:51-52; src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "eslabones.ids.id_evento": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:45-83,106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "eslabones.ids.ids_lectura_iot": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:45-83,106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417",
+        "eslabones.ids.id_precio_mercado": "src/financial_valuation/infrastructure/repositories/trazabilidad_repository.py:45-83,106-117; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:409-417"
+      }
+    },
+    {
+      "id": "trazabilidad",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/{periodo}/trazabilidad",
+      "actor": "contador",
+      "permiso": "trazabilidad_contable:5",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:401-407",
+      "respuesta": "src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:45-90",
+      "tipo": "object",
+      "campos": {
+        "verificadas": "number",
+        "pendientes": [
+          {
+            "id_linea": "number",
+            "tipo_hecho": "string",
+            "id_activo_biologico": "number",
+            "faltantes": [
+              "string"
+            ],
+            "nivel_fallo": "number|null"
+          }
+        ]
+      },
+      "errores": [
+        {
+          "http": 422,
+          "codigo": "PERIODO_NO_ABIERTO",
+          "fuente": "src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:77-81"
+        },
+        {
+          "http": 500,
+          "codigo": "ERROR_INTERNO",
+          "mensaje": "Internal Server Error",
+          "contexto": "INC-M06-G32-01"
+        }
+      ],
+      "fuentes_campos": {
+        "verificadas": "src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:45-90; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:401-407",
+        "pendientes[].id_linea": "src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:59-63,81-90",
+        "pendientes[].tipo_hecho": "src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:59-63,81-90",
+        "pendientes[].id_activo_biologico": "src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:59-63,81-90",
+        "pendientes[].faltantes": "src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:59-63,81-90",
+        "pendientes[].nivel_fallo": "src/financial_valuation/application/use_cases/trazabilidad/verificar_trazabilidad_use_case.py:59-63,81-90"
+      }
+    },
+    {
+      "id": "estados_get",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{periodo}/estados-resultados",
+      "actor": "contador",
+      "permiso": "estado_resultados:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:423-427",
+      "respuesta": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62",
+      "tipo": "array",
+      "campos": {
+        "id_estado": "number",
+        "id_periodo_contable": "number",
+        "total_ingresos": "decimal|number",
+        "total_gastos": "decimal|number",
+        "resultado_neto": "decimal|number",
+        "estado": "string",
+        "version": "number"
+      },
+      "fuentes_campos": {
+        "id_estado": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:423-427",
+        "id_periodo_contable": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:423-427",
+        "total_ingresos": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:423-427",
+        "total_gastos": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:423-427",
+        "resultado_neto": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:423-427",
+        "estado": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:423-427",
+        "version": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:423-427"
+      }
+    },
+    {
+      "id": "estado_detalle",
+      "metodo": "GET",
+      "ruta": "/finanzas/estados-resultados/{estado}",
+      "actor": "contador",
+      "permiso": "estado_resultados:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:429-436",
+      "respuesta": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:40-48",
+      "tipo": "object",
+      "campos": {
+        "id_estado": "number",
+        "id_periodo_contable": "number",
+        "total_ingresos": "decimal|number",
+        "total_gastos": "decimal|number",
+        "resultado_neto": "decimal|number",
+        "estado": "string",
+        "version": "number"
+      },
+      "fuentes_campos": {
+        "id_estado": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:40-48; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:429-436",
+        "id_periodo_contable": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:40-48; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:429-436",
+        "total_ingresos": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:40-48; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:429-436",
+        "total_gastos": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:40-48; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:429-436",
+        "resultado_neto": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:40-48; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:429-436",
+        "estado": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:40-48; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:429-436",
+        "version": "src/financial_valuation/infrastructure/repositories/reporte_repository.py:40-48; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:429-436"
+      }
+    },
+    {
+      "id": "estado_post",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/{periodo}/estados-resultados",
+      "actor": "contador",
+      "permiso": "estado_resultados:1",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:438-444",
+      "respuesta": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:35-67",
+      "tipo": "object",
+      "campos": {
+        "id_estado": "number",
+        "total_ingresos": "decimal|number",
+        "total_gastos": "decimal|number",
+        "version": "number"
+      },
+      "http": 201,
+      "errores": [
+        {
+          "http": 422,
+          "codigo": "PERIODO_NO_CERRADO",
+          "mensaje": "Período no cerrado; ejecute el cierre antes de generar el estado.",
+          "fuente": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:31-35; src/shared/errors.py:91-99"
+        }
+      ],
+      "fuentes_campos": {
+        "id_estado": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:35-67; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:438-444",
+        "total_ingresos": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:35-67; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:438-444",
+        "total_gastos": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:35-67; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:438-444",
+        "version": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:35-67; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:438-444"
+      }
+    },
+    {
+      "id": "auditoria",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?id_periodo_contable={periodo}&tipo_evento=VARIACION_REGISTRADA&formato=TECNICO&pagina={pagina}&tamano=500",
+      "actor": "contador",
+      "permiso": "auditoria_financiera:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+      "respuesta": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78",
+      "tipo": "object",
+      "campos": {
+        "total_registros": "number",
+        "pagina_actual": "number",
+        "registros_por_pagina": "number",
+        "resumen_severidad": "object",
+        "eventos": [
+          {
+            "id_evento": "number",
+            "tipo_evento": "string",
+            "id_referencia": "number",
+            "id_activo_biologico": "number",
+            "id_periodo_contable": "number",
+            "monto_afectado": "decimal|number|null",
+            "payload_evento": {
+              "tipo": "string",
+              "monto": "decimal",
+              "id_evento": "number|null",
+              "id_cierre": "number|null"
+            }
+          }
+        ]
+      },
+      "fuentes_campos": {
+        "total_registros": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "pagina_actual": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "registros_por_pagina": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "resumen_severidad": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].id_evento": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].tipo_evento": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].id_referencia": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].id_activo_biologico": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].id_periodo_contable": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].monto_afectado": "src/financial_valuation/application/use_cases/auditoria/consultar_auditoria_financiera_use_case.py:58-82; src/financial_valuation/infrastructure/repositories/auditoria_financiera_repository.py:68-78; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].payload_evento.tipo": "src/financial_valuation/application/services/medidor.py:128-134; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].payload_evento.monto": "src/financial_valuation/application/services/medidor.py:128-134; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].payload_evento.id_evento": "src/financial_valuation/application/services/medidor.py:128-134; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508",
+        "eventos[].payload_evento.id_cierre": "src/financial_valuation/application/services/medidor.py:128-134; respuesta src/financial_valuation/infrastructure/routers/m06_router.py:498-508"
+      }
+    },
+    {
+      "id": "m03_historial",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio={inicio}&fecha_fin={fin}&sensor_id={sensor}&pagina={pagina}&por_pagina=100",
+      "actor": "contador",
+      "permiso": "historial_telemetria:2",
+      "router": "src/telemetry/infrastructure/routers/monitoreo_router.py:300-365",
+      "respuesta": "src/telemetry/infrastructure/schema/monitoreo_schema.py:118-150,206-225",
+      "tipo": "object",
+      "campos": {
+        "total": "number",
+        "pagina": "number",
+        "por_pagina": "number",
+        "paginas_totales": "number",
+        "items": [
+          {
+            "id_telemetria": "number",
+            "id_activo_biologico": "number|null",
+            "timestamp_captura": "string"
+          }
+        ]
+      },
+      "fuentes_campos": {
+        "total": "src/telemetry/infrastructure/schema/monitoreo_schema.py:118-150,206-225; respuesta src/telemetry/infrastructure/routers/monitoreo_router.py:300-365",
+        "pagina": "src/telemetry/infrastructure/schema/monitoreo_schema.py:118-150,206-225; respuesta src/telemetry/infrastructure/routers/monitoreo_router.py:300-365",
+        "por_pagina": "src/telemetry/infrastructure/schema/monitoreo_schema.py:118-150,206-225; respuesta src/telemetry/infrastructure/routers/monitoreo_router.py:300-365",
+        "paginas_totales": "src/telemetry/infrastructure/schema/monitoreo_schema.py:118-150,206-225; respuesta src/telemetry/infrastructure/routers/monitoreo_router.py:300-365",
+        "items[].id_telemetria": "src/telemetry/infrastructure/schema/monitoreo_schema.py:118-150,206-225; respuesta src/telemetry/infrastructure/routers/monitoreo_router.py:300-365",
+        "items[].id_activo_biologico": "src/telemetry/infrastructure/schema/monitoreo_schema.py:118-150,206-225; respuesta src/telemetry/infrastructure/routers/monitoreo_router.py:300-365",
+        "items[].timestamp_captura": "src/telemetry/infrastructure/schema/monitoreo_schema.py:118-150,206-225; respuesta src/telemetry/infrastructure/routers/monitoreo_router.py:300-365"
+      }
+    },
+    {
+      "id": "eventos_get",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/{activo}/eventos",
+      "actor": "admin",
+      "permiso": "activos_biologicos:2",
+      "router": "src/biological_assets/infrastructure/routers/activo_biologico_router.py:1132-1148",
+      "respuesta": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:325-346",
+      "tipo": "object",
+      "campos": {
+        "eventos": [
+          {
+            "id_eventos": "number"
+          }
+        ]
+      },
+      "fuentes_campos": {
+        "eventos[].id_eventos": "src/biological_assets/infrastructure/schema/activo_biologico_schema.py:325-346; respuesta src/biological_assets/infrastructure/routers/activo_biologico_router.py:1132-1148"
+      }
+    },
+    {
+      "id": "acumulado",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{periodo}/estado-resultados/acumulado",
+      "actor": "contador",
+      "permiso": "estado_resultados:2",
+      "router": "src/financial_valuation/infrastructure/routers/m06_router.py:587-591",
+      "respuesta": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46; src/financial_valuation/application/services/reportes.py:31-43",
+      "tipo": "object",
+      "campos": {
+        "componentes": {
+          "ganancia_transformacion_biologica": "decimal|number",
+          "perdida_transformacion_biologica": "decimal|number",
+          "ganancia_precio_mercado": "decimal|number",
+          "perdida_precio_mercado": "decimal|number"
+        },
+        "total_ingresos": "decimal|number",
+        "total_gastos": "decimal|number",
+        "resultado_neto": "decimal|number",
+        "id_periodo_contable": "number",
+        "estado_periodo": "string",
+        "es_definitivo": "boolean"
+      },
+      "fuentes_campos": {
+        "componentes.ganancia_transformacion_biologica": "src/financial_valuation/domain/services/consolidacion.py:69-79; src/financial_valuation/application/services/reportes.py:31-43",
+        "componentes.perdida_transformacion_biologica": "src/financial_valuation/domain/services/consolidacion.py:69-79; src/financial_valuation/application/services/reportes.py:31-43",
+        "componentes.ganancia_precio_mercado": "src/financial_valuation/domain/services/consolidacion.py:69-79; src/financial_valuation/application/services/reportes.py:31-43",
+        "componentes.perdida_precio_mercado": "src/financial_valuation/domain/services/consolidacion.py:69-79; src/financial_valuation/application/services/reportes.py:31-43",
+        "total_ingresos": "src/financial_valuation/application/services/reportes.py:31-43",
+        "total_gastos": "src/financial_valuation/application/services/reportes.py:31-43",
+        "resultado_neto": "src/financial_valuation/application/services/reportes.py:31-43",
+        "id_periodo_contable": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46",
+        "estado_periodo": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46",
+        "es_definitivo": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:38-46"
+      }
+    }
+  ],
+  "defecto_funcional_candidato": {
+    "caso": "TC-M06-011",
+    "hecho": "RF-93 exige CERRADO y cada versión es una instantánea; el oráculo exige acumulado dinámico de período ABIERTO",
+    "fuente": "src/financial_valuation/application/use_cases/reportes/generar_estado_resultados_use_case.py:4-5,35-42; src/financial_valuation/infrastructure/repositories/reporte_repository.py:55-62",
+    "comprobacion_publica": "GET versiones antes/después y POST generar en período ABIERTO; decidir solo con TEST autorizado"
+  }
+}

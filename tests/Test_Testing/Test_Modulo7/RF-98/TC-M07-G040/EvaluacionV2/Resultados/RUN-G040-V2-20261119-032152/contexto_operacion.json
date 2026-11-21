@@ -1,0 +1,30 @@
+{
+  "grupo": "G040",
+  "version": 2,
+  "intento": 4,
+  "run_id": "RUN-G040-V2-20261119-032152",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G040-V2-R2-20261118",
+  "casos": [
+    "TC-M07-17",
+    "TC-M07-18",
+    "TC-M07-19",
+    "TC-M07-20",
+    "TC-M07-21"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M07-17",
+      "TC-M07-18",
+      "TC-M07-19",
+      "TC-M07-20",
+      "TC-M07-21"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reintento técnico V2 (intento 2) de TC-M07-G040. Intento 1 (RUN-G040-V2-20261119-031311, AUT-G040-V2-20261118 consumida): TECNICO por error de QA; ejecutar() usaba la ruta de la V1 y se detuvo con RUN_NO_PRECREADO tras el preflight local, sin login ni peticiones a TEST. ORD-G040-011: ruta dirRun(c) con prueba local de producción. Casos, oráculos y efectos iguales a SOL-G040-003. g040.mjs 56e69a9871f4bf7d98c25bb6111f7c04d6ede40235a646aa79b20a9ee7949b8b.",
+    "incumplimientos_previos": "V1 OFICIAL RUN-G040-V1-20261119-022210 (AUT-G040-V1-R2-20261118): 17, 18, 20 y 21 APROBADO; 19 RECHAZADO BAJA por INC-M07-G040-01 (404 con VERSION_NO_REGISTRADA y el mensaje 'no está disponible' en lugar de VERSION_NO_ENCONTRADA).",
+    "correcciones_informadas": "Ninguna corrección de código. Cambio de requisito anunciado por el líder de análisis para RF-98 FA-7 (nombre del error), pendiente de publicación; el responsable QA actualizará el documento de requisitos. El oráculo del 19 acepta temporalmente los dos códigos por decisión del responsable QA.",
+    "resultado_esperado": "Oráculos de la fila G040 sin otros cambios. 17: 200 con la ACTIVO (hoy 3.0) y StandardVersion 1.0. 18: 200 con la versión pedida y, con la DEPRECADO (hoy 2.1), Deprecation y Sunset iguales a su inactivación. 19: 404 con VERSION_NO_ENCONTRADA o VERSION_NO_REGISTRADA y mensaje de no existencia o indisponibilidad. 20: 410 VERSION_INACTIVA. 21: 400 VERSION_FORMATO_INVALIDO con '3', '3.0.0' y 'abc'."
+  },
+  "version_anterior": 1
+}

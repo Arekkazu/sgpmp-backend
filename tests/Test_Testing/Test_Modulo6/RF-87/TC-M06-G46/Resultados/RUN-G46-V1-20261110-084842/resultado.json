@@ -1,0 +1,957 @@
+{
+  "grupo": "G46",
+  "rf": "RF-87",
+  "run_id": "RUN-G46-V1-20261110-084842",
+  "version": 1,
+  "autorizacion_referencia": "AUT-G46-V1-20261110",
+  "casos": {
+    "TC-M06-034": {
+      "estado": "APROBADO",
+      "motivo": "034_iniciado, 034_completado, 034_hash_verificable, 034_hash_eventos, 034_referencias",
+      "comprobaciones": [
+        {
+          "id": "034_iniciado",
+          "esperado": "Un INICIADO del 220 con id_cierre, ejecutor y timestamp",
+          "estado": "APROBADO",
+          "observado": "cantidad 1; referencia 46; usuario 5; ejecutor 5; timestamp true"
+        },
+        {
+          "id": "034_completado",
+          "esperado": "Un COMPLETADO con referencia, ejecutor, comprobantes, activos y hash",
+          "estado": "APROBADO",
+          "observado": "cantidad 1; referencia 46; usuario 5; ejecutor 5; códigos coinciden true; truncado false"
+        },
+        {
+          "id": "034_hash_verificable",
+          "esperado": "Tres hash publicados iguales; recálculo canónico de cierre y comprobantes",
+          "estado": "APROBADO",
+          "observado": "publicados iguales true; discrepancias de recálculo 0; truncado false",
+          "detalle_hash": []
+        },
+        {
+          "id": "034_hash_eventos",
+          "esperado": "INICIADO y COMPLETADO con hash_integridad SHA-256 hexadecimal",
+          "estado": "APROBADO",
+          "observado": "iniciado true; completado true"
+        },
+        {
+          "id": "034_referencias",
+          "esperado": "Variaciones masivas y depreciaciones referencian id_cierre; al menos una",
+          "estado": "APROBADO",
+          "observado": "variaciones 0; depreciaciones 1; referencias correctas true"
+        }
+      ]
+    }
+  },
+  "preflight": {
+    "grupo": "G46",
+    "run_id": "RUN-G46-V1-20261110-084842",
+    "version": 1,
+    "referencia": "AUT-G46-V1-20261110",
+    "ok": true,
+    "barreras": [],
+    "efectos": [
+      "1 login Contador",
+      "1 POST cierre del 220 dentro del sandbox sin exclusiones",
+      "lecturas API y Newman",
+      "DELETE del RUN siempre",
+      "lecturas de rollback sin cabeceras"
+    ]
+  },
+  "preflight_datos": [
+    {
+      "requisito": "periodo_220_abierto",
+      "esperado": "ABIERTO",
+      "observado": "ABIERTO",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "prevalidacion_220_bloqueos_vacio",
+      "esperado": "[]",
+      "observado": 0,
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "prevalidacion_220_lineas_sin_trazabilidad_vacio",
+      "esperado": "[]",
+      "observado": 0,
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "prevalidacion_220_activos_sin_precio_vacio",
+      "esperado": "[]",
+      "observado": 0,
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "matriz_34_generica_activa",
+      "esperado": "MANO_OBRA_PROPIA/UNICO 158405/250505",
+      "observado": {
+        "id_asignacion_cuenta_contable": 34,
+        "tipo_hecho": "MANO_OBRA_PROPIA",
+        "sentido": "UNICO",
+        "id_especie": null,
+        "subtipo_costo": null,
+        "cuenta_debito": "158405",
+        "cuenta_credito": "250505"
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "matriz_49_generica_activa",
+      "esperado": "DEPRECIACION_ACTIVO_COSTO/UNICO 516005/159205",
+      "observado": {
+        "id_asignacion_cuenta_contable": 49,
+        "tipo_hecho": "DEPRECIACION_ACTIVO_COSTO",
+        "sentido": "UNICO",
+        "id_especie": null,
+        "subtipo_costo": null,
+        "cuenta_debito": "516005",
+        "cuenta_credito": "159205"
+      },
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "activo_1573_valoracion_costo_activa",
+      "esperado": "valoración por costo activa",
+      "observado": {
+        "es_activa": true,
+        "vida_util_meses": 120,
+        "depreciacion_acumulada": "0.0000"
+      },
+      "cumple": true,
+      "bloqueante": false
+    }
+  ],
+  "solicitudes": [
+    {
+      "id": "G46-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:42.948Z",
+      "eco": false
+    },
+    {
+      "id": "G46-002",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:44.183Z",
+      "eco": true
+    },
+    {
+      "id": "G46-003",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/prevalidacion",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:44.597Z",
+      "eco": true
+    },
+    {
+      "id": "G46-004",
+      "metodo": "GET",
+      "ruta": "/finanzas/configuracion",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:44.764Z",
+      "eco": true
+    },
+    {
+      "id": "G46-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:45.082Z",
+      "eco": true
+    },
+    {
+      "id": "G46-006",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:45.235Z",
+      "eco": true
+    },
+    {
+      "id": "G46-007",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:45.384Z",
+      "eco": true
+    },
+    {
+      "id": "G46-008",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:45.524Z",
+      "eco": true
+    },
+    {
+      "id": "G46-009",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1573",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:45.660Z",
+      "eco": true
+    },
+    {
+      "id": "G46-010",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:45.897Z",
+      "eco": true
+    },
+    {
+      "id": "G46-011",
+      "metodo": "POST",
+      "ruta": "/finanzas/periodos/220/cierre",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:46.052Z",
+      "eco": true
+    },
+    {
+      "id": "G46-012",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:46.320Z",
+      "eco": true
+    },
+    {
+      "id": "G46-013",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:46.546Z",
+      "eco": true
+    },
+    {
+      "id": "G46-014",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:46.688Z",
+      "eco": true
+    },
+    {
+      "id": "G46-015",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:46.896Z",
+      "eco": true
+    },
+    {
+      "id": "G46-016",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1573",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:47.037Z",
+      "eco": true
+    },
+    {
+      "id": "G46-017",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:47.185Z",
+      "eco": true
+    },
+    {
+      "id": "G46-018",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:47.406Z",
+      "eco": true
+    },
+    {
+      "id": "G46-019",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:47.548Z",
+      "eco": true
+    },
+    {
+      "id": "G46-020",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G46-V1-20261110-084842",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:52.795Z",
+      "eco": true
+    },
+    {
+      "id": "G46-021",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:53.177Z",
+      "eco": false
+    },
+    {
+      "id": "G46-022",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:53.627Z",
+      "eco": false
+    },
+    {
+      "id": "G46-023",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/comprobantes",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:53.858Z",
+      "eco": false
+    },
+    {
+      "id": "G46-024",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/220/variaciones",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:54.004Z",
+      "eco": false
+    },
+    {
+      "id": "G46-025",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1573",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:54.148Z",
+      "eco": false
+    },
+    {
+      "id": "G46-026",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "hora_utc": "2026-11-10T08:48:54.437Z",
+      "eco": false
+    }
+  ],
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-034",
+      "id": "034_iniciado",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-034",
+      "id": "034_completado",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-034",
+      "id": "034_hash_verificable",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-034",
+      "id": "034_hash_eventos",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-034",
+      "id": "034_referencias",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "incidencias": [],
+  "evidencias": [
+    "newman/newman-G46.html",
+    "newman/newman-G46.json"
+  ],
+  "observaciones": [
+    "El hash_integridad de auditoría lo calcula un trigger sobre la fila completa; no se puede recalcular por API.",
+    "Las API de comprobantes y variaciones no exponen id_cierre.",
+    "Los eventos se delimitan por id_evento, porque now() dentro del sandbox es el inicio de la transacción."
+  ],
+  "problemas_tecnicos": [],
+  "respuestas": {
+    "cierre": {
+      "http": 200,
+      "cuerpo": {
+        "id_cierre": 46,
+        "id_periodo_contable": 220,
+        "periodo": "2026-11",
+        "estado": "CERRADO",
+        "activos_procesados": 5,
+        "activos_excluidos": [],
+        "lineas_excluidas": [],
+        "comprobantes": [
+          {
+            "codigo": "NIC-[RESERVADO]-202611-DEPRECIACION_ACTIVO_COSTO-423",
+            "hash": "3358c149bfa71a47f182d26e84b42998805182c10608b02ba1a260c6cccee48b",
+            "valor_total": "100000.00"
+          },
+          {
+            "codigo": "NIC-[RESERVADO]-202611-RECONOCIMIENTO_DIFERENCIA-422",
+            "hash": "88352745e628f1948bbf51eb3d9e45b5c10d5c7936c9e874391a81741e32fde0",
+            "valor_total": "480000.00"
+          },
+          {
+            "codigo": "NIC-[RESERVADO]-202611-VARIACION_VR_PM-423",
+            "hash": "8a1b7e65970044febab7a8cdb78be5af84f86409520352ec3682deb1e739cf8a",
+            "valor_total": "158000.00"
+          }
+        ],
+        "hash_cierre": "9a92e22d985514c4982c784b6b8e078c87d5d68e285155b5d05e467ce3d86f41",
+        "reportes": {
+          "estado_resultados": {
+            "id_estado": 41,
+            "resultado_neto": "222000.00"
+          },
+          "informe_revelaciones": {
+            "id_informe": 44,
+            "version": "2026-M11-V1"
+          }
+        },
+        "id_periodo_siguiente": 263
+      }
+    }
+  },
+  "cypress": {
+    "paneles": {},
+    "total_pruebas": 0
+  },
+  "rollback": {
+    "verificado": true,
+    "motivo": "220 ABIERTO true; líneas true; comprobantes true; variaciones true; períodos true; sin eventos del cierre true; costo 1573 true"
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "codigo": 0,
+      "fallos": 0,
+      "solicitudes": 5,
+      "reportes": true
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "auditoria_cierre": [
+    {
+      "id_evento": 9864,
+      "tipo_evento": "CIERRE_PERIODO_COMPLETADO",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": null,
+      "id_periodo_contable": 220,
+      "id_referencia": 46,
+      "payload_evento": {
+        "reportes": {
+          "estado_resultados": {
+            "id_estado": 41,
+            "resultado_neto": "222000.00"
+          },
+          "informe_revelaciones": {
+            "version": "2026-M11-V1",
+            "id_informe": 44
+          }
+        },
+        "excluidos": [],
+        "hash_cierre": "9a92e22d985514c4982c784b6b8e078c87d5d68e285155b5d05e467ce3d86f41",
+        "comprobantes": [
+          {
+            "hash": "3358c149bfa71a47f182d26e84b42998805182c10608b02ba1a260c6cccee48b",
+            "codigo": "NIC-[RESERVADO]-202611-DEPRECIACION_ACTIVO_COSTO-423",
+            "valor_total": "100000.00"
+          },
+          {
+            "hash": "88352745e628f1948bbf51eb3d9e45b5c10d5c7936c9e874391a81741e32fde0",
+            "codigo": "NIC-[RESERVADO]-202611-RECONOCIMIENTO_DIFERENCIA-422",
+            "valor_total": "480000.00"
+          },
+          {
+            "hash": "8a1b7e65970044febab7a8cdb78be5af84f86409520352ec3682deb1e739cf8a",
+            "codigo": "NIC-[RESERVADO]-202611-VARIACION_VR_PM-423",
+            "valor_total": "158000.00"
+          }
+        ],
+        "activos_procesados": 5
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "8756034aadcb83a9879351e048325caa4391dbf2f9011860504e17bbdee3a0c1",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": null
+    },
+    {
+      "id_evento": 9863,
+      "tipo_evento": "COMPROBANTE_GENERADO",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": null,
+      "id_periodo_contable": 220,
+      "id_referencia": 86,
+      "payload_evento": {
+        "codigo": "NIC-[RESERVADO]-202611-VARIACION_VR_PM-423",
+        "lineas": 1
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "3de9f5e07db645d6ef51f360e115bb602632c7137e2a138e92a62e219ff21e6f",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": "158000.0000",
+      "identificador_activo": null
+    },
+    {
+      "id_evento": 9862,
+      "tipo_evento": "COMPROBANTE_GENERADO",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": null,
+      "id_periodo_contable": 220,
+      "id_referencia": 85,
+      "payload_evento": {
+        "codigo": "NIC-[RESERVADO]-202611-RECONOCIMIENTO_DIFERENCIA-422",
+        "lineas": 3
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "4d28051e084ed543495a07f7cf8aeefa612462f0a77789f426e4cce7ccd48992",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": "480000.0000",
+      "identificador_activo": null
+    },
+    {
+      "id_evento": 9861,
+      "tipo_evento": "COMPROBANTE_GENERADO",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": null,
+      "id_periodo_contable": 220,
+      "id_referencia": 84,
+      "payload_evento": {
+        "codigo": "NIC-[RESERVADO]-202611-DEPRECIACION_ACTIVO_COSTO-423",
+        "lineas": 1
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "e0624e4624c2b04254a615652137396dbe170c4379c18841e3fbc7828842053b",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": "100000.0000",
+      "identificador_activo": null
+    },
+    {
+      "id_evento": 9860,
+      "tipo_evento": "CADENA_TRAZABILIDAD_VERIFICADA",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1573,
+      "id_periodo_contable": 220,
+      "id_referencia": 2830,
+      "payload_evento": {
+        "faltantes": [],
+        "resultado": "CADENA_COMPLETA",
+        "nivel_fallo": null,
+        "tipo_evidencia": "CIERRE_PERIODO"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "b8aee5eb9b45edcaa5b3c771a9efafb456765d7455d59b9e0b3760d7ae78efc1",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9859,
+      "tipo_evento": "CADENA_TRAZABILIDAD_VERIFICADA",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1572,
+      "id_periodo_contable": 220,
+      "id_referencia": 2665,
+      "payload_evento": {
+        "faltantes": [],
+        "resultado": "CADENA_COMPLETA",
+        "nivel_fallo": null,
+        "tipo_evidencia": "VARIACION_PRECIO"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "5797629b9373d4fecd5087344041ba34b12affe070cd0dfe1ac8d19050d51d05",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9858,
+      "tipo_evento": "CADENA_TRAZABILIDAD_VERIFICADA",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1571,
+      "id_periodo_contable": 220,
+      "id_referencia": 896,
+      "payload_evento": {
+        "faltantes": [],
+        "resultado": "CADENA_COMPLETA",
+        "nivel_fallo": null,
+        "tipo_evidencia": "REGISTRO_MANUAL"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "dd01d40a5bcf8cf137797e4fb52ee00cdadcd6eed5932e11997e69dd36a6c21e",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9857,
+      "tipo_evento": "CADENA_TRAZABILIDAD_VERIFICADA",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1570,
+      "id_periodo_contable": 220,
+      "id_referencia": 895,
+      "payload_evento": {
+        "faltantes": [],
+        "resultado": "CADENA_COMPLETA",
+        "nivel_fallo": null,
+        "tipo_evidencia": "REGISTRO_MANUAL"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "4701bb4f681f28879565c9fc91f610c6ed9b4c5539c8ffaa1bcc5f5036692382",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9856,
+      "tipo_evento": "CADENA_TRAZABILIDAD_VERIFICADA",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1569,
+      "id_periodo_contable": 220,
+      "id_referencia": 894,
+      "payload_evento": {
+        "faltantes": [],
+        "resultado": "CADENA_COMPLETA",
+        "nivel_fallo": null,
+        "tipo_evidencia": "REGISTRO_MANUAL"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "6d81a0a28ad232ab77fecc68f1ad819fd96c6bb910d8481824bc800e8e64580e",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9855,
+      "tipo_evento": "MEDICION_PENDIENTE",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1573,
+      "id_periodo_contable": 220,
+      "id_referencia": null,
+      "payload_evento": {
+        "mensaje": "El activo [RESERVADO] está valorado por costo y ya hay precio de mercado para su especie: la NIC 41 ¶30 exige pasarlo a valor razonable."
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "WARNING",
+      "hash_integridad": "2a54cb626fb6b50d8186dd3216088a861d4f6cde493bb53b6c1041b4dabbc0b4",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9854,
+      "tipo_evento": "DEPRECIACION_REGISTRADA",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1573,
+      "id_periodo_contable": 220,
+      "id_referencia": 46,
+      "payload_evento": {
+        "valor_contable": "3900000.0000",
+        "depreciacion_periodo": "100000.00",
+        "totalmente_depreciado": false,
+        "depreciacion_acumulada": "100000.0000"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "f1fe99f68df06c24a540664db56c1c7a0206b7921b5bba9732bc0fdbc92eec87",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": "100000.0000",
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9853,
+      "tipo_evento": "MEDICION_SIN_VARIACION",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1572,
+      "id_periodo_contable": 220,
+      "id_referencia": 46,
+      "payload_evento": {
+        "origen": "CIERRE_PERIODO",
+        "id_evento": null,
+        "valor_neto": "4042000.0000"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "7bee34b3442bf1cb1fb332f70134cd161feee7787940ba747f7483d4632f06e4",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9852,
+      "tipo_evento": "MEDICION_SIN_VARIACION",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1571,
+      "id_periodo_contable": 220,
+      "id_referencia": 46,
+      "payload_evento": {
+        "origen": "CIERRE_PERIODO",
+        "id_evento": null,
+        "valor_neto": "3760000.0000"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "3a983e2931e8c81e7a84194494a02c91fa6421dd1a6ee1531b7ac04fe629f6ca",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9851,
+      "tipo_evento": "MEDICION_SIN_VARIACION",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1570,
+      "id_periodo_contable": 220,
+      "id_referencia": 46,
+      "payload_evento": {
+        "origen": "CIERRE_PERIODO",
+        "id_evento": null,
+        "valor_neto": "3760000.0000"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "2658b018cfb35c8b929f5c65466d93e98d33e34f442838146a64eb9034564347",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9850,
+      "tipo_evento": "MEDICION_SIN_VARIACION",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": 1569,
+      "id_periodo_contable": 220,
+      "id_referencia": 46,
+      "payload_evento": {
+        "origen": "CIERRE_PERIODO",
+        "id_evento": null,
+        "valor_neto": "3760000.0000"
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "ec00997645f6bbb9e2f70dc7fb8168f00e185ae367d2adc5750f9be185617ca3",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": "[RESERVADO]"
+    },
+    {
+      "id_evento": 9849,
+      "tipo_evento": "CIERRE_PERIODO_INICIADO",
+      "modulo": "M06",
+      "timestamp_evento": "2026-11-10T08:48:45.037946Z",
+      "tipo_actor": "USUARIO",
+      "id_usuario": 5,
+      "nombre_usuario": "Miguel Vargas Ospina",
+      "id_sistema": null,
+      "id_activo_biologico": null,
+      "id_periodo_contable": 220,
+      "id_referencia": 46,
+      "payload_evento": {
+        "advertencias": {
+          "bloqueos": [],
+          "puede_cerrar": true,
+          "activos_sin_precio": [],
+          "requiere_autorizacion": false,
+          "lineas_sin_trazabilidad": []
+        },
+        "autorizar_exclusiones": false,
+        "incluir_activos_sin_precio": false
+      },
+      "datos_anteriores": null,
+      "severidad_evento": "INFO",
+      "hash_integridad": "17df3b34f9f8cc55e5bd0fcc44ff9bfcfddea5b6bc28f58c514668a6a1f40e75",
+      "payload_truncado": false,
+      "origen_registro": "REPOSITORIO",
+      "monto_afectado": null,
+      "identificador_activo": null
+    }
+  ],
+  "complementario": [
+    {
+      "periodo": 7,
+      "id_cierre": 1,
+      "eventos": [
+        {
+          "tipo_evento": "CIERRE_PERIODO_COMPLETADO",
+          "id_referencia": 1,
+          "id_usuario": 141,
+          "hash_presente": true,
+          "hash_cierre_coincide": true
+        },
+        {
+          "tipo_evento": "CIERRE_PERIODO_INICIADO",
+          "id_referencia": 1,
+          "id_usuario": 141,
+          "hash_presente": true,
+          "hash_cierre_coincide": false
+        }
+      ]
+    },
+    {
+      "periodo": 219,
+      "id_cierre": 43,
+      "eventos": [
+        {
+          "tipo_evento": "CIERRE_PERIODO_COMPLETADO",
+          "id_referencia": 43,
+          "id_usuario": 141,
+          "hash_presente": true,
+          "hash_cierre_coincide": true
+        },
+        {
+          "tipo_evento": "CIERRE_PERIODO_INICIADO",
+          "id_referencia": 43,
+          "id_usuario": 141,
+          "hash_presente": true,
+          "hash_cierre_coincide": false
+        }
+      ]
+    }
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "220 ABIERTO true; líneas true; comprobantes true; variaciones true; períodos true; sin eventos del cierre true; costo 1573 true"
+    }
+  },
+  "total_solicitudes_api": 31,
+  "duracion_segundos": 12,
+  "clasificacion_fallo": "NINGUNO",
+  "sha256": {
+    "ejecutor": "fa21a1271219ec198bd76e7e53c4514e9f177434fdf14b6fb0e78ed4b21c0563",
+    "infraestructura": {
+      "lib/infra.mjs": "97562a7d9269eee82413be798d116a0e271277381fc3b69ba058199358874238",
+      "lib/contrato.mjs": "bfd07b9e5de3c12ac466c9fe0ff4a4f82afa7c91ffd0d190cb6e529a0b750fff",
+      "lib/informe.mjs": "2d515d5918c7348bd9c7c47b49e83578456bd85093bea88962b61569bc38a91f",
+      "pruebas/newman_hijo.mjs": "38ecb80490ff6e8fe05bd86896e01c835f850313c04fca0c91c734d4a7b08455",
+      "pruebas/verificar.mjs": "bf1eaa6f0ed585858703d2750f4b0305c23b1ada17ae3d4260be0bafba7b36e9"
+    }
+  }
+}

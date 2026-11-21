@@ -1,0 +1,86 @@
+{
+  "run_id": "tc-m05-g15-c5-d3bbac6e-66b5-4ba4-bad0-cd74004606e5",
+  "teardown_status": 200,
+  "teardown_body": "{\"status\":\"Rollback exitoso\"}",
+  "intentos": [
+    {
+      "intento": 1,
+      "descripcion": "Reactivar y abrir fase en activo 9",
+      "endpoint": "PATCH /activos-biologicos/9/estado y POST /activos-biologicos/9/fases",
+      "http_status": [
+        409,
+        409
+      ],
+      "resultado": "{\"error_code\":\"ACTIVO_NO_OPERATIVO\",\"message\":\"No se puede cambiar fase en activo ID 9 (estado CERRADO).\",\"fields\":[],\"timestamp\":\"2026-11-07T17:45:55.729853+00:00\"}"
+    },
+    {
+      "intento": 2,
+      "descripcion": "Crear POBLACIONAL con cantidad_inicial = 0",
+      "endpoint": "POST /activos-biologicos",
+      "http_status": 400,
+      "resultado": "{\"error_code\":\"VAL_ENTRADA\",\"message\":\"Errores de validacion en la solicitud\",\"fields\":[{\"field\":null,\"message\":\"cantidad_inicial debe ser mayor a 0.\"}],\"timestamp\":\"2026-11-07T17:45:55.883078+00:00\"}"
+    },
+    {
+      "intento": 3,
+      "descripcion": "Crear POBLACIONAL ID=941 (cantidad=10) y abrir fase ciclo 1",
+      "endpoint": "POST /activos-biologicos y POST /activos-biologicos/941/fases",
+      "http_status": [
+        201,
+        201
+      ],
+      "resultado": "Lote 941 ACTIVO con fase abierta exitosamente"
+    },
+    {
+      "intento": 4,
+      "descripcion": "Baja con cantidad_afectada = 0",
+      "endpoint": "POST /activos-biologicos/941/eventos/baja",
+      "http_status": 400,
+      "resultado": "{\"error_code\":\"VAL_ENTRADA\",\"message\":\"Errores de validacion en la solicitud\",\"fields\":[{\"field\":\"cantidad_afectada\",\"message\":\"La cantidad afectada debe ser un entero positivo.\"}],\"timestamp\":\"2026-1"
+    },
+    {
+      "intento": 5,
+      "descripcion": "PATCH directo /detalle-poblacional",
+      "endpoint": "PATCH /activos-biologicos/941/detalle-poblacional",
+      "http_status": 404,
+      "resultado": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "intento": 6,
+      "descripcion": "PATCH /activos-biologicos/{id} sobre POBLACIONAL",
+      "endpoint": "PATCH /activos-biologicos/941",
+      "http_status": 400,
+      "resultado": "{\"error_code\":\"VAL_ENTRADA\",\"message\":\"Errores de validacion en la solicitud\",\"fields\":[{\"field\":\"cantidad_actual\",\"message\":\"Este campo no está permitido en esta solicitud.\"}],\"timestamp\":\"2026-11-07"
+    },
+    {
+      "intento": 7,
+      "descripcion": "Baja parcial de 9 individuos dejando 1 individuo",
+      "endpoint": "POST /activos-biologicos/941/eventos/baja",
+      "http_status": 201,
+      "resultado": "id_estado=1, cantidad_actual=1"
+    },
+    {
+      "intento": 8,
+      "descripcion": "Baja final de 1 individuo alcanzando cantidad_actual = 0",
+      "endpoint": "POST /activos-biologicos/941/eventos/baja",
+      "http_status": 201,
+      "resultado": "id_estado=6 (BAJA), cantidad_actual=0, fases_activas=0"
+    },
+    {
+      "intento": 9,
+      "descripcion": "Intentar reactivar lote (PATCH estado=1) o abrir fase estando en 0",
+      "endpoint": "PATCH /activos-biologicos/941/estado y POST /activos-biologicos/941/fases",
+      "http_status": [
+        409,
+        409
+      ],
+      "resultado": "Reactivar HTTP 409 ({\"error_code\":\"ESTADO_BAJA_IRREVERSIBLE\",\"message\":\"El activo se encuentra en estado BAJA. No se per); Abrir fase HTTP 409 ({\"error_code\":\"ACTIVO_NO_OPERATIVO\",\"message\":\"El activo biológico se encuentra en estado BAJA. No s)"
+    },
+    {
+      "intento": 10,
+      "descripcion": "POST /suministros/medicamentos sobre lote que alcanzó cantidad_actual = 0",
+      "endpoint": "POST /suministros/medicamentos",
+      "http_status": 422,
+      "resultado": "{\"error_code\":\"ACTIVO_ESTADO_INVALIDO\",\"message\":\"No es posible registrar una aplicación de medicamento para el activo 941 porque su estado actual es BAJA. Solo se permite el registro sobre activos en"
+    }
+  ]
+}

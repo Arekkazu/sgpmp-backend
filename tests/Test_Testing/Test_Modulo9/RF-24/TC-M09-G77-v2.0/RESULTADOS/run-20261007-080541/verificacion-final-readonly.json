@@ -1,0 +1,110 @@
+{
+  "grupo": "TC-M09-G77-v2.0",
+  "caso": "TC-M09-148-v2.0",
+  "runId": "run-20261007-080541",
+  "fecha": "2026-10-07T08:06:21.727Z",
+  "soloLectura": true,
+  "sqlEjecutado": "ninguno",
+  "cuentas": {
+    "productor": {
+      "subescenario": "Productor",
+      "correo": "m2m.nuevo@ejemplo.com",
+      "id_usuario": 35,
+      "rol": "Productor",
+      "estadoOriginal": "Activo",
+      "estadoFinal": "Activo",
+      "coincideConElOriginal": true,
+      "seModificoDuranteLaPrueba": false,
+      "restauracionPendiente": false
+    },
+    "contador": {
+      "subescenario": "Contador",
+      "correo": "contador@pecuaria.co",
+      "id_usuario": 5,
+      "rol": "Contador",
+      "estadoOriginal": "Activo",
+      "estadoFinal": "Activo",
+      "coincideConElOriginal": true,
+      "seModificoDuranteLaPrueba": false,
+      "restauracionPendiente": false
+    }
+  },
+  "todasLasCuentasEnSuEstadoOriginal": true,
+  "restauracionPendiente": false,
+  "historial": {
+    "total": 5,
+    "idsFinales": [
+      14,
+      13,
+      12,
+      11,
+      10
+    ],
+    "porSubescenario": {
+      "productor": {
+        "subescenario": "Productor",
+        "idsPre": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ],
+        "totalPre": 5,
+        "totalFinal": 5,
+        "idsNuevosDesdePre": [],
+        "calibracionesAtribuibles": [],
+        "sinRegistrosAtribuibles": true,
+        "historicosSiguenPresentes": true
+      },
+      "contador": {
+        "subescenario": "Contador",
+        "idsPre": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ],
+        "totalPre": 5,
+        "totalFinal": 5,
+        "idsNuevosDesdePre": [],
+        "calibracionesAtribuibles": [],
+        "sinRegistrosAtribuibles": true,
+        "historicosSiguenPresentes": true
+      }
+    }
+  },
+  "sinCalibracionesDeRolesRechazados": true,
+  "fixture": {
+    "dispositivo": {
+      "id": 3,
+      "es_activo": true
+    },
+    "asociacionesVigentes": [
+      {
+        "id_sensor": 6,
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3
+      }
+    ],
+    "rangoActual": {
+      "categoria": "TEMPERATURA",
+      "valor_min": "0.0000",
+      "valor_max": "45.0000"
+    },
+    "sinCambios": true
+  },
+  "getsConAdministrador": [
+    {
+      "endpoint": "/configuracion/dispositivos-iot/3",
+      "statusConIngeniero": 404,
+      "motivo": "fuera del alcance del Ingeniero"
+    },
+    {
+      "endpoint": "/configuracion/sensores/6/asociaciones",
+      "statusConIngeniero": 404,
+      "motivo": "fuera del alcance del Ingeniero"
+    }
+  ]
+}

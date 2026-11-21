@@ -1,0 +1,539 @@
+{
+  "grupo": "G33",
+  "run_id": "RUN-G33-V1-20261108-072219",
+  "version": 1,
+  "intento": 1,
+  "casos": {
+    "TC-M06-005": {
+      "preparacion": {
+        "activo": 945,
+        "periodo": 8,
+        "precio": 18,
+        "peso_kg": 306,
+        "rebase": "no requerido",
+        "evento": 942
+      },
+      "observados": {
+        "variaciones": 0,
+        "lineas": 0,
+        "mediciones": 0,
+        "calculos": 0,
+        "auditorias_sin_variacion": 1,
+        "alertas_auditoria": 0,
+        "avisos_error": 0,
+        "avisos_ajenos": 0,
+        "avisos_relacionados_sin_error": 0,
+        "valor_anterior": "2761344.0000",
+        "valor_nuevo": "2761344.0000",
+        "calculo_ultimo_antes": 28,
+        "calculo_ultimo_despues": 28
+      },
+      "cumplido": "Lecturas de variaciones, líneas, mediciones, historial, RF-94 y bandeja contrastadas",
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "estado": "APROBADO",
+      "motivo": "Ausencias y auditoría RF-94 conformes."
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M06-005",
+      "fuente": "API",
+      "id": "G33-API-005-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Ausencias y auditoría RF-94 conformes.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M06-005",
+      "fuente": "API",
+      "id": "G33-API-005-02",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Ausencias y auditoría RF-94 conformes.",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "duracion_ms": 1239,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "duracion_ms": 651,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos",
+      "http": 200,
+      "duracion_ms": 181,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "duracion_ms": 227,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "duracion_ms": 162,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/943",
+      "http": 200,
+      "duracion_ms": 244,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/943/ficha-integral",
+      "http": 200,
+      "duracion_ms": 209,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/944",
+      "http": 200,
+      "duracion_ms": 162,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/944/ficha-integral",
+      "http": 200,
+      "duracion_ms": 206,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "duracion_ms": 166,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/ficha-integral",
+      "http": 200,
+      "duracion_ms": 190,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/946",
+      "http": 200,
+      "duracion_ms": 160,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/946/ficha-integral",
+      "http": 200,
+      "duracion_ms": 210,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/947",
+      "http": 200,
+      "duracion_ms": 158,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/947/ficha-integral",
+      "http": 200,
+      "duracion_ms": 218,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/eventos",
+      "http": 200,
+      "duracion_ms": 172,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 156,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 150,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 151,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "duracion_ms": 159,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 158,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "duracion_ms": 164,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 151,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 218,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 156,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "duracion_ms": 174,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 168,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "duracion_ms": 171,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/precios",
+      "http": 200,
+      "duracion_ms": 164,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/ficha-integral",
+      "http": 200,
+      "duracion_ms": 189,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/945/eventos/crecimiento",
+      "http": 201,
+      "duracion_ms": 214,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "POST",
+      "ruta": "/finanzas/eventos/procesar",
+      "http": 200,
+      "duracion_ms": 200,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 163,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 147,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 148,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "duracion_ms": 205,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 199,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "duracion_ms": 257,
+      "eco": true,
+      "codigo": ""
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/{id}/variaciones",
+      "http": 200,
+      "duracion_ms": 782,
+      "herramienta": "Newman"
+    },
+    {
+      "caso": "TC-M06-G33 / TC-M06-005",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 155,
+      "herramienta": "Newman"
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G33-V1-20261108-072219",
+      "http": 200,
+      "duracion_ms": 138,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/variaciones",
+      "http": 200,
+      "duracion_ms": 155,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas",
+      "http": 200,
+      "duracion_ms": 175,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/8/mediciones",
+      "http": 200,
+      "duracion_ms": 146,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/945",
+      "http": 200,
+      "duracion_ms": 179,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria",
+      "http": 200,
+      "duracion_ms": 157,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "duracion_ms": 180,
+      "eco": null,
+      "codigo": ""
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/945/eventos",
+      "http": 200,
+      "duracion_ms": 171,
+      "eco": null,
+      "codigo": ""
+    }
+  ],
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "TC-M06-G33_resultado.md",
+    "newman/newman-G33.json",
+    "newman/newman-G33.html"
+  ],
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": {
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 2,
+      "fallos": 0,
+      "codigo": 0
+    },
+    "newman_preflight_version": "6.2.2"
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "diagnostico_candidatos": {
+    "medido": true,
+    "total_recibido": 9,
+    "bovino": 6,
+    "individual": 6,
+    "estado": 5,
+    "sin_costo": 5,
+    "valor_positivo": 5,
+    "precio_vigente": 5,
+    "periodo_destino": 5,
+    "peso_kg": 5,
+    "calculo_previo": 5,
+    "primera_condicion_fallida": null
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200,
+      "cuerpo_saneado": null
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "DELETE 200; eventos M02, auditoría RF-94 y registros financieros del RUN ausentes en lecturas públicas."
+    }
+  },
+  "oficial": true,
+  "consume_version": true,
+  "estado_ejecucion": "OFICIAL"
+}

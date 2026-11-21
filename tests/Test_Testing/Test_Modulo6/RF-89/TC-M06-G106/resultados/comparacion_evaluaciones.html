@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G106 — Comparación de evaluaciones</title>
+</head>
+<body>
+  <h1>TC-M06-G106 — Comparación de evaluaciones</h1>
+  <p>Subcaso TC-M06-30 (RF-89). Ambiente TEST.</p>
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Aspecto</th>
+        <th>Primera evaluación (2026-11-08)</th>
+        <th>Última evaluación (2026-11-12)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Dictamen</td>
+        <td>BLOQUEADO (especie 424 ausente en el catálogo consultado; sin POST)</td>
+        <td>APROBADO (4/4 escenarios PASSED)</td>
+      </tr>
+      <tr>
+        <td>Implementación</td>
+        <td>Comportamiento previo a PR #1074</td>
+        <td>PR #1074 / RF-89 v1.2 en TEST</td>
+      </tr>
+      <tr>
+        <td>POST positivo</td>
+        <td>No ejecutado</td>
+        <td>HTTP 201; corrección $4.200.000 del precio 436 sin fecha_vigencia</td>
+      </tr>
+      <tr>
+        <td>Estados esperados</td>
+        <td>No aplicables</td>
+        <td>436 CORREGIDO; corrección SUPERADO; 645 ACTIVO aplicado</td>
+      </tr>
+      <tr>
+        <td>Negativos</td>
+        <td>No ejecutados</td>
+        <td>CORRECCION_NO_COINCIDE, FECHA_VIGENCIA_CORRECCION, PRECIO_YA_CORREGIDO</td>
+      </tr>
+      <tr>
+        <td>Evidencia</td>
+        <td><code>resultados/primera_evaluacion/</code> (bytes intactos)</td>
+        <td><code>resultados/ultima_evaluacion/</code></td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

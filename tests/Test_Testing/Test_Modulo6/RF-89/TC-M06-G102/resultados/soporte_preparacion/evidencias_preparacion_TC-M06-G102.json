@@ -1,0 +1,87 @@
+{
+  "caso": "TC-M06-G102",
+  "identificador_vigente": "TC-M06-G102",
+  "identificador_historico": "G74",
+  "consulta": "GET",
+  "post_finanzas_precios": false,
+  "conexion_bd": false,
+  "lectura_2026_11_10": {
+    "precios_especie_424": [
+      {
+        "id_precio_mercado": 436,
+        "fuente": "MERCADO_ACTIVO",
+        "precio_unitario": "4000000.00",
+        "unidad_medida": "cabeza",
+        "categoria": "POR_CABEZA",
+        "fecha_vigencia": "2026-11-01",
+        "fecha_vencimiento": null,
+        "estado": "ACTIVO",
+        "es_aplicado": true
+      },
+      {
+        "id_precio_mercado": 437,
+        "fuente": "UPRA",
+        "precio_unitario": "3900000.00",
+        "unidad_medida": "cabeza",
+        "categoria": "POR_CABEZA",
+        "fecha_vigencia": "2026-11-09",
+        "fecha_vencimiento": null,
+        "estado": "ACTIVO",
+        "es_aplicado": false
+      }
+    ],
+    "duplicados": false,
+    "estimada": 0,
+    "umbral": "50.00",
+    "catalogo_especies_http": 200,
+    "activos_reconocidos_http": 200,
+    "activos_reconocidos_total": 22,
+    "activos_reconocidos_especie_424": 0,
+    "activos_biologicos_http": 403,
+    "configuracion_especies_id_http": 405
+  },
+  "desviacion_calculada": {
+    "16": "25 > 50 = false",
+    "17": "23.0769 > 50 = false",
+    "18": "sin precio ESTIMADA anterior"
+  },
+  "contrato_local": {
+    "dto": "PrecioDTO",
+    "evidencia_documental": "str, 1 a 500",
+    "justificacion_estimacion": "opcional en el DTO; el caso de uso exige 50 caracteres si la fuente es ESTIMADA",
+    "unidad_medida": "no viaja en el cuerpo; POR_CABEZA la resuelve como cabeza",
+    "justificacion_corta_en_laura": "BusinessRuleError, HTTP 422",
+    "rf89_v1_1": "HTTP 400",
+    "pr_1024": "abierto; no se asume desplegado en TEST"
+  },
+  "cuerpos_no_enviados": {
+    "16": {
+      "id_especie": 424,
+      "categoria": "POR_CABEZA",
+      "precio_unitario": "5000000.00",
+      "fecha_vigencia": "2026-11-10",
+      "fuente": "MERCADO_ACTIVO",
+      "evidencia_documental": "Acta de feria QA TC-M06-16, mercado de referencia de Ovino Qa Precios.",
+      "confirmar_desviacion": false
+    },
+    "17": {
+      "id_especie": 424,
+      "categoria": "POR_CABEZA",
+      "precio_unitario": "4800000.00",
+      "fecha_vigencia": "2026-11-10",
+      "fuente": "UPRA",
+      "evidencia_documental": "Boletín UPRA QA TC-M06-17, referencia de precio de Ovino Qa Precios.",
+      "confirmar_desviacion": false
+    },
+    "18": {
+      "id_especie": 424,
+      "categoria": "POR_CABEZA",
+      "precio_unitario": "4500000.00",
+      "fecha_vigencia": "2026-11-10",
+      "fuente": "ESTIMADA",
+      "evidencia_documental": "Descripción del mercado de referencia QA TC-M06-18 para Ovino Qa Precios.",
+      "justificacion_estimacion": "No existe una transacción observada que permita usar MERCADO_ACTIVO para esta estimación. No se toma el boletín UPRA como fuente de este valor. Los comparables son referencias internas de ovinos de QA para la especie 424.",
+      "confirmar_desviacion": false
+    }
+  }
+}

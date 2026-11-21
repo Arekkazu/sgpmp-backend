@@ -1,0 +1,1020 @@
+{
+  "info": {
+    "name": "TC-M02-G51 v4.0 - RF-41 corregido (PR #499): eventos sanitarios permitidos en ACTIVO/EN_TRATAMIENTO/AISLADO, 409 en INACTIVO/CERRADO/BAJA",
+    "_postman_id": "tcm02g51v4-0000-0000-0000-000000000000",
+    "description": "Reajuste de TC-M02-G51 segun la correccion de coherencia del RF-41 (2026-10-02, alineado con RF-39): 201 con el activo en ACTIVO, EN_TRATAMIENTO o AISLADO; 409 ESTADO_NO_PERMITE_EVENTOS con INACTIVO, CERRADO o BAJA. Mantiene TC-M02-096 (inmutabilidad). Cada estado se prueba sobre un activo nuevo propio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_ciclo_productiva",
+      "value": "4"
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura",
+      "value": ""
+    },
+    {
+      "key": "id_activo_a",
+      "value": ""
+    },
+    {
+      "key": "id_activo_b",
+      "value": ""
+    },
+    {
+      "key": "id_activo_c",
+      "value": ""
+    },
+    {
+      "key": "id_activo_d",
+      "value": ""
+    },
+    {
+      "key": "id_evento_a",
+      "value": ""
+    },
+    {
+      "key": "rid",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "fecha_hoy",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));",
+              "pm.collectionVariables.set('rid', String(Date.now()));",
+              "var l='abcdefghijklmnopqrstuvwxyz', s=''; for (var i=0;i<8;i++){ s+=l.charAt(Math.floor(Math.random()*l.length)); }",
+              "pm.collectionVariables.set('sufijo', s);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "SETUP-1. Crear finca de prueba",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code !== 201) { console.log('SETUP-1 - RESPUESTA: ' + pm.response.text()); }",
+              "pm.test('SETUP-1 - Finca creada (201)', function () { pm.response.to.have.status(201); pm.collectionVariables.set('id_finca', String(pm.response.json().id_finca)); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/fincas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba Evento Sanitario {{sufijo}}\",\n  \"ubicacion\": {\"departamento\": \"Huila\", \"municipio\": \"Neiva\", \"vereda\": \"La Ficha\", \"latitud\": 2.9273, \"longitud\": -75.2819},\n  \"tamano_h\": 8.0\n}"
+        }
+      }
+    },
+    {
+      "name": "SETUP-2. Ubicar la especie Cachama Blanca",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('SETUP-2 - Existe Cachama Blanca activa', function () {",
+              "  pm.response.to.have.status(200);",
+              "  var body = pm.response.json(); var lista = Array.isArray(body) ? body : (body.items || []);",
+              "  var e = lista.find(function (x) { return x.nombre === 'Cachama Blanca' && x.es_activo !== false; });",
+              "  pm.expect(e, 'debe existir Cachama Blanca activa').to.not.be.undefined;",
+              "  pm.collectionVariables.set('id_especie', String(e.id_especie));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies"
+      }
+    },
+    {
+      "name": "SETUP-3. Crear infraestructura (Estanque) de esa especie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code !== 201) { console.log('SETUP-3 - RESPUESTA: ' + pm.response.text()); }",
+              "pm.test('SETUP-3 - Infraestructura creada (201)', function () { pm.response.to.have.status(201); pm.collectionVariables.set('id_infraestructura', String(pm.response.json().id_infraestructura)); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area TC-M02-G51 v4\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 200,\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie}}\n}"
+        }
+      }
+    },
+    {
+      "name": "A. Estados que permiten eventos (ACTIVO, EN_TRATAMIENTO, AISLADO) + inmutabilidad (TC-M02-094 / TC-M02-096)",
+      "item": [
+        {
+          "name": "SETUP-A. Activo INDIVIDUAL nuevo (id_activo_a)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201) { console.log('SETUP-A. Activo INDIVIDUAL nuevo (id_activo_a) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('SETUP-A. Activo INDIVIDUAL nuevo (id_activo_a) - creado (201)', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_a', String(pm.response.json().id_activo_biologico)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":{{id_especie}},\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":{{id_infraestructura}},\"identificador\":\"QA-G51-A-{{rid}}\",\"raza\":\"QA G51\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5\n}"
+            }
+          }
+        },
+        {
+          "name": "SETUP - fase productiva informativa (A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('SETUP - fase productiva informativa (A): ' + pm.response.code + ' ' + pm.response.text());",
+                  "pm.test('SETUP - fase productiva informativa (A) (ver consola si no fue 201)', function () { pm.expect(true).to.be.true; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/fases",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"id_ciclo_productiva\": {{id_ciclo_productiva}}, \"motivo_cambio\": \"QA G51 v4 fase activa\" }"
+            }
+          }
+        },
+        {
+          "name": "TC-M02-094-ACT - evento sanitario con activo ACTIVO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-094-ACT] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('TC-M02-094-ACT - RF-41 corregido: ACTIVO permite evento sanitario: HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+                  "pm.test('TC-M02-094-ACT - respuesta trae el evento creado', function () { pm.expect(b.evento, 'objeto evento').to.be.an('object'); });",
+                  "var ev = b.evento || {};",
+                  "var sid = (ev.id_eventos !== undefined) ? ev.id_eventos : ev.id_evento;",
+                  "if (sid !== undefined) { pm.collectionVariables.set('id_evento_a', String(sid)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos/sanitario",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo\": \"CONTROL_PREVENTIVO\", \"observaciones\": \"QA G51 v4 TC-M02-094: payload valido, unica variable es el estado del activo\" }"
+            }
+          }
+        },
+        {
+          "name": "TC-M02-096a - DELETE sobre la coleccion de eventos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-096a] status=' + pm.response.code);",
+                  "pm.test('TC-M02-096a - eliminar eventos no permitido (405 o 404)', function () { pm.expect(pm.response.code).to.be.oneOf([404, 405]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos"
+          }
+        },
+        {
+          "name": "TC-M02-096b - DELETE sobre un evento puntual",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-096b] status=' + pm.response.code);",
+                  "pm.test('TC-M02-096b - eliminar un evento no permitido (404 o 405)', function () { pm.expect(pm.response.code).to.be.oneOf([404, 405]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos/{{id_evento_a}}"
+          }
+        },
+        {
+          "name": "TC-M02-096c - el evento sigue presente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 200) { console.log('TC-M02-096c - RESPUESTA: ' + pm.response.code + ' ' + pm.response.text()); }",
+                  "pm.test('TC-M02-096c - consulta de eventos responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M02-096c - el evento registrado sigue en el historial', function () {",
+                  "  var id = pm.collectionVariables.get('id_evento_a');",
+                  "  pm.expect(id, 'id del evento guardado').to.not.be.empty;",
+                  "  var lista = pm.response.json().eventos || [];",
+                  "  var e = lista.find(function (ev) { return String(ev.id_eventos) === String(id); });",
+                  "  pm.expect(e, 'el evento debe seguir presente').to.not.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos"
+          }
+        },
+        {
+          "name": "PATCH a EN_TRATAMIENTO (A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 200) { console.log('PATCH a EN_TRATAMIENTO (A) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('PATCH a EN_TRATAMIENTO (A) - precondicion aceptada (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"estado_nuevo\": \"EN_TRATAMIENTO\", \"fecha_cambio_estado\": \"{{fecha_hoy}}\", \"motivo_cambio\": \"QA G51 v4: precondicion de estado\" }"
+            }
+          }
+        },
+        {
+          "name": "TC-M02-094-EN_ - evento sanitario con activo EN_TRATAMIENTO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-094-EN_] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('TC-M02-094-EN_ - RF-41 corregido: EN_TRATAMIENTO permite evento sanitario: HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+                  "pm.test('TC-M02-094-EN_ - respuesta trae el evento creado', function () { pm.expect(b.evento, 'objeto evento').to.be.an('object'); });",
+                  "var ev = b.evento || {};",
+                  "var sid = (ev.id_eventos !== undefined) ? ev.id_eventos : ev.id_evento;"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos/sanitario",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo\": \"CONTROL_PREVENTIVO\", \"observaciones\": \"QA G51 v4 TC-M02-094: payload valido, unica variable es el estado del activo\" }"
+            }
+          }
+        },
+        {
+          "name": "PATCH a AISLADO (A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 200) { console.log('PATCH a AISLADO (A) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('PATCH a AISLADO (A) - precondicion aceptada (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"estado_nuevo\": \"AISLADO\", \"fecha_cambio_estado\": \"{{fecha_hoy}}\", \"motivo_cambio\": \"QA G51 v4: precondicion de estado\" }"
+            }
+          }
+        },
+        {
+          "name": "TC-M02-094-AIS - evento sanitario con activo AISLADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-094-AIS] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('TC-M02-094-AIS - RF-41 corregido: AISLADO permite evento sanitario: HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+                  "pm.test('TC-M02-094-AIS - respuesta trae el evento creado', function () { pm.expect(b.evento, 'objeto evento').to.be.an('object'); });",
+                  "var ev = b.evento || {};",
+                  "var sid = (ev.id_eventos !== undefined) ? ev.id_eventos : ev.id_evento;"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos/sanitario",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo\": \"CONTROL_PREVENTIVO\", \"observaciones\": \"QA G51 v4 TC-M02-094: payload valido, unica variable es el estado del activo\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "B. Activo INACTIVO rechaza evento (TC-M02-094)",
+      "item": [
+        {
+          "name": "SETUP-B. Activo INDIVIDUAL nuevo (id_activo_b)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201) { console.log('SETUP-B. Activo INDIVIDUAL nuevo (id_activo_b) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('SETUP-B. Activo INDIVIDUAL nuevo (id_activo_b) - creado (201)', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_b', String(pm.response.json().id_activo_biologico)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":{{id_especie}},\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":{{id_infraestructura}},\"identificador\":\"QA-G51-B-{{rid}}\",\"raza\":\"QA G51\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH a INACTIVO (B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 200) { console.log('PATCH a INACTIVO (B) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('PATCH a INACTIVO (B) - precondicion aceptada (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"estado_nuevo\": \"INACTIVO\", \"fecha_cambio_estado\": \"{{fecha_hoy}}\", \"motivo_cambio\": \"QA G51 v4: precondicion de estado\" }"
+            }
+          }
+        },
+        {
+          "name": "Verificar estado INACTIVO (B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Verificar estado INACTIVO (B) - consulta directa confirma INACTIVO', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var b = pm.response.json();",
+                  "  var s = String(b.nombre_estado);",
+                  "  pm.expect(s).to.include('INACTIVO');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}"
+          }
+        },
+        {
+          "name": "TC-M02-094-INA - evento sanitario con activo INACTIVO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-094-INA] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('TC-M02-094-INA - RF-41 corregido: INACTIVO rechaza evento sanitario: HTTP 409', function () { pm.response.to.have.status(409); });",
+                  "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+                  "pm.test('TC-M02-094-INA - error_code ESTADO_NO_PERMITE_EVENTOS', function () { pm.expect(b.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS'); });",
+                  "pm.test('TC-M02-094-INA - el mensaje indica el estado INACTIVO', function () { pm.expect(String(b.message || '')).to.match(/INACTIVO/); });",
+                  "pm.test('TC-M02-094-INA - no se creo ningun evento', function () { pm.expect(b.evento).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/eventos/sanitario",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo\": \"CONTROL_PREVENTIVO\", \"observaciones\": \"QA G51 v4 TC-M02-094: payload valido, unica variable es el estado del activo\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "C. Activo CERRADO rechaza evento (TC-M02-094)",
+      "item": [
+        {
+          "name": "SETUP-C. Activo INDIVIDUAL nuevo (id_activo_c)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201) { console.log('SETUP-C. Activo INDIVIDUAL nuevo (id_activo_c) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('SETUP-C. Activo INDIVIDUAL nuevo (id_activo_c) - creado (201)', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_c', String(pm.response.json().id_activo_biologico)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":{{id_especie}},\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":{{id_infraestructura}},\"identificador\":\"QA-G51-C-{{rid}}\",\"raza\":\"QA G51\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5\n}"
+            }
+          }
+        },
+        {
+          "name": "SETUP - fase productiva informativa (C)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('SETUP - fase productiva informativa (C): ' + pm.response.code + ' ' + pm.response.text());",
+                  "pm.test('SETUP - fase productiva informativa (C) (ver consola si no fue 201)', function () { pm.expect(true).to.be.true; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_c}}/fases",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"id_ciclo_productiva\": {{id_ciclo_productiva}}, \"motivo_cambio\": \"QA G51 v4 fase activa\" }"
+            }
+          }
+        },
+        {
+          "name": "SETUP - cierre de ciclo (C)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 200) { console.log('SETUP - cierre de ciclo (C) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('SETUP - cierre de ciclo (C) - precondicion aceptada (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_c}}/cierre",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"fecha_cierre\": \"{{fecha_hoy}}\", \"motivo_cierre\": \"VENTA\", \"descripcion_cierre\": \"QA G51 v4: precondicion de estado CERRADO\" }"
+            }
+          }
+        },
+        {
+          "name": "Verificar estado CERRADO (C)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Verificar estado CERRADO (C) - consulta directa confirma CERRADO', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var b = pm.response.json();",
+                  "  var s = String(b.nombre_estado);",
+                  "  pm.expect(s).to.include('CERRADO');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_c}}"
+          }
+        },
+        {
+          "name": "TC-M02-094-CER - evento sanitario con activo CERRADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-094-CER] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('TC-M02-094-CER - RF-41 corregido: CERRADO rechaza evento sanitario: HTTP 409', function () { pm.response.to.have.status(409); });",
+                  "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+                  "pm.test('TC-M02-094-CER - error_code ESTADO_NO_PERMITE_EVENTOS', function () { pm.expect(b.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS'); });",
+                  "pm.test('TC-M02-094-CER - el mensaje indica el estado CERRADO', function () { pm.expect(String(b.message || '')).to.match(/CERRADO/); });",
+                  "pm.test('TC-M02-094-CER - no se creo ningun evento', function () { pm.expect(b.evento).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_c}}/eventos/sanitario",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo\": \"CONTROL_PREVENTIVO\", \"observaciones\": \"QA G51 v4 TC-M02-094: payload valido, unica variable es el estado del activo\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "D. Activo BAJA rechaza evento (TC-M02-094)",
+      "item": [
+        {
+          "name": "SETUP-D. Activo INDIVIDUAL nuevo (id_activo_d)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201) { console.log('SETUP-D. Activo INDIVIDUAL nuevo (id_activo_d) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('SETUP-D. Activo INDIVIDUAL nuevo (id_activo_d) - creado (201)', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_d', String(pm.response.json().id_activo_biologico)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":{{id_especie}},\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":{{id_infraestructura}},\"identificador\":\"QA-G51-D-{{rid}}\",\"raza\":\"QA G51\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5\n}"
+            }
+          }
+        },
+        {
+          "name": "SETUP - baja (D)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201) { console.log('SETUP - baja (D) - RESPUESTA: ' + pm.response.text()); }",
+                  "pm.test('SETUP - baja (D) - precondicion aceptada (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_d}}/eventos/baja",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo_baja\": \"muerte\", \"fecha_baja\": \"{{fecha_hoy}}\", \"motivo_baja\": \"Baja de prueba QA G51 v4 - precondicion de estado BAJA\" }"
+            }
+          }
+        },
+        {
+          "name": "Verificar estado BAJA (D)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Verificar estado BAJA (D) - consulta directa confirma BAJA', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var b = pm.response.json();",
+                  "  var s = String(b.nombre_estado);",
+                  "  pm.expect(s).to.include('BAJA');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_d}}"
+          }
+        },
+        {
+          "name": "TC-M02-094-BAJ - evento sanitario con activo BAJA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-094-BAJ] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('TC-M02-094-BAJ - RF-41 corregido: BAJA rechaza evento sanitario: HTTP 409', function () { pm.response.to.have.status(409); });",
+                  "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+                  "pm.test('TC-M02-094-BAJ - error_code ESTADO_NO_PERMITE_EVENTOS', function () { pm.expect(b.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS'); });",
+                  "pm.test('TC-M02-094-BAJ - el mensaje indica el estado BAJA', function () { pm.expect(String(b.message || '')).to.match(/BAJA/); });",
+                  "pm.test('TC-M02-094-BAJ - no se creo ningun evento', function () { pm.expect(b.evento).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{id_activo_d}}/eventos/sanitario",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo\": \"CONTROL_PREVENTIVO\", \"observaciones\": \"QA G51 v4 TC-M02-094: payload valido, unica variable es el estado del activo\" }"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

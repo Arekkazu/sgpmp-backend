@@ -1,0 +1,20 @@
+# ACL laboratorio G43. No hay permiso de escritura en command.
+# Serial de lab: G43-LAB-001 (no Raspberry / G38 / G41).
+
+user g43_gateway
+topic read sgpmp/+/evento
+topic read sgpmp/+/telemetry
+topic read sgpmp/+/heartbeat
+topic read sgpmp/+/status
+topic write sgpmp/+/resultado
+topic deny sgpmp/+/command
+
+user g43_edge
+topic write sgpmp/G43-LAB-001/evento
+topic write sgpmp/G43-LAB-001/telemetry
+topic write sgpmp/G43-LAB-001/heartbeat
+topic write sgpmp/G43-LAB-001/status
+topic read sgpmp/G43-LAB-001/resultado
+topic read sgpmp/G43-LAB-001/command
+topic deny sgpmp/+/command
+topic deny sgpmp/G43-LAB-001/command

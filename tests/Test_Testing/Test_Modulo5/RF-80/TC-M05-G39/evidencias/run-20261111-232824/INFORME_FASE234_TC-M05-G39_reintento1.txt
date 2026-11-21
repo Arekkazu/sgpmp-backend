@@ -1,0 +1,61 @@
+================================================================================
+INFORME DE EJECUCION: TC-M05-G39 (REINTENTO 1)
+RF-80 v2.0 (RFC-025) "Auditoria y Trazabilidad de Registros de Suministros"
+================================================================================
+Fecha/Hora: 2026-11-11 23:28:55 (America/Bogota)
+Total tests: 9 | Aprobados: 8 | Fallidos: 1
+Veredicto Final: Rechazado
+Duracion: 28.75 s
+
+1. TABLA DETALLADA DE CHECKPOINTS
+--------------------------------------------------------------------------------
+[01] T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura)
+     Esperado: GET /suministros/auditoria 200 con total y ultimo_id base; DELETE -> 200 Rollback exitoso
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=3787851e-5ac4-4ead-aa2e-f6a0aa617233]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=022a5ed7-e76d-4ec7-a84b-0e4cea96b2d0]; DELETE /test-control/runs/tc-m05-g39-inobase-c7628f08 -> HTTP 200 [X-Request-Id=5e369132-55d4-460f-96a1-29af1090f3d4]
+     Estado:   OK
+
+[02] A01 Eventos incompletos nuevos con detalle_causa y consolidacion RF-79
+     Esperado: Costeo sin fase -> 409 REGISTRO_FALLIDO; cierre RF-79; todos los registro_incompleto=true tienen detalle_causa no nulo ni vacio y consolidacion sin marca falsa por conciliacion pendiente
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=f609d9e5-082b-4e31-a2ef-c8ee54abd247]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=d8688a30-1c13-4aa5-a805-b6821fa026f4]; POST /activos-biologicos -> HTTP 201 (id_activo=1856) [X-Request-Id=2589361a-df1d-43c3-8980-15b24989c967]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=df8e7500-9754-43fd-b1e1-504a561ae84f]; POST /suministros/costeo-directo -> HTTP 409 CICLO_NO_ACTIVO [X-Request-Id=798b2a32-a7e4-41fe-97fc-7fbc8428c476]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=bbb04b72-5932-4683-b88b-d8ccb2d2fdc6]; POST /activos-biologicos -> HTTP 201 (id_activo=1857) [X-Request-Id=b593431b-1776-4ebf-898d-2a6126ef130c]; POST /activos-biologicos/1857/fases -> HTTP 201 (id_activo=1857) [X-Request-Id=47f5d05a-5bd4-4ecd-baf8-babd48180594]; (+6 requests)
+     Estado:   OK
+
+[03] A02 Campos base presentes en TODOS los eventos nuevos (CA-11)
+     Esperado: Todo evento nuevo (incluido INSERT) tiene tipo_operacion, resultado y fecha_emision no nulos ni vacios
+     Obtenido: AssertionError: CA-11/R8 incumplido — eventos nuevos persistidos con campos base nulos o vacios: id=75563 (entidad=resultado_ica, tipo_operacion=INSERT, faltantes=['fecha_emision']) [TC-M05-092; RF-80 v2.0 CA-11, R8] | HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=f9bbafaf-96d9-4b99-8685-273a5c3c9514]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=dda51b73-4a36-48c4-9156-dbecb08242c2]
+     Estado:   FALLA
+
+[04] B01 Inmutabilidad por API (PUT/PATCH/DELETE/POST como Admin)
+     Esperado: Cada metodo -> HTTP 405 Allow: GET, GET objetivo intacto (incluido hash) y 1 evento RECHAZADO de Admin en <=2 s sin cuerpo enviado
+     Obtenido: HTTP: GET /suministros/auditoria/75560 -> HTTP 200 (id_activo=1857) [X-Request-Id=4cf81020-f706-4dce-b95a-30d9d367b09b]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=af6efb8a-e603-4543-bff1-3b9b75509890]; PUT /suministros/auditoria/75560 -> HTTP 405 (Allow=GET) [X-Request-Id=f7fd0893-2473-46f9-a5a2-a26c179de35d]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=1b72b017-16c7-4eeb-9092-930fee758f4d]; GET /suministros/auditoria/75566 -> HTTP 200 [X-Request-Id=c278eb6f-6962-4e69-9ba3-05f67e5adf66]; GET /suministros/auditoria/75560 -> HTTP 200 (id_activo=1857) [X-Request-Id=668299f8-ee28-4043-b5d4-9c5868468a38]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=52bd23ba-e720-4e60-b313-b273d9ae3027]; PATCH /suministros/auditoria/75560 -> HTTP 405 (Allow=GET) [X-Request-Id=b93dd928-05a9-4635-920c-726ada30d120]; (+13 requests)
+     Estado:   OK
+
+[05] B02 Intentos de otros actores (Productor, ID inexistente 999999999, sin token)
+     Esperado: Productor PUT -> 405 sin fuga + 1 RECHAZADO de Productor; Admin ID 999999999 -> 405 + 1 RECHAZADO; sin token -> 401
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=cc340106-f749-4ca0-8033-70d984407ec7]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=3428a263-6181-447b-9024-e03fb6fe05d1]; PUT /suministros/auditoria/75560 -> HTTP 405 (Allow=GET) [X-Request-Id=72dd1b6d-0dd9-410a-8398-96f45c0d65ca]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=69587507-a64b-42e2-82f3-9cfcf0c196e5]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=49ec2575-535f-42fb-a59c-20e8ce698cf8]; PUT /suministros/auditoria/999999999 -> HTTP 405 (Allow=GET) [X-Request-Id=f2e61edf-8090-4995-8f88-07aa6a119188]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=f9cb017f-59bf-4812-a16f-3c8a92291f75]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=f11d4086-18b0-4405-8652-0565adeae47b]; (+5 requests)
+     Estado:   OK
+
+[06] B03 Recalculo SHA-256 (nuevos v2 e historicos v1) + simulacion local alterada
+     Esperado: Recalculo desde GET /{id} igual a hash_integridad en nuevos v2 e historicos v1 (87/88/89); simulacion alterada difiere
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=1137361a-a17d-46db-b827-0e7a855f571a]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=210c27da-e181-45ee-ac89-18b9e8581ed9]; GET /suministros/auditoria/75559 -> HTTP 200 (id_activo=1856) [X-Request-Id=b52b24a1-add5-480e-8883-0ed760388ddc]; GET /suministros/auditoria/75560 -> HTTP 200 (id_activo=1857) [X-Request-Id=53ed5cce-f872-4446-b25e-d746b0d52f7f]; GET /suministros/auditoria/75561 -> HTTP 200 (id_activo=1857) [X-Request-Id=8e34b467-1456-40ed-89bb-b721373b2861]; GET /suministros/auditoria/75562 -> HTTP 200 (id_activo=1857) [X-Request-Id=4b7c8bd0-d528-47ec-8670-6865c52a7ff0]; GET /suministros/auditoria/75563 -> HTTP 200 (id_activo=1857) [X-Request-Id=62ea9eca-feb2-47de-b7d2-4a940a51700a]; GET /suministros/auditoria/75564 -> HTTP 200 (id_activo=1857) [X-Request-Id=7cf31f39-5990-412a-9f54-ef2e91cb2090]; (+10 requests)
+     Estado:   OK
+
+[07] B04 Ausencia de endpoints de escritura en /openapi.json
+     Esperado: GET /openapi.json no declara POST/PUT/PATCH/DELETE bajo /suministros/auditoria*
+     Obtenido: HTTP: GET /openapi.json -> HTTP 200 [X-Request-Id=f461b6cf-d8d6-47ad-8016-4c8a18f956e3]
+     Estado:   OK
+
+[08] T98 Cierre de la corrida sandbox principal
+     Esperado: DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=2440d42d-c2f7-4965-bca0-28704beb117c]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=1f157e72-6ad6-4929-abd5-9b2936c7b346]; GET /suministros/auditoria/87 -> HTTP 200 (id_activo=57) [X-Request-Id=45773e68-7ea0-45c2-a61f-be24770bd128]; GET /suministros/auditoria/88 -> HTTP 200 (id_activo=57) [X-Request-Id=3f313b17-ca2d-43ae-882f-0b8774f7d554]; GET /suministros/auditoria/89 -> HTTP 200 (id_activo=57) [X-Request-Id=20e68896-64a9-4a51-96bd-01733c49302a]; DELETE /test-control/runs/tc-m05-g39-adm-14682ed2 -> HTTP 200 [X-Request-Id=379a5bf6-566e-4a0c-befd-2859afea7b04]
+     Estado:   OK
+
+[09] T99 Inocuidad post-rollback en corrida sandbox aparte de solo lectura
+     Esperado: total y ultimo_id iguales a T00; GET de activos creados -> HTTP 404; DELETE -> 200
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=31da5ddc-d6de-4b7d-828d-a204d6a28906]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=c5e37387-a093-4550-a121-eef60c572840]; GET /activos-biologicos/1856 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=f5a20f81-77ce-4f1e-8b7a-a28f7280009c]; GET /activos-biologicos/1857 -> HTTP 404 ACTIVO_NO_ENCONTRADO [X-Request-Id=933b4495-fb2e-4ba7-9566-62958651c3ee]; DELETE /test-control/runs/tc-m05-g39-inopost-a7122339 -> HTTP 200 [X-Request-Id=2867cd4c-0e9e-44a8-a985-b0037fb5741c]
+     Estado:   OK
+
+2. DETALLE DE FALLOS
+--------------------------------------------------------------------------------
+- A02 Campos base presentes en TODOS los eventos nuevos (CA-11) [PENDIENTE_DIAGNOSTICO] (TC-M05-092 / RF-80 v2.0 CA-11, R8)
+  Mensaje: AssertionError: CA-11/R8 incumplido — eventos nuevos persistidos con campos base nulos o vacios: id=75563 (entidad=resultado_ica, tipo_operacion=INSERT, faltantes=['fecha_emision']) [TC-M05-092; RF-80 v2.0 CA-11, R8]
+  HTTP:    GET /suministros/auditoria -> HTTP 200 [X-Request-Id=f9bbafaf-96d9-4b99-8685-273a5c3c9514]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=dda51b73-4a36-48c4-9156-dbecb08242c2]

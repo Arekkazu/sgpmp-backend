@@ -1,0 +1,207 @@
+diff --git "a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py" b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py
+index 67a9c4f1..bfcc8815 100644
+--- "a/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py"
++++ b/tests/Test_Testing/Test_Modulo5/RF-80/TC-M05-G39/test_tc_m05_g39.py
+@@ -608,6 +608,7 @@ def _guardar_observaciones(c: CorridaSandbox) -> None:
+         "b01_rechazos_tipo_y_clasificacion": _CONTEXTO.get("obs_b01_rechazos", []),
+         "b02_sin_token_401": _CONTEXTO.get("obs_b02_sin_token", {}),
+         "b03_etiqueta_simulacion": _CONTEXTO["obs_simulacion_b03"],
++        "b03_hash_no_verificable_via_api": _CONTEXTO.get("obs_hash_no_verificable", {}),
+         "version_hash_integridad_eventos_nuevos": sorted(
+             {str(ev.get("version_hash_integridad")) for ev in eventos}
+         ),
+@@ -1277,58 +1278,150 @@ def test_b02_intentos_otros_actores():
+     }
+ 
+ 
++# Columnas de modulo5.auditorias_suministros: alembic/baseline/esquema_baseline.sql:25595-25619, mas
++# id_evento_m05 y version_hash_integridad, que agrega alembic/versions/d96480a11e01_rf80_identidad_integridad_auditoria_m05.py:23-24
++# y que fn_hash_evento_auditoria_m05 incluye en el hash v2 (to_jsonb(NEW)). Toda otra clave de la respuesta
++# (nombre_activo, nombre_usuario...) es de presentacion de la API y no entra en el hash.
++_COLUMNAS_AUDITORIA = frozenset({
++    "id_auditoria_suministro", "entidad_afectada", "tipo_operacion", "datos_anteriores", "datos_nuevos",
++    "id_usuario", "ip_origen", "fecha_evento", "id_sesion", "resultado", "fecha_emision", "id_activo_biologico",
++    "id_ciclo_productivo", "costo_afectado", "origen_precio", "clasificacion_registro", "retencion_aplicable",
++    "hash_integridad", "registro_incompleto", "detalle_causa", "numero_reintentos", "fecha_intentos",
++    "id_gestion_fases",
++    "id_evento_m05", "version_hash_integridad",
++})
++# Alcance de B03: entidades evaluadas en el reintento 1 (run-20261111-232824) mas resultado_ica.
++_ENTIDADES_B03 = ("registro_suministro", "provision_nic41", "auditorias_suministros", "resultado_ica")
++# Hash no verificable via API (CONFIRMACION_HASH_G39.txt): la respuesta devuelve sus numericos sin la escala
++# con la que se sellaron; se registran como observacion, fuera del checkpoint.
++_ENTIDADES_HASH_NO_VERIFICABLE = ("registros_consumo_alimentos", "registros_medicamentos")
++
++
++def _solo_columnas(evento: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
++    excluidas = sorted(k for k in evento if k not in _COLUMNAS_AUDITORIA)
++    return {k: v for k, v in evento.items() if k in _COLUMNAS_AUDITORIA}, excluidas
++
++
++def _numericos_texto_crudo(texto: str) -> dict[str, str]:
++    """Numericos de datos_nuevos/datos_anteriores/costo_afectado tal como vienen en el texto crudo."""
++    lit = json.loads(texto, parse_float=lambda x: f"<{x}>", parse_int=lambda x: f"<{x}>")
++    salida: dict[str, str] = {}
++
++    def recorrer(prefijo: str, v: Any) -> None:
++        if isinstance(v, dict):
++            for k, x in v.items():
++                recorrer(f"{prefijo}.{k}" if prefijo else k, x)
++        elif isinstance(v, str) and re.fullmatch(r"<-?[\d.eE+-]+>", v):
++            salida[prefijo] = v[1:-1]
++
++    for clave in ("datos_nuevos", "datos_anteriores", "costo_afectado"):
++        if isinstance(lit, dict) and clave in lit:
++            recorrer(clave, lit[clave])
++    return salida
++
++
+ def test_b03_recalculo_hash():
+     """B03 (TC-M05-093; RF-80 v2.0 C25.3, ADR-M05-02): hash v2 nuevos + 3 historicos v1 + simulacion local alterada."""
+     c = _principal()
+-    ultimo_inicio = _CONTEXTO.get("ultimo_id_inicio_corrida")
+-    assert ultimo_inicio is not None, "Precondicion B03: falta ultimo_id_inicio_corrida"
+-
+-    eventos_nuevos = _recolectar_eventos_corrida(c, int(ultimo_inicio), "b03_recolectar")
+-    nuevos_v2 = [e for e in eventos_nuevos if e.get("version_hash_integridad") == 2]
+-    assert nuevos_v2, "B03: no hay eventos nuevos de version_hash_integridad=2 para verificar [TC-M05-093]"
+-
+-    detalles_v2: list[dict[str, Any]] = []
+-    for ev in nuevos_v2:
+-        eid = int(ev["id_auditoria_suministro"])
+-        rg = c.get("admin", f"/suministros/auditoria/{eid}", paso=f"b03_get_v2_{eid}")
+-        assert rg.status_code == 200, f"B03 error consultando GET /{eid}: HTTP {rg.status_code}"
+-        det = rg.json()
+-        recalc = _recalcular_hash_m05(det, version=2)
+-        assert recalc == det.get("hash_integridad"), (
+-            f"B03 discrepancia hash v2 en id={eid}: recalculado={recalc}, almacenado={det.get('hash_integridad')} "
++    obs: dict[str, Any] = {"claves no columna excluidas": [], "evaluados_v2": [], "evaluados_v1": []}
++    try:
++        ultimo_inicio = _CONTEXTO.get("ultimo_id_inicio_corrida")
++        assert ultimo_inicio is not None, "Precondicion B03: falta ultimo_id_inicio_corrida"
++
++        eventos_nuevos = _recolectar_eventos_corrida(c, int(ultimo_inicio), "b03_recolectar")
++        nuevos_v2 = [e for e in eventos_nuevos if e.get("version_hash_integridad") == 2]
++        evaluables = [e for e in nuevos_v2 if e.get("entidad_afectada") in _ENTIDADES_B03]
++        no_verificables = [e for e in nuevos_v2 if e.get("entidad_afectada") in _ENTIDADES_HASH_NO_VERIFICABLE]
++        obs["conteo_por_entidad"] = {ent: sum(1 for e in evaluables if e.get("entidad_afectada") == ent)
++                                     for ent in _ENTIDADES_B03}
++        obs["v2_fuera_de_alcance"] = sorted({str(e.get("entidad_afectada")) for e in nuevos_v2
++                                             if e.get("entidad_afectada") not in _ENTIDADES_B03})
++        excluidas_totales: set[str] = set()
++
++        # OBSERVACION (fuera del checkpoint): consumo y medicamento, hash no verificable via API
++        observacion: list[dict[str, Any]] = []
++        for ev in no_verificables:
++            eid = int(ev["id_auditoria_suministro"])
++            rg = c.get("admin", f"/suministros/auditoria/{eid}", paso=f"b03_obs_no_verificable_{eid}")
++            if rg.status_code != 200:
++                observacion.append({"id": eid, "http": rg.status_code})
++                continue
++            det, excl = _solo_columnas(rg.json())
++            excluidas_totales.update(excl)
++            observacion.append({
++                "id": eid,
++                "entidad": ev.get("entidad_afectada"),
++                "hash_almacenado": det.get("hash_integridad"),
++                "hash_recalculado": _recalcular_hash_m05(det, version=2),
++                "numericos_texto_crudo": _numericos_texto_crudo(rg.text),
++                "x_request_id": rg.headers.get("X-Request-Id", ""),
++            })
++        _CONTEXTO["obs_hash_no_verificable"] = {
++            "nota": "hash no verificable via API (ver evidencias/parteA-reintento2/CONFIRMACION_HASH_G39.txt): la "
++                    "respuesta devuelve los numericos sin la escala con la que se sellaron",
++            "eventos": observacion,
++        }
++
++        for ent in _ENTIDADES_B03:
++            assert obs["conteo_por_entidad"][ent] >= 1, (
++                f"B03: 0 eventos nuevos v2 de {ent} para verificar [TC-M05-093; alcance B03 reintento 2]"
++            )
++
++        detalles_v2: list[dict[str, Any]] = []
++        for ev in evaluables:
++            eid = int(ev["id_auditoria_suministro"])
++            rg = c.get("admin", f"/suministros/auditoria/{eid}", paso=f"b03_get_v2_{eid}")
++            assert rg.status_code == 200, f"B03 error consultando GET /{eid}: HTTP {rg.status_code}"
++            det, excl = _solo_columnas(rg.json())
++            excluidas_totales.update(excl)
++            recalc = _recalcular_hash_m05(det, version=2)
++            obs["evaluados_v2"].append({"id": eid, "entidad": det.get("entidad_afectada"),
++                                        "almacenado": det.get("hash_integridad"), "recalculado": recalc,
++                                        "coincide": recalc == det.get("hash_integridad")})
++            detalles_v2.append(det)
++        obs["claves no columna excluidas"] = sorted(excluidas_totales)
++        discrepancias = [x for x in obs["evaluados_v2"] if not x["coincide"]]
++        assert len(obs["evaluados_v2"]) >= 1
++        assert not discrepancias, (
++            f"B03 discrepancia hash v2 en {[(x['id'], x['entidad']) for x in discrepancias]} "
+             "[TC-M05-093; C25.3, ADR-M05-02]"
+         )
+-        detalles_v2.append(det)
+ 
+-    detalles_v1: list[dict[str, Any]] = []
+-    for hid in (87, 88, 89):
+-        rg = c.get("admin", f"/suministros/auditoria/{hid}", paso=f"b03_get_v1_{hid}")
+-        assert rg.status_code == 200, f"B03 error consultando historico GET /{hid}: HTTP {rg.status_code}"
+-        det = rg.json()
+-        assert det.get("version_hash_integridad") == 1, (
+-            f"B03 evento historico {hid} esperaba version_hash_integridad=1, obtuvo {det.get('version_hash_integridad')!r}"
+-        )
+-        recalc = _recalcular_hash_m05(det, version=1)
+-        assert recalc == det.get("hash_integridad"), (
+-            f"B03 discrepancia hash v1 en historico id={hid}: recalculado={recalc}, almacenado={det.get('hash_integridad')} "
+-            "[TC-M05-093; C25.3, ADR-M05-02]"
++        detalles_v1: list[dict[str, Any]] = []
++        for hid in (87, 88, 89):
++            rg = c.get("admin", f"/suministros/auditoria/{hid}", paso=f"b03_get_v1_{hid}")
++            assert rg.status_code == 200, f"B03 error consultando historico GET /{hid}: HTTP {rg.status_code}"
++            det, excl = _solo_columnas(rg.json())
++            excluidas_totales.update(excl)
++            assert det.get("version_hash_integridad") == 1, (
++                f"B03 evento historico {hid} esperaba version_hash_integridad=1, obtuvo {det.get('version_hash_integridad')!r}"
++            )
++            recalc = _recalcular_hash_m05(det, version=1)
++            obs["evaluados_v1"].append({"id": hid, "almacenado": det.get("hash_integridad"), "recalculado": recalc,
++                                        "coincide": recalc == det.get("hash_integridad")})
++            assert recalc == det.get("hash_integridad"), (
++                f"B03 discrepancia hash v1 en historico id={hid}: recalculado={recalc}, almacenado={det.get('hash_integridad')} "
++                "[TC-M05-093; C25.3, ADR-M05-02]"
++            )
++            detalles_v1.append(det)
++        obs["claves no columna excluidas"] = sorted(excluidas_totales)
++
++        # Simulacion local con un valor alterado en memoria (sin DML real porque el trigger en BD lo bloquea)
++        muestra_v2 = dict(detalles_v2[0])
++        muestra_v2["resultado"] = "ALTERADO_SIM_LOCAL"
++        hash_sim_v2 = _recalcular_hash_m05(muestra_v2, version=2)
++        assert hash_sim_v2 != detalles_v2[0]["hash_integridad"], (
++            "B03 simulacion local v2 deberia diferir tras alterar un campo [C25.3; ADR-M05-02]"
+         )
+-        detalles_v1.append(det)
+-
+-    # Simulacion local con un valor alterado en memoria (sin DML real porque el trigger en BD lo bloquea)
+-    muestra_v2 = dict(detalles_v2[0])
+-    muestra_v2["resultado"] = "ALTERADO_SIM_LOCAL"
+-    hash_sim_v2 = _recalcular_hash_m05(muestra_v2, version=2)
+-    assert hash_sim_v2 != detalles_v2[0]["hash_integridad"], (
+-        "B03 simulacion local v2 deberia diferir tras alterar un campo [C25.3; ADR-M05-02]"
+-    )
+ 
+-    muestra_v1 = dict(detalles_v1[0])
+-    muestra_v1["resultado"] = "ALTERADO_SIM_LOCAL"
+-    hash_sim_v1 = _recalcular_hash_m05(muestra_v1, version=1)
+-    assert hash_sim_v1 != detalles_v1[0]["hash_integridad"], (
+-        "B03 simulacion local v1 deberia diferir tras alterar un campo [C25.3; ADR-M05-02]"
+-    )
++        muestra_v1 = dict(detalles_v1[0])
++        muestra_v1["resultado"] = "ALTERADO_SIM_LOCAL"
++        hash_sim_v1 = _recalcular_hash_m05(muestra_v1, version=1)
++        assert hash_sim_v1 != detalles_v1[0]["hash_integridad"], (
++            "B03 simulacion local v1 deberia diferir tras alterar un campo [C25.3; ADR-M05-02]"
++        )
++    finally:
++        _guardar_obtenido("test_b03_recalculo_hash", obs)
+ 
+ 
+ def test_b04_sin_endpoints_escritura():

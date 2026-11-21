@@ -1,0 +1,130 @@
+{
+  "caso": "TC-M09-148",
+  "grupo": "TC-M09-G77",
+  "runId": "G77-REEVAL-V2-20260912-211848",
+  "fecha": "2026-09-13T02:33:43.343Z",
+  "patronesBuscados": [
+    "Authorization",
+    "Bearer ",
+    "access_token",
+    "refresh_token",
+    "password",
+    "cookie",
+    "jwt"
+  ],
+  "archivos": [
+    {
+      "archivo": "helpers.cjs",
+      "esEvidencia": false,
+      "coincidenciasPalabraClave": {
+        "Authorization": 1,
+        "Bearer": 3,
+        "refresh_token": 2,
+        "password": 11,
+        "cookie": 1,
+        "jwt": 2
+      },
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    },
+    {
+      "archivo": "precheck.cjs",
+      "esEvidencia": false,
+      "coincidenciasPalabraClave": {
+        "password": 3
+      },
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    },
+    {
+      "archivo": "README.md",
+      "esEvidencia": false,
+      "coincidenciasPalabraClave": {
+        "password": 3
+      },
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    },
+    {
+      "archivo": "RESULTADOS/G77-REEVAL-V2-20260912-211848/newman/newman-TC-M09-148-reevaluacion-v2-intento1.html",
+      "esEvidencia": true,
+      "coincidenciasPalabraClave": {},
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    },
+    {
+      "archivo": "RESULTADOS/G77-REEVAL-V2-20260912-211848/precheck-v2.json",
+      "esEvidencia": true,
+      "coincidenciasPalabraClave": {},
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    },
+    {
+      "archivo": "RESULTADOS/G77-REEVAL-V2-20260912-211848/TC-M09-148-reevaluacion-v2-intento1.json",
+      "esEvidencia": true,
+      "coincidenciasPalabraClave": {},
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    },
+    {
+      "archivo": "RESULTADOS/G77-REEVAL-V2-20260912-211848/TC-M09-G77_reevaluacion_V2.md",
+      "esEvidencia": true,
+      "coincidenciasPalabraClave": {
+        "Authorization": 1,
+        "access_token": 1,
+        "refresh_token": 1,
+        "password": 4,
+        "cookie": 1,
+        "jwt": 1
+      },
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    },
+    {
+      "archivo": "run-newman.cjs",
+      "esEvidencia": false,
+      "coincidenciasPalabraClave": {
+        "Authorization": 1,
+        "password": 3,
+        "cookie": 1
+      },
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    },
+    {
+      "archivo": "TC-M09-G77-reevaluacion-v2.postman_collection.json",
+      "esEvidencia": false,
+      "coincidenciasPalabraClave": {
+        "Authorization": 1,
+        "Bearer": 1
+      },
+      "contrasenaLiteral": false,
+      "jwt": false,
+      "bearerConValor": false,
+      "refreshTokenConValor": false
+    }
+  ],
+  "conclusion": {
+    "secretosPersistidos": false,
+    "contrasenasLiterales": false,
+    "tokensJwt": false,
+    "evidenciaHtmlJsonConPalabrasClave": [],
+    "nota": "Las coincidencias de palabras clave en .cjs, coleccion, README y reporte son nombres de variable, patrones de redaccion, el marcador {{token}} o texto descriptivo; ningun valor secreto. Los valores no se imprimieron."
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "caso": "TC-M06-G102",
+  "identificador_vigente": "TC-M06-G102",
+  "identificador_historico": "TC-M06-G74",
+  "fecha": "2026-11-10",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "usuario": "Contador",
+  "alcance": "TC-M06-16, TC-M06-17 y TC-M06-18",
+  "clasificacion_alcance": "APROBADO",
+  "caso_completo_reclasificado": false,
+  "post_repetido": false,
+  "regresion_ejecutada": false,
+  "subcasos_19_21_ejecutados": false,
+  "sql": false,
+  "subcasos": [
+    {"subcaso": "TC-M06-16", "http": 201, "id_precio_mercado": 489, "resultado": "APROBADO"},
+    {"subcaso": "TC-M06-17", "http": 201, "id_precio_mercado": 490, "resultado": "APROBADO"},
+    {"subcaso": "TC-M06-18", "http": 201, "id_precio_mercado": 491, "resultado": "APROBADO"}
+  ],
+  "precio_aplicado": {"id_precio_mercado": 489, "fuente": "MERCADO_ACTIVO", "precio_unitario": "5000000.00"},
+  "historicos": [
+    {"id_precio_mercado": 436, "estado": "SUPERADO", "es_aplicado": false},
+    {"id_precio_mercado": 437, "estado": "SUPERADO", "es_aplicado": false}
+  ],
+  "auditoria": [12902, 12903, 12904, 12905, 12906],
+  "observacion_contrato": "RF-89 v1.1 pide HTTP 400 para una justificación corta. La rama laura todavía usa HTTP 422. No se envió un POST de rechazo. El PR #1024 seguía abierto en la preparación."
+}

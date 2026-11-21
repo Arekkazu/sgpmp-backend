@@ -1,0 +1,38 @@
+{
+  "info": { "name": "TC-M06-G32 RF-86", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [
+    { "name": "G32-API-001-01", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token}}" },
+      { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/finanzas/periodos/{{periodo_1}}/variaciones" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+      "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+      "pm.test('Lista de variaciones', () => pm.expect(pm.response.json()).to.be.an('array'));"
+    ] } }] },
+    { "name": "G32-API-002-01", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/finanzas/periodos/{{periodo_2}}/variaciones" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+      "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+      "pm.test('Lista de variaciones', () => pm.expect(pm.response.json()).to.be.an('array'));"
+    ] } }] },
+    { "name": "G32-API-003-01", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/finanzas/periodos/{{periodo_3}}/variaciones" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+      "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+      "pm.test('Lista de variaciones', () => pm.expect(pm.response.json()).to.be.an('array'));"
+    ] } }] },
+    { "name": "G32-API-004-01", "request": { "method": "GET", "header": [
+      { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+      { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+    ], "url": "{{base_url}}/finanzas/periodos/{{periodo_4}}/variaciones" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+      "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+      "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+      "pm.test('Lista de variaciones', () => pm.expect(pm.response.json()).to.be.an('array'));"
+    ] } }] }
+  ]
+}

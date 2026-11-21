@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>TC-M06-G96 — Informe final | RF-88</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --ink: #1c241c;
+    --muted: #5a655a;
+    --card: #ffffff;
+    --line: #d8ddd4;
+    --pass: #1f6b3a;
+    --pass-bg: #e7f5ec;
+    --warn: #8a5a00;
+    --warn-bg: #fff4dd;
+    --accent: #2f4a3a;
+    --accent-2: #c45c26;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 500px at 10% -10%, #e7efe6 0%, transparent 55%),
+      radial-gradient(900px 400px at 100% 0%, #f3e6d8 0%, transparent 50%),
+      var(--bg);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+  header.hero {
+    background: linear-gradient(135deg, #243528 0%, #3d5a45 55%, #5a6e4e 100%);
+    color: #f4f7f2;
+    border-radius: 18px;
+    padding: 28px 28px 24px;
+    box-shadow: 0 18px 40px rgba(36,53,40,.28);
+  }
+  header.hero .kicker {
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 12px;
+    opacity: .8;
+    margin-bottom: 8px;
+  }
+  header.hero h1 {
+    margin: 0 0 8px;
+    font-size: 1.65rem;
+    font-weight: 700;
+  }
+  header.hero p { margin: 0; opacity: .92; max-width: 46rem; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 18px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .badge {
+    display: inline-block;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #d8f3e2;
+    color: var(--pass);
+    border: 1px solid #9ed5b3;
+    margin-top: 16px;
+  }
+  nav.toc {
+    margin: 22px 0 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 18px;
+  }
+  nav.toc strong { display: block; margin-bottom: 8px; color: var(--accent); }
+  nav.toc a {
+    color: var(--accent);
+    text-decoration: none;
+    margin-right: 14px;
+    font-size: 14px;
+  }
+  nav.toc a:hover { text-decoration: underline; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-top: 16px;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1.2rem;
+    color: var(--accent);
+    border-bottom: 2px solid #e4ebe3;
+    padding-bottom: 8px;
+  }
+  h3 { margin: 18px 0 8px; font-size: 1.05rem; }
+  p, li { color: var(--ink); }
+  .muted { color: var(--muted); font-size: 14px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 4px;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #eef3ec; color: #2c3b2f; }
+  tr.pass td:last-child,
+  .estado-pass {
+    color: var(--pass);
+    font-weight: 700;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .stat {
+    background: #f3f7f2;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .stat .n { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+  .stat .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .case {
+    border-left: 4px solid var(--accent);
+    background: #fafbf8;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 16px;
+    margin: 14px 0;
+  }
+  .alert-box {
+    background: var(--warn-bg);
+    border: 1px solid #ecd9a8;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .ok-box {
+    background: var(--pass-bg);
+    border: 1px solid #b7dfc5;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  a.file {
+    color: #1d4f7a;
+    text-decoration: none;
+    border-bottom: 1px dashed #9bb7cc;
+  }
+  a.file:hover { border-bottom-style: solid; }
+  ul.files { padding-left: 18px; }
+  ul.files li { margin: 4px 0; }
+  footer {
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  code { font-family: Consolas, "Courier New", monospace; font-size: .92em; background: #eef2eb; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">Módulo 6 · RF-88 · CU07</div>
+  <h1>TC-M06-G96 — Validación del cálculo del valor en libros y control de límites para evitar valores negativos</h1>
+  <p>Expediente de cierre documental. Validación técnica A+B sobre lógica real del backend, con PostgreSQL temporal aislado.</p>
+  <div class="meta">
+    <span class="chip">Fecha de ejecución: 2026-11-13</span>
+    <span class="chip">Commit: 91f79e75 (worktree g96-ab)</span>
+    <span class="chip">Fix #968: 8829599f</span>
+    <span class="chip">Migración: c6e8a0b2d453</span>
+  </div>
+  <div class="badge">ESTADO FINAL: APROBADO</div>
+</header>
+
+<nav class="toc" aria-label="Contenido">
+  <strong>Contenido</strong>
+  <a href="#resumen">Resumen</a>
+  <a href="#casos">Casos</a>
+  <a href="#alerta">Alerta</a>
+  <a href="#seguridad">Seguridad</a>
+  <a href="#limitaciones">Limitaciones</a>
+  <a href="#evidencias">Evidencias</a>
+  <a href="#conclusion">Conclusión</a>
+</nav>
+
+<section id="resumen">
+  <h2>B. Resumen ejecutivo</h2>
+  <div class="ok-box">
+    <p><strong>Dictamen:</strong> <span class="estado-pass">APROBADO</span> — los criterios de aceptación del grupo (montos de valor en libros 05/06/07, piso en cero y alerta persistente consultable <code>VALOR_LIBROS_AJUSTADO_A_CERO</code>) fueron demostrados con operación real del backend en capas A y B.</p>
+    <p class="muted" style="margin-bottom:0">La comprobación HTTP de escritura en API TEST compartido / seed 2126 <strong>no</strong> forma parte de los criterios de aceptación de resultado del grupo. La colección Newman exige “operación real ejecutada”; A+B la cumplió vía dominio e integración.</p>
+  </div>
+  <div class="grid">
+    <div class="stat"><div class="n">3</div><div class="l">Subcasos</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">PASS</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">FAIL</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">BLOCKED</div></div>
+    <div class="stat"><div class="n">6</div><div class="l">Pytest (A+B)</div></div>
+  </div>
+  <h3>Alcance de capas</h3>
+  <table>
+    <thead><tr><th>Capa</th><th>Qué cubre</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td><strong>A — Dominio</strong></td><td><code>valor_libros_calculado</code> + <code>valor_por_costo</code> (sin BD)</td><td class="estado-pass">3/3 PASS</td></tr>
+      <tr><td><strong>B — Integración</strong></td><td><code>RegistrarDeterioroUseCase</code> + auditoría en PostgreSQL temporal</td><td class="estado-pass">3/3 PASS</td></tr>
+    </tbody>
+  </table>
+  <h3>Entorno</h3>
+  <ul>
+    <li>Worktree: <code>sgpmp-backend-g96-ab</code> · HEAD <code>91f79e75</code> · incluye <code>8829599f</code></li>
+    <li>PostgreSQL temporal: contenedor <code>g96-ab-postgres-tmp</code> · BD <code>g96_ab_test</code> · <code>127.0.0.1:55496</code></li>
+    <li>Rama <code>laura</code>: intacta · API TEST compartido: sin escrituras</li>
+  </ul>
+</section>
+
+<section id="casos">
+  <h2>C. Resultados individuales</h2>
+
+  <div class="case" id="tc05">
+    <h3>TC-M06-05</h3>
+    <table>
+      <tr><th>Entrada</th><td>Costo 10.000.000 · Depreciación 2.000.000 · Deterioro 1.000.000</td></tr>
+      <tr><th>Cálculo</th><td>10.000.000 − 2.000.000 − 1.000.000 = 7.000.000</td></tr>
+      <tr><th>Esperado</th><td>7.000.000</td></tr>
+      <tr><th>Obtenido</th><td>7.000.000.0000 (<code>valor_libros_calculado</code> / <code>valor_por_costo</code>)</td></tr>
+      <tr class="pass"><th>Estado</th><td>PASS</td></tr>
+      <tr><th>Evidencia</th><td><a class="file" href="evidencias/dominio/resultado_dominio.json">resultado_dominio.json</a> · <a class="file" href="evidencias/dominio/pytest_dominio_report.html">pytest dominio</a></td></tr>
+    </table>
+  </div>
+
+  <div class="case" id="tc06">
+    <h3>TC-M06-06</h3>
+    <table>
+      <tr><th>Entrada</th><td>Costo 10.000.000 · Depreciación 10.000.000 · Deterioro 0</td></tr>
+      <tr><th>Cálculo</th><td>10.000.000 − 10.000.000 − 0 = 0</td></tr>
+      <tr><th>Esperado</th><td>0</td></tr>
+      <tr><th>Obtenido</th><td>0.0000</td></tr>
+      <tr class="pass"><th>Estado</th><td>PASS</td></tr>
+      <tr><th>Evidencia</th><td><a class="file" href="evidencias/dominio/resultado_dominio.json">resultado_dominio.json</a> · <a class="file" href="evidencias/dominio/pytest_dominio_report.html">pytest dominio</a></td></tr>
+    </table>
+  </div>
+
+  <div class="case" id="tc07">
+    <h3>TC-M06-07</h3>
+    <table>
+      <tr><th>Entrada</th><td>Costo 10.000.000 · Depreciación 7.000.000 · Deterioro 5.000.000</td></tr>
+      <tr><th>Cálculo matemático</th><td>−2.000.000</td></tr>
+      <tr><th>Esperado</th><td>Valor en libros 0 + alerta <code>VALOR_LIBROS_AJUSTADO_A_CERO</code></td></tr>
+      <tr><th>Obtenido</th><td>calculado −2.000.000.0000 · aplicado 0 · alerta generada y consultable</td></tr>
+      <tr class="pass"><th>Estado</th><td>PASS</td></tr>
+      <tr><th>Evidencia</th><td>
+        <a class="file" href="evidencias/dominio/resultado_dominio.json">dominio</a> ·
+        <a class="file" href="evidencias/integracion/resultado_integracion.json">integración</a> ·
+        <a class="file" href="evidencias/integracion/evidencia_alerta.json">alerta</a> ·
+        <a class="file" href="evidencias/integracion/pytest_integracion_report.html">pytest integración</a>
+      </td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="alerta">
+  <h2>D. Validación de alerta</h2>
+  <div class="alert-box">
+    <table>
+      <tr><th>Evento</th><td><code>VALOR_LIBROS_AJUSTADO_A_CERO</code></td></tr>
+      <tr><th>Severidad</th><td>WARNING</td></tr>
+      <tr><th>Valor calculado</th><td>−2.000.000.0000</td></tr>
+      <tr><th>Valor aplicado</th><td>0.0000</td></tr>
+      <tr><th>Origen</th><td>DETERIORO (también cubierto por cierre en suite #968)</td></tr>
+      <tr><th>Generación</th><td>Confirmada — <code>RegistrarDeterioroUseCase</code> + <code>evento_valor_libros_cero</code></td></tr>
+      <tr><th>Consulta</th><td>Confirmada — use case de auditoría + SQL sobre <code>modulo6.auditorias_financieras</code> en BD temporal</td></tr>
+      <tr><th>Persistencia en TEST compartido</th><td>No afirmada (fuera del alcance A+B)</td></tr>
+    </table>
+    <p class="muted" style="margin:10px 0 0">Detalle: <a class="file" href="evidencias/integracion/evidencia_alerta.json">evidencias/integracion/evidencia_alerta.json</a></p>
+  </div>
+</section>
+
+<section id="seguridad">
+  <h2>E. Seguridad y aislamiento</h2>
+  <ul>
+    <li>PostgreSQL temporal exclusivo (<code>g96-ab-postgres-tmp</code> / <code>g96_ab_test</code> / puerto 55496).</li>
+    <li>Migración <code>c6e8a0b2d453</code> aplicada <strong>solo</strong> en esa BD · enum de alerta presente.</li>
+    <li>Sin POST/PUT/PATCH/DELETE al API TEST compartido · sin cierres · sin tocar activo 2126 / valoración 66 / reconocimiento 886 / periodo 411.</li>
+    <li>Rama <code>laura</code> intacta · sin commit/push en esta fase.</li>
+    <li>Recursos Docker temporales eliminados tras guardar evidencias; otros contenedores del host no se tocaron.</li>
+    <li>Credenciales no incluidas en este informe ni en los JSON de evidencia.</li>
+  </ul>
+</section>
+
+<section id="limitaciones">
+  <h2>F. Limitaciones</h2>
+  <p>La validación HTTP de escritura/consulta sobre el <strong>API TEST compartido</strong> (seed Contador / activo 2126) <strong>no se ejecutó</strong>.</p>
+  <p><strong>¿Es obligatoria para aprobar G96?</strong> Según la matriz de resultados esperados del grupo y la regla de la colección Newman (“operación real ejecutada”), <strong>no</strong>: los AC se refieren a los montos, al piso en cero y a la alerta persistente consultable. Eso quedó demostrado con la lógica real y la integración aislada.</p>
+  <p class="muted">Si en el futuro el plan de pruebas del proyecto exigiera explícitamente E2E HTTP sobre el ambiente compartido, esa sería una ampliación de alcance, no un incumplimiento de los AC actuales de G96.</p>
+</section>
+
+<section id="evidencias">
+  <h2>G. Evidencias (rutas relativas)</h2>
+  <h3>Dominio (capa A)</h3>
+  <ul class="files">
+    <li><a class="file" href="evidencias/dominio/resultado_dominio.json">evidencias/dominio/resultado_dominio.json</a></li>
+    <li><a class="file" href="evidencias/dominio/pytest_dominio_report.html">evidencias/dominio/pytest_dominio_report.html</a></li>
+    <li><a class="file" href="evidencias/dominio/pytest_dominio_junit.xml">evidencias/dominio/pytest_dominio_junit.xml</a></li>
+    <li><a class="file" href="evidencias/dominio/pytest_dominio.log">evidencias/dominio/pytest_dominio.log</a></li>
+  </ul>
+  <h3>Integración y alerta (capa B)</h3>
+  <ul class="files">
+    <li><a class="file" href="evidencias/integracion/resultado_integracion.json">evidencias/integracion/resultado_integracion.json</a></li>
+    <li><a class="file" href="evidencias/integracion/evidencia_alerta.json">evidencias/integracion/evidencia_alerta.json</a></li>
+    <li><a class="file" href="evidencias/integracion/pytest_integracion_report.html">evidencias/integracion/pytest_integracion_report.html</a></li>
+    <li><a class="file" href="evidencias/integracion/alembic_upgrade_g96_tmp.log">evidencias/integracion/alembic_upgrade_g96_tmp.log</a></li>
+  </ul>
+  <h3>Criterios y diagnóstico</h3>
+  <ul class="files">
+    <li><a class="file" href="evidencias/criterios/matriz_criterios_G96.md">evidencias/criterios/matriz_criterios_G96.md</a></li>
+    <li><a class="file" href="evidencias/criterios/diagnostico_integral_G96.md">evidencias/criterios/diagnostico_integral_G96.md</a></li>
+    <li><a class="file" href="evidencias/criterios/resumen_ejecucion.md">evidencias/criterios/resumen_ejecucion.md</a></li>
+    <li><a class="file" href="estado_final_G96.json">estado_final_G96.json</a></li>
+    <li><a class="file" href="RESUMEN_FINAL_G96.md">RESUMEN_FINAL_G96.md</a></li>
+  </ul>
+  <h3>Preparación e histórico</h3>
+  <ul class="files">
+    <li><a class="file" href="preparacion/informe_preparacion_G96.md">preparacion/informe_preparacion_G96.md</a></li>
+    <li><a class="file" href="historico/primera_evaluacion/resumen_ejecucion_TC-M06-G96.json">historico/primera_evaluacion/</a></li>
+  </ul>
+</section>
+
+<section id="conclusion">
+  <h2>H. Conclusión</h2>
+  <div class="ok-box">
+    <p><strong>TC-M06-G96 queda APROBADO</strong> respecto a sus criterios de aceptación de cálculo de valor en libros, control de límite no negativo y alerta persistente consultable <code>VALOR_LIBROS_AJUSTADO_A_CERO</code>.</p>
+    <p style="margin-bottom:0">La evidencia es defendible ante revisión QA: operaciones reales del backend, entorno aislado demostrable, sin contaminación del TEST compartido, expediente organizado y trazable.</p>
+  </div>
+</section>
+
+<footer>
+  TC-M06-G96 · RF-88 · Informe generado para cierre documental · 2026-11-13 · Abrir este archivo desde la carpeta <code>resultados/</code> para que los enlaces relativos funcionen.
+</footer>
+
+</div>
+</body>
+</html>

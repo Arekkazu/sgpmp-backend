@@ -1,0 +1,49 @@
+DIAGNOSTICO B03 - PRECISION DE dosis_aplicada (TC-M05-G14, RF-76, POST /suministros/medicamentos)
+Fecha: 2026-11-07 | Ambiente: TEST | Activo 853 (fase abierta dentro del sandbox, como en la suite) | Cuenta admin
+Script: evidencias/diagnostico_B03/diagnostico_b03.py | Traza: evidencias/diagnostico_B03/trazas_diagnostico_B03.jsonl
+
+HASHES (inicio = fin, archivos no tocados)
+  test_tc_m05_g14.py       a693e2df2229eb52501079e9bc9365b39e084c52c2c87699067db2f8079b680d
+  ejecutar_tc_m05_g14.ps1  01eea075baec9150e3683f18bcf84161c14dcf1e8497d3732e0e83045829d536
+
+CORRIDAS (secuenciales, un login por run_id, nunca dos abiertas a la vez)
+  BASE    conteo del activo 853 = 0                                      teardown 200 Rollback exitoso
+  PRUEBA  POST /fases 201; 4 POST de medicamento; conteo 0 -> 3          teardown 200 Rollback exitoso
+  FINAL   conteo del activo 853 = 0 (igual a BASE)                       teardown 200 Rollback exitoso
+
+TABLA DOSIS -> RESULTADO (payload base de G14, periodo_retiro_dias=0, hora distinta en cada POST)
+  dosis    HTTP  error_code     cantidad (respuesta)  cantidad (persistida, GET)  X-Request-ID                 hora UTC
+  0.001    201   -              0.001                 0.001                       g14b03-prueba-4fded65c5b36   16:07:53.574Z (cliente)
+  0.0004   500   ERROR_INTERNO  -                     -                           g14b03-prueba-71034141c3d3   16:07:52.592Z (servidor)
+  0.0005   201   -              0.001                 0.001                       g14b03-prueba-205dbd73810b   16:07:54.089Z (cliente)
+  0.0015   201   -              0.002                 0.002                       g14b03-prueba-8f01a5bce6ae   16:07:54.509Z (cliente)
+  Nota: el body de un 201 no trae timestamp, asi que esas horas son del cliente; el reloj del servidor
+  va unos 1,06 s por detras.
+
+HECHOS OBSERVADOS
+  - 0.001 (3 decimales) se acepta y se guarda tal cual: 0.001.
+  - 0.0004 responde 500 ERROR_INTERNO y no se persiste.
+  - 0.0005 se acepta pero se guarda como 0.001; 0.0015 se acepta pero se guarda como 0.002. El valor de la
+    respuesta coincide con el persistido.
+  - Ninguna dosis de 4 decimales se conserva con 4 decimales.
+  - Dentro de la misma corrida, el 500 de 0.0004 no impidio que los POST siguientes respondieran 201.
+  - Conteo: 3 registros dentro de la corrida (los tres 201); tras el teardown, base 0 = final 0 (sin contaminacion).
+
+INFERENCIAS
+  - El patron corresponde a un redondeo a 3 decimales, con el medio redondeado hacia arriba
+    (0.0005 -> 0.001, 0.0015 -> 0.002, 0.0004 -> 0.000). Coincide con la columna
+    modulo5.registros_medicamentos.cantidad numeric(10,3) vista en el esquema de TEST.
+  - El 500 de 0.0004 (y el de B03 con 0.0001) se explica porque el valor redondeado es 0.000: el trigger
+    fn_trg_calcular_costo_total_medicamento lo rechaza (cantidad <= 0, P0001) y el traductor de errores no
+    mapea ese P0001 de modulo5, asi que sale como ERROR_INTERNO en lugar de un 400 con mensaje.
+
+CONCLUSION: CONSISTENTE CON REDONDEO A 3 DECIMALES.
+  0.001 da 201; 0.0004 da 500; 0.0005 y 0.0015 guardan el valor redondeado (0.001 y 0.002).
+  Diferencia con la especificacion (decimal 10,4): las dosis de 4 decimales se truncan en silencio, y las que
+  redondean a 0 producen un 500 en lugar de guardarse (o, si se considerasen invalidas, en lugar de un 400 legible).
+
+ESCANEO DE SECRETOS (password admin, TEST_SANDBOX_SECRET completo, sus ultimos 20 caracteres y el prefijo de JWT)
+  Resultado por archivo: se anexa a continuacion, calculado despues de escribir este informe.
+  diagnostico_b03.py                   limpio
+  trazas_diagnostico_B03.jsonl         limpio
+  informe_diagnostico_B03.txt          limpio (verificado tras escribirlo)

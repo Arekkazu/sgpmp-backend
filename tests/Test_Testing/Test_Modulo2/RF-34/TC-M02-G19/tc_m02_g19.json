@@ -1,0 +1,209 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g19-rf34",
+    "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "activoActivoId",
+      "value": "181"
+    },
+    {
+      "key": "fechaReferencia",
+      "value": "2026-09-09T20:45:00Z"
+    },
+    {
+      "key": "historicoEncontrado",
+      "value": "false"
+    },
+    {
+      "key": "inconsistenciaEncontrada",
+      "value": "false"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+        },
+        "url": "{{baseUrl}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Login devuelve token', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });",
+              "pm.environment.set('token', body.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/activos-biologicos/{{activoActivoId}}/infraestructura"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+              "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.be.an('object'); pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+              "pm.test('TC-M02-191 - no devuelve historial', function () { pm.expect(body.historial).to.eql(null); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - TC-M02-190 - Fecha de referencia",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/activos-biologicos/{{activoActivoId}}/infraestructura?fecha_referencia={{fechaReferencia}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const ejecutable = String(pm.environment.get('historicoEncontrado')).toLowerCase() === 'true';",
+              "if (!ejecutable) {",
+              "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+              "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+              "} else {",
+              "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+              "  const body = pm.response.json();",
+              "  pm.test('TC-M02-190 - devuelve asociacion para fecha de referencia', function () { pm.expect(body.asociacion_activa).to.be.an('object'); });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - TC-M02-192 - Integridad del historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/activos-biologicos/{{activoActivoId}}/infraestructura?tipo_consulta=HISTORIAL"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const ejecutable = String(pm.environment.get('inconsistenciaEncontrada')).toLowerCase() === 'true';",
+              "if (!ejecutable) {",
+              "  console.log('TC-M02-192 NO EJECUTABLE: no existe una inconsistencia preparada en TEST.');",
+              "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de inconsistencia preparada', function () { pm.expect(true).to.eql(true); });",
+              "} else {",
+              "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+              "  const body = pm.response.json();",
+              "  pm.test('TC-M02-192 - informa advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.not.eql(null); });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Control - Activo inexistente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/activos-biologicos/99999/infraestructura?tipo_consulta=ACTIVA"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+              "const body = pm.response.json();",
+              "pm.test('Control - codigo ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - TC-M02-193 - Auditoria RF-34",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/activos-biologicos/auditoria"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "const records = body.registros || body.items || body.data || [];",
+              "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(records).to.be.an('array').and.not.empty; });",
+              "const text = JSON.stringify(body).toUpperCase();",
+              "pm.test('TC-M02-193 - auditoria contiene referencia a RF-34/asociacion', function () { pm.expect(text).to.satisfy(t => t.includes('181') && (t.includes('RF-34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'))); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

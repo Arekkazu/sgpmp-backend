@@ -1,0 +1,232 @@
+{
+  "tipo": "indice_consolidado_de_reportes_newman",
+  "caso": "TC-M02-G43",
+  "requisito": "RF-40",
+  "fecha_evento_oficial": "2026-09-09T23:01:00Z",
+  "resultado": "APROBADO",
+  "alcance": "Tres ciclos oficiales independientes: ANTES -> POST -> DESPUES. SETUP usó solo GET/SELECT.",
+  "totales": {
+    "ejecuciones": 3,
+    "solicitudes": 24,
+    "aserciones": 59,
+    "fallas": 0
+  },
+  "ejecuciones": [
+    {
+      "actor": "Productor",
+      "activo": 279,
+      "usuario": 35,
+      "evento": 232,
+      "antes": 2,
+      "despues": 3,
+      "archivo": "reporte_productor_tc_m02_g43.json",
+      "reporte_newman": "reporte_productor_tc_m02_g43.json",
+      "reporte_html": "reporte_productor_tc_m02_g43.html",
+      "solicitudes": 8,
+      "aserciones": 20,
+      "fallas": 0,
+      "detalle_http": [
+        {
+          "nombre": "Login — Productor",
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/sesiones/",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Acceso legítimo y estado — Productor",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/279",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Fase activa — Productor",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/279/fases",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "ANTES — historial de crecimiento — Productor",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/279/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "POST crecimiento PESO 250 kg — Productor",
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/activos-biologicos/279/eventos/crecimiento",
+          "estado_http": 201,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "DESPUÉS — persistencia e historial por API — Productor",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/279/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Historial cronológico — Productor",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/279/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Auditoría RF-40 — Productor",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/auditoria",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        }
+      ]
+    },
+    {
+      "actor": "Veterinario",
+      "activo": 311,
+      "usuario": 3,
+      "evento": 229,
+      "antes": 0,
+      "despues": 1,
+      "archivo": "reporte_veterinario_tc_m02_g43.json",
+      "reporte_newman": "reporte_veterinario_tc_m02_g43.json",
+      "reporte_html": "reporte_veterinario_tc_m02_g43.html",
+      "solicitudes": 8,
+      "aserciones": 20,
+      "fallas": 0,
+      "detalle_http": [
+        {
+          "nombre": "Login — Veterinario",
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/sesiones/",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Acceso legítimo y estado — Veterinario",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/311",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Fase activa — Veterinario",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/311/fases",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "ANTES — historial de crecimiento — Veterinario",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/311/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "POST crecimiento PESO 250 kg — Veterinario",
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/activos-biologicos/311/eventos/crecimiento",
+          "estado_http": 201,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "DESPUÉS — persistencia e historial por API — Veterinario",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/311/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Historial cronológico — Veterinario",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/311/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Auditoría RF-40 — Veterinario",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/auditoria",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        }
+      ]
+    },
+    {
+      "actor": "Ingeniero de campo",
+      "activo": 312,
+      "usuario": 4,
+      "evento": 233,
+      "antes": 2,
+      "despues": 3,
+      "archivo": "reporte_ingeniero_tc_m02_g43.json",
+      "reporte_newman": "reporte_ingeniero_tc_m02_g43.json",
+      "reporte_html": "reporte_ingeniero_tc_m02_g43.html",
+      "solicitudes": 8,
+      "aserciones": 19,
+      "fallas": 0,
+      "detalle_http": [
+        {
+          "nombre": "Login — Ingeniero de campo",
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/sesiones/",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Acceso legítimo y estado — Ingeniero de campo",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/312",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Fase activa — Ingeniero de campo",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/312/fases",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "ANTES — historial de crecimiento — Ingeniero de campo",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/312/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "POST crecimiento PESO 250 kg — Ingeniero de campo",
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/activos-biologicos/312/eventos/crecimiento",
+          "estado_http": 201,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "DESPUÉS — persistencia e historial por API — Ingeniero de campo",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/312/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Historial cronológico — Ingeniero de campo",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/312/historial",
+          "estado_http": 200,
+          "aserciones_fallidas": 0
+        },
+        {
+          "nombre": "Auditoría RF-40 — Ingeniero de campo",
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/activos-biologicos/auditoria",
+          "estado_http": 403,
+          "aserciones_fallidas": 0
+        }
+      ]
+    }
+  ]
+}

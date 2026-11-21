@@ -1,0 +1,120 @@
+{
+  "tc": "TC-M05-G25",
+  "summary": {
+    "total": 18,
+    "ok": 16,
+    "falla": 2,
+    "veredicto": "Rechazado",
+    "duracion_s": 24.89
+  },
+  "checkpoints": [
+    {
+      "paso": "A01 Generación de reporte sincrónico por Productor",
+      "esperado": "HTTP 200, respuesta con id_reporte_gasto_acumulado y gasto acumulado calculado (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 200, respuesta con id_reporte_gasto_acumulado y gasto acumulado calculado)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Exportación de reporte a formato CSV por Productor",
+      "esperado": "HTTP 201, generación de archivo CSV con vigencia de 24 horas y prefijo Gastos_ (Fuente: RF-77 RNF Exportación (TC-M05-024 / CU04))",
+      "obtenido": "Conforme con la especificación (HTTP 201, generación de archivo CSV con vigencia de 24 horas y prefijo Gastos_)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Exportación de reporte a formato PDF por Productor",
+      "esperado": "HTTP 201, generación de archivo PDF con prefijo Reporte_Gastos_ (Fuente: RF-77 RNF Exportación (TC-M05-024 / CU04))",
+      "obtenido": "Conforme con la especificación (HTTP 201, generación de archivo PDF con prefijo Reporte_Gastos_)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Descarga de exportación propia por Productor",
+      "esperado": "HTTP 200, Content-Type text/csv, Content-Disposition attachment (Fuente: RF-77 RNF Exportación (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 200, Content-Type text/csv, Content-Disposition attachment)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05 Restricción de acceso a auditoría de M05 para Productor",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Recurso 57 restringido a Administrador/Contador) (Fuente: RF-80 / RBAC Centralizado)",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO (Recurso 57 restringido a Administrador/Contador))",
+      "estado": "OK"
+    },
+    {
+      "paso": "A98 Cierre ordenado de sandbox Productor y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "Conforme con la especificación (HTTP 200 con confirmación 'Rollback exitoso')",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Restricción de generación de reporte para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Solo Productor y Administrador pueden generar) (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO (Solo Productor y Administrador pueden generar))",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Restricción de exportación de reporte para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03 Restricción de descarga de exportación para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B04 Restricción de acceso a auditoría para Veterinario",
+      "esperado": "HTTP 403 ACCESO_DENEGADO (Fuente: RF-80 / RBAC Centralizado)",
+      "obtenido": "Conforme con la especificación (HTTP 403 ACCESO_DENEGADO)",
+      "estado": "OK"
+    },
+    {
+      "paso": "B98 Cierre ordenado de sandbox Veterinario y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "Conforme con la especificación (HTTP 200 con confirmación 'Rollback exitoso')",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 Generación y exportación de reporte por Administrador",
+      "esperado": "HTTP 200 en generación y HTTP 201 en exportación CSV (Fuente: RF-77 RNF Seguridad (TC-M05-024))",
+      "obtenido": "Conforme con la especificación (HTTP 200 en generación y HTTP 201 en exportación CSV)",
+      "estado": "OK"
+    },
+    {
+      "paso": "C02 Registro en bitácora de auditoría de M05 de generación/exportación",
+      "esperado": "Presencia de evento de auditoría con usuario y timestamp (RF-77 CA-11 / Postcondición 3) (Fuente: RF-77 CA-11 / Postcondición 3 (TC-M05-025))",
+      "obtenido": "Falla: AssertionError: DEFECTO_PRODUCTO: El evento de generación/exportación del reporte de gastos acumulados no fue registrado en la bitácora de auditoría de M05 (RF-77 CA-11 / Postcondición 3 / Caso TC-M05-025). Se consultaron los últimos 50 eventos y ninguno corresponde a entidad o tipo_operacion de RF-",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "C98 Cierre ordenado de sandbox Administrador y rollback",
+      "esperado": "HTTP 200 con confirmación 'Rollback exitoso' (Fuente: Testing Harness / Sandbox Control)",
+      "obtenido": "Conforme con la especificación (HTTP 200 con confirmación 'Rollback exitoso')",
+      "estado": "OK"
+    },
+    {
+      "paso": "D01 Rechazo de solicitudes no autenticadas",
+      "esperado": "HTTP 401 NO_AUTENTICADO en endpoints de reporte, exportación, descarga, historial y auditoría (Fuente: RF-02 / Especificación Global de Seguridad)",
+      "obtenido": "Conforme con la especificación (HTTP 401 NO_AUTENTICADO en endpoints de reporte, exportación, descarga, historial y auditoría)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D02 Prevención de IDOR en descarga de exportaciones ajenas",
+      "esperado": "HTTP 403 ARCHIVO_DE_OTRO_USUARIO al intentar descargar archivo generado por otro usuario (Fuente: RF-77 RNF Seguridad / Aislamiento (TC-M05-024 / TC-M05-025))",
+      "obtenido": "Conforme con la especificación (HTTP 403 ARCHIVO_DE_OTRO_USUARIO al intentar descargar archivo generado por otro usuario)",
+      "estado": "OK"
+    },
+    {
+      "paso": "D03 Validación de tipos y resistencia ante IDs inexistentes o inválidos",
+      "esperado": "HTTP 404 en inexistentes, HTTP 422 en tipos inválidos; jamás HTTP 500 (Fuente: Guía de Pruebas / Robustez de la API)",
+      "obtenido": "Falla: AssertionError: Para ID alfanumérico (/suministros/reportes-gastos/id_invalido) se esperaba HTTP (422,), obtenido: 400: {\"error_code\":\"VAL_ENTRADA\",\"message\":\"Errores de validacion en la solicitud\",\"fields\":[{\"field\":\"id\nassert 400 in (422,)\n +  where 400 = <Response [400]>.status_code",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "D04 Aislamiento estricto de historial por usuario",
+      "esperado": "GET /historial filtra exclusivamente los reportes creados por el usuario autenticado (Fuente: RF-77 RNF Historial (TC-M05-023 / TC-M05-024))",
+      "obtenido": "Conforme con la especificación (GET /historial filtra exclusivamente los reportes creados por el usuario autenticado)",
+      "estado": "OK"
+    }
+  ]
+}

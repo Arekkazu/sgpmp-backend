@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G100 — evaluación aprobada</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 920px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    code { font-family: Consolas, monospace; }
+    .ok { display: inline-block; background: #e5f6ea; border: 1px solid #8bc79a; border-radius: 4px; padding: .1rem .45rem; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-88 · Caso TC-M06-G100</p>
+  <h1>Rechazo del reconocimiento de un activo en BAJA</h1>
+  <p>Identificador vigente TC-M06-G100. Nombre histórico TC-M06-G72. Issue #973. Entorno TEST. 2026-11-10. America/Bogota.</p>
+  <p><span class="ok">APROBADO</span> El Contador 141 ejecutó la confirmación. No se usó el Administrador.</p>
+
+  <h2>Objetivo</h2>
+  <p>Comprobar que el sistema rechaza la confirmación del reconocimiento financiero de un activo en estado BAJA que no tiene reconocimiento previo, sin crear reconocimiento ni líneas contables.</p>
+
+  <h2>Escenario</h2>
+  <table>
+    <tr><th>Elemento</th><th>Valor leído</th></tr>
+    <tr><td>Titular</td><td>QA M06 Operaciones SAS, NIT 900000003</td></tr>
+    <tr><td>Finca</td><td>467, Finca Qa Seis Operaciones</td></tr>
+    <tr><td>Período 220</td><td>ABIERTO, 2026-11-01 a 2026-11-30</td></tr>
+    <tr><td>Activo</td><td>1574, QA-M06O-BAJA-01, estado BAJA, origen nacimiento, sin costo de adquisición</td></tr>
+  </table>
+
+  <h2>Consultas previas</h2>
+  <p><code>GET /finanzas/activos/1574</code> respondió 200. El control por finca dejó ver el activo al Contador: finca 467 y NIT 900000003. No tenía reconocimientos, valoración por costo ni líneas. La auditoría del activo tenía 0 eventos.</p>
+  <p><code>GET /finanzas/reconocimientos/propuestas/1574</code> respondió 200. La propuesta no era confirmable y su único bloqueo era <code>ACTIVO_NO_VALORABLE</code>. No estaba el bloqueo que deja un evento de auditoría.</p>
+  <p><code>GET /activos-biologicos/1574</code> respondió 403 <code>ACCESO_DENEGADO</code>. Es el permiso del rol sobre ese módulo, no la ausencia del activo: la lectura financiera sí lo devolvió. <code>GET /configuracion/fincas</code> también respondió 403 para este rol. La vinculación de la finca 467 queda demostrada por la lectura financiera, que el control por finca limita a las fincas del usuario.</p>
+  <p>El activo 1574 no aparecía entre los reconocidos de la finca. Los activos 1569, 1570, 1571, 1572 y 1573 seguían reconocidos y no se usaron.</p>
+
+  <h2>Confirmación</h2>
+  <p>El contrato del endpoint admite un cuerpo vacío cuando no hay costos de venta manuales. Se envió <code>POST /finanzas/reconocimientos/1574</code> con <code>{}</code> a las 2026-11-10T06:29:31Z.</p>
+  <p>HTTP 422. Código <code>ACTIVO_NO_VALORABLE</code>. Mensaje: “El activo está baja: solo se reconocen los que están activos o en tratamiento.”</p>
+  <p>La validación de baja ocurre antes de registrar el reconocimiento. Como el único bloqueo no es el de ausencia de valor, la operación no graba auditoría, reconocimiento ni líneas.</p>
+
+  <h2>Después del POST</h2>
+  <table>
+    <tr><th>Comprobación</th><th>Resultado</th></tr>
+    <tr><td>Estado del activo</td><td>BAJA. Misma finca, mismo código y mismo titular.</td></tr>
+    <tr><td>Reconocimientos</td><td>0</td></tr>
+    <tr><td>Líneas contables</td><td>0</td></tr>
+    <tr><td>Valoración por costo</td><td>Ninguna</td></tr>
+    <tr><td>Auditoría del activo</td><td>0 eventos, igual que antes</td></tr>
+    <tr><td>Otros activos de la finca 467</td><td>1569, 1570, 1571, 1572 y 1573 siguieron reconocidos, sin cambios de estado.</td></tr>
+    <tr><td>Período 220</td><td>ABIERTO. No se envió ningún cierre.</td></tr>
+  </table>
+
+  <h2>Validaciones</h2>
+  <table>
+    <tr><th>Validación</th><th>Resultado</th></tr>
+    <tr><td>HTTP 422 <code>ACTIVO_NO_VALORABLE</code></td><td>APROBADO</td></tr>
+    <tr><td>El activo permanece en BAJA</td><td>APROBADO</td></tr>
+    <tr><td>No se crea reconocimiento</td><td>APROBADO</td></tr>
+    <tr><td>No se crean líneas</td><td>APROBADO</td></tr>
+    <tr><td>No se graba auditoría</td><td>APROBADO</td></tr>
+    <tr><td>Los demás activos no cambian</td><td>APROBADO</td></tr>
+    <tr><td>El período 220 sigue abierto</td><td>APROBADO</td></tr>
+  </table>
+
+  <h2>Evidencias</h2>
+  <ul>
+    <li><a href="resumen_ultima_evaluacion.json">resumen_ultima_evaluacion.json</a></li>
+    <li><a href="evidencias_ultima_evaluacion.json">evidencias_ultima_evaluacion.json</a></li>
+    <li><a href="../comparacion_evaluaciones.html">Comparación</a></li>
+  </ul>
+</body>
+</html>

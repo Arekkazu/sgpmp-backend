@@ -1,0 +1,119 @@
+{
+  "tc": "TC-M05-G19",
+  "summary": {
+    "total": 18,
+    "ok": 16,
+    "falla": 2,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Línea base y setup Admin (R1)",
+      "esperado": "HTTP 200 en consultas base de 853 y auditoría; apertura de fase (201) y registro R1 VALIDADO (201)",
+      "obtenido": "Línea base capturada para 853 y auditoría. Fase abierta en 853 (HTTP 201) y R1 registrado VALIDADO (HTTP 201)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Rechazo anulación con 19 caracteres (E9)",
+      "esperado": "HTTP 400 (JUSTIFICACION_INSUFICIENTE); R1 conserva estado VALIDADO",
+      "obtenido": "HTTP 400 Bad Request (JUSTIFICACION_INSUFICIENTE); R1 permanece en estado VALIDADO",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Anulación con 20 caracteres",
+      "esperado": "HTTP 200; R1 pasa a ANULADO con justificación, usuario y fecha poblados",
+      "obtenido": "HTTP 200 OK; R1 pasa a estado ANULADO con justificación y metadatos de anulación",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Rechazo re-anulación de registro ANULADO (E8)",
+      "esperado": "HTTP 409 (MEDICAMENTO_YA_ANULADO); mensaje menciona 'ANULADO'",
+      "obtenido": "HTTP 409 Conflict (MEDICAMENTO_YA_ANULADO); rechazo confirmado con mensaje explicativo",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Reactivación bloqueada (405) y nuevo registro (201)",
+      "esperado": "Reactivación rechazada con HTTP 405 (REGISTRO_INMUTABLE); creación de reemplazo responde 201 (FA-12)",
+      "obtenido": "Reactivación rechazada con HTTP 405 (REGISTRO_INMUTABLE); creación de nuevo registro responde HTTP 201",
+      "estado": "OK"
+    },
+    {
+      "paso": "A05 Inmutabilidad PUT sobre VALIDADO",
+      "esperado": "HTTP 405 (REGISTRO_INMUTABLE); R2 permanece sin modificaciones",
+      "obtenido": "HTTP 405 Method Not Allowed (REGISTRO_INMUTABLE); R2 VALIDADO inmutable",
+      "estado": "OK"
+    },
+    {
+      "paso": "A06 Inmutabilidad PATCH sobre VALIDADO",
+      "esperado": "HTTP 405 (REGISTRO_INMUTABLE); R2 permanece sin modificaciones",
+      "obtenido": "HTTP 405 Method Not Allowed (REGISTRO_INMUTABLE); R2 VALIDADO inmutable",
+      "estado": "OK"
+    },
+    {
+      "paso": "A07 Inmutabilidad DELETE sobre VALIDADO",
+      "esperado": "HTTP 405 (REGISTRO_INMUTABLE); R2 sigue existiendo y en estado VALIDADO",
+      "obtenido": "HTTP 405 Method Not Allowed (REGISTRO_INMUTABLE); R2 VALIDADO persiste",
+      "estado": "OK"
+    },
+    {
+      "paso": "A08 Consulta de auditoría con Administrador",
+      "esperado": "HTTP 200 con eventos de registro y anulación detallando usuario, timestamp y operación",
+      "obtenido": "HTTP 200 OK; bitácora M05 lista eventos de registro y anulación con usuario, fecha y detalle",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Rechazo de registro para rol Productor",
+      "esperado": "HTTP 403 (ACCESO_DENEGADO); intento sin permisos bloqueado",
+      "obtenido": "HTTP 403 Forbidden (ACCESO_DENEGADO); intento de registro bloqueado por RBAC",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Rechazo de anulación para rol Productor",
+      "esperado": "HTTP 403 (ACCESO_DENEGADO); intento sin permisos bloqueado",
+      "obtenido": "HTTP 403 Forbidden (ACCESO_DENEGADO); intento de anulación bloqueado por RBAC",
+      "estado": "OK"
+    },
+    {
+      "paso": "C01 Rechazo de registro para rol Ingeniero de Campo",
+      "esperado": "HTTP 403 (ACCESO_DENEGADO); intento sin permisos bloqueado",
+      "obtenido": "HTTP 403 Forbidden (ACCESO_DENEGADO); intento de registro bloqueado por RBAC",
+      "estado": "OK"
+    },
+    {
+      "paso": "C02 Rechazo de anulación para rol Ingeniero de Campo",
+      "esperado": "HTTP 403 (ACCESO_DENEGADO); intento sin permisos bloqueado",
+      "obtenido": "HTTP 403 Forbidden (ACCESO_DENEGADO); intento de anulación bloqueado por RBAC",
+      "estado": "OK"
+    },
+    {
+      "paso": "D01 Registro válido por rol Veterinario",
+      "esperado": "Apertura de fase (201) y registro de medicamento exitoso con HTTP 201",
+      "obtenido": "FALLA AMBIENTE: AssertionError: ERROR_AMBIENTE: setup apertura fase 853 para Veterinario respondio HTTP 404: {\"error_code\":\"ACTIVO_NO_ENCONTRADO\",\"message\":\"El activo biológico con ID 853 no existe.\",\"fields\":[],\"timestamp\":\"2026-11-07T18:45:05.351061+00:00\"}\nassert 404 == 201\n +  where 404 = <Response [404]>.status_code",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "D02 Anulación válida por rol Veterinario",
+      "esperado": "HTTP 200; registro pasa a estado ANULADO",
+      "obtenido": "FALLA AMBIENTE: AssertionError: ERROR_AMBIENTE: No se encontro registro VALIDADO para anular\nassert None is not None",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "D03 Consulta de auditoría por Veterinario (R=2 restringido)",
+      "esperado": "HTTP 403 (ACCESO_DENEGADO) por falta de permiso R=2 sobre recurso 57",
+      "obtenido": "HTTP 403 Forbidden (ACCESO_DENEGADO); recurso 57 restringido a Admin",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre ordenado de las 4 corridas sandbox",
+      "esperado": "DELETE /test-control/runs/<run_id> HTTP 200 con 'Rollback exitoso' en las 4 corridas",
+      "obtenido": "4 corridas sandbox cerradas con HTTP 200 Rollback exitoso (4 confirmados)",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Verificación de inocuidad final sin sandbox",
+      "esperado": "Inventario de medicamentos, estado y fases del activo 853 idénticos a T00",
+      "obtenido": "Medicamentos, estado y fases de 853 verificados 100% idénticos fuera de sandbox",
+      "estado": "OK"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Caso TC-M03-G188 - Resiliencia y Continuidad Operativa</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 40px; }
+        .container { max-width: 900px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h1 { color: #f43f5e; margin-top: 0; font-size: 26px; border-bottom: 2px solid #334155; padding-bottom: 12px; }
+        .badge { display: inline-block; padding: 6px 14px; border-radius: 9999px; font-weight: 700; font-size: 13px; text-transform: uppercase; margin-bottom: 20px; }
+        .badge-blocked { background-color: #ef4444; color: #ffffff; }
+        .card { background: #0f172a; border-left: 4px solid #ef4444; padding: 18px; border-radius: 6px; margin-bottom: 20px; }
+        .card h3 { margin: 0 0 8px 0; color: #38bdf8; font-size: 18px; }
+        .card p { margin: 0; color: #cbd5e1; line-height: 1.5; font-size: 14px; }
+        .receta { background: #1e1e38; border: 1px dashed #6366f1; padding: 16px; border-radius: 8px; margin-top: 24px; }
+        .receta h4 { margin: 0 0 10px 0; color: #a5b4fc; }
+        code { background: #334155; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #f1f5f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TC-M03-G188: Resiliencia, Fallos y Continuidad Operativa</h1>
+        <span class="badge badge-blocked">[BLOQUEADO POR INFRAESTRUCTURA]</span>
+        <p>Este conjunto de pruebas no puede ser ejecutado contra el entorno TEST desplegado (<code>https://api.inmero.co/back-sigab-test</code>) dado que requiere manipulación física y control de red sobre contenedores del sistema.</p>
+
+        <div class="card">
+            <h3>TC-M03-357: Caída del Servicio o Base de Datos de Auditoría</h3>
+            <p><strong>Estado:</strong> <code>BLOQUEADO</code>. Requiere acceso SSH/Docker al servidor o parada abrupta de PostgreSQL mientras se ingesta telemetría. Imposible de realizar por API HTTPS.</p>
+        </div>
+
+        <div class="card">
+            <h3>TC-M03-358: Desconexión y Partición del Broker MQTT</h3>
+            <p><strong>Estado:</strong> <code>BLOQUEADO</code>. Requiere detener el daemon de EMQX/Mosquitto y forzar reconexión cíclica con retención en buffer.</p>
+        </div>
+
+        <div class="card">
+            <h3>TC-M03-359: Desconexión de Gateway Edge &ge; 2 Horas</h3>
+            <p><strong>Estado:</strong> <code>BLOQUEADO</code>. El sandbox transaccional posee un timeout estricto de 180 segundos. Una prueba de 2 horas satura el entorno y no es viable por HTTP.</p>
+        </div>
+
+        <div class="receta">
+            <h4>Propuesta de Ejecución en Laboratorio Local</h4>
+            <p>Utilizar <code>docker-compose.test.yml</code> con <strong>Toxiproxy</strong> para inyectar cortes de socket TCP (<code>reset_peer</code>) y caídas de servicio controladas en pipeline CI/CD local sin afectar entornos compartidos.</p>
+        </div>
+    </div>
+</body>
+</html>

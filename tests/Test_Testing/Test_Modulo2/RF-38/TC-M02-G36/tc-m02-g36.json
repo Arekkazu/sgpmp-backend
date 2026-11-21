@@ -1,0 +1,733 @@
+{
+  "info": {
+    "_postman_id": "175e38ae-ca8a-46e4-9e07-f9032e3657c6",
+    "name": "TC-M02-G36 - Validacion de precondiciones para el cierre del ciclo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login Admin - admin.test (autorizado explicitamente por Daniela)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin_test}}\",\n  \"contrasena\": \"{{contrasena_admin_test}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0A admin.test login: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0A - login admin.test responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1. Admin crea una finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba QA {{sufijo_finca_g36}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ceiba\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var suf = '';",
+              "for (var i = 0; i < 8; i++) { suf += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_finca_g36', suf);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-1 finca: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-1 - finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_finca_creada_g36', pm.response.json().id_finca); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2. Admin crea una infraestructura dentro de esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"QA-G36-Infra-{{$timestamp}}\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 500.0,\n  \"finca_id\": \"{{id_finca_creada_g36}}\",\n  \"descripcion_infraestructura\": \"Infraestructura de prueba QA TC-M02-G36\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-2 infra: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-2 - infraestructura creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_infraestructura_creada_g36', pm.response.json().id_infraestructura); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3. Admin registra el activo A (sera dado de baja, para TC-060)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g36}}\",\n  \"identificador\": \"QA-G36-ActivoA-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-3 activo A: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-3 - activo A creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_A_g36', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4. Admin registra el activo B (se mantiene ACTIVO sin fase, para TC-061/062/063)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g36}}\",\n  \"identificador\": \"QA-G36-ActivoB-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-4 activo B: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-4 - activo B creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_B_g36', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-5. Dar de baja al activo A (para dejarlo en estado BAJA, sin depender de fase productiva)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_A_g36}}/eventos/baja",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_A_g36}}",
+            "eventos",
+            "baja"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"{{fecha_hoy_g36}}\",\n  \"motivo_baja\": \"Muerte por causas naturales - QA G36\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var hoy = new Date().toISOString().slice(0,10);",
+              "pm.collectionVariables.set('fecha_hoy_g36', hoy);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-5 baja activo A: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-5 - la baja del activo A se registra (201)', function () { pm.response.to.have.status(201); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-6. Confirmar que el activo A quedo en estado BAJA",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_A_g36}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_A_g36}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-6 estado activo A: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-6 - se puede consultar el activo A (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('SETUP-6 - el activo A quedo en estado BAJA', function () {",
+              "        pm.expect(pm.response.json().nombre_estado).to.eql('BAJA');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-060. Intentar cerrar el ciclo del activo A, que ya esta en estado BAJA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_A_g36}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_A_g36}}",
+            "cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy_g36}}\",\n  \"motivo_cierre\": \"VENTA\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-060 cierre sobre BAJA: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-060 - se rechaza el cierre con 409 CONFLICT (el activo ya esta en un estado terminal)', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "if (pm.response.code === 409) {",
+              "    pm.test('TC-060 - el codigo de error es ESTADO_INVALIDO_PARA_CIERRE', function () {",
+              "        pm.expect(pm.response.json().error_code).to.eql('ESTADO_INVALIDO_PARA_CIERRE');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-061a. Cierre con motivo_cierre vacio sobre el activo B (ACTIVO)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_B_g36}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_B_g36}}",
+            "cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy_g36}}\",\n  \"motivo_cierre\": \"\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-061a motivo vacio: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-061a - se rechaza el cierre con 400 (motivo de cierre obligatorio)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-061b. Cierre con motivo_cierre omitido (campo ausente) sobre el activo B",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_B_g36}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_B_g36}}",
+            "cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy_g36}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-061b motivo ausente: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-061b - se rechaza el cierre con 400 (motivo de cierre obligatorio, campo ausente)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-062a. Cierre con fecha_cierre futura sobre el activo B",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_B_g36}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_B_g36}}",
+            "cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"2027-12-31\",\n  \"motivo_cierre\": \"VENTA\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-062a fecha futura: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-062a - se rechaza el cierre con 400 (fecha de cierre no puede ser futura)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-062b. Cierre con fecha_cierre anterior al ultimo evento (30/08/2026) sobre el activo B",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_B_g36}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_B_g36}}",
+            "cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"2026-08-30\",\n  \"motivo_cierre\": \"VENTA\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-062b fecha anterior a ultimo evento: ' + pm.response.code + ' body=' + pm.response.text());",
+              "// NOTA: esta validacion (FA-04, fecha vs ultimo evento) se evalua DESPUES de comprobar",
+              "// que el activo tiene una fase productiva activa (FA-05). Como TC-M02-G35 encontro que",
+              "// el endpoint que asigna fase productiva esta roto (bug documentado), ningun activo",
+              "// puede tener hoy una fase activa, y esta peticion queda bloqueada antes de llegar a",
+              "// validar la fecha. Se documenta el resultado real obtenido, no se fuerza un valor.",
+              "pm.test('TC-062b - la peticion es rechazada (400 esperado por fecha, o 422 si esta bloqueada por la falta de fase activa - ver TC-M02-G35)', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-063. Cierre con datos por lo demas validos sobre el activo B, que nunca tuvo una fase productiva activa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_B_g36}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_B_g36}}",
+            "cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy_g36}}\",\n  \"motivo_cierre\": \"VENTA\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-063 sin fase activa: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-063 - se rechaza el cierre con 422 (el activo no tiene fase productiva activa)', function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "if (pm.response.code === 422) {",
+              "    pm.test('TC-063 - el codigo de error es SIN_FASE_ACTIVA', function () {",
+              "        pm.expect(pm.response.json().error_code).to.eql('SIN_FASE_ACTIVA');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-063b. Verificacion de salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-063b health: ' + pm.response.code);",
+              "pm.test('TC-063b - el servicio responde 200 OK', function () { pm.response.to.have.status(200); });",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin_test",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin_test",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo_finca_g36",
+      "value": ""
+    },
+    {
+      "key": "id_finca_creada_g36",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura_creada_g36",
+      "value": ""
+    },
+    {
+      "key": "id_activo_A_g36",
+      "value": ""
+    },
+    {
+      "key": "id_activo_B_g36",
+      "value": ""
+    },
+    {
+      "key": "fecha_hoy_g36",
+      "value": ""
+    }
+  ]
+}

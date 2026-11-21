@@ -1,8 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para registrar una calibración de sensor (POST /{id}/calibrar RF-24)."""
 from __future__ import annotations
 
 import math
-from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional, Union
 
@@ -10,6 +12,7 @@ from pydantic import field_validator
 
 from src.configuration.domain.value_objects.modo_calibracion import ModoCalibracion
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 
 class RegistrarCalibracionDTO(BaseDTO):
@@ -26,7 +29,7 @@ class RegistrarCalibracionDTO(BaseDTO):
     valor_referencia: Optional[Union[Decimal, str]] = None
     ganancia: Decimal = Decimal("1.0")
     offset: Optional[Decimal] = None
-    fecha_calibracion: datetime
+    fecha_calibracion: FechaHoraUtc
     observaciones: Optional[str] = None
     # RF-24 v2.0, TC-M09-259 (#510): la modalidad debe enviarse explícitamente.
     # Un default permitiría persistir peticiones que omiten el discriminador.

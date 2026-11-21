@@ -1,0 +1,608 @@
+{
+  "caso": "TC-M06-G118",
+  "fase": "reevaluacion_aaef_2026-11-13",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "generado_en": "2026-11-14T03:57:05.071760+00:00",
+  "restricciones": [
+    "Solo GET + POST /sesiones/ para autenticacion Contador",
+    "Sin POST cotizaciones",
+    "Sin cierre de periodos",
+    "Sin POST /integraciones/agrofusion/token (credencial canal no disponible en env seguro)",
+    "Sin rotacion/creacion de clientes ni contratos"
+  ],
+  "novedades_informadas_samuel": {
+    "contrato": "AAEF 2.1 id=3 ACTIVA desde 2026-11-13; anexo mapeo v2.0; transformador solo compras; 1.0 INACTIVA; 2.0 DEPRECADA",
+    "titular_qa": "900000003 periodo 220 ABIERTO; vista previa esperada 422 PERIODO_NO_CERRADO",
+    "referencia": "900000002 periodo nov cerrado; vista previa esperada 200",
+    "cliente": "id=5 QA_M06_AAEF_CONSULTA canal CONSULTA_AAEF 60/min; sin M2M; secret no en evidencia"
+  },
+  "credencial_canal_env": {
+    "QA_AAEF_CLIENT_ID": false,
+    "QA_AAEF_CLIENT_SECRET": false,
+    "QA_AAEF_EMAIL": false,
+    "AAEF_CLIENT_ID": false,
+    "AAEF_CLIENT_SECRET": false,
+    "nota": "Ausencia de secreto en entorno del agente; no se inventa ni se solicita por chat"
+  },
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:06.029467+00:00",
+      "escritura": true,
+      "nota": "login_contador",
+      "respuesta": {
+        "ok": true,
+        "tipo": "Bearer",
+        "expira_en": 28799
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:06.434917+00:00",
+      "escritura": false,
+      "respuesta": {
+        "nombre_rol": "Contador"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:06.827768+00:00",
+      "escritura": false,
+      "respuesta": {
+        "permisos_filtrados": [
+          {
+            "recurso": "valoracion_activos",
+            "accion": 2
+          },
+          {
+            "recurso": "valoracion_activos",
+            "accion": 5
+          },
+          {
+            "recurso": "cotizaciones",
+            "accion": 1
+          },
+          {
+            "recurso": "cotizaciones",
+            "accion": 2
+          },
+          {
+            "recurso": "cotizaciones",
+            "accion": 3
+          },
+          {
+            "recurso": "cotizaciones",
+            "accion": 4
+          },
+          {
+            "recurso": "exportacion_contable",
+            "accion": 2
+          },
+          {
+            "recurso": "contratos_aaef",
+            "accion": 2
+          },
+          {
+            "recurso": "contratos_aaef",
+            "accion": 5
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:11.849992+00:00",
+      "escritura": false,
+      "nota": "openapi_paths",
+      "respuesta": {
+        "paths_interes": [
+          "/integracion/aaef/productores/{nit}",
+          "/integracion/aaef/vista-previa/productores/{nit}",
+          "/integracion/anexos",
+          "/integracion/anexos/{id_mapeo_anexo_aaef}/aprobar",
+          "/integracion/anexos/{id_mapeo_anexo_aaef}/revision",
+          "/integracion/clientes",
+          "/integracion/clientes/{id_cliente_externo}",
+          "/integracion/clientes/{id_cliente_externo}/reactivar",
+          "/integracion/clientes/{id_cliente_externo}/revocar",
+          "/integracion/clientes/{id_cliente_externo}/rotar",
+          "/integracion/clientes/{id_cliente_externo}/suspender",
+          "/integracion/contratos",
+          "/integracion/contratos/{id_version_contrato_aaef}/activar",
+          "/integracion/contratos/{id_version_contrato_aaef}/deprecar",
+          "/integraciones/agrofusion/roles",
+          "/integraciones/agrofusion/tipos-documento",
+          "/integraciones/agrofusion/token",
+          "/integraciones/agrofusion/usuarios",
+          "/integraciones/agrofusion/usuarios/{email}",
+          "/integraciones/agrofusion/usuarios/{usuario}",
+          "/integraciones/agrofusion/usuarios/{usuario}/estado"
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000003",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:12.462501+00:00",
+      "escritura": false,
+      "nota": "periodos_qa_ops",
+      "respuesta": {
+        "noviembre_2026": [
+          {
+            "id_periodo_contable": 220,
+            "estado": "ABIERTO",
+            "fecha_inicio": "2026-11-01",
+            "fecha_fin": "2026-11-30",
+            "razon_social": "QA M06 Operaciones SAS"
+          }
+        ],
+        "total": 1
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos?numero_id_tributaria=900000002",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:13.039853+00:00",
+      "escritura": false,
+      "nota": "periodos_qa_cierre",
+      "respuesta": {
+        "noviembre_2026": [
+          {
+            "id_periodo_contable": 219,
+            "estado": "CERRADO",
+            "fecha_inicio": "2026-11-01",
+            "fecha_fin": "2026-11-30",
+            "razon_social": "QA M06 Cierre SAS"
+          }
+        ],
+        "total": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:13.442473+00:00",
+      "escritura": false,
+      "nota": "contratos_aaef",
+      "respuesta": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "fecha_vigencia": "2024-01-01",
+          "id_mapeo_anexo_aaef": null,
+          "mapeadores": [],
+          "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+          "periodo_gracia_dias": null,
+          "descripcion": "Primera versión del contrato AAEF con Agrofusión. Cubre type_code 01 (reconocimiento) y 04 (cotizaciones). Deprecada al aprobarse v2.0 con soporte para type_code 02 y 03.",
+          "estado": "INACTIVO",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "fecha_vigencia": "2024-07-01",
+          "id_mapeo_anexo_aaef": null,
+          "mapeadores": [],
+          "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+          "periodo_gracia_dias": null,
+          "descripcion": "Versión 2.0 del contrato AAEF. Formaliza type_code 02 (Costo/Inversión) y 03 (Nota Crédito variación negativa). Incorpora Anexo de Mapeo AAEF v2.0 aprobado por Agrofusión. Cumple estándar RF-INT-13 v4.0.",
+          "estado": "DEPRECADO",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "fecha_vigencia": "2026-11-13",
+          "id_mapeo_anexo_aaef": 2,
+          "mapeadores": [
+            "COMPRAS"
+          ],
+          "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+          "periodo_gracia_dias": null,
+          "descripcion": "[SEED-QA-M06-AAEF] Versión vigente para QA en TEST (TC-M06-G118): misma estructura del contrato 2.0 con el anexo de mapeo AAEF v2.0 aprobado; solo transformador de compras.",
+          "estado": "ACTIVO",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:13.846897+00:00",
+      "escritura": false,
+      "nota": "anexos_mapeo",
+      "respuesta": [
+        {
+          "id_mapeo_anexo_aaef": 1,
+          "codigo_anexo": "ANEXO-AAEF-V1.0",
+          "version_anexo": "1.0",
+          "ruta_documento": "s3://pecuaria-docs/contratos/anexo-aaef-v1.0.pdf",
+          "sha256_documento": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+          "estado": "OBSOLETO",
+          "fecha_aprobacion_interna": "2025-04-13T04:10:24.266667+00:00",
+          "fecha_aprobacion": "2025-04-18T04:10:24.266667+00:00",
+          "evidencia": null
+        },
+        {
+          "id_mapeo_anexo_aaef": 2,
+          "codigo_anexo": "ANEXO-AAEF-V2.0",
+          "version_anexo": "2.0",
+          "ruta_documento": "s3://pecuaria-docs/contratos/anexo-aaef-v2.0.pdf",
+          "sha256_documento": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+          "estado": "APROBADO",
+          "fecha_aprobacion_interna": "2025-10-20T04:10:24.266667+00:00",
+          "fecha_aprobacion": "2025-10-30T04:10:24.266667+00:00",
+          "evidencia": null
+        }
+      ]
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/clientes",
+      "codigo": 403,
+      "en": "2026-11-14T03:57:14.231826+00:00",
+      "escritura": false,
+      "nota": "clientes_externos",
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-14T03:57:14.091382+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/vista-previa/productores/900000003?desde=2026-11-01&hasta=2026-11-30",
+      "codigo": 422,
+      "en": "2026-11-14T03:57:14.657866+00:00",
+      "escritura": false,
+      "nota": "vista_previa_qa_ops",
+      "headers_respuesta": {
+        "X-Request-Id": "e3906394-c71f-4efb-9460-8ff284b25f53",
+        "Content-Type": "application/json"
+      },
+      "respuesta": {
+        "error_code": "PERIODO_NO_CERRADO",
+        "message": "El período 2026-11 no está cerrado. Solo se pueden consultar períodos cerrados.",
+        "fields": [],
+        "timestamp": "2026-11-14T03:57:14.515015+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/vista-previa/productores/900000002?desde=2026-11-01&hasta=2026-11-30",
+      "codigo": 200,
+      "en": "2026-11-14T03:57:15.113051+00:00",
+      "escritura": false,
+      "nota": "vista_previa_qa_cierre",
+      "headers_respuesta": {
+        "X-Request-Id": "63d8040b-0432-4744-9cbb-3f9352677e3f",
+        "X-Version-Contrato-AAEF": "2.1",
+        "X-Content-SHA256": "cf0abc7c5aece5c7a1feedee755e1652c77b754648f06f093e8e0ea510d2d416",
+        "Content-Type": "application/json"
+      },
+      "respuesta": {
+        "keys": [
+          "invoices",
+          "metadata",
+          "summary",
+          "transactions"
+        ],
+        "len_compras": null,
+        "tiene_compras": false,
+        "campos_top": {
+          "metadata": "dict",
+          "summary": "dict",
+          "invoices": "list",
+          "transactions": "list"
+        },
+        "keys_metadata": [
+          "ExchangeId",
+          "GeneratedAt",
+          "GeneratedBy",
+          "RequestedPeriod",
+          "SourceSystem",
+          "StandardVersion"
+        ],
+        "keys_summary": [
+          "Currency",
+          "TotalDocuments",
+          "TotalGrossAmount",
+          "TotalInvoices",
+          "TotalNet",
+          "TotalTransactions"
+        ],
+        "count_invoices": 0,
+        "count_transactions": 0
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/productores/900000003?desde=2026-11-01&hasta=2026-11-30",
+      "codigo": 401,
+      "en": "2026-11-14T03:57:15.531160+00:00",
+      "escritura": false,
+      "nota": "canal_sin_auth_negativa",
+      "respuesta": {
+        "error_code": "NO_AUTENTICADO",
+        "message": "Falta la credencial de acceso del canal.",
+        "fields": [],
+        "timestamp": "2026-11-14T03:57:15.390640+00:00"
+      }
+    }
+  ],
+  "verificaciones": {
+    "periodos_qa_ops": {
+      "http": 200,
+      "noviembre_2026": [
+        {
+          "id_periodo_contable": 220,
+          "estado": "ABIERTO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "razon_social": "QA M06 Operaciones SAS"
+        }
+      ],
+      "total_periodos": 1
+    },
+    "periodos_qa_cierre": {
+      "http": 200,
+      "noviembre_2026": [
+        {
+          "id_periodo_contable": 219,
+          "estado": "CERRADO",
+          "fecha_inicio": "2026-11-01",
+          "fecha_fin": "2026-11-30",
+          "razon_social": "QA M06 Cierre SAS"
+        }
+      ],
+      "total_periodos": 2
+    },
+    "contratos": [
+      {
+        "id_version_contrato_aaef": 1,
+        "contrato_version": "1.0",
+        "tipo_cambio": "MINOR",
+        "fecha_vigencia": "2024-01-01",
+        "id_mapeo_anexo_aaef": null,
+        "mapeadores": [],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": null,
+        "descripcion": "Primera versión del contrato AAEF con Agrofusión. Cubre type_code 01 (reconocimiento) y 04 (cotizaciones). Deprecada al aprobarse v2.0 con soporte para type_code 02 y 03.",
+        "estado": "INACTIVO",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      },
+      {
+        "id_version_contrato_aaef": 2,
+        "contrato_version": "2.0",
+        "tipo_cambio": "MINOR",
+        "fecha_vigencia": "2024-07-01",
+        "id_mapeo_anexo_aaef": null,
+        "mapeadores": [],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": null,
+        "descripcion": "Versión 2.0 del contrato AAEF. Formaliza type_code 02 (Costo/Inversión) y 03 (Nota Crédito variación negativa). Incorpora Anexo de Mapeo AAEF v2.0 aprobado por Agrofusión. Cumple estándar RF-INT-13 v4.0.",
+        "estado": "DEPRECADO",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      },
+      {
+        "id_version_contrato_aaef": 3,
+        "contrato_version": "2.1",
+        "tipo_cambio": "MINOR",
+        "fecha_vigencia": "2026-11-13",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": null,
+        "descripcion": "[SEED-QA-M06-AAEF] Versión vigente para QA en TEST (TC-M06-G118): misma estructura del contrato 2.0 con el anexo de mapeo AAEF v2.0 aprobado; solo transformador de compras.",
+        "estado": "ACTIVO",
+        "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    ],
+    "anexos": [
+      {
+        "id_mapeo_anexo_aaef": 1,
+        "codigo_anexo": "ANEXO-AAEF-V1.0",
+        "version_anexo": "1.0",
+        "ruta_documento": "s3://pecuaria-docs/contratos/anexo-aaef-v1.0.pdf",
+        "sha256_documento": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+        "estado": "OBSOLETO",
+        "fecha_aprobacion_interna": "2025-04-13T04:10:24.266667+00:00",
+        "fecha_aprobacion": "2025-04-18T04:10:24.266667+00:00",
+        "evidencia": null
+      },
+      {
+        "id_mapeo_anexo_aaef": 2,
+        "codigo_anexo": "ANEXO-AAEF-V2.0",
+        "version_anexo": "2.0",
+        "ruta_documento": "s3://pecuaria-docs/contratos/anexo-aaef-v2.0.pdf",
+        "sha256_documento": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+        "estado": "APROBADO",
+        "fecha_aprobacion_interna": "2025-10-20T04:10:24.266667+00:00",
+        "fecha_aprobacion": "2025-10-30T04:10:24.266667+00:00",
+        "evidencia": null
+      }
+    ],
+    "clientes_externos": {
+      "http": 403,
+      "detalle": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-11-14T03:57:14.091382+00:00"
+      }
+    },
+    "vista_previa_qa_ops": {
+      "http": 422,
+      "code": null,
+      "ruta": "/integracion/aaef/vista-previa/productores/900000003?desde=2026-11-01&hasta=2026-11-30",
+      "resumen": null,
+      "error": {
+        "error_code": "PERIODO_NO_CERRADO",
+        "message": "El período 2026-11 no está cerrado. Solo se pueden consultar períodos cerrados.",
+        "fields": [],
+        "timestamp": "2026-11-14T03:57:14.515015+00:00"
+      },
+      "error_code": "PERIODO_NO_CERRADO",
+      "message": "El período 2026-11 no está cerrado. Solo se pueden consultar períodos cerrados."
+    },
+    "vista_previa_qa_cierre": {
+      "http": 200,
+      "code": null,
+      "ruta": "/integracion/aaef/vista-previa/productores/900000002?desde=2026-11-01&hasta=2026-11-30",
+      "resumen": {
+        "keys": [
+          "invoices",
+          "metadata",
+          "summary",
+          "transactions"
+        ],
+        "len_compras": null,
+        "tiene_compras": false,
+        "campos_top": {
+          "metadata": "dict",
+          "summary": "dict",
+          "invoices": "list",
+          "transactions": "list"
+        },
+        "keys_metadata": [
+          "ExchangeId",
+          "GeneratedAt",
+          "GeneratedBy",
+          "RequestedPeriod",
+          "SourceSystem",
+          "StandardVersion"
+        ],
+        "keys_summary": [
+          "Currency",
+          "TotalDocuments",
+          "TotalGrossAmount",
+          "TotalInvoices",
+          "TotalNet",
+          "TotalTransactions"
+        ],
+        "count_invoices": 0,
+        "count_transactions": 0
+      },
+      "error": null,
+      "x_version_contrato": "2.1",
+      "x_content_sha256_omitido": true
+    },
+    "canal_sin_token": {
+      "http": 401,
+      "code": null
+    },
+    "checks_contrato": {
+      "contrato_2_1_existe": true,
+      "contrato_2_1_id_3": true,
+      "contrato_2_1_activa": true,
+      "contrato_2_1_fecha_vigencia": "2026-11-13",
+      "contrato_2_1_fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+      "mapeadores": [
+        "COMPRAS"
+      ],
+      "id_mapeo_anexo": 2,
+      "estados_otras_versiones": [
+        {
+          "version": "1.0",
+          "id": 1,
+          "estado": "INACTIVO"
+        },
+        {
+          "version": "2.0",
+          "id": 2,
+          "estado": "DEPRECADO"
+        },
+        {
+          "version": "2.1",
+          "id": 3,
+          "estado": "ACTIVO"
+        }
+      ],
+      "anexo_asociado": {
+        "id_mapeo_anexo_aaef": 2,
+        "codigo_anexo": "ANEXO-AAEF-V2.0",
+        "version_anexo": "2.0",
+        "ruta_documento": "s3://pecuaria-docs/contratos/anexo-aaef-v2.0.pdf",
+        "sha256_documento": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+        "estado": "APROBADO",
+        "fecha_aprobacion_interna": "2025-10-20T04:10:24.266667+00:00",
+        "fecha_aprobacion": "2025-10-30T04:10:24.266667+00:00",
+        "evidencia": null
+      },
+      "anexo_version_2_0": true,
+      "transformador_solo_compras": true,
+      "parece_global": true
+    },
+    "checks_cliente": {
+      "listado_http": 403,
+      "cliente_5": null,
+      "encontrado": false
+    }
+  },
+  "bloqueos": [
+    {
+      "id": "CREDENCIAL_CANAL_NO_DISPONIBLE",
+      "detalle": "No hay client_secret AAEF en variables de entorno autorizadas. Canal GET /integracion/aaef/productores/{nit} no ejecutado con auth."
+    },
+    {
+      "id": "POST_TOKEN_CANAL_NO_AUTORIZADO",
+      "detalle": "Emision de token (POST /integraciones/agrofusion/token) requiere credencial segura + autorizacion expresa; no ejecutado."
+    },
+    {
+      "id": "PERIODO_220_ABIERTO",
+      "detalle": "Vista previa titular QA responde error de periodo; no se cierra el periodo 220 en esta fase."
+    }
+  ],
+  "dictamen": {
+    "grupo": "NO_APROBADO_COMPLETO",
+    "estado_general": "REEVALUACION_PARCIAL",
+    "contrato_2_1": "APROBADO",
+    "cliente_qa": "BLOQUEADO",
+    "vista_previa_qa_ops": "APROBADO",
+    "vista_previa_referencia": "APROBADO",
+    "transformacion_compras_qa": "BLOQUEADO",
+    "canal_aaef_auth": "BLOQUEADO",
+    "tc_m06_50_cotizacion": "PENDIENTE_DE_AUTORIZACION",
+    "rol_sesion": "Contador",
+    "anexo_mapeo_v2_0": "APROBADO",
+    "transformador_compras_config": "APROBADO",
+    "nota_vista_previa_qa_ops": "Se aprueba el comportamiento de validacion (422 PERIODO_NO_CERRADO). No se aprueba generacion/transformacion del titular QA.",
+    "vista_previa_referencia_200": "APROBADO",
+    "nota_vista_previa_referencia": "Demuestra contrato 2.1 + envelope AAEF en titular con periodo cerrado. No sustituye la prueba del titular QA.",
+    "estructura_envelope_estatica": "APROBADO",
+    "transformacion_compras_titular_qa": "BLOQUEADO",
+    "cliente_qa_permisos_efectivos": "BLOQUEADO",
+    "autenticacion_canal": "BLOQUEADO",
+    "tc_m06_50": "PENDIENTE_DE_AUTORIZACION"
+  }
+}

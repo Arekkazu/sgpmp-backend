@@ -1,0 +1,369 @@
+{
+    "tc":  "TC-M03-G165",
+    "summary":  {
+                    "total":  56,
+                    "ok":  36,
+                    "falla":  20,
+                    "veredicto":  "RECHAZADO",
+                    "bloqueo_externo":  null,
+                    "version":  "DEFINITIVA",
+                    "fecha_ejecucion":  "2026-10-23T00:29:08",
+                    "duracion_segundos":  174,
+                    "run_folder":  "evidencias/run-20261023/",
+                    "nota":  "Corrida con rf62_* sembrados (5/5), asociaciÃƒÂ³n sensor-ÃƒÂ¡rea creada, BROKER_SERVICE_TOKEN exportado. Rollback en evidencias/run-20261023/rollback_seed_rf62.{sql,py}.",
+                    "skipped_count":  0,
+                    "checkpoints_excluidos":  [
+
+                                              ],
+                    "precondicion_entorno":  {
+                                                 "parametros_rf62_verificados":  {
+                                                                                     "rf62_k":  3,
+                                                                                     "rf62_m":  5,
+                                                                                     "rf62_n":  20,
+                                                                                     "rf62_p":  5,
+                                                                                     "rf62_umbral_drift":  5
+                                                                                 },
+                                                 "asociacion_sensor_area_verificada":  true,
+                                                 "broker_service_token_presente":  true,
+                                                 "detalle":  "ver evidencias/run-20261023/PRECONDICION_ENTORNO.md"
+                                             }
+                },
+    "checkpoints":  [
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_http_status_201",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_estado_evaluacion_normativo_d7_2",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_estado_evaluacion_vigente_activo",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_estado_evaluacion_en_catalogo_activo",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_invariante_una_sola_vigente",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_transicion_superada",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_fecha_creacion_reciente",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_consistencia_get_calidad_por_sensor",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_consistencia_get_calidad_por_telemetria",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_actualizacion_flags_modulo3_telemetrias",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc303_auditoria_rf63_delta_y_campos",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_s_base_flags_exactos",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc319_flags_todos_inactivos",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc319_indice_calidad_100",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc319_clasificacion_apto",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_tc319_aptitud_ia_y_nic41_true",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenarioBase::test_teardown_rollback",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_s_318a_flags_exactos",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_tc318a_flag_outlier_estadistico",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_tc318a_flag_posible_drift",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_tc318a_flag_gap_temporal",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_tc318a_trazabilidad_estadistica_presente",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_tc318a_indice_calidad_60",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_tc318a_clasificacion_apto_con_reserva",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_tc318a_aptitud_ia_true_nic41_false",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318a::test_teardown_rollback",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_s_318b_flags_exactos",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_tc318b_flag_congelado_moderado",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_tc318b_flag_posible_drift_15",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_tc318b_flag_outlier_inactivo",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_tc318b_flag_gap_inactivo",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_tc318b_indice_calidad_40",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_tc318b_clasificacion_apto_con_reserva",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_tc318b_aptitud_ia_true_nic41_false",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318b::test_teardown_rollback",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318c::test_tc318c_no_error_5xx_con_sigma_cero",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318c::test_s_318c_flags_exactos",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318c::test_tc318c_flag_congelado_critico",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318c::test_tc318c_flag_outlier_estadistico",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318c::test_tc318c_indice_satura_en_cero",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario318c::test_tc318c_clasificacion_no_apto",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318c::test_tc318c_aptitud_ambas_false",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318c::test_teardown_rollback",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318cBis::test_tc318c_bis_flag_congelado_critico",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318cBis::test_tc318c_bis_flag_outlier_limite_fisico",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318cBis::test_tc318c_bis_saturacion_aritmetica_cero",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario318cBis::test_teardown_rollback",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_s_320_flags_exactos",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_tc320_flag_congelado_moderado",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_tc320_flag_outlier_estadistico",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_tc320_flag_gap_temporal",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_tc320_indice_calidad_35",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_tc320_clasificacion_no_apto",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_tc320_aptitud_ambas_false",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_tc320_exclusion_m04_m06_condicionada",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "TestEscenario320::test_teardown_rollback",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        }
+                    ]
+}

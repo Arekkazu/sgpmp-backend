@@ -1,3 +1,7 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-28 RF-53/62: aisla commits de pruebas concurrentes de vision |
+# | 2026-10-28 | Arekkazu | INC-M03-173-G85 RF-57 E9: helper para sembrar umbrales RF-17 del área |
 """Infraestructura compartida para pruebas de integración con PostgreSQL.
 
 Cada prueba usa una conexión propia con una transacción exterior. Los commits
@@ -10,6 +14,8 @@ import hashlib
 import json
 import os
 import re
+import subprocess
+import sys
 import uuid
 from collections.abc import Callable, Generator
 from datetime import date, datetime, timedelta, timezone
@@ -43,6 +49,24 @@ TABLAS_MODULO1_REQUERIDAS = {
     "tokens",
     "usuarios",
 }
+
+
+def sembrar_umbrales_rf17(db: Session, id_infraestructura: int, id_especie: int | None = None) -> None:
+    """RF-57 E9 (#836): sin una especie del área con umbral RF-17 activo para la variable, el evento
+    sale como alerta técnica ERROR_CONFIGURACION_REGLA. Las pruebas de clasificación necesitan el caso
+    configurado: vincula una especie al área y le da un umbral activo por variable. Solo importa que exista:
+    E9 no mira sus valores (columna NUMERIC(5,2), por eso 0-1 y no el rango físico)."""
+    especie = id_especie or db.execute(text("SELECT min(id_especie) FROM modulo9.especies WHERE es_activo")).scalar_one()
+    db.execute(text("""INSERT INTO modulo9.infraestructuras_especies(id_infraestructura, id_especie)
+        VALUES (:a, :e) ON CONFLICT (id_infraestructura, id_especie) DO NOTHING"""), {"a": id_infraestructura, "e": especie})
+    db.execute(text("""INSERT INTO modulo9.umbrales_ambientales(nombre, unidad_medida, es_activo, id_especie,
+            id_variable_ambiental, valor_min, valor_max)
+        SELECT 'Prueba RF-57 E9', v.unidad, true, :e, v.id_variable_ambiental, 0, 1
+        FROM modulo9.variables_ambientales v
+        WHERE v.es_activo AND NOT EXISTS (
+            SELECT 1 FROM modulo9.umbrales_ambientales u
+            WHERE u.es_activo AND u.id_especie = :e AND u.id_variable_ambiental = v.id_variable_ambiental)"""),
+        {"e": especie})
 
 
 def _validar_url_pruebas(url: str) -> None:
@@ -106,6 +130,37 @@ def db_session(integration_engine: Engine) -> Generator[Session, None, None]:
         connection.close()
 
 
+@pytest.fixture
+def motor_vision_concurrente(integration_engine: Engine):
+    """BD local independiente: concurrencia real sin dejar ingestas al resto."""
+    origen = integration_engine.url
+    if origen.host not in ('localhost', '127.0.0.1', '::1'):
+        pytest.skip('La BD efimera de concurrencia requiere PostgreSQL local aislado.')
+    nombre = 'dev28_concurrency_test_' + uuid.uuid4().hex
+    admin = create_engine(origen.set(database='postgres'), isolation_level='AUTOCOMMIT')
+    motor = None
+    creado = False
+    try:
+        with admin.connect() as c:
+            c.execute(text(f'CREATE DATABASE "{nombre}"'))
+            creado = True
+        url = origen.set(database=nombre).render_as_string(hide_password=False)
+        entorno = os.environ | {'DATABASE_URL':url, 'ALEMBIC_DATABASE_URL':url, 'TEST_DATABASE_URL':url}
+        migracion = subprocess.run([sys.executable,'-m','alembic','upgrade','head'],
+            cwd=ROOT, env=entorno, capture_output=True, text=True, timeout=120)
+        if migracion.returncode:
+            pytest.fail('No se pudieron aplicar las migraciones en la BD efimera local.')
+        motor = create_engine(url, use_insertmanyvalues=False)
+        yield motor
+    finally:
+        if motor is not None:
+            motor.dispose()
+        if creado:
+            with admin.connect() as c:
+                c.execute(text(f'DROP DATABASE "{nombre}" WITH (FORCE)'))
+        admin.dispose()
+
+
 def _importar_modelos_identity_access() -> None:
     """Registra todas las relaciones ORM del módulo antes de atender requests."""
     from src.identity_access.infrastructure.models import acciones_model  # noqa: F401
@@ -162,6 +217,13 @@ def integration_app() -> FastAPI:
     app.include_router(notificaciones_router)
     app.include_router(roles_router)
     return app
+
+
+@pytest.fixture
+def headers_broker(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    """DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker."""
+    monkeypatch.setenv("BROKER_SERVICE_TOKEN", "token-servicio-pruebas-integracion")
+    return {"Authorization": "Bearer token-servicio-pruebas-integracion"}
 
 
 @pytest.fixture

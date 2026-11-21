@@ -1,0 +1,1093 @@
+{
+  "info": {
+    "name": "TC-M09-G131 — SEGUNDA EVALUACIÓN (RF-24 v2.0)",
+    "description": "SEGUNDA EVALUACION de TC-M09-G131 (RF-24 v2.0).\n\nLa coleccion de la primera evaluacion era un unico item generico cuyo body, sensor y TOKEN inyectaba el runner desde fuera. Esta copia despliega las CUATRO variantes como items propios y la coleccion pasa a ser DUENA DE SU SESION: hace su propio login y publica el token en {{session_value}}. El runner no obtiene ningun token ni lo inyecta, porque TEST aplica sesion unica por usuario.\n\nSe conservan del plan original: los cuatro casos (TC-258, TC-259, TC-260 \"OTRO\", TC-260 \"\"), sus bodies, sus valores, sus URLs, el criterio de rechazo 4xx y las verificaciones de no persistencia por total e IDs de historial PRE/POST. Cada variante toma su PRE propio y, si una persistiera, STOP_ALL detiene las siguientes.\n\nTC-M09-259 envia el body SIN la clave modo_calibracion: no aparece, ni como null, ni vacia, ni con valor. El contrato OpenAPI se consulta como DIAGNOSTICO y no decide el resultado. No se incluye ninguna variante VISION: ese flujo tiene su propio endpoint.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// La coleccion es duena de la sesion: hace su propio login y publica el token.",
+              "// El runner nunca obtiene un token ni lo inyecta (TEST aplica sesion unica por usuario).",
+              "pm.test('Login del Ingeniero de Campo es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.expect(b.token, 'token del Ingeniero').to.be.a('string').and.not.empty;",
+              "pm.environment.set('session_value', b.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}/sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{ing_email}}\",\"contrasena\":\"{{ing_secret}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Contrato OpenAPI",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// DIAGNOSTICO del contrato desplegado. Solo REGISTRA: no decide el resultado del grupo.",
+              "// Si OpenAPI mostrara el contrato anterior, el esperado funcional NO se modifica: el",
+              "// objetivo se determina por los POST reales.",
+              "pm.test('OpenAPI responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const api = pm.response.json();",
+              "const post = api.paths && api.paths['/configuracion/sensores/{id_sensor}/calibrar'] && api.paths['/configuracion/sensores/{id_sensor}/calibrar'].post;",
+              "const hist = api.paths && api.paths['/configuracion/sensores/{id_sensor}/calibraciones'] && api.paths['/configuracion/sensores/{id_sensor}/calibraciones'].get;",
+              "pm.test('El endpoint de calibracion esta desplegado', () => pm.expect(post, 'POST calibrar').to.exist);",
+              "pm.test('El endpoint de historial esta desplegado', () => pm.expect(hist, 'GET calibraciones').to.exist);",
+              "const sch = api.components && api.components.schemas && api.components.schemas.RegistrarCalibracionDTO;",
+              "const modo = sch && sch.properties && sch.properties.modo_calibracion;",
+              "const requeridos = (sch && sch.required) || [];",
+              "const dominio = modo ? (modo.enum || (modo.const !== undefined ? [modo.const] : []) || []) : [];",
+              "pm.environment.set('openapi_modo_declarado', modo ? 'SI' : 'NO');",
+              "pm.environment.set('openapi_modo_required', requeridos.indexOf('modo_calibracion') >= 0 ? 'SI' : 'NO');",
+              "pm.environment.set('openapi_modo_default', modo && modo.default !== undefined ? JSON.stringify(modo.default) : '(sin default)');",
+              "pm.environment.set('openapi_modo_dominio', JSON.stringify(dominio));",
+              "pm.environment.set('openapi_modo_definicion', JSON.stringify(modo || null));",
+              "pm.environment.set('openapi_required', JSON.stringify(requeridos));",
+              "console.log('OpenAPI RegistrarCalibracionDTO: modo_calibracion declarado=' + (modo ? 'SI' : 'NO') + ' required=' + (requeridos.indexOf('modo_calibracion') >= 0 ? 'SI' : 'NO') + ' definicion=' + JSON.stringify(modo || null));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/openapi.json",
+          "host": [
+            "{{base_url}}/openapi.json"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Identidad Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Identidad responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('Es el actor funcional del caso', () => pm.expect(b.correo_electronico).to.eql(pm.environment.get('ing_email')));",
+              "pm.test('El rol es Ingeniero de Campo', () => pm.expect(b.nombre_rol).to.eql('Ingeniero de Campo'));",
+              "pm.test('La cuenta esta Activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+              "// id_usuario dinamico: no se hardcodea aunque historicamente haya sido 4.",
+              "pm.environment.set('ing_id', String(b.id_usuario));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/me",
+          "host": [
+            "{{base_url}}/usuarios/me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Permisos Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Permisos responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const ps = pm.response.json().permisos || [];",
+              "const acciones = ps.filter(x => x.id_recurso === 12).map(x => x.id_accion);",
+              "pm.test('El Ingeniero tiene permiso de registrar calibraciones (12,1)', () => pm.expect(acciones).to.include(1));",
+              "pm.environment.set('permisos_recurso12', JSON.stringify(acciones));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/me/permisos",
+          "host": [
+            "{{base_url}}/sesiones/me/permisos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 258 — dispositivo propietario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El dispositivo propietario responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('El dispositivo propietario del sensor de TC-258 existe', () => pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('owner_258'))));",
+              "pm.test('El dispositivo propietario esta activo', () => pm.expect(b.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{owner_258}}",
+          "host": [
+            "{{base_url}}/configuracion/dispositivos-iot/{{owner_258}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 258 — sensor del propietario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Los sensores del propietario responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => sid(x) === Number(pm.environment.get('sensor_258')));",
+              "pm.test('El sensor de TC-258 pertenece realmente al dispositivo propietario', () => { pm.expect(row, 'sensor ' + pm.environment.get('sensor_258')).to.exist; pm.expect(row.id_dispositivo_iot).to.eql(Number(pm.environment.get('owner_258'))); });",
+              "pm.test('El sensor de TC-258 esta activo', () => pm.expect(row.es_activo).to.eql(true));",
+              "pm.test('La categoria del sensor de TC-258 es la del caso', () => pm.expect(row.categoria).to.eql(pm.environment.get('cat_258')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{owner_258}}/sensores",
+          "host": [
+            "{{base_url}}/configuracion/dispositivos-iot/{{owner_258}}/sensores"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 258 — asociación vigente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Las asociaciones del sensor de TC-258 responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const vig = (x) => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined);",
+              "const row = (pm.response.json().items || []).find(x => vig(x) && sid(x) === Number(pm.environment.get('sensor_258')) && x.id_dispositivo_iot === Number(pm.environment.get('owner_258')));",
+              "pm.test('El sensor de TC-258 tiene asociacion vigente con su propietario', () => pm.expect(row).to.exist);",
+              "pm.test('El area de la asociacion vigente es la del caso', () => pm.expect(row.id_infraestructura).to.eql(Number(pm.environment.get('area_258'))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_258}}/asociaciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_258}}/asociaciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 258 — área de la asociación",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El area de TC-258 responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('El area de TC-258 es la solicitada', () => pm.expect(b.id_infraestructura).to.eql(Number(pm.environment.get('area_258'))));",
+              "pm.test('El area de TC-258 esta activa', () => pm.expect(b.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{area_258}}",
+          "host": [
+            "{{base_url}}/configuracion/infraestructuras/{{area_258}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 258 — dispositivo alterno del body",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El body de TC-258 envia este dispositivo, que es REAL y ACTIVO pero NO es el propietario",
+              "// del sensor: esa inconsistencia es la unica invalidez intencional del caso.",
+              "pm.test('El dispositivo alterno responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('El dispositivo alterno existe y esta activo', () => { pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_258_body'))); pm.expect(b.es_activo).to.eql(true); });",
+              "pm.test('El dispositivo alterno es distinto del propietario del sensor', () => pm.expect(Number(pm.environment.get('device_258_body'))).to.not.eql(Number(pm.environment.get('owner_258'))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_258_body}}",
+          "host": [
+            "{{base_url}}/configuracion/dispositivos-iot/{{device_258_body}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 259/260 — dispositivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El dispositivo de TC-259/260 responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('El dispositivo de TC-259/260 existe y esta activo', () => { pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_259'))); pm.expect(b.es_activo).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_259}}",
+          "host": [
+            "{{base_url}}/configuracion/dispositivos-iot/{{device_259}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 259/260 — sensor del dispositivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Los sensores de TC-259/260 responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => sid(x) === Number(pm.environment.get('sensor_259')));",
+              "pm.test('El sensor de TC-259/260 pertenece al dispositivo', () => { pm.expect(row, 'sensor ' + pm.environment.get('sensor_259')).to.exist; pm.expect(row.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_259'))); });",
+              "pm.test('El sensor de TC-259/260 esta activo', () => pm.expect(row.es_activo).to.eql(true));",
+              "pm.test('La categoria del sensor de TC-259/260 es la del caso', () => pm.expect(row.categoria).to.eql(pm.environment.get('cat_259')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_259}}/sensores",
+          "host": [
+            "{{base_url}}/configuracion/dispositivos-iot/{{device_259}}/sensores"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 259/260 — asociación vigente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Las asociaciones de TC-259/260 responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const vig = (x) => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined);",
+              "const row = (pm.response.json().items || []).find(x => vig(x) && sid(x) === Number(pm.environment.get('sensor_259')) && x.id_dispositivo_iot === Number(pm.environment.get('device_259')));",
+              "pm.test('El sensor de TC-259/260 tiene asociacion vigente', () => pm.expect(row).to.exist);",
+              "pm.test('El area de la asociacion vigente es la del caso', () => pm.expect(row.id_infraestructura).to.eql(Number(pm.environment.get('area_259'))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/asociaciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/asociaciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture 259/260 — área de la asociación",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El area de TC-259/260 responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('El area de TC-259/260 es la solicitada y esta activa', () => { pm.expect(b.id_infraestructura).to.eql(Number(pm.environment.get('area_259'))); pm.expect(b.es_activo).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{area_259}}",
+          "host": [
+            "{{base_url}}/configuracion/infraestructuras/{{area_259}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fixture — rangos de calibración",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Los rangos responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const items = pm.response.json().items || [];",
+              "const r258 = items.find(x => x.categoria === pm.environment.get('cat_258'));",
+              "const r259 = items.find(x => x.categoria === pm.environment.get('cat_259'));",
+              "pm.test('La categoria de TC-258 tiene rango publicado', () => pm.expect(r258).to.exist);",
+              "pm.test('La categoria de TC-259/260 tiene rango publicado', () => pm.expect(r259).to.exist);",
+              "const dentro = (v, r) => Number(v) >= Number(r.valor_min) && Number(v) <= Number(r.valor_max);",
+              "pm.test('El valor de TC-258 esta dentro del rango de su categoria', () => pm.expect(dentro(pm.environment.get('valor_258'), r258)).to.eql(true));",
+              "pm.test('El valor de TC-259/260 esta dentro del rango de su categoria', () => pm.expect(dentro(pm.environment.get('valor_259'), r259)).to.eql(true));",
+              "pm.environment.set('rango_258', JSON.stringify({ categoria: r258.categoria, min: String(r258.valor_min), max: String(r258.valor_max) }));",
+              "pm.environment.set('rango_259', JSON.stringify({ categoria: r259.categoria, min: String(r259.valor_min), max: String(r259.valor_max) }));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/rangos-calibracion",
+          "host": [
+            "{{base_url}}/configuracion/sensores/rangos-calibracion"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-258 Historial PRE",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// PRE propio de la variante: no se reutiliza el de otro caso ni el de otra variante.",
+              "pm.test('TC-M09-258 — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_258_total', String(b.total));",
+              "pm.environment.set('pre_258_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+              "pm.environment.set('pre_258_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_258}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_258}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-258 POST calibrar",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_258', iso);",
+              "pm.environment.set('body_sent_258', pm.environment.get('body_258').replace('__FECHA__', iso));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Oraculo de la matriz: rechazo 4xx y ausencia de persistencia. RF-24 no fija codigo",
+              "// ni mensaje exactos para estos escenarios: se registran, pero no se exigen.",
+              "pm.test('TC-M09-258 — la respuesta pertenece a 4xx', () => pm.expect(pm.response.code).to.be.within(400, 499));",
+              "const b = pm.response.json();",
+              "pm.test('TC-M09-258 — la respuesta no devuelve id_calibracion', () => pm.expect(b && b.id_calibracion).to.be.undefined);",
+              "if (b && b.error_code) console.log('TC-M09-258 error_code obtenido: ' + b.error_code);",
+              "pm.environment.set('258_http', String(pm.response.code));",
+              "pm.environment.set('258_error_code', String((b && b.error_code) || ''));",
+              "pm.environment.set('258_id_respuesta', String((b && b.id_calibracion) !== undefined && b.id_calibracion !== null ? b.id_calibracion : ''));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_258}}/calibrar",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_258}}/calibrar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent_258}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-258 Historial POST",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-258 — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const ids = (b.items || []).map(x => x.id_calibracion);",
+              "const pre = JSON.parse(pm.environment.get('pre_258_ids') || '[]');",
+              "const nuevos = ids.filter(x => !pre.includes(x));",
+              "pm.environment.set('post_258_total', String(b.total));",
+              "pm.environment.set('post_258_ids', JSON.stringify(ids));",
+              "pm.environment.set('258_ids_nuevos', JSON.stringify(nuevos));",
+              "pm.test('TC-M09-258 — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_258_total'))));",
+              "pm.test('TC-M09-258 — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+              "pm.test('TC-M09-258 — no se creo ninguna calibracion', () => pm.expect(nuevos).to.eql([]));",
+              "const snap = JSON.parse(pm.environment.get('pre_258_snap') || '[]');",
+              "pm.test('TC-M09-258 — los registros historicos siguen intactos', () => snap.forEach(s => { const row = (b.items || []).find(x => x.id_calibracion === s.id); pm.expect(row, 'id ' + s.id).to.exist; pm.expect(Number(row.valor_referencia)).to.eql(Number(s.v)); pm.expect(row.fecha_calibracion).to.eql(s.f); pm.expect(row.id_usuario).to.eql(s.u); pm.expect(row.observaciones).to.eql(s.o); }));",
+              "// STOP_ALL: si una peticion invalida persistio, no se arriesgan mas POST.",
+              "if (nuevos.length) {",
+              "  pm.environment.set('stop_all', 'SI');",
+              "  pm.environment.set('stop_all_motivo', JSON.stringify({ variante: 'TC-M09-258', idsNuevos: nuevos, nota: 'persistencia inesperada tras una peticion invalida: no se ejecutan las variantes restantes y el registro se conserva como evidencia' }));",
+              "  console.log('STOP_ALL: no se ejecutan mas POST de calibracion.');",
+              "  postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_258}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_258}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 Historial PRE",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// PRE propio de la variante: no se reutiliza el de otro caso ni el de otra variante.",
+              "pm.test('TC-M09-259 — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_259_total', String(b.total));",
+              "pm.environment.set('pre_259_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+              "pm.environment.set('pre_259_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 POST calibrar",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_259', iso);",
+              "pm.environment.set('body_sent_259', pm.environment.get('body_259').replace('__FECHA__', iso));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Oraculo de la matriz: rechazo 4xx y ausencia de persistencia. RF-24 no fija codigo",
+              "// ni mensaje exactos para estos escenarios: se registran, pero no se exigen.",
+              "pm.test('TC-M09-259 — la respuesta pertenece a 4xx', () => pm.expect(pm.response.code).to.be.within(400, 499));",
+              "const b = pm.response.json();",
+              "pm.test('TC-M09-259 — la respuesta no devuelve id_calibracion', () => pm.expect(b && b.id_calibracion).to.be.undefined);",
+              "if (b && b.error_code) console.log('TC-M09-259 error_code obtenido: ' + b.error_code);",
+              "pm.environment.set('259_http', String(pm.response.code));",
+              "pm.environment.set('259_error_code', String((b && b.error_code) || ''));",
+              "pm.environment.set('259_id_respuesta', String((b && b.id_calibracion) !== undefined && b.id_calibracion !== null ? b.id_calibracion : ''));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibrar",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibrar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent_259}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 Historial POST",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-259 — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const ids = (b.items || []).map(x => x.id_calibracion);",
+              "const pre = JSON.parse(pm.environment.get('pre_259_ids') || '[]');",
+              "const nuevos = ids.filter(x => !pre.includes(x));",
+              "pm.environment.set('post_259_total', String(b.total));",
+              "pm.environment.set('post_259_ids', JSON.stringify(ids));",
+              "pm.environment.set('259_ids_nuevos', JSON.stringify(nuevos));",
+              "pm.test('TC-M09-259 — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_259_total'))));",
+              "pm.test('TC-M09-259 — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+              "pm.test('TC-M09-259 — no se creo ninguna calibracion', () => pm.expect(nuevos).to.eql([]));",
+              "const snap = JSON.parse(pm.environment.get('pre_259_snap') || '[]');",
+              "pm.test('TC-M09-259 — los registros historicos siguen intactos', () => snap.forEach(s => { const row = (b.items || []).find(x => x.id_calibracion === s.id); pm.expect(row, 'id ' + s.id).to.exist; pm.expect(Number(row.valor_referencia)).to.eql(Number(s.v)); pm.expect(row.fecha_calibracion).to.eql(s.f); pm.expect(row.id_usuario).to.eql(s.u); pm.expect(row.observaciones).to.eql(s.o); }));",
+              "// STOP_ALL: si una peticion invalida persistio, no se arriesgan mas POST.",
+              "if (nuevos.length) {",
+              "  pm.environment.set('stop_all', 'SI');",
+              "  pm.environment.set('stop_all_motivo', JSON.stringify({ variante: 'TC-M09-259', idsNuevos: nuevos, nota: 'persistencia inesperada tras una peticion invalida: no se ejecutan las variantes restantes y el registro se conserva como evidencia' }));",
+              "  console.log('STOP_ALL: no se ejecutan mas POST de calibracion.');",
+              "  postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260 OTRO Historial PRE",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// PRE propio de la variante: no se reutiliza el de otro caso ni el de otra variante.",
+              "pm.test('TC-M09-260 OTRO — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_260a_total', String(b.total));",
+              "pm.environment.set('pre_260a_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+              "pm.environment.set('pre_260a_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260 OTRO POST calibrar",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_260a', iso);",
+              "pm.environment.set('body_sent_260a', pm.environment.get('body_260a').replace('__FECHA__', iso));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Oraculo de la matriz: rechazo 4xx y ausencia de persistencia. RF-24 no fija codigo",
+              "// ni mensaje exactos para estos escenarios: se registran, pero no se exigen.",
+              "pm.test('TC-M09-260 OTRO — la respuesta pertenece a 4xx', () => pm.expect(pm.response.code).to.be.within(400, 499));",
+              "const b = pm.response.json();",
+              "pm.test('TC-M09-260 OTRO — la respuesta no devuelve id_calibracion', () => pm.expect(b && b.id_calibracion).to.be.undefined);",
+              "if (b && b.error_code) console.log('TC-M09-260 OTRO error_code obtenido: ' + b.error_code);",
+              "pm.environment.set('260a_http', String(pm.response.code));",
+              "pm.environment.set('260a_error_code', String((b && b.error_code) || ''));",
+              "pm.environment.set('260a_id_respuesta', String((b && b.id_calibracion) !== undefined && b.id_calibracion !== null ? b.id_calibracion : ''));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibrar",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibrar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent_260a}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260 OTRO Historial POST",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-260 OTRO — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const ids = (b.items || []).map(x => x.id_calibracion);",
+              "const pre = JSON.parse(pm.environment.get('pre_260a_ids') || '[]');",
+              "const nuevos = ids.filter(x => !pre.includes(x));",
+              "pm.environment.set('post_260a_total', String(b.total));",
+              "pm.environment.set('post_260a_ids', JSON.stringify(ids));",
+              "pm.environment.set('260a_ids_nuevos', JSON.stringify(nuevos));",
+              "pm.test('TC-M09-260 OTRO — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_260a_total'))));",
+              "pm.test('TC-M09-260 OTRO — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+              "pm.test('TC-M09-260 OTRO — no se creo ninguna calibracion', () => pm.expect(nuevos).to.eql([]));",
+              "const snap = JSON.parse(pm.environment.get('pre_260a_snap') || '[]');",
+              "pm.test('TC-M09-260 OTRO — los registros historicos siguen intactos', () => snap.forEach(s => { const row = (b.items || []).find(x => x.id_calibracion === s.id); pm.expect(row, 'id ' + s.id).to.exist; pm.expect(Number(row.valor_referencia)).to.eql(Number(s.v)); pm.expect(row.fecha_calibracion).to.eql(s.f); pm.expect(row.id_usuario).to.eql(s.u); pm.expect(row.observaciones).to.eql(s.o); }));",
+              "// STOP_ALL: si una peticion invalida persistio, no se arriesgan mas POST.",
+              "if (nuevos.length) {",
+              "  pm.environment.set('stop_all', 'SI');",
+              "  pm.environment.set('stop_all_motivo', JSON.stringify({ variante: 'TC-M09-260 OTRO', idsNuevos: nuevos, nota: 'persistencia inesperada tras una peticion invalida: no se ejecutan las variantes restantes y el registro se conserva como evidencia' }));",
+              "  console.log('STOP_ALL: no se ejecutan mas POST de calibracion.');",
+              "  postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260 VACIO Historial PRE",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// PRE propio de la variante: no se reutiliza el de otro caso ni el de otra variante.",
+              "pm.test('TC-M09-260 VACIO — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_260b_total', String(b.total));",
+              "pm.environment.set('pre_260b_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+              "pm.environment.set('pre_260b_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260 VACIO POST calibrar",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_260b', iso);",
+              "pm.environment.set('body_sent_260b', pm.environment.get('body_260b').replace('__FECHA__', iso));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Oraculo de la matriz: rechazo 4xx y ausencia de persistencia. RF-24 no fija codigo",
+              "// ni mensaje exactos para estos escenarios: se registran, pero no se exigen.",
+              "pm.test('TC-M09-260 VACIO — la respuesta pertenece a 4xx', () => pm.expect(pm.response.code).to.be.within(400, 499));",
+              "const b = pm.response.json();",
+              "pm.test('TC-M09-260 VACIO — la respuesta no devuelve id_calibracion', () => pm.expect(b && b.id_calibracion).to.be.undefined);",
+              "if (b && b.error_code) console.log('TC-M09-260 VACIO error_code obtenido: ' + b.error_code);",
+              "pm.environment.set('260b_http', String(pm.response.code));",
+              "pm.environment.set('260b_error_code', String((b && b.error_code) || ''));",
+              "pm.environment.set('260b_id_respuesta', String((b && b.id_calibracion) !== undefined && b.id_calibracion !== null ? b.id_calibracion : ''));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibrar",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibrar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent_260b}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260 VACIO Historial POST",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-260 VACIO — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const ids = (b.items || []).map(x => x.id_calibracion);",
+              "const pre = JSON.parse(pm.environment.get('pre_260b_ids') || '[]');",
+              "const nuevos = ids.filter(x => !pre.includes(x));",
+              "pm.environment.set('post_260b_total', String(b.total));",
+              "pm.environment.set('post_260b_ids', JSON.stringify(ids));",
+              "pm.environment.set('260b_ids_nuevos', JSON.stringify(nuevos));",
+              "pm.test('TC-M09-260 VACIO — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_260b_total'))));",
+              "pm.test('TC-M09-260 VACIO — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+              "pm.test('TC-M09-260 VACIO — no se creo ninguna calibracion', () => pm.expect(nuevos).to.eql([]));",
+              "const snap = JSON.parse(pm.environment.get('pre_260b_snap') || '[]');",
+              "pm.test('TC-M09-260 VACIO — los registros historicos siguen intactos', () => snap.forEach(s => { const row = (b.items || []).find(x => x.id_calibracion === s.id); pm.expect(row, 'id ' + s.id).to.exist; pm.expect(Number(row.valor_referencia)).to.eql(Number(s.v)); pm.expect(row.fecha_calibracion).to.eql(s.f); pm.expect(row.id_usuario).to.eql(s.u); pm.expect(row.observaciones).to.eql(s.o); }));",
+              "if (nuevos.length) {",
+              "  pm.environment.set('stop_all', 'SI');",
+              "  pm.environment.set('stop_all_motivo', JSON.stringify({ variante: 'TC-M09-260 VACIO', idsNuevos: nuevos, nota: 'persistencia inesperada en la ultima variante; el registro se conserva como evidencia' }));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones",
+          "host": [
+            "{{base_url}}/configuracion/sensores/{{sensor_259}}/calibraciones"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

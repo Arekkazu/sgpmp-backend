@@ -1,0 +1,76 @@
+{
+  "info": {
+    "name": "TC-M06-G117",
+    "description": "Preparacion TC-M06-48/49: valor propuesto y fecha_vencimiento en POST /finanzas/cotizaciones. Escenarios negativos 48a/48b/49a. 49b (omitir vencimiento) es escritura positiva: no ejecutar sin autorizacion. Ver resultados/preparacion/matriz_escenarios_G117.md (DISC-G117-01).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base", "value": "https://api.inmero.co/api-sgpmp-test"}
+  ],
+  "item": [
+    {
+      "name": "48a Valor cero",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activos_cotizados\": [{{id_activo}}],\n  \"valor_cotizacion_propuesto\": 0\n}"
+        }
+      }
+    },
+    {
+      "name": "48b Valor negativo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activos_cotizados\": [{{id_activo}}],\n  \"valor_cotizacion_propuesto\": -1\n}"
+        }
+      }
+    },
+    {
+      "name": "49a Vencimiento anterior",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activos_cotizados\": [{{id_activo}}],\n  \"valor_cotizacion_propuesto\": \"1000.0000\",\n  \"fecha_vencimiento\": \"{{ayer}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "49b Omitir fecha_vencimiento (NO EJECUTAR sin autorizacion)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{token_contador}}"},
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Zona-Horaria", "value": "America/Bogota"}
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activos_cotizados\": [{{id_activo}}],\n  \"valor_cotizacion_propuesto\": \"1000.0000\",\n  \"condiciones\": \"TC-M06-G117 / TC-M06-49b — omitir vencimiento (escritura; requiere autorizacion)\"\n}"
+        }
+      }
+    }
+  ]
+}

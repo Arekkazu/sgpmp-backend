@@ -1,0 +1,196 @@
+{
+  "caso": "TC-M07-G057",
+  "rf": "RF-102",
+  "fecha_ejecucion_utc": "2026-11-18T03:16:04.841008+00:00",
+  "estado_final": "APROBADO",
+  "escenarios": [
+    {
+      "id": "E1",
+      "nombre": "Exportación CSV por Administrador",
+      "caso_original": "TC-M07-102-014",
+      "estado": "APROBADO",
+      "validacion": "CSV válido descargable",
+      "esperado": "HTTP 200, text/csv, Content-Disposition attachment, filas coherentes",
+      "obtenido": "HTTP 200; ctype=text/csv; charset=utf-8; filas=156; dup=0; headers=['tipo_evento', 'severidad', 'tipo_actor', 'id_cliente_externo', 'id_usuario', 'id_solicitud', 'endpoint', 'metodo_http']…",
+      "evidencia": "evidencia_e1_export_csv_TC-M07-G057.json",
+      "pasos": [
+        "GET /integracion/auditoria/exportar?formato=csv HTTP 200",
+        "Content-Type=text/csv; charset=utf-8 ok=True",
+        "Content-Disposition=attachment; filename=\"auditoria_integracion_20261118_031557.csv\" ok=True",
+        "bytes=51949 sha256=9bd0dcc2b972182742b099fa4c1987cffabe17475db379ed2f04db5112bc2ddb",
+        "filas=156 headers=27 duplicados_id=0 especiales≈114",
+        "utf8_bom=True"
+      ],
+      "observaciones": "Archivo original: export_original_csv_TC-M07-G057.csv"
+    },
+    {
+      "id": "E2",
+      "nombre": "Exportación JSON por Administrador",
+      "caso_original": "TC-M07-102-014",
+      "estado": "APROBADO",
+      "validacion": "JSON válido descargable",
+      "esperado": "HTTP 200, application/json, lista de registros, no JSON de error",
+      "obtenido": "HTTP 200; registros=156; dup=0; ctype=application/json",
+      "evidencia": "evidencia_e2_export_json_TC-M07-G057.json",
+      "pasos": [
+        "GET /integracion/auditoria/exportar?formato=json HTTP 200",
+        "Content-Type=application/json ok=True",
+        "Content-Disposition=attachment; filename=\"auditoria_integracion_20261118_031557.json\" ok=True",
+        "bytes=136731 sha256=b1b4eb2a3c32115c88c329133792a52be1dbd3766efd51d5a78bc92b90283958",
+        "registros=156 duplicados=0 claves=27"
+      ],
+      "observaciones": "Archivo original: export_original_json_TC-M07-G057.json (revisar fuera de HTML)"
+    },
+    {
+      "id": "E3",
+      "nombre": "Consistencia CSV vs JSON",
+      "caso_original": "TC-M07-102-014",
+      "estado": "APROBADO",
+      "validacion": "Mismo conjunto de registros",
+      "esperado": "Mismos ids y campos clave con mismos filtros (sin filtro)",
+      "obtenido": "n_csv=156 n_json=156 ids_match=True diffs=0",
+      "evidencia": "evidencia_e3_consistencia_TC-M07-G057.json",
+      "pasos": [
+        "CSV filas=156 JSON registros=156",
+        "ids iguales=True",
+        "solo_csv=0 solo_json=0 diffs_campos_clave=0",
+        "campos_solo_csv=[]",
+        "campos_solo_json=[]"
+      ],
+      "observaciones": "Normalización: CSV→str; dicts JSON-en-celda; null/vacío equivalentes"
+    },
+    {
+      "id": "E4",
+      "nombre": "Exportación con filtros",
+      "caso_original": "TC-M07-102-014",
+      "estado": "APROBADO",
+      "validacion": "Filtros respetados en CSV/JSON y vs consulta",
+      "esperado": "Export filtrado = mismo conjunto; coherente con total de consulta",
+      "obtenido": "3/3 filtros OK",
+      "evidencia": "evidencia_e4_filtros_TC-M07-G057.json",
+      "pasos": [
+        "Filtros contrato: ['tipo_evento', 'id_cliente_externo', 'desde', 'hasta', 'endpoint', 'codigo_http', 'numero_id_tributaria']",
+        "Valores muestra: {'tipo_evento': 'ACCESO_AUDITORIA_DENEGADO', 'codigo_http': 405, 'endpoint': '/integracion/auditoria', 'id_cliente_externo': 12, 'desde': '2026-11-18', 'hasta': '2026-11-18', 'numero_id_tributaria': '901444215'}",
+        "tipo_evento: consulta_total=22 csv=22 json=22 ok=True",
+        "tipo_evento+codigo_http: consulta_total=0 csv=0 json=0 ok=True",
+        "desde+hasta: consulta_total=27 csv=27 json=27 ok=True"
+      ],
+      "observaciones": "Export no pagina; se compara n_export con total de GET /auditoria"
+    },
+    {
+      "id": "E5",
+      "nombre": "Protección de la información exportada",
+      "caso_original": "TC-M07-102-014",
+      "estado": "APROBADO",
+      "validacion": "Sin secretos vivos en exportación Admin",
+      "esperado": "Sin passwords/tokens/API keys/client secrets/HMAC vivos; hashes de integridad permitidos",
+      "obtenido": "hallazgos=0",
+      "evidencia": "evidencia_e5_seguridad_TC-M07-G057.json",
+      "pasos": [
+        "Filas examinadas=156",
+        "Claves=['codigo_http', 'codigo_resultado', 'correo_usuario', 'endpoint', 'fecha_desde', 'fecha_evento', 'fecha_hasta', 'fecha_registro', 'hash_contenido', 'id_cliente_externo', 'id_evento_integracion', 'id_intercambio', 'id_solicitud', 'id_usuario', 'integridad', 'ip_origen', 'json_detalle', 'latencia_ms', 'metodo_http', 'modulo', 'nombre_cliente', 'numero_id_tributaria', 'severidad', 'tamano_payl…",
+        "Hallazgos=0",
+        "Se rechaza solo exposición de secretos vivos (tokens JWT, API keys, client secrets, HMAC). hash_contenido/hash_integridad y flags como secreto_provisto=false son metadatos esperados."
+      ],
+      "observaciones": "Admin exporta vista completa (ip_origen, json_detalle). Se valida ausencia de secretos de autenticación, no el ocultamiento de IP al Auditor."
+    },
+    {
+      "id": "E6",
+      "nombre": "Regresión de permisos de exportación",
+      "caso_original": "TC-M07-102-014",
+      "estado": "APROBADO",
+      "validacion": "Admin 200 / Auditor 403 / Sin permiso 403",
+      "esperado": "Solo auditoria_integracion:E puede exportar",
+      "obtenido": "admin=200 auditor=403/ACCESO_DENEGADO sin=403/ACCESO_DENEGADO",
+      "evidencia": "evidencia_e6_permisos_TC-M07-G057.json",
+      "pasos": [
+        "Admin export JSON HTTP 200",
+        "Auditor (Revisor Fiscal) HTTP 403 code=ACCESO_DENEGADO",
+        "Sin permisos (Contador) HTTP 403 code=ACCESO_DENEGADO",
+        "401 no aplica: los tres perfiles autenticaron correctamente"
+      ],
+      "observaciones": "Regresión breve respecto a G056 E2b/E3"
+    }
+  ],
+  "diagnostico": {
+    "fecha_utc": "2026-11-18T03:15:56.658962+00:00",
+    "endpoint": "GET /integracion/auditoria/exportar",
+    "formatos": [
+      "csv",
+      "json"
+    ],
+    "formato_default": "csv",
+    "filtros": [
+      "tipo_evento",
+      "id_cliente_externo",
+      "desde",
+      "hasta",
+      "endpoint",
+      "codigo_http",
+      "numero_id_tributaria"
+    ],
+    "permiso": "auditoria_integracion:E",
+    "content_types": {
+      "csv": "text/csv; charset=utf-8",
+      "json": "application/json"
+    },
+    "content_disposition": "attachment; filename=\"auditoria_integracion_YYYYMMDD_HHMMSS.{formato}\"",
+    "limite_exportacion": 50000,
+    "vista": "completa (restringida=False)",
+    "baseline_consulta_total": 156,
+    "baseline_consulta_http": 200,
+    "export_csv": {
+      "http": 200,
+      "filas": 156,
+      "sha256": "9bd0dcc2b972182742b099fa4c1987cffabe17475db379ed2f04db5112bc2ddb"
+    },
+    "export_json": {
+      "http": 200,
+      "registros": 156,
+      "sha256": "b1b4eb2a3c32115c88c329133792a52be1dbd3766efd51d5a78bc92b90283958"
+    }
+  },
+  "limitaciones": [
+    "No se modificó BD ni roles. Credenciales solo por entorno.",
+    "Archivos originales de exportación conservados en Resultado; evidencias JSON/HTML redactadas.",
+    "Intentos 403 de E6 pueden incrementar ACCESO_AUDITORIA_DENEGADO / denegaciones de permiso.",
+    "G052–G056 no modificados."
+  ],
+  "resumen": {
+    "aprobados": 6,
+    "rechazados": 0,
+    "bloqueados": 0,
+    "no_aplica": 0,
+    "estado_final": "APROBADO"
+  },
+  "peticiones": [
+    {
+      "fase": "login",
+      "admin": 200,
+      "auditor": 200,
+      "sin": 200
+    },
+    {
+      "fase": "baseline_consulta",
+      "http": 200,
+      "total": 156,
+      "items": 100
+    }
+  ],
+  "registros_csv": 156,
+  "registros_json": 156,
+  "endpoints_reales": {
+    "exportacion": "/integracion/auditoria/exportar",
+    "consulta": "/integracion/auditoria",
+    "parametros": [
+      "formato",
+      "tipo_evento",
+      "id_cliente_externo",
+      "desde",
+      "hasta",
+      "endpoint",
+      "codigo_http",
+      "numero_id_tributaria"
+    ]
+  }
+}

@@ -1,0 +1,237 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G110</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}</style></head><body>
+<h1>Módulo 6 — RF-90 — TC-M06-G110</h1>
+<p>Generado: 2026-11-12T18:52:02.867003-05:00. Dictamen: APROBADO.</p>
+<table><tr><th>Porcentaje</th><td>100 %</td></tr>
+<tr><th>Aprobados / fallidos / bloqueados</th>
+<td>3 / 0 / 0</td></tr>
+<tr><th>Activo / período / NIT</th><td>1569 / 220 / 900000003</td></tr>
+<tr><th>Id costo positivo</th><td>4448</td></tr></table>
+<h2>Subcasos</h2><table><tr><th>Subcaso</th><th>Estado</th><th>Motivo</th></tr><tr><td>TC-M06-35</td><td>PASSED</td><td>HTTP 201 original + verificación id=4448; MANTENIMIENTO/GASTO; vehículo FACTURA_COMPRA sin línea NIC 41; COSTO_REGISTRADO; período 220 ABIERTO; valor en libros sin aumento.</td></tr><tr><td>TC-M06-36</td><td>PASSED</td><td>0 y -100 respondieron 400 VAL_ENTRADA en monto_costo sin insertar ni auditar.</td></tr><tr><td>TC-M06-38</td><td>PASSED</td><td>Alimento como INVERSION con confirmar_capitalizacion respondió 422 RECLASIFICACION_NO_PERMITIDA.</td></tr></table>
+<h2>Precondiciones</h2><pre>{
+  &quot;ok&quot;: true,
+  &quot;periodo&quot;: {
+    &quot;id_periodo_contable&quot;: 220,
+    &quot;numero_id_tributaria&quot;: &quot;900000003&quot;,
+    &quot;razon_social&quot;: &quot;QA M06 Operaciones SAS&quot;,
+    &quot;estado&quot;: &quot;ABIERTO&quot;,
+    &quot;fecha_inicio&quot;: &quot;2026-11-01&quot;,
+    &quot;fecha_fin&quot;: &quot;2026-11-30&quot;,
+    &quot;fecha_cierre&quot;: null
+  },
+  &quot;activo&quot;: {
+    &quot;id_activo_biologico&quot;: 1569,
+    &quot;identificador&quot;: &quot;QA-M06O-VR-01&quot;,
+    &quot;estado&quot;: &quot;ACTIVO&quot;,
+    &quot;id_finca&quot;: 467,
+    &quot;numero_id_tributaria&quot;: &quot;900000003&quot;,
+    &quot;razon_social&quot;: &quot;QA M06 Operaciones SAS&quot;,
+    &quot;costo_adquisicion&quot;: &quot;3500000.0000&quot;
+  },
+  &quot;reconocimiento&quot;: {
+    &quot;estado&quot;: &quot;CONFIRMADO&quot;,
+    &quot;indicador_valoracion&quot;: &quot;VALOR_RAZONABLE&quot;,
+    &quot;id_periodo_contable&quot;: 220,
+    &quot;valor_razonable_neto_inicial&quot;: &quot;3760000.0000&quot;
+  },
+  &quot;costos_activo&quot;: {
+    &quot;total&quot;: 1,
+    &quot;ids&quot;: [
+      4448
+    ],
+    &quot;naturalezas&quot;: {
+      &quot;MANTENIMIENTO&quot;: 1
+    },
+    &quot;politicas&quot;: {
+      &quot;GASTO&quot;: 1
+    },
+    &quot;subtipos&quot;: {
+      &quot;ALIMENTO&quot;: 1
+    },
+    &quot;vehiculos&quot;: {
+      &quot;FACTURA_COMPRA&quot;: 1
+    },
+    &quot;mantenimiento_capitalizado&quot;: 0
+  },
+  &quot;costos_periodo&quot;: {
+    &quot;total&quot;: 1,
+    &quot;ids&quot;: [
+      4448
+    ],
+    &quot;naturalezas&quot;: {
+      &quot;MANTENIMIENTO&quot;: 1
+    },
+    &quot;politicas&quot;: {
+      &quot;GASTO&quot;: 1
+    },
+    &quot;subtipos&quot;: {
+      &quot;ALIMENTO&quot;: 1
+    },
+    &quot;vehiculos&quot;: {
+      &quot;FACTURA_COMPRA&quot;: 1
+    },
+    &quot;mantenimiento_capitalizado&quot;: 0
+  },
+  &quot;costo_g110_previo&quot;: 4448,
+  &quot;lineas_periodo_total&quot;: 4,
+  &quot;lineas_activo_ids&quot;: [
+    894
+  ],
+  &quot;auditoria_costo_registrado_activo&quot;: 1,
+  &quot;valoracion_costo&quot;: null
+}</pre>
+<h2>Costos</h2><pre>{
+  &quot;antes_activo&quot;: {
+    &quot;total&quot;: 1,
+    &quot;ids&quot;: [
+      4448
+    ],
+    &quot;naturalezas&quot;: {
+      &quot;MANTENIMIENTO&quot;: 1
+    },
+    &quot;politicas&quot;: {
+      &quot;GASTO&quot;: 1
+    },
+    &quot;subtipos&quot;: {
+      &quot;ALIMENTO&quot;: 1
+    },
+    &quot;vehiculos&quot;: {
+      &quot;FACTURA_COMPRA&quot;: 1
+    },
+    &quot;mantenimiento_capitalizado&quot;: 0
+  },
+  &quot;antes_periodo&quot;: {
+    &quot;total&quot;: 1,
+    &quot;ids&quot;: [
+      4448
+    ],
+    &quot;naturalezas&quot;: {
+      &quot;MANTENIMIENTO&quot;: 1
+    },
+    &quot;politicas&quot;: {
+      &quot;GASTO&quot;: 1
+    },
+    &quot;subtipos&quot;: {
+      &quot;ALIMENTO&quot;: 1
+    },
+    &quot;vehiculos&quot;: {
+      &quot;FACTURA_COMPRA&quot;: 1
+    },
+    &quot;mantenimiento_capitalizado&quot;: 0
+  },
+  &quot;despues_activo&quot;: {
+    &quot;total&quot;: 1,
+    &quot;ids&quot;: [
+      4448
+    ],
+    &quot;naturalezas&quot;: {
+      &quot;MANTENIMIENTO&quot;: 1
+    },
+    &quot;politicas&quot;: {
+      &quot;GASTO&quot;: 1
+    },
+    &quot;subtipos&quot;: {
+      &quot;ALIMENTO&quot;: 1
+    },
+    &quot;vehiculos&quot;: {
+      &quot;FACTURA_COMPRA&quot;: 1
+    },
+    &quot;mantenimiento_capitalizado&quot;: 0
+  },
+  &quot;despues_periodo&quot;: {
+    &quot;total&quot;: 1,
+    &quot;ids&quot;: [
+      4448
+    ],
+    &quot;naturalezas&quot;: {
+      &quot;MANTENIMIENTO&quot;: 1
+    },
+    &quot;politicas&quot;: {
+      &quot;GASTO&quot;: 1
+    },
+    &quot;subtipos&quot;: {
+      &quot;ALIMENTO&quot;: 1
+    },
+    &quot;vehiculos&quot;: {
+      &quot;FACTURA_COMPRA&quot;: 1
+    },
+    &quot;mantenimiento_capitalizado&quot;: 0
+  },
+  &quot;registro_positivo&quot;: {
+    &quot;id_registro_costo&quot;: 4448,
+    &quot;naturaleza_costo&quot;: &quot;MANTENIMIENTO&quot;,
+    &quot;subtipo_costo&quot;: &quot;ALIMENTO&quot;,
+    &quot;origen_costo&quot;: &quot;COMPRA_PROVEEDOR&quot;,
+    &quot;vehiculo_contable&quot;: &quot;FACTURA_COMPRA&quot;,
+    &quot;id_activo_biologico&quot;: 1569,
+    &quot;activo&quot;: &quot;QA-M06O-VR-01&quot;,
+    &quot;monto_costo&quot;: &quot;150000.0000&quot;,
+    &quot;fecha_costo&quot;: &quot;2026-11-12&quot;,
+    &quot;id_periodo_contable&quot;: 220,
+    &quot;estado&quot;: &quot;REGISTRADO&quot;,
+    &quot;politica_capitalizacion&quot;: &quot;GASTO&quot;,
+    &quot;justificacion&quot;: null,
+    &quot;id_origen_m05&quot;: null,
+    &quot;tercero_nit&quot;: &quot;800555111&quot;,
+    &quot;tercero_dv&quot;: &quot;1&quot;,
+    &quot;tercero_razon_social&quot;: &quot;Veterinaria SAS&quot;,
+    &quot;factura_prefijo&quot;: &quot;QA&quot;,
+    &quot;factura_numero&quot;: &quot;G11011202601&quot;,
+    &quot;fecha_factura&quot;: &quot;2026-11-12&quot;,
+    &quot;fecha_vencimiento_factura&quot;: &quot;2026-12-12&quot;,
+    &quot;id_grupo_reparto&quot;: null,
+    &quot;metodo_reparto&quot;: null,
+    &quot;cuenta_debito&quot;: &quot;158405&quot;,
+    &quot;cuenta_credito&quot;: null,
+    &quot;es_cuenta_manual&quot;: false,
+    &quot;es_reverso&quot;: false,
+    &quot;id_usuario&quot;: 141,
+    &quot;fecha_registro&quot;: &quot;2026-11-12T23:49:37.168426Z&quot;,
+    &quot;id_especie&quot;: 422,
+    &quot;id_infraestructura&quot;: 1016,
+    &quot;id_finca&quot;: 467,
+    &quot;especie&quot;: &quot;Caprino Qa Aislado&quot;,
+    &quot;finca&quot;: &quot;Finca Qa Seis Operaciones&quot;
+  }
+}</pre>
+<h2>Libros</h2><pre>{
+  &quot;antes&quot;: {
+    &quot;activo&quot;: {
+      &quot;id_activo_biologico&quot;: 1569,
+      &quot;identificador&quot;: &quot;QA-M06O-VR-01&quot;,
+      &quot;estado&quot;: &quot;ACTIVO&quot;,
+      &quot;id_finca&quot;: 467,
+      &quot;numero_id_tributaria&quot;: &quot;900000003&quot;,
+      &quot;razon_social&quot;: &quot;QA M06 Operaciones SAS&quot;,
+      &quot;costo_adquisicion&quot;: &quot;3500000.0000&quot;
+    },
+    &quot;reconocimiento&quot;: {
+      &quot;estado&quot;: &quot;CONFIRMADO&quot;,
+      &quot;indicador_valoracion&quot;: &quot;VALOR_RAZONABLE&quot;,
+      &quot;id_periodo_contable&quot;: 220,
+      &quot;valor_razonable_neto_inicial&quot;: &quot;3760000.0000&quot;
+    },
+    &quot;valoracion_costo&quot;: null
+  },
+  &quot;despues&quot;: {
+    &quot;activo&quot;: {
+      &quot;id_activo_biologico&quot;: 1569,
+      &quot;identificador&quot;: &quot;QA-M06O-VR-01&quot;,
+      &quot;estado&quot;: &quot;ACTIVO&quot;,
+      &quot;id_finca&quot;: 467,
+      &quot;numero_id_tributaria&quot;: &quot;900000003&quot;,
+      &quot;razon_social&quot;: &quot;QA M06 Operaciones SAS&quot;,
+      &quot;costo_adquisicion&quot;: &quot;3500000.0000&quot;
+    },
+    &quot;reconocimiento&quot;: {
+      &quot;estado&quot;: &quot;CONFIRMADO&quot;,
+      &quot;indicador_valoracion&quot;: &quot;VALOR_RAZONABLE&quot;,
+      &quot;id_periodo_contable&quot;: 220,
+      &quot;valor_razonable_neto_inicial&quot;: &quot;3760000.0000&quot;
+    },
+    &quot;valoracion_costo&quot;: null
+  }
+}</pre>
+<h2>Hallazgos</h2><ul><li>No se reenvió el POST positivo: el costo G110 4448 ya existía. Se verifica por lectura.</li><li>La matriz CONSUMO_INSUMO/UNICO de TEST asignó cuenta_debito 158405 al costo de alimento (factura). La política del registro es GASTO y no se creó línea NIC 41; se documenta sin modificar la matriz.</li></ul>
+</body></html>

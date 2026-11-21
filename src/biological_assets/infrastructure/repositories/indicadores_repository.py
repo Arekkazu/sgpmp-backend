@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Implementación SQLAlchemy de ``IndicadoresRepository``: indicadores zootécnicos
 (RF-51) y datos consolidados (RF-50).
 """
@@ -18,6 +21,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     SeccionDatosConsolidados,
 )
 from src.biological_assets.domain.repositories.indicadores_repository import IndicadoresRepository
+from src.shared.fechas import nombre_zona_usuario
 
 _INCLUDE_CRECIMIENTO = {'CRECIMIENTO', 'TODOS'}
 _INCLUDE_PRODUCCION = {'PRODUCCION', 'TODOS'}
@@ -100,11 +104,11 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 'FROM modulo2.eventos_crecimeinto ec '
                 'JOIN modulo2.eventos_activos ea ON ec.id_evento = ea.id_eventos '
                 'WHERE ea.id_activo_biologico = :id AND lower(ec.tipo_medicion) = \'peso\' '
-                'AND (:fi IS NULL OR ea.fecha::date >= :fi) '
-                'AND (:ff IS NULL OR ea.fecha::date <= :ff) '
+                'AND (:fi IS NULL OR (ea.fecha AT TIME ZONE :tz)::date >= :fi) '
+                'AND (:ff IS NULL OR (ea.fecha AT TIME ZONE :tz)::date <= :ff) '
                 'ORDER BY ea.fecha'
             ),
-            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin, 'tz': nombre_zona_usuario()},
         ).fetchall()
 
         if len(rows) < 2:
@@ -267,10 +271,10 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 'JOIN modulo2.eventos_activos ea ON ep.id_evento = ea.id_eventos '
                 'LEFT JOIN modulo9.metricas_produccion mp ON mp.id_metrica_produccion = ep.id_metrica_produccion '
                 'WHERE ea.id_activo_biologico = :id '
-                'AND (:fi IS NULL OR ea.fecha::date >= :fi) '
-                'AND (:ff IS NULL OR ea.fecha::date <= :ff)'
+                'AND (:fi IS NULL OR (ea.fecha AT TIME ZONE :tz)::date >= :fi) '
+                'AND (:ff IS NULL OR (ea.fecha AT TIME ZONE :tz)::date <= :ff)'
             ),
-            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin, 'tz': nombre_zona_usuario()},
         ).fetchone()
 
         if not row or not row.total or int(row.n) == 0:
@@ -359,10 +363,10 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 'FROM modulo2.eventos_sanitarios es '
                 'JOIN modulo2.eventos_activos ea ON es.id_evento = ea.id_eventos '
                 'WHERE ea.id_activo_biologico = :id '
-                'AND (:fi IS NULL OR ea.fecha::date >= :fi) '
-                'AND (:ff IS NULL OR ea.fecha::date <= :ff)'
+                'AND (:fi IS NULL OR (ea.fecha AT TIME ZONE :tz)::date >= :fi) '
+                'AND (:ff IS NULL OR (ea.fecha AT TIME ZONE :tz)::date <= :ff)'
             ),
-            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin, 'tz': nombre_zona_usuario()},
         ).fetchone()
 
         n_eventos = int(row_san.n_eventos) if row_san and row_san.n_eventos else 0
@@ -430,10 +434,10 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 'FROM modulo2.eventos_bajas eb '
                 'JOIN modulo2.eventos_activos ea ON eb.id_evento = ea.id_eventos '
                 'WHERE ea.id_activo_biologico = :id '
-                'AND (:fi IS NULL OR ea.fecha::date >= :fi) '
-                'AND (:ff IS NULL OR ea.fecha::date <= :ff)'
+                'AND (:fi IS NULL OR (ea.fecha AT TIME ZONE :tz)::date >= :fi) '
+                'AND (:ff IS NULL OR (ea.fecha AT TIME ZONE :tz)::date <= :ff)'
             ),
-            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin, 'tz': nombre_zona_usuario()},
         ).fetchone()
 
         total_bajas = int(row_baj.total_bajas) if row_baj else 0
@@ -535,11 +539,11 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 'FROM modulo2.vw_rf46_historial_completo_activo '
                 'WHERE id_activo_biologico = :id '
                 'AND categoria NOT IN (\'ESTADO\', \'FASE_PRODUCTIVA\', \'INDICADOR\') '
-                'AND (:fi IS NULL OR fecha_evento::date >= :fi) '
-                'AND (:ff IS NULL OR fecha_evento::date <= :ff) '
+                'AND (:fi IS NULL OR (fecha_evento AT TIME ZONE :tz)::date >= :fi) '
+                'AND (:ff IS NULL OR (fecha_evento AT TIME ZONE :tz)::date <= :ff) '
                 'ORDER BY fecha_evento DESC'
             ),
-            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin, 'tz': nombre_zona_usuario()},
         ).fetchall()
         return [
             {
@@ -611,10 +615,10 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 'FROM modulo2.eventos_crecimeinto ec '
                 'JOIN modulo2.eventos_activos ea ON ec.id_evento = ea.id_eventos '
                 'WHERE ea.id_activo_biologico = :id AND lower(ec.tipo_medicion) = \'peso\' '
-                'AND (:fi IS NULL OR ea.fecha::date >= :fi) '
-                'AND (:ff IS NULL OR ea.fecha::date <= :ff)'
+                'AND (:fi IS NULL OR (ea.fecha AT TIME ZONE :tz)::date >= :fi) '
+                'AND (:ff IS NULL OR (ea.fecha AT TIME ZONE :tz)::date <= :ff)'
             ),
-            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin, 'tz': nombre_zona_usuario()},
         ).fetchone()
         return int(row.total) if row else 0
 

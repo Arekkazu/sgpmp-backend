@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: fixtures temporales RF-22 y estados DB-13 |
 """INC-M09-64-G31 (#494, RF-61 → RF-17): toda lectura nueva deja su vinculación.
 
 Antes, la vinculación automática usaba un stub que siempre devolvía "sin
@@ -7,7 +10,7 @@ Sin fila no había nada que resolver, ni activo, ni especie, ni umbral RF-17.
 
 Con la migración 0618e6f7b308 y el adaptador real de M02:
 - área sin activos operativos → SIN_VINCULAR (fila válida, resoluble después);
-- un activo → VINCULADA a ese animal, o a su lote si es POBLACIONAL;
+- un activo → CONFIRMADA a ese animal, o a su lote si es POBLACIONAL;
 - varios → AMBIGUA;
 - una SIN_VINCULAR se resuelve (RF-61 C1) y dispara la reclasificación RF-17.
 """
@@ -78,7 +81,7 @@ def _area(db: Session, id_usuario: int) -> int:
     return sid
 
 
-def _activo(db: Session, id_area: int, id_usuario: int, *, tipo: str = 'INDIVIDUAL', estado: int = _ACTIVO) -> int:
+def _activo(db: Session, id_area: int, id_usuario: int, *, tipo: str = 'INDIVIDUAL', estado: int = _ACTIVO, con_historial: bool = True) -> int:
     # `pruebas` trae el catálogo; una BD vacía no. Todo activo nace ACTIVO (trigger)
     # y solo cambia de estado por historicos_estados_activos (RF-44).
     db.execute(
@@ -103,7 +106,7 @@ def _activo(db: Session, id_area: int, id_usuario: int, *, tipo: str = 'INDIVIDU
                 2, :identificador, :area, CAST(:tipo AS modulo2.enum_activo_biologico_tipo),
                 current_date, :estado, 'Fixture INC-M09-64-G31',
                 CAST('compra' AS modulo2.enum_activo_biologico_origen_financiero), 100, '{}',
-                :usuario, now(), 'doc', ''
+                :usuario, now()-interval '2 minutes', 'doc', ''
             )
             RETURNING id_activo_biologico
             """
@@ -123,11 +126,13 @@ def _activo(db: Session, id_area: int, id_usuario: int, *, tipo: str = 'INDIVIDU
                 """
                 INSERT INTO modulo2.historicos_estados_activos (id_activo_biologico, id_estado_nuevo,
                     id_estado_anterior, fecha_cambio, motivo_cambio, modulo_origen, id_usuario)
-                VALUES (:a, :nuevo, 1, now(), 'Fixture INC-M09-64-G31', 'MANUAL', :u)
+                VALUES (:a, :nuevo, 1, now()-interval '90 seconds', 'Fixture INC-M09-64-G31', 'MANUAL', :u)
                 """
             ),
             {'a': id_activo, 'nuevo': estado, 'u': id_usuario},
         )
+    if con_historial:
+        db.execute(text("INSERT INTO modulo2.historial_infraestructura_activo (id_activo_biologico,id_infraestructura,fecha_inicio,id_usuario_registro) VALUES (:id,:area,now()-interval '2 minutes',:u)"),{'id':id_activo,'area':id_area,'u':id_usuario})
     return id_activo
 
 
@@ -150,7 +155,9 @@ def _lectura(db: Session, id_area: int) -> tuple[int, datetime]:
         ),
         {'d': id_dispositivo},
     ).scalar_one()
-    captura = datetime.now(timezone.utc) - timedelta(minutes=1)
+    captura = db.execute(text("SELECT now()-interval '1 minute'")).scalar_one()
+    usuario=db.execute(text("SELECT current_setting('app.usuario_id')::int")).scalar_one()
+    db.execute(text("INSERT INTO modulo9.sensores_areas_asociadas(id_sensor,id_dispositivo_iot,id_infraestructura,punto_instalacion,tiene_estado,fecha_asociacion,id_usuario) VALUES (:s,:d,:area,'DEV44',true,:fecha,:u)"),{'s':id_sensor,'d':id_dispositivo,'area':id_area,'fecha':captura-timedelta(seconds=1),'u':usuario})
     id_telemetria = db.execute(
         text(
             """
@@ -213,7 +220,7 @@ def test_un_activo_operativo_vincula_automaticamente(db_session: Session, usuari
     _vincular(db_session, id_telemetria, area, captura)
 
     assert [(f.estado, f.id_activo_biologico, f.modelo) for f in _filas(db_session, id_telemetria)] == [
-        ('VINCULADA', animal, 'INDIVIDUAL'),
+        ('CONFIRMADA', animal, 'INDIVIDUAL'),
     ]
 
 
@@ -225,7 +232,7 @@ def test_un_lote_poblacional_vincula_la_lectura_al_lote(db_session: Session, usu
     _vincular(db_session, id_telemetria, area, captura)
 
     assert [(f.estado, f.id_activo_biologico, f.modelo) for f in _filas(db_session, id_telemetria)] == [
-        ('VINCULADA', lote, 'POBLACIONAL'),
+        ('CONFIRMADA', lote, 'POBLACIONAL'),
     ]
 
 
@@ -238,7 +245,7 @@ def test_varios_activos_dejan_la_lectura_ambigua(db_session: Session, usuario: i
     _vincular(db_session, id_telemetria, area, captura)
 
     assert [(f.estado, f.id_activo_biologico) for f in _filas(db_session, id_telemetria)] == [
-        ('AMBIGUA', None),
+        ('PENDIENTE_REVISION', None),
     ]
 
 
@@ -258,6 +265,7 @@ def test_sin_vincular_se_resuelve_y_dispara_la_reclasificacion_rf17(db_session: 
     reclasificar = _ReclasificarSpy()
 
     resuelta = ResolverVinculacionUseCase(
+        activo_port=ActivoBiologicoM02Adapter(db_session),
         db=db_session,
         vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db_session),
         reclasificar_semaforo_use_case=reclasificar,
@@ -267,10 +275,10 @@ def test_sin_vincular_se_resuelve_y_dispara_la_reclasificacion_rf17(db_session: 
         id_usuario=usuario,
     )
 
-    assert (resuelta.estado_vinculacion, resuelta.mecanismo_vinculacion) == ('VINCULADA', 'MANUAL')
+    assert (resuelta.estado_vinculacion, resuelta.mecanismo_vinculacion) == ('CONFIRMADA', 'MANUAL')
     assert reclasificar.llamadas == [(id_telemetria, animal)]
     assert [(f.estado, f.id_activo_biologico) for f in _filas(db_session, id_telemetria)] == [
-        ('VINCULADA', animal),
+        ('CONFIRMADA', animal),
     ]
 
 
@@ -286,7 +294,7 @@ def test_una_vinculacion_individual_vigente_sigue_exigiendo_su_activo(db_session
                     INSERT INTO modulo3.vinculaciones_lecturas (id_telemetria, modelo_manejo,
                         id_activo_biologico, id_infraestructura, fecha_inicio_vinculacion,
                         mecanismo_vinculacion, estado_vinculacion)
-                    VALUES (:t, 'INDIVIDUAL', NULL, :area, :captura, 'AUTOMATICA', 'VINCULADA')
+                    VALUES (:t, 'INDIVIDUAL', NULL, :area, :captura, 'AUTOMATICA', 'CONFIRMADA')
                     """
                 ),
                 {'t': id_telemetria, 'area': area, 'captura': captura},

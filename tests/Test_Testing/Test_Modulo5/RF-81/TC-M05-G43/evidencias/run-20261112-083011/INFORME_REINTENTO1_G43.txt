@@ -1,0 +1,782 @@
+================================================================================
+INFORME DE REEVALUACION - TC-M05-G43 (RF-81 / RF-80) - REINTENTO 1
+INC-M05-284-G43 | Commit #971 (21513288)
+Fecha: 12/11/2026 | Autor: Juan Sebastian Gutierrez
+Staging: tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-083011/
+================================================================================
+
+--------------------------------------------------------------------------------
+SECCION 0. LINEA BASE DE RONDA 1 Y DIAGNOSTICO PREVIO (PARTE 0)
+--------------------------------------------------------------------------------
+[HECHO] Ronda 1 (evidencias/run-20261107-230054/):
+- Veredicto: RECHAZADO (5/10).
+- Checkpoints Ronda 1: T00 OK, B01 FALLA, B02 FALLA, B03 FALLA, B04 OK, A01 OK,
+  A02 FALLA (404 ACTIVO_NO_ENCONTRADO en lugar de 403), A03 FALLA (0 eventos tras el
+  intento denegado), T98 OK, T99 OK.
+- SQL (/test-control/query) detectado en Ronda 1: B01 L423; B02 L468, L482, L496;
+  B03 L538; A03 L640, L644, L648, L657, L661, L665.
+- T99 hacia login FUERA de sandbox.
+
+--------------------------------------------------------------------------------
+SECCION 1. AUDITORIA DEL COMMIT DE DESARROLLO (#971 / 21513288) (PARTE 0)
+--------------------------------------------------------------------------------
+[HECHO] Commit 21513288 (#971):
+- consultar_historial_suministros_use_case.py:190-214 (_auditar_consulta:
+  datos_nuevos con filtros_aplicados, pagina, registros_por_pagina,
+  total_registros_retornados = len(lineas), total_registros_filtrados;
+  tambien en consulta vacia).
+- exportar_historial_sincrono_use_case.py (_auditar_exportacion: solo
+  EXPORTACION_HISTORIAL_GENERADA, con filtros_aplicados, formato y
+  total_registros_retornados = total_registros_filtrados).
+- historial_suministro.py:39-50 (fechas .isoformat(), decimales str()).
+- Sin migracion de trigger.
+
+--------------------------------------------------------------------------------
+SECCION 2. VERIFICACION DE DESPLIEGUE Y BASELINE INICIAL (PARTE 0)
+--------------------------------------------------------------------------------
+[HECHO]
+- Despliegue OK: run tc-m05-g43-ctrl-20cc899c27, evento 76815 con datos_nuevos
+  completo; DELETE 200.
+- El openapi tiene /usuarios/me; /suministros/historial/exportar declara 200 y 202.
+- SHA-256 originales de Parte 0.1 (HEAD):
+  * ejecutar_tc_m05_g43.ps1:     660CFDBDACCAC47569C200D6F44073A07E783A53607FC7510C718D0DF2BE087B
+  * generar_artefactos_run_g43.py: 87AA334BF4E1A0D4763604AF1C76A6978C4E4BC0CE51EE7422938D90867AD69A
+  * test_tc_m05_g43.py:          F755ED85BEF57C9CE44622DD1A2DC68C8EA468BB36954BBD66693216259B1F12
+  * resultado_TC-M05-G43.html:   CFABCFA25D28565377FE45CDC1620802D10F8B1E4D94C39C33963C9E06D4ECA5
+  * resultado_TC-M05-G43.json:   D23E3D9E5C60397ADC4A36BBF42AFFEB820BC2F21C8D05FB48B678B647FFDD7C
+  * resultados/.gitkeep:         01BA4719C80B6FE911B091A7C05124B64EEECE964E09C058EF8F9805DACA546B
+
+--------------------------------------------------------------------------------
+SECCION 3. CORRIDAS ARCHIVADAS, ESTABILIDAD Y CAMBIOS F1-F3
+--------------------------------------------------------------------------------
+3.1 Corridas previas archivadas (no oficiales):
+- run-20261112-081621 (ARCHIVADO_NO_OFICIAL.txt):
+  * Paso 1 verificado: contenido coincide literalmente con el motivo de archivo;
+    LastWriteTime 2026-11-12T08:23:24.1429108-05:00; Length 815;
+    SHA-256 estable: DA321C9A2F199EB2409B8B7F6413CE2BB103D7C7B3B47F16E27C9AA1C0580E07
+- run-20261112-082314 (ARCHIVADO_NO_OFICIAL.txt):
+  * Paso 2 / estabilidad: tras una variacion inicial, se estabilizo en
+    SHA-256 A08E8DCFEDA31DCB19E55683BBBF3C899B704CB0B2405AF3CDC8FC22DBAAD901 (2 lecturas consecutivas iguales a 30s;
+    Bytes=788, BOM=False, EOL=LF, LastWriteTime=2026-11-12T08:26:34.2092795-05:00).
+
+3.2 SHA-256 de control (Paso 3) y SHA-256 finales (F4):
+- Paso 3 (antes de F1-F3):
+  * test_tc_m05_g43.py:          A3F6B3DAA491C49175AEDA291E18926397D5850AA4292EE654B42CE5E0B5E831
+  * generar_artefactos_run_g43.py: 139ECB8F77E6DE1E172D761CA21E2A147330CB87EF8A448BF5B270FAF5452A80
+  * ejecutar_tc_m05_g43.ps1:     5A4CA87B5D5D80B8E6F28282DF64424845F629C17C9A8A4B28F05908178BAAD6
+- F4 (despues de F1-F3):
+  * test_tc_m05_g43.py:          C41EDFB63A87C8A6C32CCCC386242996EE0EA511DFB944E8DFD8DA2027D30E6A
+  * generar_artefactos_run_g43.py: 10C4632FBFC1521747225F27E0F653BC8FF7960E7D54C3524864C4ACAAD8BE6C
+  * ejecutar_tc_m05_g43.ps1:     5AEE180E143D33BA71D053A71AB80F9D81C1118E455A500AC73B9B94E3D65A15
+- Verificacion estatica F4: py_compile OK, ParseFile OK (0 errores), .ps1 ASCII
+  sin BOM, pytest --collect-only --tb=short = 11 tests, 0 hits de
+  /test-control/query e information_schema, Test-Path True en las 17 rutas.
+
+3.3 Diff F1-F3 (contra Paso 3):
+git : warning: in the working copy of 'C:\Users\Juansegutt\.gemini\antigravity\brain\16281163-0e32-4262-870f-edc568be7e
+c9\scratch\paso3_ref\test_tc_m05_g43.py', LF will be replaced by CRLF the next time Git touches it
+En línea: 55 Carácter: 10
++     $d = git diff --no-index "$scratch\$f" "$ScriptDir\$f" 2>&1 | Out ...
++          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warning: in the... Git touches it:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: in the working copy of 
+'C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-81\TC-M05-G43\test_tc_m05_g43.py', LF 
+will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\Juansegutt\\.gemini\\antigravity\\brain\\16281163-0e32-4262-870f-edc568be7ec9\\scratch\\paso3_ref\\test_tc_m05_g43.py" "b/C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-81\\TC-M05-G43\\test_tc_m05_g43.py"
+index ea6f5f49..44e50588 100644
+--- "a/C:\\Users\\Juansegutt\\.gemini\\antigravity\\brain\\16281163-0e32-4262-870f-edc568be7ec9\\scratch\\paso3_ref\\test_tc_m05_g43.py"
++++ "b/C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-81\\TC-M05-G43\\test_tc_m05_g43.py"
+@@ -961,26 +961,32 @@ class TestTC_M05_G43_Teardown_Inocuidad:
+         assert "Rollback exitoso" in cierre_t99.get("body", ""), f"Cierre T99 sin Rollback exitoso: {cierre_t99}"
+ 
+ 
+-def pytest_sessionfinish(session, exitstatus):
++@pytest.fixture(scope="session", autouse=True)
++def _persistir_contexto_sesion():
+     """Persiste contexto_g43.json sanitizado al finalizar la sesion, incluso si falla cualquier test."""
++    yield
+     ev_dir = os.environ.get("TEST_EVIDENCE_DIR")
+     if not ev_dir:
+         return
+-    ctx_out = {
+-        "id_activo_c": _CONTEXTO.get("id_activo_c"),
+-        "id_ciclo_c": _CONTEXTO.get("id_ciclo_c"),
+-        "id_usuario_ref": _CONTEXTO.get("id_usuario_ref"),
+-        "auditoria_inicial_total": _CONTEXTO.get("auditoria_inicial_total"),
+-        "auditoria_inicial_ultimo_id": _CONTEXTO.get("auditoria_inicial_ultimo_id"),
+-        "eventos_setup": _CONTEXTO.get("eventos_setup"),
+-        "corridas_cerradas": _CONTEXTO.get("corridas_cerradas"),
+-        "runs_orden": _CONTEXTO.get("runs_orden"),
+-        "a03": _CONTEXTO.get("a03"),
+-        "observaciones": _CONTEXTO.get("observaciones"),
+-    }
+-    Path(ev_dir).mkdir(parents=True, exist_ok=True)
+-    (Path(ev_dir) / "contexto_g43.json").write_text(
+-        json.dumps(ctx_out, ensure_ascii=False, indent=2),
+-        encoding="utf-8",
+-    )
++    try:
++        ctx_out = {
++            "id_activo_c": _CONTEXTO.get("id_activo_c"),
++            "id_ciclo_c": _CONTEXTO.get("id_ciclo_c"),
++            "id_usuario_ref": _CONTEXTO.get("id_usuario_ref"),
++            "auditoria_inicial_total": _CONTEXTO.get("auditoria_inicial_total"),
++            "auditoria_inicial_ultimo_id": _CONTEXTO.get("auditoria_inicial_ultimo_id"),
++            "eventos_setup": _CONTEXTO.get("eventos_setup"),
++            "corridas_cerradas": _CONTEXTO.get("corridas_cerradas"),
++            "runs_orden": _CONTEXTO.get("runs_orden"),
++            "a03": _CONTEXTO.get("a03"),
++            "observaciones": _CONTEXTO.get("observaciones"),
++        }
++        Path(ev_dir).mkdir(parents=True, exist_ok=True)
++        (Path(ev_dir) / "contexto_g43.json").write_text(
++            json.dumps(ctx_out, ensure_ascii=False, indent=2),
++            encoding="utf-8",
++        )
++    except Exception as exc:
++        import sys
++        print(f"[ERROR] No se pudo escribir contexto_g43.json: {exc}", file=sys.stderr)
+ 
+
+git : warning: in the working copy of 'C:\Users\Juansegutt\.gemini\antigravity\brain\16281163-0e32-4262-870f-edc568be7e
+c9\scratch\paso3_ref\generar_artefactos_run_g43.py', LF will be replaced by CRLF the next time Git touches it
+En línea: 55 Carácter: 10
++     $d = git diff --no-index "$scratch\$f" "$ScriptDir\$f" 2>&1 | Out ...
++          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warning: in the... Git touches it:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: in the working copy of 'C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-81\TC-
+M05-G43\generar_artefactos_run_g43.py', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\Juansegutt\\.gemini\\antigravity\\brain\\16281163-0e32-4262-870f-edc568be7ec9\\scratch\\paso3_ref\\generar_artefactos_run_g43.py" "b/C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-81\\TC-M05-G43\\generar_artefactos_run_g43.py"
+index 2037caf2..3d80fd77 100644
+--- "a/C:\\Users\\Juansegutt\\.gemini\\antigravity\\brain\\16281163-0e32-4262-870f-edc568be7ec9\\scratch\\paso3_ref\\generar_artefactos_run_g43.py"
++++ "b/C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-81\\TC-M05-G43\\generar_artefactos_run_g43.py"
+@@ -234,14 +234,26 @@ def _valores_reales_paso(paso_id: str, por_paso: dict[str, list[dict]], ctx: dic
+         st_int = a03_ctx.get("intento_http") or ((t_int or {}).get("status_code")) or "NO_ENCONTRADO:A03_intento_rechazado"
+         err_int = a03_ctx.get("intento_error_code") or ((t_int or {}).get("error_code")) or "NO_ENCONTRADO:A03_intento_rechazado.error_code"
+         xreq = a03_ctx.get("x_request_id") or ((t_int or {}).get("x_request_id")) or "NO_ENCONTRADO:A03_intento_rechazado.x_request_id"
+-        id_base = a03_ctx.get("id_base") if "id_base" in a03_ctx else "NO_ENCONTRADO:A03_antes_audit_max_id"
++        t_antes = _buscar_traza(por_paso, "A03_antes_audit_max_id")
++        id_base_traza = None
++        if t_antes and isinstance(t_antes.get("response_body"), dict):
++            items_a = t_antes["response_body"].get("items") or []
++            if items_a:
++                id_base_traza = max(e.get("id_auditoria_suministro", 0) for e in items_a)
++        id_base = a03_ctx.get("id_base") if "id_base" in a03_ctx else (id_base_traza if id_base_traza is not None else "NO_ENCONTRADO:A03_antes_audit_max_id")
+         evs_ctx = a03_ctx.get("eventos_nuevos")
+-        n_evs = len(evs_ctx) if isinstance(evs_ctx, list) else "NO_ENCONTRADO:A03_despues_audit_p*"
++        if isinstance(evs_ctx, list):
++            evs_det = ", ".join(f"{e.get('id')}:{e.get('accion')}:{e.get('resultado')}" for e in evs_ctx) or "[]"
++            n_evs = len(evs_ctx)
++        else:
++            evs_tr = _extraer_eventos_nuevos_traza(por_paso, "A03_antes_audit_max_id", "A03_despues_audit_p")
++            evs_det = ", ".join(f"{e.get('id_auditoria_suministro')}:{e.get('tipo_operacion')}:{e.get('resultado')}" for e in evs_tr) or "[]"
++            n_evs = len(evs_tr) if _buscar_trazas_prefijo(por_paso, "A03_despues_audit_p") else "NO_ENCONTRADO:A03_despues_audit_p*"
+         t_cierre = _buscar_traza(por_paso, "teardown_a03_admin")
+         st_cierre = t_cierre.get("status_code") if t_cierre else "NO_ENCONTRADO:teardown_a03_admin"
+         return (
+             f"A03_intento_rechazado HTTP {st_int} (error_code={err_int}, X-Request-Id={xreq}); "
+-            f"id_base={id_base}, eventos_nuevos={n_evs}, teardown_a03_admin HTTP {st_cierre}"
++            f"id_base={id_base}, eventos_nuevos={n_evs} ({evs_det}), teardown_a03_admin HTTP {st_cierre}"
+         )
+ 
+     if paso_id == "A04":
+@@ -267,9 +279,15 @@ def _valores_reales_paso(paso_id: str, por_paso: dict[str, list[dict]], ctx: dic
+         st_act = t_act.get("status_code") if t_act else "NO_ENCONTRADO:T99_activo_c_404"
+         st_his = t_his.get("status_code") if t_his else "NO_ENCONTRADO:T99_historial_c_404"
+         st_td = t_td.get("status_code") if t_td else "NO_ENCONTRADO:teardown_t99"
+-        tot_t99 = ((t_aud or {}).get("response_body") or {}).get("total", "NO_ENCONTRADO:T99_audit_inocuidad.total")
++        rb_t99 = (t_aud or {}).get("response_body") or {}
++        tot_t99 = rb_t99.get("total", "NO_ENCONTRADO:T99_audit_inocuidad.total")
++        items_t99 = rb_t99.get("items") or []
++        max_id_t99 = max((e.get("id_auditoria_suministro", 0) for e in items_t99), default="NO_ENCONTRADO:T99_audit_inocuidad.max_id")
++        max_id_t00 = ctx.get("auditoria_inicial_ultimo_id")
++        if max_id_t00 is None:
++            max_id_t00 = "NO_ENCONTRADO:contexto.auditoria_inicial_ultimo_id"
+         return (
+-            f"T99_audit_inocuidad HTTP {st_aud} (total={tot_t99}), "
++            f"T99_audit_inocuidad HTTP {st_aud} (total={tot_t99}, max_id={max_id_t99} vs T00={max_id_t00}), "
+             f"T99_activo_c_404 HTTP {st_act}, T99_historial_c_404 HTTP {st_his}, teardown_t99 HTTP {st_td}"
+         )
+ 
+@@ -309,24 +327,24 @@ def construir_json(
+             "B01",
+             "B01 Auditoría de consulta con resultados (105 / 040)",
+             "test_b01_consulta_con_resultados_auditoria",
+-            "CONSULTA_HISTORIAL_EJECUTADA registrado via GET /suministros/auditoria con id_usuario, id_activo, resultado EXITOSO, filtros_aplicados, pagina, registros_por_pagina, total_registros_retornados y total_registros_filtrados en <= 2 s",
+-            "RF-81 Fase 6 a / Fase 7 / CA-8 / Postcondicion 2 / E1",
++            "HTTP 200 con 3 registros; exactamente 1 CONSULTA_HISTORIAL_EJECUTADA nuevo con id_usuario = /usuarios/me, id_activo_biologico = activo C, fecha_emision no nula, datos_nuevos.filtros_aplicados con cada filtro enviado y datos_nuevos.total_registros_retornados = 3",
++            "RF-81 Fase 7, CA-8, Postcondicion 2",
+             False,
+         ),
+         (
+             "B02",
+             "B02 Auditoría de consulta sin resultados (105 / 040, CU04 FA-01)",
+             "test_b02_consulta_sin_resultados_auditoria",
+-            "Consulta vacia genera CONSULTA_HISTORIAL_EJECUTADA con filtros_aplicados, total_registros_retornados=0 y total_registros_filtrados=0 en la bitacora",
+-            "RF-81 Fase 6 a / Fase 7 / CA-8 / Postcondicion 2 / E1",
++            "HTTP 200 con 0 registros; exactamente 1 CONSULTA_HISTORIAL_EJECUTADA nuevo con las mismas verificaciones de B01 y datos_nuevos.total_registros_retornados = 0",
++            "RF-81 Fase 7, CA-8, E1; caso TC-M05-105/040",
+             False,
+         ),
+         (
+             "B03",
+             "B03 Auditoría de exportación síncrona PDF y Excel (105 / 040)",
+             "test_b03_exportacion_sincrona_auditoria",
+-            "Exportaciones PDF y EXCEL generan EXPORTACION_HISTORIAL_GENERADA con filtros_aplicados, formato_exportacion y total_registros_retornados en <= 2 s",
+-            "RF-81 Fase 6 a / Fase 7 / CA-8 / Postcondicion 2 / E1",
++            "PDF y EXCEL: HTTP 200; por cada formato exactamente 1 EXPORTACION_HISTORIAL_GENERADA nuevo con id_usuario = /usuarios/me, id_activo_biologico = activo C, fecha_emision no nula, filtros_aplicados con cada filtro enviado y total_registros_retornados = 3",
++            "RF-81 Fase 6 a, Fase 7, CA-8, Postcondicion 2",
+             False,
+         ),
+         (
+
+git : warning: in the working copy of 'C:\Users\Juansegutt\.gemini\antigravity\brain\16281163-0e32-4262-870f-edc568be7e
+c9\scratch\paso3_ref\ejecutar_tc_m05_g43.ps1', LF will be replaced by CRLF the next time Git touches it
+En línea: 55 Carácter: 10
++     $d = git diff --no-index "$scratch\$f" "$ScriptDir\$f" 2>&1 | Out ...
++          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warning: in the... Git touches it:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: in the working copy of 'C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo5\RF-81\TC-
+M05-G43\ejecutar_tc_m05_g43.ps1', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\Juansegutt\\.gemini\\antigravity\\brain\\16281163-0e32-4262-870f-edc568be7ec9\\scratch\\paso3_ref\\ejecutar_tc_m05_g43.ps1" "b/C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-81\\TC-M05-G43\\ejecutar_tc_m05_g43.ps1"
+index 72ec9e67..a1d2cc30 100644
+--- "a/C:\\Users\\Juansegutt\\.gemini\\antigravity\\brain\\16281163-0e32-4262-870f-edc568be7ec9\\scratch\\paso3_ref\\ejecutar_tc_m05_g43.ps1"
++++ "b/C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo5\\RF-81\\TC-M05-G43\\ejecutar_tc_m05_g43.ps1"
+@@ -10,6 +10,7 @@ HISTORIAL DE CAMBIOS:
+ | 12/11/2026 | Juan Sebastian Gutierrez | Reintento 1: soporte -Reintento, proteccion de resultados/, ASCII sin BOM y escaneo completo de secretos. |
+ | 12/11/2026 | Juan Sebastian Gutierrez | Correccion de la raiz del repo (5 niveles) |
+ | 12/11/2026 | Juan Sebastian Gutierrez | C4: verificacion SHA-256 de las 10 suites previas (G14..G38) y exclusion explicita del staging nuevo. |
++| 12/11/2026 | Juan Sebastian Gutierrez | F2: escaneo de secretos antes de integridad, exclusion de ARCHIVADO_NO_OFICIAL.txt y detalle de SHA en integridad. |
+ #>
+ 
+ param(
+@@ -52,7 +53,12 @@ function Get-HashesSnapshot {
+ $ResultadosDir = Join-Path $ScriptDir "resultados"
+ $EvidenciasRoot = Join-Path $ScriptDir "evidencias"
+ $SnapResultadosAntes = Get-HashesSnapshot -DirPath $ResultadosDir
+-$SnapEvidenciasAntes = Get-HashesSnapshot -DirPath $EvidenciasRoot
++$SnapEvidenciasRaw = Get-HashesSnapshot -DirPath $EvidenciasRoot
++$SnapEvidenciasAntes = @{}
++foreach ($k in $SnapEvidenciasRaw.Keys) {
++    if ($k.EndsWith("ARCHIVADO_NO_OFICIAL.txt")) { continue }
++    $SnapEvidenciasAntes[$k] = $SnapEvidenciasRaw[$k]
++}
+ 
+ $Mod5Dir = Join-Path $RepoRoot "tests\Test_Testing\Test_Modulo5"
+ $PrevSuiteScripts = @(
+@@ -127,41 +133,7 @@ if ($GenExit -ne 0) {
+     exit $GenExit
+ }
+ 
+-# Verificar que resultados/ y corridas previas no fueron modificadas
+-$SnapResultadosDespues = Get-HashesSnapshot -DirPath $ResultadosDir
+-if ($SnapResultadosAntes.Count -ne $SnapResultadosDespues.Count) {
+-    Write-Error "Violacion de integridad: cambio cantidad de archivos en resultados/"
+-    exit 3
+-}
+-foreach ($k in $SnapResultadosAntes.Keys) {
+-    if ($SnapResultadosDespues[$k] -ne $SnapResultadosAntes[$k]) {
+-        Write-Error "Violacion de integridad: modificado archivo en resultados/: $k"
+-        exit 3
+-    }
+-}
+-foreach ($k in $SnapEvidenciasAntes.Keys) {
+-    if ($k.StartsWith($EvDir)) { continue }
+-    $hNow = (Get-FileHash -Path $k -Algorithm SHA256).Hash
+-    if ($hNow -ne $SnapEvidenciasAntes[$k]) {
+-        Write-Error "Violacion de integridad: modificado artefacto de corrida previa: $k"
+-        exit 3
+-    }
+-}
+-$SnapEvidenciasDespues = Get-HashesSnapshot -DirPath $EvidenciasRoot
+-$PrevCountDespues = ($SnapEvidenciasDespues.Keys | Where-Object { -not $_.StartsWith($EvDir) }).Count
+-if ($PrevCountDespues -ne $SnapEvidenciasAntes.Count) {
+-    Write-Error "Violacion de integridad: cambio cantidad de archivos en corridas previas de evidencias/"
+-    exit 3
+-}
+-foreach ($sp in $PrevSuiteScripts) {
+-    $hSuiteNow = (Get-FileHash -Path $sp -Algorithm SHA256).Hash
+-    if ($hSuiteNow -ne $SnapPrevSuitesAntes[$sp]) {
+-        Write-Error "Violacion de integridad: modificado script de suite previa: $sp"
+-        exit 3
+-    }
+-}
+-
+-# Escaneo de secretos sobre todos los artefactos del staging (solo reporte)
++# (b) Escaneo de secretos sobre todos los artefactos del staging (siempre se ejecuta y reporta)
+ $SecretVars = @(
+     "TEST_ADMIN_PASSWORD",
+     "TEST_FIELD_ENGINEER_PASSWORD",
+@@ -205,19 +177,61 @@ foreach ($f in $StagingFiles) {
+     if ([string]::IsNullOrEmpty($content)) { continue }
+     foreach ($p in $Patterns) {
+         if ($content.Contains($p.Value)) {
+-            $Findings += "$($f.Name)::$($p.Name)"
++            $Findings += "$($f.Name)::$($p.Name) (len=$($p.Value.Length))"
+         }
+     }
+ }
+ 
++$ScanExit = 0
+ if ($Findings.Count -gt 0) {
+     Write-Host "[SCAN] HALLAZGOS DE SECRETOS EN STAGING:"
+     foreach ($hit in $Findings) {
+         Write-Host "  - $hit"
+     }
+-    exit 4
++    $ScanExit = 4
++} else {
++    Write-Host "[SCAN] 0 hallazgos en $($StagingFiles.Count) archivos de staging."
++}
++
++# (c) Verificaciones de integridad (resultados/, evidencias/ previas excluyendo staging nuevo y ARCHIVADO_NO_OFICIAL.txt, y 10 suites previas)
++$IntegrityExit = 0
++$SnapResultadosDespues = Get-HashesSnapshot -DirPath $ResultadosDir
++if ($SnapResultadosAntes.Count -ne $SnapResultadosDespues.Count) {
++    Write-Host "[INTEGRIDAD] ERROR: cambio cantidad de archivos en resultados/ (antes=$($SnapResultadosAntes.Count), despues=$($SnapResultadosDespues.Count))"
++    $IntegrityExit = 3
++}
++foreach ($k in $SnapResultadosAntes.Keys) {
++    if ($SnapResultadosDespues[$k] -ne $SnapResultadosAntes[$k]) {
++        Write-Host "[INTEGRIDAD] ERROR en resultados/: $k | esperado=$($SnapResultadosAntes[$k]) | actual=$($SnapResultadosDespues[$k])"
++        $IntegrityExit = 3
++    }
++}
++foreach ($k in $SnapEvidenciasAntes.Keys) {
++    if ($k.StartsWith($EvDir) -or $k.EndsWith("ARCHIVADO_NO_OFICIAL.txt")) { continue }
++    $hNow = if (Test-Path $k) { (Get-FileHash -Path $k -Algorithm SHA256).Hash } else { "NO_EXISTE" }
++    if ($hNow -ne $SnapEvidenciasAntes[$k]) {
++        Write-Host "[INTEGRIDAD] ERROR en evidencia previa: $k | esperado=$($SnapEvidenciasAntes[$k]) | actual=$hNow"
++        $IntegrityExit = 3
++    }
++}
++$SnapEvidenciasDespues = Get-HashesSnapshot -DirPath $EvidenciasRoot
++$PrevCountDespues = ($SnapEvidenciasDespues.Keys | Where-Object { -not $_.StartsWith($EvDir) -and -not $_.EndsWith("ARCHIVADO_NO_OFICIAL.txt") }).Count
++if ($PrevCountDespues -ne $SnapEvidenciasAntes.Count) {
++    Write-Host "[INTEGRIDAD] ERROR: cambio cantidad de archivos en corridas previas de evidencias/ (antes=$($SnapEvidenciasAntes.Count), despues=$PrevCountDespues)"
++    $IntegrityExit = 3
++}
++foreach ($sp in $PrevSuiteScripts) {
++    $hSuiteNow = if (Test-Path $sp) { (Get-FileHash -Path $sp -Algorithm SHA256).Hash } else { "NO_EXISTE" }
++    if ($hSuiteNow -ne $SnapPrevSuitesAntes[$sp]) {
++        Write-Host "[INTEGRIDAD] ERROR en suite previa: $sp | esperado=$($SnapPrevSuitesAntes[$sp]) | actual=$hSuiteNow"
++        $IntegrityExit = 3
++    }
++}
++if ($IntegrityExit -eq 0) {
++    Write-Host "[INTEGRIDAD] OK: resultados/, evidencias/ previas y 10 suites previas sin cambios."
+ }
+ 
+-Write-Host "[SCAN] 0 hallazgos en $($StagingFiles.Count) archivos de staging."
+ Write-Host "[TC-M05-G43] Finalizado. Staging: $EvDir"
++if ($ScanExit -ne 0) { exit $ScanExit }
++if ($IntegrityExit -ne 0) { exit $IntegrityExit }
+ exit $PytestExit
+
+
+
+--------------------------------------------------------------------------------
+SECCION 4. EJECUCION OFICIAL Y VEREDICTO
+--------------------------------------------------------------------------------
+[HECHO]
+- Comando: powershell -ExecutionPolicy Bypass -File "tests\Test_Testing\Test_Modulo5\RF-81\TC-M05-G43\ejecutar_tc_m05_g43.ps1" -Reintento 1
+- Staging: tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-083011/
+- Resultado pytest (--tb=short): 9 passed, 2 failed in 17.88s (exit code 1).
+- Veredicto generado: RECHAZADO (summary: total=10, ok=8, falla=2; A04=OBS).
+
+--------------------------------------------------------------------------------
+SECCION 5. DETALLE POR CHECKPOINT (HECHOS OBSERVADOS)
+--------------------------------------------------------------------------------
+- T00 (OK): total=69503, ultimo_id=76708; /usuarios/me id_usuario=104;
+  activo C id_activo_biologico=1879, id_ciclo=5 (HTTP 201).
+- B01 (OK - Defecto #971 VERIFICADO CORREGIDO):
+  * GET /suministros/historial -> HTTP 200 (3 registros);
+  * GET /suministros/auditoria -> evento 76861 (CONSULTA_HISTORIAL_EJECUTADA,
+    EXITOSO), total_registros_retornados=3, filtros_aplicados completos.
+- B02 (OK - Defecto #971 VERIFICADO CORREGIDO):
+  * GET /suministros/historial (consulta vacia) -> HTTP 200 (0 registros);
+  * GET /suministros/auditoria -> evento 76862 (CONSULTA_HISTORIAL_EJECUTADA,
+    EXITOSO), total_registros_retornados=0, filtros_aplicados completos.
+- B03 (OK - Defecto #971 VERIFICADO CORREGIDO):
+  * Exportacion PDF -> HTTP 200, evento 76863 (EXPORTACION_HISTORIAL_GENERADA,
+    EXITOSO), total_registros_retornados=3.
+  * Exportacion EXCEL -> HTTP 200, evento 76864 (EXPORTACION_HISTORIAL_GENERADA,
+    EXITOSO), total_registros_retornados=3.
+- B04 (OK):
+  * POST, PUT, PATCH, DELETE sobre /suministros/historial -> todos HTTP 405;
+    B04_despues items=3 (inalterado).
+- A01 (OK): Gestor de Granja consulta activo 1042 -> HTTP 200 (items=50); PUT -> HTTP 405.
+- A02 (FALLA - Defecto de producto preexistente ajeno a #971):
+  * Gestor de Granja consulta activo 957 -> HTTP 404 (ACTIVO_NO_ENCONTRADO) en lugar de 403.
+- A03 (FALLA - Defecto de producto preexistente ajeno a #971):
+  * Gestor intenta consultar activo 957 -> HTTP 404 (ACTIVO_NO_ENCONTRADO);
+    id_base=76708, eventos_nuevos=0 ([]), teardown_a03_admin HTTP 200.
+- A04 (OBS): Productor consulta activo 957 -> HTTP 200 (items=50).
+- T98 (OK): Todas las corridas cerradas con DELETE 200 Rollback exitoso
+  (t00:200, admin:200, productor:200, gestor:200, a03_admin:200, t99:200).
+- T99 (OK): T99_audit_inocuidad HTTP 200 (total=69503, max_id=76708 vs T00=76708),
+  T99_activo_c_404 HTTP 404, T99_historial_c_404 HTTP 404, teardown_t99 HTTP 200.
+
+--------------------------------------------------------------------------------
+SECCION 6. CIERRE DE SANDBOX, INOCUIDAD Y VERIFICACION DE B04
+--------------------------------------------------------------------------------
+[HECHO]
+- B04 (desde test_tc_m05_g43.py:703-753): prueba POST, PUT, PATCH y DELETE sobre
+  /suministros/historial (todos HTTP 405) y confirma 3 items sin alterar antes/despues.
+- Todas las 6 corridas cerradas con DELETE /test-control/runs/{run_id} -> HTTP 200
+  {'status': 'Rollback exitoso'}: t00, admin, productor, gestor, a03_admin y t99.
+
+--------------------------------------------------------------------------------
+SECCION 7. ARTEFACTOS DEL STAGING
+--------------------------------------------------------------------------------
+En evidencias/run-20261112-083011/:
+- pytest_TC-M05-G43_reintento1.log
+- pytest_TC-M05-G43_reintento1.xml
+- resultado_TC-M05-G43_reintento1.json
+- resultado_TC-M05-G43_reintento1.html
+- trazas_http.jsonl
+- contexto_g43.json
+- git_diff_HEAD_G43.txt
+- INFORME_REINTENTO1_G43.txt
+
+--------------------------------------------------------------------------------
+SECCION 8. ESCANEO DE SECRETOS, INTEGRIDAD Y CONCLUSIONES
+--------------------------------------------------------------------------------
+- [HECHO] Escaneo de secretos del runner sobre los 6 archivos del staging:
+  [SCAN] 0 hallazgos en 6 archivos de staging.
+- [HECHO] Verificacion de integridad del runner:
+  [INTEGRIDAD] OK: resultados/, evidencias/ previas y 10 suites previas sin cambios.
+- [HECHO] SHA-256 finales de los 2 ARCHIVADO_NO_OFICIAL.txt:
+  * run-20261112-081621/ARCHIVADO_NO_OFICIAL.txt: DA321C9A2F199EB2409B8B7F6413CE2BB103D7C7B3B47F16E27C9AA1C0580E07
+  * run-20261112-082314/ARCHIVADO_NO_OFICIAL.txt: A08E8DCFEDA31DCB19E55683BBBF3C899B704CB0B2405AF3CDC8FC22DBAAD901
+- [HECHO] SHA-256 final de INFORME_REINTENTO1_G43.txt (estable tras 30s):
+  0554BFAA862EB1035E706B466E0FCE848892F17B35D2790223AC45485A7E5DF8
+- [HECHO] Escaneo post-informe sobre INFORME_REINTENTO1_G43.txt:
+  0 hallazgos (patrones evaluados=15)
+- [HECHO] Conclusion: El defecto de INC-M05-284-G43 (#971) queda VERIFICADO COMO
+  CORREGIDO en B01, B02 y B03. Persisten los 2 defectos de producto preexistentes
+  en A02 (404 vs 403) y A03 (0 eventos tras rechazo).
+
+--------------------------------------------------------------------------------
+ANEXO: resultado_TC-M05-G43_reintento1.json
+--------------------------------------------------------------------------------
+{
+  "tc": "TC-M05-G43",
+  "titulo": "RF-81 / RF-80 - Auditoria de consultas y exportaciones de historial de suministros",
+  "reintento": 1,
+  "fecha_utc": "2026-11-12T13:30:32.708524+00:00",
+  "staging": "C:/Users/Juansegutt/Integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-083011",
+  "repro": "powershell -ExecutionPolicy Bypass -File \"tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1\" -Reintento 1",
+  "summary": {
+    "total": 10,
+    "ok": 8,
+    "falla": 2,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Setup de activo C y línea base (Admin)",
+      "test_fn": "test_00_setup_linea_base_y_activo_c",
+      "esperado": "Linea base de auditoria en T00, usuario autenticado y creacion de activo C + fase + 3 suministros en sandbox (HTTP 201)",
+      "fuente": "Testing Harness / Setup de linea base",
+      "obtenido": "T00_auditoria_inicial HTTP 200 (total=69503, ultimo_id=76708); T00_usuarios_me HTTP 200 (id_usuario=104); T00_crear_activo_c HTTP 201 (id_activo_biologico=1879, id_ciclo=5, X-Request-Id=b1d3cd2c-2bb7-4b69-8a08-b11de4432bc4)",
+      "estado": "OK",
+      "tiempo_s": 4.664
+    },
+    {
+      "paso": "B01 Auditoría de consulta con resultados (105 / 040)",
+      "test_fn": "test_b01_consulta_con_resultados_auditoria",
+      "esperado": "HTTP 200 con 3 registros; exactamente 1 CONSULTA_HISTORIAL_EJECUTADA nuevo con id_usuario = /usuarios/me, id_activo_biologico = activo C, fecha_emision no nula, datos_nuevos.filtros_aplicados con cada filtro enviado y datos_nuevos.total_registros_retornados = 3",
+      "fuente": "RF-81 Fase 7, CA-8, Postcondicion 2",
+      "obtenido": "B01_consultar_historial HTTP 200 (registros=3, X-Request-Id=01300b9d-6a8a-4a4e-85ec-8fe3956188c4); B01_auditoria_despues_p* HTTP 200 (eventos=[76861:CONSULTA_HISTORIAL_EJECUTADA:EXITOSO], total_registros_retornados=3, filtros_aplicados={\"id_activo_biologico\": 1879, \"id_ciclo_productivo\": 5, \"fecha_inicio_filtro\": \"2026-08-01\", \"fecha_fin_filtro\": \"2026-08-31\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null})",
+      "estado": "OK",
+      "tiempo_s": 0.473
+    },
+    {
+      "paso": "B02 Auditoría de consulta sin resultados (105 / 040, CU04 FA-01)",
+      "test_fn": "test_b02_consulta_sin_resultados_auditoria",
+      "esperado": "HTTP 200 con 0 registros; exactamente 1 CONSULTA_HISTORIAL_EJECUTADA nuevo con las mismas verificaciones de B01 y datos_nuevos.total_registros_retornados = 0",
+      "fuente": "RF-81 Fase 7, CA-8, E1; caso TC-M05-105/040",
+      "obtenido": "B02_consulta_vacia HTTP 200 (registros=0, X-Request-Id=18fcca3b-24e3-463c-a43e-83aaa2504efe); B02_auditoria_despues_p* HTTP 200 (eventos=[76862:CONSULTA_HISTORIAL_EJECUTADA:EXITOSO], total_registros_retornados=0, filtros_aplicados={\"id_activo_biologico\": 1879, \"id_ciclo_productivo\": 5, \"fecha_inicio_filtro\": \"2026-08-01\", \"fecha_fin_filtro\": \"2026-08-05\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null})",
+      "estado": "OK",
+      "tiempo_s": 0.591
+    },
+    {
+      "paso": "B03 Auditoría de exportación síncrona PDF y Excel (105 / 040)",
+      "test_fn": "test_b03_exportacion_sincrona_auditoria",
+      "esperado": "PDF y EXCEL: HTTP 200; por cada formato exactamente 1 EXPORTACION_HISTORIAL_GENERADA nuevo con id_usuario = /usuarios/me, id_activo_biologico = activo C, fecha_emision no nula, filtros_aplicados con cada filtro enviado y total_registros_retornados = 3",
+      "fuente": "RF-81 Fase 6 a, Fase 7, CA-8, Postcondicion 2",
+      "obtenido": "B03_exportar_pdf HTTP 200 (X-Request-Id=de635276-140b-476f-91d5-2fa1d45a505b); audit HTTP 200 (eventos=[76863:EXPORTACION_HISTORIAL_GENERADA:EXITOSO], total_registros_retornados=3, filtros_aplicados={\"id_activo_biologico\": 1879, \"id_ciclo_productivo\": 5, \"fecha_inicio_filtro\": \"2026-08-01\", \"fecha_fin_filtro\": \"2026-08-31\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null}) | B03_exportar_excel HTTP 200 (X-Request-Id=b90b4530-e8cf-4818-adcc-92f7bb926426); audit HTTP 200 (eventos=[76864:EXPORTACION_HISTORIAL_GENERADA:EXITOSO], total_registros_retornados=3, filtros_aplicados={\"id_activo_biologico\": 1879, \"id_ciclo_productivo\": 5, \"fecha_inicio_filtro\": \"2026-08-01\", \"fecha_fin_filtro\": \"2026-08-31\", \"tipo_suministro_filtro\": \"TODOS\", \"origen_precio_filtro\": \"TODOS\", \"costo_min\": null, \"costo_max\": null})",
+      "estado": "OK",
+      "tiempo_s": 1.167
+    },
+    {
+      "paso": "B04 Naturaleza de solo lectura e inmutabilidad (102 / 037)",
+      "test_fn": "test_b04_solo_lectura_restr_4",
+      "esperado": "POST, PUT, PATCH, DELETE sobre /suministros/historial rechazados con 405 Method Not Allowed; historial inalterado",
+      "fuente": "RF-81 Restr. 4 / TC-M05-102 (037)",
+      "obtenido": "POST=405, PUT=405, PATCH=405, DELETE=405 sobre /suministros/historial; B04_despues items=3",
+      "estado": "OK",
+      "tiempo_s": 1.348
+    },
+    {
+      "paso": "A01 Gestor de Granja consulta activo de su unidad (102 / 037)",
+      "test_fn": "test_a01_gestor_granja_consulta_su_unidad",
+      "esperado": "HTTP 200 con items y resumen para activo 1042 en finca 464 asignada; PUT/DELETE rechazados (405)",
+      "fuente": "RF-81 Restr. 1 / CA-3 / TC-M05-102 (037)",
+      "obtenido": "A01_gestor_su_finca HTTP 200 (items=50, X-Request-Id=24594807-0fbb-47f8-9db2-b8609dc97dc7); A01_gestor_put HTTP 405",
+      "estado": "OK",
+      "tiempo_s": 1.637
+    },
+    {
+      "paso": "A02 Rechazo a usuario sin la unidad del activo (102 / 037)",
+      "test_fn": "test_a02_gestor_granja_rechazo_sin_unidad",
+      "esperado": "HTTP 403 con mensaje de E2 ('No tiene permisos para consultar el historial del activo [id]. Verifique su rol y unidades productivas asignadas.') y sin fuga de datos",
+      "fuente": "RF-81 Restr. 1 / E2 / CA-3 / TC-M05-102 (037)",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | AssertionError: DEFECTO DE PRODUCTO (E2 / CA-3): Se esperaba HTTP 403 con mensaje de permisos por rol y unidades, pero el backend respondio HTTP 404 ({\"error_code\":\"ACTIVO_NO_ENCONTRADO\",\"message\":\"El activo biológico 957 no existe.\",\"field | A02_gestor_finca_ajena HTTP 404 (error_code=ACTIVO_NO_ENCONTRADO, X-Request-Id=4015c0e0-578b-4c29-8f78-e72b2d69d3c7)",
+      "estado": "FALLA",
+      "tiempo_s": 0.142,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "A03 Auditoría de consulta rechazada (102 / 037, CU04 FA-04)",
+      "test_fn": "test_a03_auditoria_intento_rechazado",
+      "esperado": "Registro de al menos 1 evento de auditoría en la bitácora con resultado RECHAZADO tras el intento denegado",
+      "fuente": "Caso CU04 FA-04 / TC-M05-102 (037)",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | AssertionError: DEFECTO DE PRODUCTO (CU04 FA-04): No se registro evento de auditoria con resultado != 'EXITOSO' tras consulta no autorizada al activo 957 (HTTP 404). Eventos nuevos desde id 76708: 0. | A03_intento_rechazado HTTP 404 (error_code=ACTIVO_NO_ENCONTRADO, X-Request-Id=7707d804-f129-46cf-a88f-4cb4e73bec16); id_base=76708, eventos_nuevos=0 ([]), teardown_a03_admin HTTP 200",
+      "estado": "FALLA",
+      "tiempo_s": 3.613,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "A04 [OBSERVACION] Productor consulta activo de su unidad",
+      "test_fn": "test_a04_observacion_productor_consulta_su_unidad",
+      "esperado": "Productor consulta activo 957 de su unidad -> HTTP 200 (observacion fuera de spec RF-81)",
+      "fuente": "Observacion de interoperabilidad (fuera de spec RF-81)",
+      "obtenido": "A04_productor_su_finca HTTP 200 (items=50, X-Request-Id=1dd832e0-0fa3-44e4-b00b-c1d8ed95f4cd)",
+      "estado": "OBS",
+      "tiempo_s": 1.585
+    },
+    {
+      "paso": "T98 Cierre estricto de todas las corridas sandbox",
+      "test_fn": "test_98_cierre_corridas",
+      "esperado": "Todas las corridas previas (t00, admin, gestor, productor) cerradas con DELETE /test-control/runs/{run_id} -> HTTP 200 ('Rollback exitoso')",
+      "fuente": "Testing Harness / Sandbox Protocol",
+      "obtenido": "Corridas cerradas con DELETE 200 Rollback exitoso (t00:200, admin:200, productor:200, gestor:200, a03_admin:200, t99:200)",
+      "estado": "OK",
+      "tiempo_s": 0.004
+    },
+    {
+      "paso": "T99 Inocuidad final en sandbox",
+      "test_fn": "test_99_inocuidad_final",
+      "esperado": "Inocuidad en sandbox: total y max id de auditoria restaurados a T00; activo C y su historial retornan 404 y run t99 cierra con 200 Rollback exitoso",
+      "fuente": "Testing Harness / Sandbox Protocol",
+      "obtenido": "T99_audit_inocuidad HTTP 200 (total=69503, max_id=76708 vs T00=76708), T99_activo_c_404 HTTP 404, T99_historial_c_404 HTTP 404, teardown_t99 HTTP 200",
+      "estado": "OK",
+      "tiempo_s": 2.033
+    }
+  ],
+  "observaciones": {
+    "obs_pag": {
+      "http": 200,
+      "items_en_respuesta": 2,
+      "id_auditoria_suministro": 76867,
+      "total_registros_retornados": 2,
+      "total_registros_filtrados": 3,
+      "pagina": 1,
+      "registros_por_pagina": 2
+    },
+    "obs_r8": [
+      {
+        "origen": "B01",
+        "id_auditoria_suministro": 76861,
+        "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B02",
+        "id_auditoria_suministro": 76862,
+        "tipo_operacion": "CONSULTA_HISTORIAL_EJECUTADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B03_PDF",
+        "id_auditoria_suministro": 76863,
+        "tipo_operacion": "EXPORTACION_HISTORIAL_GENERADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      },
+      {
+        "origen": "B03_EXCEL",
+        "id_auditoria_suministro": 76864,
+        "tipo_operacion": "EXPORTACION_HISTORIAL_GENERADA",
+        "id_ciclo_productivo": 5,
+        "registro_incompleto": false,
+        "detalle_causa": null,
+        "ip_origen": null,
+        "id_sesion": null
+      }
+    ],
+    "obs_hash": [
+      {
+        "origen": "B01",
+        "id_auditoria_suministro": 76861,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B02",
+        "id_auditoria_suministro": 76862,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B03_PDF",
+        "id_auditoria_suministro": 76863,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      },
+      {
+        "origen": "B03_EXCEL",
+        "id_auditoria_suministro": 76864,
+        "version_hash_integridad": 2,
+        "hash_cumple_sha256_hex": true
+      }
+    ],
+    "obs_otros": [],
+    "datos_nuevos_literales": {
+      "B01": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 1879,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "pagina": 1,
+        "registros_por_pagina": 50,
+        "total_registros_retornados": 3,
+        "total_registros_filtrados": 3
+      },
+      "B02": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 1879,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-05",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "pagina": 1,
+        "registros_por_pagina": 50,
+        "total_registros_retornados": 0,
+        "total_registros_filtrados": 0
+      },
+      "B03_PDF": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 1879,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "formato_exportacion": "PDF",
+        "total_registros_retornados": 3
+      },
+      "B03_EXCEL": {
+        "filtros_aplicados": {
+          "id_activo_biologico": 1879,
+          "id_ciclo_productivo": 5,
+          "fecha_inicio_filtro": "2026-08-01",
+          "fecha_fin_filtro": "2026-08-31",
+          "tipo_suministro_filtro": "TODOS",
+          "origen_precio_filtro": "TODOS",
+          "costo_min": null,
+          "costo_max": null
+        },
+        "formato_exportacion": "EXCEL",
+        "total_registros_retornados": 3
+      }
+    }
+  },
+  "runs_orden": [
+    "tc-m05-g43-t00-8efb5941",
+    "tc-m05-g43-admin-d281f473",
+    "tc-m05-g43-gestor-fc43b126",
+    "tc-m05-g43-productor-de2089a6",
+    {
+      "rol": "a03_shared",
+      "run_id": "tc-m05-g43-a03-817e7fa1"
+    },
+    {
+      "rol": "t99",
+      "run_id": "tc-m05-g43-t99-c3b85314"
+    }
+  ],
+  "corridas_cerradas": {
+    "t00": {
+      "run_id": "tc-m05-g43-t00-8efb5941",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "admin": {
+      "run_id": "tc-m05-g43-admin-d281f473",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "productor": {
+      "run_id": "tc-m05-g43-productor-de2089a6",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "gestor": {
+      "run_id": "tc-m05-g43-gestor-fc43b126",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "a03_admin": {
+      "run_id": "tc-m05-g43-a03-817e7fa1",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    },
+    "t99": {
+      "run_id": "tc-m05-g43-t99-c3b85314",
+      "status_code": 200,
+      "body": "{\"status\":\"Rollback exitoso\"}"
+    }
+  },
+  "a03": {
+    "intento_http": 404,
+    "intento_error_code": "ACTIVO_NO_ENCONTRADO",
+    "x_request_id": "7707d804-f129-46cf-a88f-4cb4e73bec16",
+    "id_base": 76708,
+    "eventos_nuevos": [],
+    "no_exitosos_count": 0
+  },
+  "total_trazas_http": 52
+}

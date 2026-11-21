@@ -1,0 +1,41 @@
+{
+  "tc": "TC-M05-G44",
+  "summary": {
+    "total": 5,
+    "ok": 5,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Setup de activo D y suministros",
+      "esperado": "Creación exitosa de activo D con fase y 3 registros de suministros (60.000 COP) en HTTP 201",
+      "obtenido": "Activo D creado (HTTP 201), fase abierta, 3 registros de suministros (60.000 COP). Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Exportación síncrona Excel y PDF (103 / 038)",
+      "esperado": "HTTP 200 en <= 10 s; Excel válido con openpyxl (encabezado, columnas, subtotales, firma/timestamp); PDF válido (%PDF); totales coinciden con consulta",
+      "obtenido": "Exportación síncrona exitosa (HTTP 200) en <= 10 s; Excel validado con openpyxl (encabezado, columnas, subtotales, firma); PDF validado (%PDF); montos coinciden con consulta. Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "B03 Naturaleza de solo lectura (103 / 038)",
+      "esperado": "La exportación no modifica los registros ni totales del historial",
+      "obtenido": "Historial inalterado antes y después de la exportación (conteo y suma idénticos). Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre estricto de corrida sandbox",
+      "esperado": "DELETE /test-control/runs/{run_id} responde HTTP 200 con 'Rollback exitoso'",
+      "obtenido": "DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad final fuera de sandbox",
+      "esperado": "Verificación fuera de sandbox: activo D responde HTTP 404 (0 efectos persistidos)",
+      "obtenido": "Verificación sin sandbox completada; activo D responde HTTP 404 (0 efectos persistidos). Estado: OK.",
+      "estado": "OK"
+    }
+  ]
+}

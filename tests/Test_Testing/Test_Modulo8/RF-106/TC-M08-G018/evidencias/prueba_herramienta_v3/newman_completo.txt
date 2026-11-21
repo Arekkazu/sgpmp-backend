@@ -1,0 +1,279 @@
+﻿newman
+
+TC-M08-G018
+
+Root Z00 Login Veterinario
+  POST http://127.0.0.1:8765/sesiones/ [200 OK, 253B, 54ms]
+  -
+  | 'PRE|Z00|login Veterinario HTTP 200|req=707ddab6-dc0c-
+  | 41ec-83f2-6108a0dcd5cd'
+  | 'PRE|FECHAS|hoy=2026-11-20 hace12m=2025-11-20 hace24m=
+  | 2024-11-20 hace24m1d=2024-11-19 futuro30=2026-12-20'
+  -
+
+Root Z01 Perfil Veterinario
+  GET http://127.0.0.1:8765/usuarios/me [200 OK, 257B, 6ms]
+  -
+  | 'PRE|Z01|id_usuario=97 nombre_rol=Veterinario|req=7b7d
+  | 7d8b-11a0-4b86-bb75-9aa982649132'
+  -
+
+Root T00 Linea base historial
+  GET http://127.0.0.1:8765/historial-predictivo/885 [200 OK, 2.38kB, 4ms]
+  -
+  | 'PRE|T00|HTTP 200 predicciones=7 eventos=3 retroalimen
+  | taciones=4 pendientes=3 tvco=25 estado=ACTIVO|req=ef1f
+  | e7d5-5a11-4575-be23-5350c978a9f3'
+  | 'OBS|OBS-NOMBRES|esperado=-|obtenido=claves=activo,cor
+  | respondencias,eventos_sanitarios,fuentes_no_disponible
+  | s,grupos,mensaje,metadatos,modo_visualizacion,pendient
+  | es,predicciones,rango_fechas_aplicado,retroalimentacio
+  | nes,tvco,ventana_correspondencia_horas filtros_aplicad
+  | os=false activo_seleccionado=false tvco_tipo=object me
+  | tadatos=total_conflictos,total_eventos_sanitarios,tota
+  | l_inferencias,total_pendientes,total_retroalimentacion
+  | es tvco_claves=excluidas_sin_retroalimentacion,porcent
+  | aje,tasa_error,texto,tvco_denominador,tvco_excluidas_c
+  | onflicto|estado=OBSERVACION|req=ef1fe7d5-5a11-4575-be2
+  | 3-5350c978a9f3'
+  | 'OBS|OBS-VENTANA|esperado=-|obtenido=ventana_correspon
+  | dencia_horas=12|estado=OBSERVACION|req=ef1fe7d5-5a11-4
+  | 575-be23-5350c978a9f3'
+  | 'OBS|OBS-DATOS|esperado=-|obtenido=eventos_sanitarios=
+  | 3 retroalimentaciones=4 (linea base completa: CP-11 co
+  | mpara predicciones, eventos y retroalimentaciones)|est
+  | ado=OBSERVACION|req=ef1fe7d5-5a11-4575-be23-5350c978a9
+  | f3'
+  | 'OBS|OBS-TIMESTAMP|esperado=-|obtenido=primera predicc
+  | ion fecha=2026-10-20T22:06:22+00:00|estado=OBSERVACION
+  | |req=ef1fe7d5-5a11-4575-be23-5350c978a9f3'
+  | 'OBS|OBS-FUENTES|esperado=-|obtenido=fuentes_no_dispon
+  | ibles=[]|estado=OBSERVACION|req=ef1fe7d5-5a11-4575-be2
+  | 3-5350c978a9f3'
+  -
+
+Root T00a Linea base auditoria M04
+  GET http://127.0.0.1:8765/prediccion/auditoria?pagina=1&por_pagina=1 [200 OK, 255B, 4ms]
+  -
+  | 'OBS|OBS-AUD-T00|esperado=-|obtenido=HTTP 200 total=12
+  |  primer_id_evento=aaaa-1|estado=OBSERVACION|req=4c35dc
+  | 33-bfdb-4430-b476-47865efd8bc3'
+  -
+
+Root CP-01 Rango de 12 meses explicito
+  GET http://127.0.0.1:8765/historial-predictivo/885?fecha_inicio=2025-11-20&fecha_fin=2026-11-20 [200 OK, 2.38kB, 5ms]
+  Pass  CP-01 12 meses explicitos: 200 con los datos del rango (RF-106 Entradas; RF-67) || esperado: 200; rango_fechas_aplicado=2025-11-20..2026-11-20; >=1 prediccion y todas dentro del rango || obtenido: HTTP 200 rango={"fecha_inicio":"2025-11-20","fecha_fin":"2026-11-20"} predicciones=7 fuera_de_rango=0 total_inferencias=7 || req: 6ccaa977-9d0f-4cb9-b7db-ef9eb42134e9
+  -
+  | 'CP|CP-01|esperado=200; rango_fechas_aplicado=2025-11-
+  | 20..2026-11-20; >=1 prediccion y todas dentro del rang
+  | o|obtenido=HTTP 200 rango={"fecha_inicio":"2025-11-20"
+  | ,"fecha_fin":"2026-11-20"} predicciones=7 fuera_de_ran
+  | go=0 total_inferencias=7|estado=OK|req=6ccaa977-9d0f-4
+  | cb9-b7db-ef9eb42134e9'
+  -
+
+Root CP-02 Inicio posterior al fin
+  GET http://127.0.0.1:8765/historial-predictivo/885?fecha_inicio=2026-10-01&fecha_fin=2026-09-01 [400 Bad Request, 262B, 4ms]
+  Pass  CP-02 fecha_inicio > fecha_fin: 400 sin datos (RF-67 E3; openapi de TEST) || esperado: 400 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: efb5f567-b950-4c9c-af25-0c82f97e050c
+  -
+  | 'CP|CP-02|esperado=400 sin datos|obtenido=HTTP 400 err
+  | or_code=VAL_ENTRADA sin_datos=true|estado=OK|req=efb5f
+  | 567-b950-4c9c-af25-0c82f97e050c'
+  | 'OBS|OBS-TEXTO-CP02|esperado=-|obtenido=message=x|esta
+  | do=OBSERVACION|req=efb5f567-b950-4c9c-af25-0c82f97e050
+  | c'
+  -
+
+Root OBS-03 Fecha fin futura
+  GET http://127.0.0.1:8765/historial-predictivo/885?fecha_inicio=2025-11-20&fecha_fin=2026-12-20 [200 OK, 2.38kB, 8ms]
+  -
+  | 'OBS|OBS-03|esperado=-|obtenido=fecha_fin=hoy+30: HTTP
+  |  200 error_code=- rango={"fecha_inicio":"2025-11-20","
+  | fecha_fin":"2026-12-20"} (RF-106 no define fechas futu
+  | ras; RF-67 Integridad temporal es de otro endpoint)|es
+  | tado=OBSERVACION|req=4eda462f-e23a-4d97-b830-ded911b9c
+  | 973'
+  -
+
+Root CP-04 Sin fechas
+  GET http://127.0.0.1:8765/historial-predictivo/885 [200 OK, 2.38kB, 4ms]
+  Pass  CP-04 Sin fechas: 200 con hoy - 12 meses a hoy (RF-106 Entradas; valores por defecto del Swagger) || esperado: 200; rango_fechas_aplicado=2025-11-20..2026-11-20 || obtenido: HTTP 200 rango={"fecha_inicio":"2025-11-20","fecha_fin":"2026-11-20"} || req: e6ad2a9c-a1bc-4773-9a38-af7e93bf953c
+  -
+  | 'CP|CP-04|esperado=200; rango_fechas_aplicado=2025-11-
+  | 20..2026-11-20|obtenido=HTTP 200 rango={"fecha_inicio"
+  | :"2025-11-20","fecha_fin":"2026-11-20"}|estado=OK|req=
+  | e6ad2a9c-a1bc-4773-9a38-af7e93bf953c'
+  -
+
+Root CP-05 Activo inexistente
+  GET http://127.0.0.1:8765/historial-predictivo/999999 [404 Not Found, 267B, 4ms]
+  Pass  CP-05 Activo inexistente: 404 sin datos (RF-67 E2; Swagger: inexistente -> 404) || esperado: 404 sin datos || obtenido: HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true || req: fcedf210-261c-41ac-8746-f28002e7cccd
+  -
+  | 'CP|CP-05|esperado=404 sin datos|obtenido=HTTP 404 err
+  | or_code=ACTIVO_INEXISTENTE sin_datos=true|estado=OK|re
+  | q=fcedf210-261c-41ac-8746-f28002e7cccd'
+  | 'OBS|OBS-TEXTO-CP05|esperado=-|obtenido=message=x|esta
+  | do=OBSERVACION|req=fcedf210-261c-41ac-8746-f28002e7ccc
+  | d'
+  -
+
+Root CP-06a Id no numerico
+  GET http://127.0.0.1:8765/historial-predictivo/abc [400 Bad Request, 262B, 5ms]
+  Pass  CP-06a id='abc': rechazo de validacion 400 o 422 sin datos (RF-106 Entradas; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: 7bc85c75-6e41-4753-afe5-d64548463072
+  -
+  | 'CP|CP-06a|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=7bc85c75-6e41-4753-afe5-d64548463072'
+  -
+
+Root CP-06b Id negativo
+  GET http://127.0.0.1:8765/historial-predictivo/-1 [404 Not Found, 267B, 4ms]
+  Pass  CP-06b id=-1: rechazo 400, 404 o 422 sin datos (RF-106 Entradas; openapi publica 400, 404 y 422) || esperado: 400, 404 o 422 sin datos || obtenido: HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true || req: 6cb5a03f-2466-4ecb-816a-fb0888dd0873
+  -
+  | 'CP|CP-06b|esperado=400, 404 o 422 sin datos|obtenido=
+  | HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true|
+  | estado=OK|req=6cb5a03f-2466-4ecb-816a-fb0888dd0873'
+  -
+
+Root CP-07a Nivel de riesgo 4
+  GET http://127.0.0.1:8765/historial-predictivo/885?nivel_riesgo=4 [400 Bad Request, 262B, 3ms]
+  Pass  CP-07a nivel_riesgo=4: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: 9b8d9df3-0f53-433d-841b-1d23c11363be
+  -
+  | 'CP|CP-07a|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=9b8d9df3-0f53-433d-841b-1d23c11363be'
+  -
+
+Root CP-07b Nivel de riesgo -1
+  GET http://127.0.0.1:8765/historial-predictivo/885?nivel_riesgo=-1 [400 Bad Request, 262B, 5ms]
+  Pass  CP-07b nivel_riesgo=-1: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: 0f423417-a327-4a2d-806c-7240e9cf7b87
+  -
+  | 'CP|CP-07b|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=0f423417-a327-4a2d-806c-7240e9cf7b87'
+  -
+
+Root CP-08 Activo de finca no asignada
+  GET http://127.0.0.1:8765/historial-predictivo/2556 [403 Forbidden, 268B, 3ms]
+  Pass  CP-08 Activo de una finca no asignada al Veterinario: 403 sin datos (Swagger: otra finca -> 403; RF-67 alcance) || esperado: 403 sin datos || obtenido: HTTP 403 error_code=FINCA_NO_AUTORIZADA sin_datos=true || req: ab6456fd-e938-42e0-926b-9033ece6a11f
+  -
+  | 'CP|CP-08|esperado=403 sin datos|obtenido=HTTP 403 err
+  | or_code=FINCA_NO_AUTORIZADA sin_datos=true|estado=OK|r
+  | eq=ab6456fd-e938-42e0-926b-9033ece6a11f'
+  | 'OBS|OBS-TEXTO-CP08|esperado=-|obtenido=message=x|esta
+  | do=OBSERVACION|req=ab6456fd-e938-42e0-926b-9033ece6a11
+  | f'
+  -
+
+Root CP-09a Rango de 24 meses exactos
+  GET http://127.0.0.1:8765/historial-predictivo/885?fecha_inicio=2024-11-20&fecha_fin=2026-11-20 [200 OK, 2.38kB, 4ms]
+  Pass  CP-09a Rango de 24 meses exactos: 200 (RF-106 Restriccion 2) || esperado: 200; rango_fechas_aplicado=2024-11-20..2026-11-20 || obtenido: HTTP 200 error_code=- rango={"fecha_inicio":"2024-11-20","fecha_fin":"2026-11-20"} || req: dc48174d-52ff-4f1e-94f7-eceb1abcc8e4
+  -
+  | 'CP|CP-09a|esperado=200; rango_fechas_aplicado=2024-11
+  | -20..2026-11-20|obtenido=HTTP 200 error_code=- rango={
+  | "fecha_inicio":"2024-11-20","fecha_fin":"2026-11-20"}|
+  | estado=OK|req=dc48174d-52ff-4f1e-94f7-eceb1abcc8e4'
+  -
+
+Root CP-09b Rango de 24 meses mas 1 dia
+  GET http://127.0.0.1:8765/historial-predictivo/885?fecha_inicio=2024-11-19&fecha_fin=2026-11-20 [200 OK, 2.38kB, 4ms]
+  1. CP-09b Rango de 24 meses + 1 dia: 400 sin datos (RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400) || esperado: 400 sin datos || obtenido: HTTP 200 error_code=- sin_datos=false desde=2024-11-19 || req: 7643e7ed-ecb6-4e72-9cb5-5ce07bbb9fbf
+  -
+  | 'CP|CP-09b|esperado=400 sin datos|obtenido=HTTP 200 er
+  | ror_code=- sin_datos=false desde=2024-11-19|estado=FAL
+  | LA|req=7643e7ed-ecb6-4e72-9cb5-5ce07bbb9fbf'
+  -
+
+Root CP-10 Activo dado de baja
+  GET http://127.0.0.1:8765/historial-predictivo/2946 [422 Unprocessable Content, 356B, 4ms]
+  Pass  CP-10 Activo dado de baja: 422 ACTIVO_NO_VIGENTE sin datos (RF-106 Precondicion 2; Swagger: dado de baja -> 422; lanzamiento v7) || esperado: 422 ACTIVO_NO_VIGENTE sin datos || obtenido: HTTP 422 error_code=ACTIVO_NO_VIGENTE sin_datos=true || req: 1a1a3dbe-d292-4bea-9492-c68c88d83319
+  -
+  | 'CP|CP-10|esperado=422 ACTIVO_NO_VIGENTE sin datos|obt
+  | enido=HTTP 422 error_code=ACTIVO_NO_VIGENTE sin_datos=
+  | true|estado=OK|req=1a1a3dbe-d292-4bea-9492-c68c88d8331
+  | 9'
+  | 'OBS|OBS-TEXTO-CP10|esperado=-|obtenido=message=El his
+  | torial predictivo solo se muestra para animales activo
+  | s o en tratamiento.|estado=OBSERVACION|req=1a1a3dbe-d2
+  | 92-4bea-9492-c68c88d83319'
+  -
+
+Root Z50 Login Productor
+  POST http://127.0.0.1:8765/sesiones/ [200 OK, 254B, 4ms]
+  -
+  | 'OBS|OBS-P-LOGIN|esperado=-|obtenido=login Productor H
+  | TTP 200|estado=OBSERVACION|req=2b38dff0-96ca-4a1f-8c15
+  | -93cf82393f3a'
+  -
+
+Root OBS-P Historial con Productor
+  GET http://127.0.0.1:8765/historial-predictivo/885 [403 Forbidden, 265B, 3ms]
+  -
+  | 'OBS|OBS-P|esperado=-|obtenido=Productor (TC-M08-048, 
+  | observacion por API): HTTP 403 error_code=PERMISO_DENE
+  | GADO con_probabilidades=false (esperado por RF-106 Res
+  | triccion 1 y CA-6: 403)|estado=OBSERVACION|req=f644547
+  | 3-9a20-4598-9af5-bd21c726b6fb'
+  -
+
+Root T99 Historial final
+  GET http://127.0.0.1:8765/historial-predictivo/885 [200 OK, 2.38kB, 4ms]
+  Pass  CP-11 Solo lectura: el historial final es igual a la linea base (RF-106 Restriccion 3 y Postcondicion 3) || esperado: HTTP 200 y mismo contenido que T00 (linea base con >=1 prediccion, >=1 evento y >=1 retroalimentacion) || obtenido: HTTP 200 iguales=true final={"metadatos":{"total_inferencias":7,"total_eventos_sanitarios":3,"total_retroalimentaciones":4,"total_pendientes":3,"total_conflictos":0},"predicciones":["p1","p2","p3","p4","p5","p6","p7"],"eventos":["2684","2685","2686"],"retroalimentaciones":["p1:CORRECTO:2026-11-20T15:08:00+00:00","p2:INCORRECTO:2026-11-20T15:08:00+00:00","p3:PARCIAL:2026-11-20T15:08:00+00:00","p4:SIN_EVENTO:2026-11-20T15:08:00+00:00"],"pendientes_total":3,"tvco":25} || req: 67bc6896-9037-4cbd-9ad6-8f161a14a7fc
+  -
+  | 'CP|CP-11|esperado=HTTP 200 y mismo contenido que T00 
+  | (linea base con >=1 prediccion, >=1 evento y >=1 retro
+  | alimentacion)|obtenido=HTTP 200 iguales=true final={"m
+  | etadatos":{"total_inferencias":7,"total_eventos_sanita
+  | rios":3,"total_retroalimentaciones":4,"total_pendiente
+  | s":3,"total_conflictos":0},"predicciones":["p1","p2","
+  | p3","p4","p5","p6","p7"],"eventos":["2684","2685","268
+  | 6"],"retroalimentaciones":["p1:CORRECTO:2026-11-20T15:
+  | 08:00+00:00","p2:INCORRECTO:2026-11-20T15:08:00+00:00"
+  | ,"p3:PARCIAL:2026-11-20T15:08:00+00:00","p4:SIN_EVENTO
+  | :2026-11-20T15:08:00+00:00"],"pendientes_total":3,"tvc
+  | o":25}|estado=OK|req=67bc6896-9037-4cbd-9ad6-8f161a14a
+  | 7fc'
+  -
+
+Root T99a Auditoria M04 final
+  GET http://127.0.0.1:8765/prediccion/auditoria?pagina=1&por_pagina=1 [200 OK, 255B, 4ms]
+  -
+  | 'OBS|OBS-AUD-T99|esperado=-|obtenido=antes=200|12|aaaa
+  | -1 despues=200|12|aaaa-1 (RF-106 no exige auditar la c
+  | onsulta; RF-67 paso 7 es de otro endpoint)|estado=OBSE
+  | RVACION|req=e1c88689-2ccc-45fa-8e57-65a96cffa5a4'
+  -
+
+Root Z99 Cierre del sandbox
+  DELETE http://127.0.0.1:8765/test-control/runs/mock-v3-completo [200 OK, 206B, 3ms]
+  -
+  | 'CIERRE|200|Rollback exitoso|req=c140f609-ab4c-46bc-93
+  | 1b-3d206bbd4cf2'
+  -
+
+----------------------------------------------------------------
+|                         |         executed |          failed |
+--------------------------+------------------+------------------
+|              iterations |                1 |               0 |
+--------------------------+------------------+------------------
+|                requests |               22 |               0 |
+--------------------------+------------------+------------------
+|            test-scripts |               22 |               0 |
+--------------------------+------------------+------------------
+|      prerequest-scripts |               23 |               0 |
+--------------------------+------------------+------------------
+|              assertions |               13 |               1 |
+----------------------------------------------------------------
+| total run duration: 2s                                       |
+----------------------------------------------------------------
+| total data received: 16.64kB (approx)                        |
+----------------------------------------------------------------
+| average response time: 6ms [min: 3ms, max: 54ms, s.d.: 10ms] |
+----------------------------------------------------------------
+
+[31m  # [39m[31m failure        [39m[31m detail                                                                                                                                                                                                                                                       [39m
+[90m    [39m[90m                [39m[90m                                                                                                                                                                                                                                                              [39m
+ 1.  AssertionError  CP-09b Rango de 24 meses + 1 dia: 400 sin datos (RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400) || esperado: 400 sin datos || obtenido: HTTP 200 error_code=- sin_datos=false desde=2024-11-19 || req: 7643e7ed-ecb6-4e72-9cb5-5ce07bbb9fbf 
+                     expected 200 to deeply equal 400                                                                                                                                                                                                                             
+                     at assertion:0 in test-script                                                                                                                                                                                                                                
+                     inside "CP-09b Rango de 24 meses mas 1 dia"                                                                                                                                                                                                                  

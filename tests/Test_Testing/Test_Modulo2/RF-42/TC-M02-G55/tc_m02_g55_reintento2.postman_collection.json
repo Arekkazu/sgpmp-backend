@@ -1,0 +1,186 @@
+{
+  "info": {
+    "name": "TC-M02-G55 - Reintento 2 (2026-10-04, TEST)",
+    "description": "Re-ejecucion en TEST. Sub-caso 1 (parto en LOTE, esperado 422 EVENTO_NO_PERMITIDO_LOTE): NO VERIFICABLE hoy -- el lote 347 esta en BAJA (el codigo valida estado antes que tipo), y en TEST no hay ningun lote POBLACIONAL ACTIVO ni se puede crear uno (DENSIDAD_MAXIMA_NO_CONFIGURADA). Se documenta el 409 ESTADO_NO_PERMITE_EVENTOS actual. Sub-caso 2 (padre inexistente, 404): se usa el individuo 374 CON fase activa (en reintento1 era 256, sin fase, y devolvia 409 FASE antes de llegar al padre). Sub-caso 2 sin campo fecha (una fecha fija anterior a la fase de 374 daba FECHA_ANTERIOR_REGISTRO antes de llegar al padre).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () { pm.expect(respuesta).to.have.property('token'); });",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-101) - LOTE BAJA con categoria=parto (NO VERIFICABLE: sin lote ACTIVO en TEST)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('409 ESTADO_NO_PERMITE_EVENTOS (lote BAJA)', function () { pm.response.to.have.status(409); });",
+              "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+              "pm.test('codigo ESTADO_NO_PERMITE_EVENTOS', function () { pm.expect(r && r.error_code).to.equal('ESTADO_NO_PERMITE_EVENTOS'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1,\n  \"fecha\": \"2026-09-14T12:00:00Z\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_lote}}/eventos/reproductivo",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "eventos",
+            "reproductivo"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-102) - id_padre inexistente sobre individuo CON fase (374)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('404', function () { pm.response.to.have.status(404); });",
+              "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+              "pm.test('ACTIVO_RELACIONADO_NO_ENCONTRADO', function () { pm.expect(r && r.error_code).to.equal('ACTIVO_RELACIONADO_NO_ENCONTRADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": 999999\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_con_fase}}/eventos/reproductivo",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_con_fase}}",
+            "eventos",
+            "reproductivo"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "admin_correo",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "admin_contrasena",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "id_lote",
+      "value": "347"
+    },
+    {
+      "key": "id_con_fase",
+      "value": "374"
+    }
+  ]
+}

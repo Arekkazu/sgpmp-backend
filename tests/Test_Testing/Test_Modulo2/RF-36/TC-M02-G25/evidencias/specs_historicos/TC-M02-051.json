@@ -1,0 +1,126 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-051-rechazar-cantidad-actual-negativa",
+    "name": "TC-M02-051 - Rechazar cantidad_actual negativa (RF-36)",
+    "description": "Prueba de aceptación para RF-36 (Módulo 2): Rechazar baja parcial cuando la cantidad afectada supera la existencia actual del lote.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Registrar baja con cantidad superior a existencia (TC-M02-051)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"VENTA\",\n  \"fecha_baja\": \"2026-09-08\",\n  \"motivo_baja\": \"Prueba de validación de baja superior a existencia\",\n  \"cantidad_afectada\": 10,\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/eventos/baja",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "eventos",
+            "baja"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 400 Bad Request (o regla de negocio)', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('Mensaje de error contiene rechazo por cantidad negativa / superior a existencia', function () {",
+              "    var resText = pm.response.text();",
+              "    var resJson = {};",
+              "    try { resJson = pm.response.json(); } catch(e) {}",
+              "    var valid = resText.includes('La cantidad de individuos no puede ser negativa') ||",
+              "                resText.includes('superior a la existencia') ||",
+              "                resText.includes('negativo') ||",
+              "                (resJson.error_code === 'CANTIDAD_BAJA_SUPERIOR_EXISTENCIA') ||",
+              "                (resJson.error_code === 'VAL_ENTRADA');",
+              "    pm.expect(valid).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G96",
+  "run_id": "RUN-G96-V1-20261031-153625",
+  "version": 1,
+  "barreras": [],
+  "variables": [
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "presente": true
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_PASSWORD",
+      "presente": true
+    }
+  ],
+  "efectos_declarados": [
+    "login_productor_y_auditoria_fuera_run",
+    "lecturas_dashboard_y_posible_correo_E7"
+  ],
+  "presupuesto": {
+    "estados": 5,
+    "areas_candidatas": 8,
+    "canarios_e7": 20,
+    "paginas_dashboard": 12,
+    "por_pagina": 50,
+    "solicitudes_en_run": 38,
+    "margen_cierre": 1,
+    "duracion_segundos": 1500
+  },
+  "ok": true
+}

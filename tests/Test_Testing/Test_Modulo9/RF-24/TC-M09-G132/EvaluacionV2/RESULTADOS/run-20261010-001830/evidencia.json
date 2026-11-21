@@ -1,0 +1,2707 @@
+{
+  "run_id": "run-20261010-001830",
+  "evaluacion": "SEGUNDA EVALUACION",
+  "grupo": "TC-M09-G132",
+  "casos": [
+    "TC-M09-261",
+    "TC-M09-262"
+  ],
+  "requisito": "RF-24 v2.0",
+  "herramientas": "API - Postman / Newman. BD no es el oraculo principal.",
+  "ambiente": {
+    "decisorio": "TEST",
+    "base_url": "https://api.inmero.co/back-sigab-test"
+  },
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/",
+  "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+  "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+  "resultado_grupo": "APROBADO",
+  "resultado_por_caso": {
+    "TC-M09-261": "APROBADO",
+    "TC-M09-262": "APROBADO"
+  },
+  "git_pre": {
+    "etiqueta": "git_pre",
+    "capturado": "2026-10-10T05:18:31.256Z",
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "origin_test": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "divergencia_HEAD_origin_test": "0\t0",
+    "primera_evaluacion_RESULTADOS": "(vacio = intacta)",
+    "operaciones_git_de_escritura": "ninguna: sin add, commit, push, merge, rebase, reset, clean, stash, switch ni checkout"
+  },
+  "actor": {
+    "nota": "La coleccion Newman es duena de la sesion: hace su propio login y publica el token en session_value. El runner no obtiene tokens ni los inyecta; en el cierre se autentica solo para GET.",
+    "correo": "ingeniero@pecuaria.co",
+    "credencial": "[REDACTED]",
+    "login_http": 200,
+    "id_usuario": 4,
+    "id_descubierto_dinamicamente": true,
+    "rol": "Ingeniero de Campo",
+    "estado_cuenta": "Activo",
+    "permisos_recurso_12": "[1,2,3]",
+    "total_permisos": 47,
+    "papel": "ejecuta los 4 POST /calibrar",
+    "administrador": {
+      "utilizado": false,
+      "motivo": "el Ingeniero resolvio por GET todas las precondiciones: no hizo falta el actor auxiliar de discovery"
+    }
+  },
+  "preflight": {
+    "modo": "PRECHECK Newman de solo lectura previo al RUN",
+    "post_calibrar_en_precheck": 0,
+    "html_generado_en_precheck": "ninguno",
+    "resultados_creados_en_precheck": "ninguno",
+    "items_excluidos": [
+      "TC-M09-262 POST calibrar",
+      "TC-M09-261 NaN POST calibrar",
+      "TC-M09-261 Infinity POST calibrar",
+      "TC-M09-261 -Infinity POST calibrar",
+      "TC-M09-262 Historial POST",
+      "TC-M09-261 NaN Historial POST",
+      "TC-M09-261 Infinity Historial POST",
+      "TC-M09-261 -Infinity Historial POST"
+    ],
+    "motivo_exclusion_poscondicion": "los historiales de poscondicion dependen del id creado por su POST: sin POST no son evaluables",
+    "verificado": [
+      "autenticacion",
+      "identidad",
+      "permisos",
+      "fixture",
+      "rango",
+      "OpenAPI",
+      "representacion de los valores en la coleccion"
+    ]
+  },
+  "contrato_openapi": {
+    "http": 200,
+    "valor_referencia": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Valor Referencia"
+    },
+    "modo_calibracion": {
+      "type": "string",
+      "const": "SENSOR",
+      "title": "Modo Calibracion"
+    },
+    "required_del_dto": [
+      "id_dispositivo_iot",
+      "id_infraestructura",
+      "fecha_calibracion",
+      "modo_calibracion"
+    ],
+    "codigos_del_post_calibrar": [
+      "201",
+      "400",
+      "401",
+      "403",
+      "404",
+      "422",
+      "500"
+    ],
+    "codigos_del_historial": [
+      "200",
+      "401",
+      "403",
+      "404",
+      "422"
+    ],
+    "patron_de_cadena_publicado": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "el_patron_admitiria_no_finitos": "NO",
+    "nota": "Observacion DIAGNOSTICA del contrato desplegado. No sustituye a la prueba: el resultado se determina por los POST reales."
+  },
+  "fixture": {
+    "sensor": 6,
+    "dispositivo": 3,
+    "area": 3,
+    "categoria": "TEMPERATURA",
+    "valor_de_precision": "22.1234",
+    "rango": {
+      "categoria": "TEMPERATURA",
+      "min": "0",
+      "max": "45"
+    },
+    "valor_dentro_del_rango": true,
+    "dispositivo_detalle": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true
+    },
+    "sensorRow": {
+      "id": 6,
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "asociacionVigente": {
+      "id_dispositivo_iot": 3,
+      "id_infraestructura": 3,
+      "tiene_estado": true,
+      "fecha_finalizacion": null
+    },
+    "area_detalle": {
+      "id": 3,
+      "es_activo": true
+    },
+    "nota": "Fixture completamente valido y reutilizado de la primera evaluacion. La unica invalidez de TC-M09-261 es el formato del valor; el rango nunca es el motivo del rechazo esperado."
+  },
+  "representacion_enviada": {
+    "regla": "Se preserva exactamente la representacion de cada entrada. No se convierte \"NaN\" en null, 0 ni cadena vacia.",
+    "por_variante": {
+      "TC-M09-262": {
+        "valor_definido": "22.1234",
+        "representacion": "número JSON",
+        "texto_enviado": "{\"modo_calibracion\":\"SENSOR\",\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":22.1234,\"observaciones\":\"QA TC-M09-262\",\"fecha_calibracion\":\"2026-10-10T05:18:35.203Z\"}",
+        "valor_referencia_enviado": 22.1234,
+        "tipo_json": "number",
+        "preservada": true
+      },
+      "TC-M09-261 NaN": {
+        "valor_definido": "NaN",
+        "representacion": "cadena JSON \"NaN\"",
+        "texto_enviado": "{\"modo_calibracion\":\"SENSOR\",\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":\"NaN\",\"observaciones\":\"QA TC-M09-261\",\"fecha_calibracion\":\"2026-10-10T05:18:35.779Z\"}",
+        "valor_referencia_enviado": "NaN",
+        "tipo_json": "string",
+        "preservada": true
+      },
+      "TC-M09-261 Infinity": {
+        "valor_definido": "Infinity",
+        "representacion": "cadena JSON \"Infinity\"",
+        "texto_enviado": "{\"modo_calibracion\":\"SENSOR\",\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":\"Infinity\",\"observaciones\":\"QA TC-M09-261\",\"fecha_calibracion\":\"2026-10-10T05:18:36.384Z\"}",
+        "valor_referencia_enviado": "Infinity",
+        "tipo_json": "string",
+        "preservada": true
+      },
+      "TC-M09-261 -Infinity": {
+        "valor_definido": "-Infinity",
+        "representacion": "cadena JSON \"-Infinity\"",
+        "texto_enviado": "{\"modo_calibracion\":\"SENSOR\",\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":\"-Infinity\",\"observaciones\":\"QA TC-M09-261\",\"fecha_calibracion\":\"2026-10-10T05:18:36.959Z\"}",
+        "valor_referencia_enviado": "-Infinity",
+        "tipo_json": "string",
+        "preservada": true
+      }
+    },
+    "fuera_de_alcance_no_enviado": [
+      "5 o mas decimales (22.12345, 22.123456)",
+      "notacion cientifica",
+      "null",
+      "\"abc\""
+    ]
+  },
+  "TC-M09-262": {
+    "clave": "262",
+    "caso": "TC-M09-262",
+    "etiqueta": "TC-M09-262",
+    "tipo": "exito",
+    "valor": "22.1234",
+    "representacion": "número JSON",
+    "observaciones": "QA TC-M09-262",
+    "ejecutado": true,
+    "sensor": 6,
+    "dispositivo": 3,
+    "area": 3,
+    "categoria": "TEMPERATURA",
+    "request": {
+      "endpoint": "/configuracion/sensores/6/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "bodyTextoEnviado": "{\"modo_calibracion\":\"SENSOR\",\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":22.1234,\"observaciones\":\"QA TC-M09-262\",\"fecha_calibracion\":\"2026-10-10T05:18:35.203Z\"}",
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.1234,
+        "observaciones": "QA TC-M09-262",
+        "fecha_calibracion": "2026-10-10T05:18:35.203Z"
+      },
+      "valor_referencia_enviado": 22.1234,
+      "tipo_json_enviado": "number",
+      "representacion_preservada": true
+    },
+    "response": {
+      "http": 201,
+      "cuerpo": {
+        "id_calibracion": 31,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.1234,
+        "ganancia": 1,
+        "offset": 22.1234,
+        "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-262",
+        "modo_calibracion": "SENSOR"
+      },
+      "crudo": "{\"id_calibracion\":31,\"id_dispositivo_iot\":3,\"id_sensor\":6,\"valor_referencia\":22.1234,\"ganancia\":1.0,\"offset\":22.1234,\"fecha_calibracion\":\"2026-10-10T05:18:35.203000Z\",\"id_usuario\":4,\"observaciones\":\"QA TC-M09-262\",\"modo_calibracion\":\"SENSOR\"}",
+      "error_code": null,
+      "message": null,
+      "id_calibracion": 31,
+      "capturado": "2026-10-10T05:18:58.399Z"
+    },
+    "historialPre": {
+      "http": 200,
+      "total": 14,
+      "ids": [
+        30,
+        29,
+        28,
+        21,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ],
+      "items": [
+        {
+          "id_calibracion": 30,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-151-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 29,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 28,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 21,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 30,
+          "ganancia": 1,
+          "offset": 30,
+          "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-266",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 19,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 30,
+          "ganancia": 1,
+          "offset": 30,
+          "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-266",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 18,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+          "id_usuario": 104,
+          "observaciones": "QA TC-M09-264",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 17,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.1234,
+          "ganancia": 1,
+          "offset": 22.1234,
+          "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-262",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 16,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-259",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 15,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-151-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 14,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 13,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 12,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-141-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 11,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143 G75 run-20260906",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 10,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142 G75 run-20260906",
+          "modo_calibracion": "SENSOR"
+        }
+      ]
+    },
+    "historialPost": {
+      "http": 200,
+      "total": 15,
+      "ids": [
+        31,
+        30,
+        29,
+        28,
+        21,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ],
+      "items": [
+        {
+          "id_calibracion": 31,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.1234,
+          "ganancia": 1,
+          "offset": 22.1234,
+          "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-262",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 30,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-151-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 29,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 28,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 21,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 30,
+          "ganancia": 1,
+          "offset": 30,
+          "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-266",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 19,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 30,
+          "ganancia": 1,
+          "offset": 30,
+          "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-266",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 18,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+          "id_usuario": 104,
+          "observaciones": "QA TC-M09-264",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 17,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.1234,
+          "ganancia": 1,
+          "offset": 22.1234,
+          "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-262",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 16,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-259",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 15,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-151-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 14,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 13,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 12,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-141-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 11,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143 G75 run-20260906",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 10,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142 G75 run-20260906",
+          "modo_calibracion": "SENSOR"
+        }
+      ]
+    },
+    "idsNuevos": [
+      31
+    ],
+    "historicosIntactos": true,
+    "assertionsFuncionales": {
+      "total": 10,
+      "fallidas": 0,
+      "detalle": [
+        {
+          "assertion": "TC-M09-262 — historial PRE obtenido (2xx)",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — la respuesta pertenece a 2xx",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — la respuesta devuelve id_calibracion",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — la respuesta representa exactamente 22.1234 (decimal exacto, sin float)",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — historial POST obtenido (2xx)",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — el historial contiene el id_calibracion devuelto",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — la calibracion creada es exactamente una y es la devuelta",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — el historial conserva exactamente 22.1234 (decimal exacto, sin float)",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — el registro recuperado corresponde a este RUN",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-262 — los registros historicos previos siguen intactos",
+          "paso": true,
+          "error": null
+        }
+      ]
+    },
+    "httpEsperado": "2xx",
+    "precision": {
+      "valor_enviado": "22.1234",
+      "valor_respuesta_crudo": 22.1234,
+      "valor_respuesta_normalizado": "22.1234",
+      "tipo_json_respuesta": "number",
+      "escala_observable_respuesta": 4,
+      "exactitud_respuesta": true,
+      "valor_historial_crudo": 22.1234,
+      "valor_historial_normalizado": "22.1234",
+      "escala_observable_historial": 4,
+      "exactitud_historial": true,
+      "metodo_de_comparacion": "normalizacion decimal textual (signo, ceros a la izquierda y ceros finales), NO Number() ni float binario",
+      "valores_rechazados_explicitamente": [
+        {
+          "candidato": "22.123",
+          "igual_a_22_1234": false
+        },
+        {
+          "candidato": "22.1230",
+          "igual_a_22_1234": false
+        },
+        {
+          "candidato": "22.1235",
+          "igual_a_22_1234": false
+        },
+        {
+          "candidato": "22.12",
+          "igual_a_22_1234": false
+        }
+      ],
+      "registro_persistido": {
+        "id_calibracion": 31,
+        "run_id": "run-20261010-001830",
+        "observaciones": "QA TC-M09-262",
+        "valor_exacto": "22.1234",
+        "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+        "id_usuario": 4
+      },
+      "nota": "Esta persistencia es la ESPERADA del camino exitoso: no se elimina."
+    },
+    "oraculo": {
+      "http_2xx": true,
+      "id_calibracion_devuelto": true,
+      "respuesta_decimal_exacto": true,
+      "registro_recuperado_por_get": true,
+      "historial_decimal_exacto": true,
+      "persistio_exactamente_una": true,
+      "registro_de_este_run": true,
+      "historial_previo_intacto": true,
+      "assertions_funcionales_todas_pass": true
+    },
+    "resultado": "APROBADO"
+  },
+  "TC-M09-261": {
+    "NaN": {
+      "clave": "nan",
+      "caso": "TC-M09-261",
+      "etiqueta": "TC-M09-261 NaN",
+      "tipo": "rechazo",
+      "valor": "NaN",
+      "representacion": "cadena JSON \"NaN\"",
+      "observaciones": "QA TC-M09-261",
+      "ejecutado": true,
+      "sensor": 6,
+      "dispositivo": 3,
+      "area": 3,
+      "categoria": "TEMPERATURA",
+      "request": {
+        "endpoint": "/configuracion/sensores/6/calibrar",
+        "metodo": "POST",
+        "headers": {
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json"
+        },
+        "bodyTextoEnviado": "{\"modo_calibracion\":\"SENSOR\",\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":\"NaN\",\"observaciones\":\"QA TC-M09-261\",\"fecha_calibracion\":\"2026-10-10T05:18:35.779Z\"}",
+        "body": {
+          "modo_calibracion": "SENSOR",
+          "id_dispositivo_iot": 3,
+          "id_infraestructura": 3,
+          "valor_referencia": "NaN",
+          "observaciones": "QA TC-M09-261",
+          "fecha_calibracion": "2026-10-10T05:18:35.779Z"
+        },
+        "valor_referencia_enviado": "NaN",
+        "tipo_json_enviado": "string",
+        "representacion_preservada": true
+      },
+      "response": {
+        "http": 400,
+        "cuerpo": {
+          "error_code": "VALOR_CALIBRACION_INVALIDO",
+          "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'NaN'.",
+          "fields": [
+            {
+              "field": "valor_referencia",
+              "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'NaN'."
+            }
+          ],
+          "timestamp": "2026-10-10T05:18:34.868343+00:00"
+        },
+        "crudo": "{\"error_code\":\"VALOR_CALIBRACION_INVALIDO\",\"message\":\"Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'NaN'.\",\"fields\":[{\"field\":\"valor_referencia\",\"message\":\"Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'NaN'.\"}],\"timestamp\":\"2026-10-10T05:18:34.868343+00:00\"}",
+        "error_code": "VALOR_CALIBRACION_INVALIDO",
+        "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'NaN'.",
+        "id_calibracion": null,
+        "capturado": "2026-10-10T05:18:58.400Z"
+      },
+      "historialPre": {
+        "http": 200,
+        "total": 15,
+        "ids": [
+          31,
+          30,
+          29,
+          28,
+          21,
+          19,
+          18,
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10
+        ],
+        "items": [
+          {
+            "id_calibracion": 31,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 30,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 29,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 28,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 21,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 19,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 18,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+            "id_usuario": 104,
+            "observaciones": "QA TC-M09-264",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 17,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 16,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-259",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 15,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 14,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 13,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 12,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-141-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 11,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 10,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      },
+      "historialPost": {
+        "http": 200,
+        "total": 15,
+        "ids": [
+          31,
+          30,
+          29,
+          28,
+          21,
+          19,
+          18,
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10
+        ],
+        "items": [
+          {
+            "id_calibracion": 31,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 30,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 29,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 28,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 21,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 19,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 18,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+            "id_usuario": 104,
+            "observaciones": "QA TC-M09-264",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 17,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 16,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-259",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 15,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 14,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 13,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 12,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-141-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 11,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 10,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      },
+      "idsNuevos": [],
+      "historicosIntactos": true,
+      "assertionsFuncionales": {
+        "total": 9,
+        "fallidas": 0,
+        "detalle": [
+          {
+            "assertion": "TC-M09-261 NaN — historial PRE obtenido (2xx)",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 NaN — HTTP 400",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 NaN — mensaje EXACTO de formato decimal invalido",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 NaN — la respuesta no devuelve id_calibracion",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 NaN — historial POST obtenido (2xx)",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 NaN — total PRE == total POST",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 NaN — IDs PRE == IDs POST",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 NaN — no se creo ninguna calibracion",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 NaN — los registros historicos siguen intactos",
+            "paso": true,
+            "error": null
+          }
+        ]
+      },
+      "httpEsperado": 400,
+      "mensajeEsperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'NaN'.",
+      "mensajeObtenido": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'NaN'.",
+      "mensajeExacto": true,
+      "comparacion": "literal estricta: prohibido contains, startsWith, regex o equivalencia semantica",
+      "clasificacion_observada": "formato decimal invalido",
+      "oraculo": {
+        "http_400": true,
+        "mensaje_literal_exacto": true,
+        "sin_id_calibracion": true,
+        "total_sin_cambios": true,
+        "ids_identicos": true,
+        "sin_persistencia": true,
+        "historial_intacto": true,
+        "representacion_preservada": true,
+        "assertions_funcionales_todas_pass": true
+      },
+      "resultado": "APROBADO",
+      "motivo": "HTTP 400, mensaje literal exacto, sin id_calibracion y sin persistencia."
+    },
+    "Infinity": {
+      "clave": "inf",
+      "caso": "TC-M09-261",
+      "etiqueta": "TC-M09-261 Infinity",
+      "tipo": "rechazo",
+      "valor": "Infinity",
+      "representacion": "cadena JSON \"Infinity\"",
+      "observaciones": "QA TC-M09-261",
+      "ejecutado": true,
+      "sensor": 6,
+      "dispositivo": 3,
+      "area": 3,
+      "categoria": "TEMPERATURA",
+      "request": {
+        "endpoint": "/configuracion/sensores/6/calibrar",
+        "metodo": "POST",
+        "headers": {
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json"
+        },
+        "bodyTextoEnviado": "{\"modo_calibracion\":\"SENSOR\",\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":\"Infinity\",\"observaciones\":\"QA TC-M09-261\",\"fecha_calibracion\":\"2026-10-10T05:18:36.384Z\"}",
+        "body": {
+          "modo_calibracion": "SENSOR",
+          "id_dispositivo_iot": 3,
+          "id_infraestructura": 3,
+          "valor_referencia": "Infinity",
+          "observaciones": "QA TC-M09-261",
+          "fecha_calibracion": "2026-10-10T05:18:36.384Z"
+        },
+        "valor_referencia_enviado": "Infinity",
+        "tipo_json_enviado": "string",
+        "representacion_preservada": true
+      },
+      "response": {
+        "http": 400,
+        "cuerpo": {
+          "error_code": "VALOR_CALIBRACION_INVALIDO",
+          "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'Infinity'.",
+          "fields": [
+            {
+              "field": "valor_referencia",
+              "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'Infinity'."
+            }
+          ],
+          "timestamp": "2026-10-10T05:18:35.473600+00:00"
+        },
+        "crudo": "{\"error_code\":\"VALOR_CALIBRACION_INVALIDO\",\"message\":\"Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'Infinity'.\",\"fields\":[{\"field\":\"valor_referencia\",\"message\":\"Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'Infinity'.\"}],\"timestamp\":\"2026-10-10T05:18:35.473600+00:00\"}",
+        "error_code": "VALOR_CALIBRACION_INVALIDO",
+        "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'Infinity'.",
+        "id_calibracion": null,
+        "capturado": "2026-10-10T05:18:58.400Z"
+      },
+      "historialPre": {
+        "http": 200,
+        "total": 15,
+        "ids": [
+          31,
+          30,
+          29,
+          28,
+          21,
+          19,
+          18,
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10
+        ],
+        "items": [
+          {
+            "id_calibracion": 31,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 30,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 29,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 28,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 21,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 19,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 18,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+            "id_usuario": 104,
+            "observaciones": "QA TC-M09-264",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 17,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 16,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-259",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 15,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 14,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 13,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 12,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-141-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 11,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 10,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      },
+      "historialPost": {
+        "http": 200,
+        "total": 15,
+        "ids": [
+          31,
+          30,
+          29,
+          28,
+          21,
+          19,
+          18,
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10
+        ],
+        "items": [
+          {
+            "id_calibracion": 31,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 30,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 29,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 28,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 21,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 19,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 18,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+            "id_usuario": 104,
+            "observaciones": "QA TC-M09-264",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 17,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 16,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-259",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 15,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 14,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 13,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 12,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-141-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 11,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 10,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      },
+      "idsNuevos": [],
+      "historicosIntactos": true,
+      "assertionsFuncionales": {
+        "total": 9,
+        "fallidas": 0,
+        "detalle": [
+          {
+            "assertion": "TC-M09-261 Infinity — historial PRE obtenido (2xx)",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 Infinity — HTTP 400",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 Infinity — mensaje EXACTO de formato decimal invalido",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 Infinity — la respuesta no devuelve id_calibracion",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 Infinity — historial POST obtenido (2xx)",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 Infinity — total PRE == total POST",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 Infinity — IDs PRE == IDs POST",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 Infinity — no se creo ninguna calibracion",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 Infinity — los registros historicos siguen intactos",
+            "paso": true,
+            "error": null
+          }
+        ]
+      },
+      "httpEsperado": 400,
+      "mensajeEsperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'Infinity'.",
+      "mensajeObtenido": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'Infinity'.",
+      "mensajeExacto": true,
+      "comparacion": "literal estricta: prohibido contains, startsWith, regex o equivalencia semantica",
+      "clasificacion_observada": "formato decimal invalido",
+      "oraculo": {
+        "http_400": true,
+        "mensaje_literal_exacto": true,
+        "sin_id_calibracion": true,
+        "total_sin_cambios": true,
+        "ids_identicos": true,
+        "sin_persistencia": true,
+        "historial_intacto": true,
+        "representacion_preservada": true,
+        "assertions_funcionales_todas_pass": true
+      },
+      "resultado": "APROBADO",
+      "motivo": "HTTP 400, mensaje literal exacto, sin id_calibracion y sin persistencia."
+    },
+    "menos-Infinity": {
+      "clave": "ninf",
+      "caso": "TC-M09-261",
+      "etiqueta": "TC-M09-261 -Infinity",
+      "tipo": "rechazo",
+      "valor": "-Infinity",
+      "representacion": "cadena JSON \"-Infinity\"",
+      "observaciones": "QA TC-M09-261",
+      "ejecutado": true,
+      "sensor": 6,
+      "dispositivo": 3,
+      "area": 3,
+      "categoria": "TEMPERATURA",
+      "request": {
+        "endpoint": "/configuracion/sensores/6/calibrar",
+        "metodo": "POST",
+        "headers": {
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json"
+        },
+        "bodyTextoEnviado": "{\"modo_calibracion\":\"SENSOR\",\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":\"-Infinity\",\"observaciones\":\"QA TC-M09-261\",\"fecha_calibracion\":\"2026-10-10T05:18:36.959Z\"}",
+        "body": {
+          "modo_calibracion": "SENSOR",
+          "id_dispositivo_iot": 3,
+          "id_infraestructura": 3,
+          "valor_referencia": "-Infinity",
+          "observaciones": "QA TC-M09-261",
+          "fecha_calibracion": "2026-10-10T05:18:36.959Z"
+        },
+        "valor_referencia_enviado": "-Infinity",
+        "tipo_json_enviado": "string",
+        "representacion_preservada": true
+      },
+      "response": {
+        "http": 400,
+        "cuerpo": {
+          "error_code": "VALOR_CALIBRACION_INVALIDO",
+          "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada '-Infinity'.",
+          "fields": [
+            {
+              "field": "valor_referencia",
+              "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada '-Infinity'."
+            }
+          ],
+          "timestamp": "2026-10-10T05:18:36.053362+00:00"
+        },
+        "crudo": "{\"error_code\":\"VALOR_CALIBRACION_INVALIDO\",\"message\":\"Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada '-Infinity'.\",\"fields\":[{\"field\":\"valor_referencia\",\"message\":\"Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada '-Infinity'.\"}],\"timestamp\":\"2026-10-10T05:18:36.053362+00:00\"}",
+        "error_code": "VALOR_CALIBRACION_INVALIDO",
+        "message": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada '-Infinity'.",
+        "id_calibracion": null,
+        "capturado": "2026-10-10T05:18:58.400Z"
+      },
+      "historialPre": {
+        "http": 200,
+        "total": 15,
+        "ids": [
+          31,
+          30,
+          29,
+          28,
+          21,
+          19,
+          18,
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10
+        ],
+        "items": [
+          {
+            "id_calibracion": 31,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 30,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 29,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 28,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 21,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 19,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 18,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+            "id_usuario": 104,
+            "observaciones": "QA TC-M09-264",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 17,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 16,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-259",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 15,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 14,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 13,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 12,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-141-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 11,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 10,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      },
+      "historialPost": {
+        "http": 200,
+        "total": 15,
+        "ids": [
+          31,
+          30,
+          29,
+          28,
+          21,
+          19,
+          18,
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10
+        ],
+        "items": [
+          {
+            "id_calibracion": 31,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-10T05:18:35.203000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 30,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 29,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 28,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 21,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 19,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 30,
+            "ganancia": 1,
+            "offset": 30,
+            "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-266",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 18,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+            "id_usuario": 104,
+            "observaciones": "QA TC-M09-264",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 17,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.1234,
+            "ganancia": 1,
+            "offset": 22.1234,
+            "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-262",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 16,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-259",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 15,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-151-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 14,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 13,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 12,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 22.5,
+            "ganancia": 1,
+            "offset": 22.5,
+            "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-141-v2.0",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 11,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 45,
+            "ganancia": 1,
+            "offset": 45,
+            "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-143 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          },
+          {
+            "id_calibracion": 10,
+            "id_dispositivo_iot": 3,
+            "id_sensor": 6,
+            "valor_referencia": 0,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+            "id_usuario": 4,
+            "observaciones": "QA TC-M09-142 G75 run-20260906",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      },
+      "idsNuevos": [],
+      "historicosIntactos": true,
+      "assertionsFuncionales": {
+        "total": 9,
+        "fallidas": 0,
+        "detalle": [
+          {
+            "assertion": "TC-M09-261 -Infinity — historial PRE obtenido (2xx)",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 -Infinity — HTTP 400",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 -Infinity — mensaje EXACTO de formato decimal invalido",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 -Infinity — la respuesta no devuelve id_calibracion",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 -Infinity — historial POST obtenido (2xx)",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 -Infinity — total PRE == total POST",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 -Infinity — IDs PRE == IDs POST",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 -Infinity — no se creo ninguna calibracion",
+            "paso": true,
+            "error": null
+          },
+          {
+            "assertion": "TC-M09-261 -Infinity — los registros historicos siguen intactos",
+            "paso": true,
+            "error": null
+          }
+        ]
+      },
+      "httpEsperado": 400,
+      "mensajeEsperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada '-Infinity'.",
+      "mensajeObtenido": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada '-Infinity'.",
+      "mensajeExacto": true,
+      "comparacion": "literal estricta: prohibido contains, startsWith, regex o equivalencia semantica",
+      "clasificacion_observada": "formato decimal invalido",
+      "oraculo": {
+        "http_400": true,
+        "mensaje_literal_exacto": true,
+        "sin_id_calibracion": true,
+        "total_sin_cambios": true,
+        "ids_identicos": true,
+        "sin_persistencia": true,
+        "historial_intacto": true,
+        "representacion_preservada": true,
+        "assertions_funcionales_todas_pass": true
+      },
+      "resultado": "APROBADO",
+      "motivo": "HTTP 400, mensaje literal exacto, sin id_calibracion y sin persistencia."
+    },
+    "resultado": "APROBADO",
+    "regla": "APROBADO solo si las TRES variantes dan 400 + mensaje exacto + no persistencia."
+  },
+  "newman": {
+    "html": "newman/newman-TC-M09-G132.html",
+    "htmlPersistentes": 1,
+    "coleccionEjecutada": "21 de 21 items",
+    "iterations": {
+      "ejecutadas": 1,
+      "fallidas": 0
+    },
+    "requests": {
+      "ejecutados": 21,
+      "fallidos": 0
+    },
+    "assertions": {
+      "total": 61,
+      "fallidas": 0
+    },
+    "failures": [],
+    "presupuesto": {
+      "postPlanificados": 4,
+      "postEjecutados": 4,
+      "postExitososEsperados": 1,
+      "postRechazadosEsperados": 3,
+      "patch": 0,
+      "put": 0,
+      "delete": 0,
+      "reintentos": 0
+    },
+    "stopAll": "NO",
+    "stopAllMotivo": null,
+    "limpio": true,
+    "nota": "Los failures no se ocultan ni se reinterpretan: un failure funcional real deja el HTML en rojo y el grupo RECHAZADO."
+  },
+  "verificacion_persistencia": {
+    "calibraciones_validas_nuevas_esperadas": 1,
+    "calibraciones_invalidas_nuevas_esperadas": 0,
+    "id_calibracion_TC262": 31,
+    "ids_nuevos_por_variante": {
+      "TC-M09-262": [
+        31
+      ],
+      "TC-M09-261 NaN": [],
+      "TC-M09-261 Infinity": [],
+      "TC-M09-261 -Infinity": []
+    },
+    "ids_creados_en_este_run": [
+      31
+    ],
+    "ids_indebidos": [],
+    "correlacion": "por id_calibracion devuelto, observaciones, id_usuario y fecha; nunca por total + 1",
+    "cumple": true
+  },
+  "verificacion_final": {
+    "soloLectura": true,
+    "sql": "ninguno",
+    "escrituras": 0,
+    "fecha": "2026-10-10T05:18:59.426Z",
+    "historial_sensor": {
+      "sensor": 6,
+      "http": 200,
+      "total": 15,
+      "ids": [
+        31,
+        30,
+        29,
+        28,
+        21,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ]
+    },
+    "registro_TC262_sigue_presente": true,
+    "registro_TC262": {
+      "id_calibracion": 31,
+      "valor_referencia": 22.1234,
+      "valor_normalizado": "22.1234",
+      "escala_observable": 4,
+      "exacto": true,
+      "observaciones": "QA TC-M09-262",
+      "id_usuario": 4,
+      "fecha_calibracion": "2026-10-10T05:18:35.203000Z"
+    },
+    "calibraciones_atribuibles_a_TC262": [
+      31,
+      17
+    ],
+    "calibraciones_atribuibles_a_TC261": [],
+    "nota_atribuibles_261": "Las calibraciones con observaciones «QA TC-M09-261» que aparezcan NO provienen de este RUN: los IDs nuevos de las tres variantes fueron [[],[],[]]. No se borro ningun registro.",
+    "nota_calibracion_17": "La calibracion 17, creada por la PRIMERA evaluacion en TC-M09-262, sigue existiendo en el historial del sensor 6. No proviene de este RUN y no se borro.",
+    "asociacion_sensor": [
+      {
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3
+      }
+    ],
+    "post_extra_ejecutados": 0,
+    "borrados": "ninguno: la calibracion del camino exitoso se conserva, como exige el paquete"
+  },
+  "contraste_dev": {
+    "necesario": false,
+    "motivo": "TEST paso completamente: los tres valores no finitos dieron 400 con el mensaje literal y la precision se conservo. No se uso DEV.",
+    "peticiones_a_dev": 0
+  },
+  "diagnostico_bd": {
+    "utilizada": false,
+    "motivo": "La BD no es el oraculo principal y no aparecio discrepancia de persistencia: los historiales PRE/POST por variante fueron consistentes y el valor exacto 22.1234 se verifico por GET del id devuelto. No se abrio ninguna conexion.",
+    "solo_select": true
+  },
+  "comparacion_primera_segunda": {
+    "baselineUnico": "PRIMERA EVALUACION OFICIAL run-20261007-042408",
+    "fuente": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/RESULTADOS/run-20261007-042408/TC-M09-G132_resultado.md",
+    "porVariante": {
+      "TC-M09-262": {
+        "primera": "APROBADO",
+        "segunda": "APROBADO",
+        "cambio": "SIN CAMBIO",
+        "dimensiones": {
+          "http": {
+            "primera": "201",
+            "segunda": "201"
+          },
+          "mensaje": {
+            "primera": "N/A",
+            "segunda": "N/A"
+          },
+          "persistencia": {
+            "primera": "id_calibracion 17",
+            "segunda": "id_calibracion 31"
+          },
+          "observado": {
+            "segunda": "HTTP 201; id 31; respuesta 22.1234; historial 22.1234"
+          }
+        },
+        "detallePrimera": "respuesta 22.1234 e historial 22.1234, exactos"
+      },
+      "TC-M09-261 NaN": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO",
+        "cambio": "RECHAZADO -> APROBADO",
+        "dimensiones": {
+          "http": {
+            "primera": "500",
+            "segunda": "400"
+          },
+          "mensaje": {
+            "primera": "Error interno: «Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.»",
+            "segunda": "literal exacto de formato decimal invalido"
+          },
+          "persistencia": {
+            "primera": "NINGUNA",
+            "segunda": "NINGUNA"
+          },
+          "observado": {
+            "segunda": "HTTP 400; mensaje literal exacto de formato"
+          }
+        },
+        "detallePrimera": "el valor no finito provoco un error interno en vez del rechazo de formato"
+      },
+      "TC-M09-261 Infinity": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO",
+        "cambio": "RECHAZADO -> APROBADO",
+        "dimensiones": {
+          "http": {
+            "primera": "400",
+            "segunda": "400"
+          },
+          "mensaje": {
+            "primera": "VALOR FUERA DE RANGO: «El ajuste de Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000-45.0000). Verifique el estandar de calibracion utilizado.»",
+            "segunda": "literal exacto de formato decimal invalido"
+          },
+          "persistencia": {
+            "primera": "NINGUNA",
+            "segunda": "NINGUNA"
+          },
+          "observado": {
+            "segunda": "HTTP 400; mensaje literal exacto de formato"
+          }
+        },
+        "detallePrimera": "se clasifico como fuera de rango en vez de formato decimal invalido"
+      },
+      "TC-M09-261 -Infinity": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO",
+        "cambio": "RECHAZADO -> APROBADO",
+        "dimensiones": {
+          "http": {
+            "primera": "400",
+            "segunda": "400"
+          },
+          "mensaje": {
+            "primera": "VALOR FUERA DE RANGO: «El ajuste de -Infinity excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000-45.0000). Verifique el estandar de calibracion utilizado.»",
+            "segunda": "literal exacto de formato decimal invalido"
+          },
+          "persistencia": {
+            "primera": "NINGUNA",
+            "segunda": "NINGUNA"
+          },
+          "observado": {
+            "segunda": "HTTP 400; mensaje literal exacto de formato"
+          }
+        },
+        "detallePrimera": "se clasifico como fuera de rango en vez de formato decimal invalido"
+      }
+    },
+    "porCaso": {
+      "TC-M09-261": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO",
+        "cambio": "RECHAZADO -> APROBADO"
+      },
+      "TC-M09-262": {
+        "primera": "APROBADO",
+        "segunda": "APROBADO",
+        "cambio": "SIN CAMBIO"
+      }
+    },
+    "grupo": {
+      "primera": "RECHAZADO",
+      "segunda": "APROBADO",
+      "cambio": "RECHAZADO -> APROBADO"
+    },
+    "detalle": {
+      "NaN_HTTP": {
+        "primera": "500",
+        "segunda": "400"
+      },
+      "NaN_mensaje": {
+        "primera": "Error interno",
+        "segunda": "formato decimal invalido"
+      },
+      "Infinity_HTTP": {
+        "primera": "400",
+        "segunda": "400"
+      },
+      "Infinity_mensaje": {
+        "primera": "Fuera de rango",
+        "segunda": "formato decimal invalido"
+      },
+      "menos_Infinity_HTTP": {
+        "primera": "400",
+        "segunda": "400"
+      },
+      "menos_Infinity_mensaje": {
+        "primera": "Fuera de rango",
+        "segunda": "formato decimal invalido"
+      },
+      "persistencia_invalidos": {
+        "primera": "Ninguna",
+        "segunda": "Ninguna"
+      },
+      "valor_22_1234_respuesta": {
+        "primera": "Exacto",
+        "segunda": "Exacto"
+      },
+      "valor_22_1234_historial": {
+        "primera": "Exacto",
+        "segunda": "Exacto"
+      }
+    },
+    "presupuesto": {
+      "primera": {
+        "planificados": 4,
+        "ejecutados": 4,
+        "stopAll": "NO"
+      },
+      "segunda": {
+        "planificados": 4,
+        "ejecutados": 4,
+        "stopAll": "NO"
+      }
+    },
+    "causaDelRechazoAnterior": "CORREGIDA"
+  },
+  "causa_raiz": "A. Los tres valores no finitos responden HTTP 400 con el mensaje literal de formato decimal invalido: la deteccion de NaN, Infinity y -Infinity antes de la validacion de rango esta implementada y desplegada en TEST.",
+  "incidencias": [
+    {
+      "incidencia_requerida": "NO",
+      "nota": "Todo paso. Causa anterior CORREGIDA: se propone validar y cerrar la incidencia previa de TC-M09-261."
+    }
+  ],
+  "seguridad": {
+    "alcance": "todo EvaluacionV2/: runner, coleccion, informe, evidencia, manifiesto y el HTML de Newman",
+    "limpio": true,
+    "archivosConHallazgos": [],
+    "revisados": [
+      {
+        "archivo": "automation/run-g132-v2.cjs",
+        "bytes": 68188,
+        "tipo": "codigo-fuente",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261010-001830/.summary-run.json",
+        "bytes": 79624,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261010-001830/evidencia.json",
+        "bytes": 87799,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261010-001830/newman/newman-TC-M09-G132.html",
+        "bytes": 1365869,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "TC-M09-G132.postman_collection.json",
+        "bytes": 44425,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      }
+    ],
+    "credencialesCubiertas": "contrasena de API del Ingeniero y, si se entregan por variable de entorno, la del Administrador y la de BD. Ninguna aparece como literal en el codigo.",
+    "criterio": "Se marcan solo VALORES de secreto. En los .cjs solo se evaluan valores y la coincidencia literal con las credenciales.",
+    "nota": "Las contrasenas solo existieron en memoria de proceso. El reporter htmlextra se ejecuto con omitHeaders, sin environment ni globals y omitiendo las variables sensibles; el HTML se sanitizo despues de generarse."
+  },
+  "git_post": {
+    "etiqueta": "git_post",
+    "capturado": "2026-10-10T05:18:59.426Z",
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "origin_test": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "divergencia_HEAD_origin_test": "0\t0",
+    "primera_evaluacion_RESULTADOS": "(vacio = intacta)",
+    "operaciones_git_de_escritura": "ninguna: sin add, commit, push, merge, rebase, reset, clean, stash, switch ni checkout"
+  }
+}

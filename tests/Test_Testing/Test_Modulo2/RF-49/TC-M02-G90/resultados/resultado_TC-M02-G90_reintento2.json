@@ -1,0 +1,27 @@
+{
+  "tc": "TC-M02-G90",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G90-REEVAL-V3-20260919-151100",
+  "veredicto": "Aprobado",
+  "nota_global": "Oráculo fijado por comparación textual con RF-49. La Precondición 4 autoriza cross-infra dentro de la misma granja. El issue original INC-M02-39-G90 estaba mal formulado.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-220: Asociación AMBIENTAL pura a nivel de infraestructura (Tipo B)",
+      "esperado": "HTTP 201 Created con id_activo_biologico = null y tipo_asociacion = ambiental en endpoint dedicado POST /infraestructuras/{id}/sensores",
+      "obtenido": "HTTP 201 Created verificado en POST /infraestructuras/1/sensores; asociación ambiental persistida sin activo puntual vinculado",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_TC-M02-G90_v3.html",
+      "nota_qa": "Aprobado: endpoint dedicado de infraestructura desplegado por Desarrollo y verificado funcionalmente conforme a RF-49 Tipo B."
+    },
+    {
+      "paso": "TC-M02-221: Coherencia territorial entre infraestructuras distintas de la misma finca",
+      "esperado": "HTTP 201 Created conforme a RF-49 Precondición 4 (autoriza infraestructuras dentro de la misma granja)",
+      "obtenido": "HTTP 201 Created verificado mediante regla V6 de pertenencia a la misma finca (Finca 1)",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_TC-M02-G90_v3.html",
+      "nota_qa": "Oráculo fijado en 201 Created: la Precondición 4 del RF-49 autoriza infraestructuras de la misma granja y la Restricción 2 solo prohíbe asociaciones cross-granja. La implementación actual es conforme a especificación."
+    }
+  ]
+}

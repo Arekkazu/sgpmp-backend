@@ -1,0 +1,22 @@
+TC-M09-G85 rev2 TEST — resultado APROBADO
+UTC: 2026-10-05
+Ambiente: TEST frontend sslip + backend api-sgpmp-test
+Usuario: admin@pecuaria.co (password via env; no se registra)
+
+Criterio TC-M09-160: registro de identidad visual con datos validos.
+
+API
+- POST /configuracion/identidad-visual finca 123 -> 201 id_identidad_visual=10
+- GET persistencia 200: primary #2E6B4A secondary #E8F5E9 org QA G85 rev2 TEST
+- Dato creado: identidad 10 en finca QA "Finca Activa Prueba bajdhdoznq". API no ofrece DELETE.
+
+UI Cypress
+- Login TEST, Configuracion > Personalizacion > Identidad Visual
+- Picker con fincas activas (ya no "No hay fincas")
+- Seleccion Finca Activa Prueba bajdhdoznq
+- Guardado: toast "Identidad visual actualizada correctamente"
+- Sidebar inmediato: "QA G85 rev2 TEST"
+- Evidencia: G85-rev2-04-guardado (1).png y TC-M09-G85_rev2_cypress.html/json
+
+Rev1 historica no modificada (BLOQUEADO 2026-09-28: admin sin fincas en picker / Identidad Visual).
+Sin commit/push. Sin secretos.

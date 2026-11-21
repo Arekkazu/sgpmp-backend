@@ -1,0 +1,42 @@
+{
+  "revision": "TC-M09-175-rev8",
+  "caso": "TC-M09-175",
+  "grupo": "TC-M09-G91",
+  "fecha_utc": "2026-10-09T23:59:30Z",
+  "rama": "laura",
+  "commit": "c5ac9b6f",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "resultado_funcional": "APROBADO",
+  "restauracion_global": "PENDIENTE",
+  "g91_cierre": false,
+  "dml": false,
+  "restore_qa": false,
+  "credenciales_en_reporte": false,
+  "login_admin": {"status": 200},
+  "get_global": {"status": 200, "body": null, "ausente": true},
+  "login_175": {"status": 200, "intentos": 1, "correo": "cm09175.qa@sgpmp-test.com"},
+  "me_175": {
+    "status": 200,
+    "id_usuario": 120,
+    "nombre_rol": "Productor",
+    "estado_cuenta": "Activo"
+  },
+  "get_tema_175": {
+    "status": 200,
+    "theme_mode": 1,
+    "fuente": "defecto",
+    "id_tema_visual": null,
+    "types": {"theme_mode": "int", "fuente": "str", "id_tema_visual": "NoneType"}
+  },
+  "precondiciones": {
+    "global_ausente": true,
+    "sin_preferencia_individual": true
+  },
+  "oraculo": {
+    "theme_mode_ok": true,
+    "fuente_ok": true,
+    "id_tema_visual_ok": true
+  },
+  "get_global_cierre": {"status": 200, "body": null, "ausente": true}
+}

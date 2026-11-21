@@ -1,0 +1,2951 @@
+{
+  "info": {
+    "_postman_id": "7c1d3b8e-5a42-4f0e-9a37-6d1f0c15e076",
+    "name": "RF-83 - TC-M06-G15 Tiempos de la medicion: por evento (076) y por cierre sobre un lote (077)",
+    "description": "RF-83 CU02. 076: 20 mediciones por evento secuenciales, cada responseTime <= 3000 ms (CA-4, RNF-83-01). 077: cierre del periodo sobre un lote de 20 a 25 activos creados por API; tiempo por activo <= 0,18 s (30 min / 10.000 activos, RNF-83-02). Todo dentro de un run del sandbox (rollback al final). Especie 4 de TEST con categoria de precio PESO_KG, como en pytest.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el ultimo paso la",
+          "// revierte (DELETE /test-control/runs/{run_id}). Los logins van FUERA del sandbox (dentro del run solo funciona el primero).",
+          "// El secreto no se guarda en este archivo: se pasa con  --env-var \"sandbox_secret=<secreto>\"  (correr_newman.ps1 lo pide oculto).",
+          "const nombre = pm.info.requestName || '';",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "const base = String(pm.variables.get('base_url') || '');",
+          "const desviar = function (motivo) {",
+          "  // Newman envia la peticion aunque el script falle: se desvia a un puerto local muerto para que NADA llegue a TEST sin sandbox.",
+          "  console.error(motivo + ' Peticion desviada, no se envia.');",
+          "  pm.request.url.update('http://127.0.0.1:9/desviada');",
+          "};",
+          "if (!pm.collectionVariables.get('sufijo')) {",
+          "  const ahora = Date.now() - 5 * 3600 * 1000;                       // America/Bogota (UTC-5, sin horario de verano)",
+          "  const dia = function (n) { return new Date(ahora - n * 86400000).toISOString().slice(0, 10); };",
+          "  pm.collectionVariables.set('sufijo', pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').slice(0, 8));",
+          "  pm.collectionVariables.set('sufijo_letras', pm.collectionVariables.get('sufijo').replace(/[0-9]/g, function (d) { return 'ghijklmnop'[Number(d)]; }));",
+          "  pm.collectionVariables.set('hoy', dia(0));",
+          "  pm.collectionVariables.set('ayer', dia(1));",
+          "  pm.collectionVariables.set('hace10', dia(10));",
+          "}",
+          "if (!/api-sgpmp-test/.test(base)) {",
+          "  desviar('base_url no apunta al ambiente TEST (/api-sgpmp-test): MAIN (/sigab) nunca se prueba.');",
+          "} else if (nombre.indexOf('LOGIN') === 0) {",
+          "  // login: sin cabeceras de sandbox",
+          "} else if (!secreto) {",
+          "  desviar('Falta sandbox_secret (--env-var sandbox_secret=<secreto>).');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-newman-' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '')); }",
+          "  if (!pm.collectionVariables.get('t0')) { pm.collectionVariables.set('t0', String(Date.now())); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Logins (fuera del sandbox)",
+      "item": [
+        {
+          "name": "LOGIN admin (fuera del sandbox)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de admin responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_admin', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "LOGIN ingeniero (fuera del sandbox)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de ingeniero responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_ing', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Precondiciones (especie 4 de TEST como PESO_KG)",
+      "item": [
+        {
+          "name": "Admin: consultar titular tributario de la finca",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "const j = cuerpo();",
+                  "const existe = pm.response.code === 200 && j && (j.numero_id_tributaria || j.titular);",
+                  "pm.collectionVariables.set('titular_existe', existe ? '1' : '');",
+                  "pm.test('Titular tributario consultado (200 si existe, 404 si falta)', function () { pm.expect([200, 404]).to.include(pm.response.code); });",
+                  "if (existe) { postman.setNextRequest('Admin: detalle del usuario 158 para pasarlo a Contador'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas/163/titular",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas",
+                "163",
+                "titular"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin: Titular tributario: PUT (solo si no existia)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "const existia = !!pm.collectionVariables.get('titular_existe');",
+                  "if (!existia) {",
+                  "const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('PRECONDICION: registrar el titular tributario de la finca (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "const j = cuerpo();",
+                  "",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas/163/titular",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas",
+                "163",
+                "titular"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_id_tributaria\": \"NIT\",\n  \"numero_id_tributaria\": \"900123456\",\n  \"dv\": \"8\",\n  \"razon_social\": \"QA Titular M06\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin: detalle del usuario 158 para pasarlo a Contador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('PRECONDICION: detalle del usuario 158 (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "const j = cuerpo();",
+                  "if (j) { pm.collectionVariables.set('u_nombre', j.nombre); pm.collectionVariables.set('u_apellidos', j.apellidos); pm.collectionVariables.set('u_version', j.version); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios/158/detalle",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "158",
+                "detalle"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin: PATCH usuario 158 a rol 5 (Contador)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = JSON.stringify({ nombre: pm.collectionVariables.get('u_nombre'), apellidos: pm.collectionVariables.get('u_apellidos'), version: Number(pm.collectionVariables.get('u_version')), id_rol: 5 });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('PRECONDICION: cambiar el rol del usuario 158 a Contador (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "const j = cuerpo();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios/158",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "158"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin: crear infraestructura propia",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('PRECONDICION: crear infraestructura (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "const j = cuerpo();",
+                  "if (j) { pm.collectionVariables.set('id_infra', j.id_infraestructura); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"QA M06 Galpon {{sufijo}}\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": 163,\n  \"especie_id\": \"{{id_especie}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: parametros de la especie (M09)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('PRECONDICION: parametros de la especie en M09 (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "const j = cuerpo();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/especies/{{id_especie}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "especies",
+                "{{id_especie}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clasificacion\": \"PRODUCCION\",\n  \"categoria_precio\": \"PESO_KG\",\n  \"vida_util_meses\": 60\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: costos de venta de la especie (M09)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('PRECONDICION: costos de venta de M09 (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "const j = cuerpo();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/costos-venta/{{id_especie}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "costos-venta",
+                "{{id_especie}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pct_transporte\": \"0.02\",\n  \"pct_comisiones\": \"0.03\",\n  \"pct_impuestos\": \"0.01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable RECONOCIMIENTO_NACIMIENTO / UNICO",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"RECONOCIMIENTO_NACIMIENTO\",\n  \"sentido\": \"UNICO\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"140105\",\n  \"cuenta_credito\": \"425010\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable RECONOCIMIENTO_NACIMIENTO / TRASLADO",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"RECONOCIMIENTO_NACIMIENTO\",\n  \"sentido\": \"TRASLADO\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"140105\",\n  \"cuenta_credito\": \"280505\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable RECONOCIMIENTO_DIFERENCIA / GANANCIA",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"RECONOCIMIENTO_DIFERENCIA\",\n  \"sentido\": \"GANANCIA\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"140105\",\n  \"cuenta_credito\": \"425020\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable RECONOCIMIENTO_DIFERENCIA / PERDIDA",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"RECONOCIMIENTO_DIFERENCIA\",\n  \"sentido\": \"PERDIDA\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"531520\",\n  \"cuenta_credito\": \"140105\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable VARIACION_VR_TB / GANANCIA",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"VARIACION_VR_TB\",\n  \"sentido\": \"GANANCIA\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"140105\",\n  \"cuenta_credito\": \"425030\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable VARIACION_VR_TB / PERDIDA",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"VARIACION_VR_TB\",\n  \"sentido\": \"PERDIDA\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"531530\",\n  \"cuenta_credito\": \"140105\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable VARIACION_VR_PM / GANANCIA",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"VARIACION_VR_PM\",\n  \"sentido\": \"GANANCIA\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"140105\",\n  \"cuenta_credito\": \"425040\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable VARIACION_VR_PM / PERDIDA",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"VARIACION_VR_PM\",\n  \"sentido\": \"PERDIDA\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"531540\",\n  \"cuenta_credito\": \"140105\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable PRODUCTO_AGRICOLA / UNICO",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"PRODUCTO_AGRICOLA\",\n  \"sentido\": \"UNICO\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"143005\",\n  \"cuenta_credito\": \"425050\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable PRODUCTO_AGRICOLA / TRASLADO",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"PRODUCTO_AGRICOLA\",\n  \"sentido\": \"TRASLADO\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"143005\",\n  \"cuenta_credito\": \"140105\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable BAJA_ACTIVO / UNICO",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"BAJA_ACTIVO\",\n  \"sentido\": \"UNICO\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"130505\",\n  \"cuenta_credito\": \"140105\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: matriz contable BAJA_ACTIVO / PERDIDA",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = pm.request.body.raw.replace('\"{{id_especie}}\"', String(pm.collectionVariables.get('id_especie')));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Matriz contable cargada (si ya existia, se tolera; la confirmacion lo comprueba)', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/configuracion/matriz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "configuracion",
+                "matriz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_hecho\": \"BAJA_ACTIVO\",\n  \"sentido\": \"PERDIDA\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"cuenta_debito\": \"531550\",\n  \"cuenta_credito\": \"140105\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Contador: precio vigente del activo (PESO_KG)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/precios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "precios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": \"{{id_especie}}\",\n  \"categoria\": \"PESO_KG\",\n  \"precio_unitario\": \"20000.00\",\n  \"fecha_vigencia\": \"{{ayer}}\",\n  \"fuente\": \"MERCADO_ACTIVO\",\n  \"evidencia_documental\": \"Boletín de precios QA TC-M06\",\n  \"confirmar_desviacion\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: registrar el precio RF-89 por kg (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M06-076 Tiempo de medicion por evento (CA-4, RNF-83-01)",
+      "item": [
+        {
+          "name": "TC-M06-076 activo (RF-33)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"id_infraestructura\": \"{{id_infra}}\",\n  \"fecha_inicio_ciclo\": \"{{hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"identificador\": \"QA-M06-{{ident}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ident', pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: registrar el activo por RF-33 (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  const j = cuerpo();",
+                  "  if (ok && j) { pm.collectionVariables.set('id_a076', j.id_activo_biologico); } else { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-076 fase del activo (RF-37)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos/{{id_a076}}/fases",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_a076}}",
+                "fases"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_ciclo_productiva\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: asignar la fase del ciclo productivo (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-076 pesaje base (400 kg)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos/{{id_a076}}/eventos/crecimiento",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_a076}}",
+                "eventos",
+                "crecimiento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": \"400\",\n  \"unidad_medida\": \"kg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: pesaje base (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-076 reconocimiento inicial (Contador)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/reconocimientos/{{id_a076}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "reconocimientos",
+                "{{id_a076}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: confirmar el reconocimiento inicial (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-076 vaciar la cola de eventos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/eventos/procesar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "eventos",
+                "procesar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code === 200;",
+                  "  pm.test('PRECONDICION: procesar la cola previa (200)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-076 pesaje (evento CRECIMIENTO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos/{{id_a076}}/eventos/crecimiento",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_a076}}",
+                "eventos",
+                "crecimiento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": \"410\",\n  \"unidad_medida\": \"kg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const n = Number(pm.collectionVariables.get('n076') || 0) + 1;",
+                  "pm.request.body.raw = JSON.stringify({ tipo_medicion: 'PESO', valor_medicion: String(405 + n * 5), unidad_medida: 'kg' });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: pesaje de M02 (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-076 medicion (responseTime)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/eventos/procesar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "eventos",
+                "procesar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const n = Number(pm.collectionVariables.get('n076') || 0) + 1;",
+                  "  const ms = pm.response.responseTime;",
+                  "  pm.test('076 evento #' + n + ': 200 en ' + ms + ' ms (<= 3000)', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.equal(200);",
+                  "    pm.expect(ms).to.be.at.most(3000);",
+                  "  });",
+                  "  const a = JSON.parse(pm.collectionVariables.get('t076') || '[]'); a.push(ms);",
+                  "  pm.collectionVariables.set('t076', JSON.stringify(a));",
+                  "  pm.collectionVariables.set('n076', String(n));",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (n < 20 && (Date.now() - t0) / 1000 < 95) { postman.setNextRequest('TC-M06-076 pesaje (evento CRECIMIENTO)'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-076 SELECT: cada evento genero su medicion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT count(*) AS n FROM modulo6.mediciones_posteriores WHERE id_activo_biologico = {{id_a076}} AND origen_medicion::text = 'EVENTO'\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  pm.test('SELECT 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "  const n = Number(primero(filas(cuerpo())[0]));",
+                  "  const a = JSON.parse(pm.collectionVariables.get('t076') || '[]');",
+                  "  const max = a.length ? Math.max.apply(null, a) : 0;",
+                  "  const prom = a.length ? Math.round(a.reduce(function (x, y) { return x + y; }, 0) / a.length) : 0;",
+                  "  pm.test('076 resumen: ' + a.length + ' eventos medidos (se piden 20), maximo ' + max + ' ms, promedio ' + prom + ' ms (limite 3000 ms)', function () {",
+                  "    pm.expect(a.length, 'NO CONCLUYENTE: no alcanzo el tiempo del sandbox para los 20 eventos').to.be.at.least(20);",
+                  "    pm.expect(max).to.be.at.most(3000);",
+                  "  });",
+                  "  pm.test('076: cada evento procesado dejo su medicion (' + n + ' mediciones)', function () { pm.expect(n).to.eql(a.length); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M06-077 Medicion por cierre sobre un lote acotado (RNF-83-02)",
+      "item": [
+        {
+          "name": "TC-M06-077 activo del lote (RF-33)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": \"{{id_especie}}\",\n  \"id_infraestructura\": \"{{id_infra}}\",\n  \"fecha_inicio_ciclo\": \"{{hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"identificador\": \"QA-M06-{{ident}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ident', pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: registrar el activo por RF-33 (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  const j = cuerpo();",
+                  "  if (ok && j) { pm.collectionVariables.set('id_a077', j.id_activo_biologico); } else { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-077 fase del activo del lote (RF-37)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos/{{id_a077}}/fases",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_a077}}",
+                "fases"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_ciclo_productiva\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: asignar la fase del ciclo productivo (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-077 pesaje base del activo del lote (400 kg)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos/{{id_a077}}/eventos/crecimiento",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_a077}}",
+                "eventos",
+                "crecimiento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": \"400\",\n  \"unidad_medida\": \"kg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: pesaje base (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-077 reconocimiento del activo del lote (Contador)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/reconocimientos/{{id_a077}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "reconocimientos",
+                "{{id_a077}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: confirmar el reconocimiento del activo del lote (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "  const n = Number(pm.collectionVariables.get('n077') || 0) + 1;",
+                  "  pm.collectionVariables.set('n077', String(n));",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (ok && n < 25 && (Date.now() - t0) / 1000 < 120) { postman.setNextRequest('TC-M06-077 activo del lote (RF-33)'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-077 vaciar la cola de eventos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/eventos/procesar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "eventos",
+                "procesar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code === 200;",
+                  "  pm.test('PRECONDICION: procesar la cola previa (200)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-077 precio nuevo (21000 por kg)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/precios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "precios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": \"{{id_especie}}\",\n  \"categoria\": \"PESO_KG\",\n  \"precio_unitario\": \"21000.00\",\n  \"fecha_vigencia\": \"{{hoy}}\",\n  \"fuente\": \"MERCADO_ACTIVO\",\n  \"evidencia_documental\": \"Boletín de precios QA TC-M06\",\n  \"confirmar_desviacion\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ok = pm.response.code >= 200 && pm.response.code < 300;",
+                  "  pm.test('PRECONDICION: registrar el precio nuevo del lote (2xx)', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' ' + pm.response.text().slice(0, 300)).to.be.true; });",
+                  "  if (!ok) { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-077 SELECT: periodo contable del lote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT id_periodo_contable AS p FROM modulo6.calculos_valor_razonable WHERE id_activo_biologico = {{id_a077}} ORDER BY id_calculo_valor_razonable DESC LIMIT 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  pm.test('SELECT 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "  const p = primero(filas(cuerpo())[0]);",
+                  "  pm.test('PRECONDICION: periodo contable del lote encontrado', function () { pm.expect(p).to.exist; });",
+                  "  if (p) { pm.collectionVariables.set('periodo077', String(p)); } else { pm.collectionVariables.set('bloqueado', '1'); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-077 cierre del periodo (responseTime)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ing}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finanzas/periodos/{{periodo077}}/cierre",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finanzas",
+                "periodos",
+                "{{periodo077}}",
+                "cierre"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autorizar_exclusiones\": true,\n  \"incluir_activos_sin_precio\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  const ms = pm.response.responseTime;",
+                  "  pm.collectionVariables.set('t077', String(ms));",
+                  "  pm.test('077 cierre del periodo: respuesta 2xx en ' + ms + ' ms', function () {",
+                  "    pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.be.within(200, 299);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M06-077 SELECT: activos medidos por el cierre",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT count(DISTINCT id_activo_biologico) AS n FROM modulo6.mediciones_posteriores WHERE origen_medicion::text = 'CIERRE_PERIODO' AND id_periodo_contable = {{periodo077}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de precondiciones'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "function primero(f) { return Array.isArray(f) ? f[0] : (f && typeof f === 'object' ? Object.values(f)[0] : f); }",
+                  "function ultimoCalculo(d) {",
+                  "  const cs = (d && d.calculos) || [];",
+                  "  return cs.length ? cs.reduce(function (a, b) { return b.id_calculo_valor_razonable > a.id_calculo_valor_razonable ? b : a; }) : null;",
+                  "}",
+                  "",
+                  "if (listo()) {",
+                  "  pm.test('SELECT 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "  const medidos = Number(primero(filas(cuerpo())[0]));",
+                  "  const lote = Number(pm.collectionVariables.get('n077') || 0);",
+                  "  const ms = Number(pm.collectionVariables.get('t077') || 0);",
+                  "  const n = Math.max(medidos, lote);",
+                  "  const porActivo = n ? ms / 1000 / n : 0;",
+                  "  pm.test('077: cierre de ' + n + ' activos (lote de ' + lote + ', medidos por el cierre ' + medidos + ') en ' + ms + ' ms = ' + porActivo.toFixed(3) + ' s por activo (limite 0,18 s)', function () {",
+                  "    pm.expect(lote, 'NO CONCLUYENTE: el lote de activos creado no llego a 20').to.be.at.least(20);",
+                  "    pm.expect(porActivo).to.be.at.most(0.18);",
+                  "  });",
+                  "  pm.test('077: el cierre midio a los activos del lote (' + medidos + ' de ' + lote + ')', function () { pm.expect(medidos).to.be.at.least(lote); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Rollback del sandbox",
+      "item": [
+        {
+          "name": "Rollback del sandbox (la BD queda como estaba)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "pm.test('El run se cerro (2xx) - duracion ' + (t0 ? Math.round((Date.now() - t0) / 1000) : '?') + ' s de 180 s', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.be.within(200, 299); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": ""
+    },
+    {
+      "key": "correo_ingeniero",
+      "value": "ingedecampo6@gmail.com"
+    },
+    {
+      "key": "contrasena_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "t0",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "hoy",
+      "value": ""
+    },
+    {
+      "key": "ayer",
+      "value": ""
+    },
+    {
+      "key": "hace10",
+      "value": ""
+    },
+    {
+      "key": "bloqueado",
+      "value": ""
+    },
+    {
+      "key": "titular_existe",
+      "value": ""
+    },
+    {
+      "key": "u_nombre",
+      "value": ""
+    },
+    {
+      "key": "u_apellidos",
+      "value": ""
+    },
+    {
+      "key": "u_version",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_ing",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "4"
+    },
+    {
+      "key": "id_infra",
+      "value": ""
+    },
+    {
+      "key": "ident",
+      "value": ""
+    },
+    {
+      "key": "id_a076",
+      "value": ""
+    },
+    {
+      "key": "n076",
+      "value": ""
+    },
+    {
+      "key": "t076",
+      "value": ""
+    },
+    {
+      "key": "id_a077",
+      "value": ""
+    },
+    {
+      "key": "n077",
+      "value": ""
+    },
+    {
+      "key": "periodo077",
+      "value": ""
+    },
+    {
+      "key": "t077",
+      "value": ""
+    }
+  ]
+}

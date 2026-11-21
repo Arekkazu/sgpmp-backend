@@ -1,0 +1,223 @@
+{
+  "info": {
+    "name": "RF-18 - TC-M09-G37 Auditoria de modificaciones a parametros operativos",
+    "description": "Automatiza TC-M09-79: verifica que una modificacion valida sobre los parametros operativos (PATCH /configuracion/parametros/{id}) se persista correctamente y quede trazada con el usuario y el timestamp de la operacion. Nota de alcance: modulo9.auditorias_configuraciones_globales (donde el use case escribe el snapshot antes/despues via AuditoriaConfigRepository) no tiene endpoint REST propio -el unico router de auditoria (/auditoria/) lee modulo1.eventos, tabla que este flujo no usa-, por lo que esta coleccion valida por API todo lo observable (200, valores reflejados, fecha_actualizacion rotada, id_usuario == autor del cambio via claim 'sub' del JWT) y deja la verificacion directa de la fila de auditoria como paso manual documentado en el ultimo request (Notas).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_usuario_admin", "value": "" },
+    { "key": "id_configuracion_global", "value": "" },
+    { "key": "config_existe", "value": "false" },
+    { "key": "fecha_actualizacion_previa", "value": "" },
+    { "key": "frecuencia_previa", "value": "" },
+    { "key": "heartbeat_previo", "value": "" },
+    { "key": "fecha_actualizacion_nueva", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Respuesta contiene token', function () {",
+              "    pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "});",
+              "pm.collectionVariables.set('token_admin', json.token);",
+              "",
+              "// Decodifica el payload del JWT (sin verificar firma, solo para leer 'sub')",
+              "// y lo usa mas adelante para comprobar que la modificacion quedo atribuida",
+              "// al usuario que la realizo.",
+              "const payload = JSON.parse(atob(json.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+              "pm.collectionVariables.set('id_usuario_admin', String(payload.sub));",
+              "console.log('Administrador autenticado, id_usuario=' + payload.sub);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Consultar configuracion operativa existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Consulta exitosa (200)', function () { pm.response.to.have.status(200); });",
+              "",
+              "let json = null;",
+              "try { json = pm.response.json(); } catch (e) { json = null; }",
+              "",
+              "if (json && json.id_configuracion_global) {",
+              "    pm.collectionVariables.set('config_existe', 'true');",
+              "    pm.collectionVariables.set('id_configuracion_global', String(json.id_configuracion_global));",
+              "    pm.collectionVariables.set('fecha_actualizacion_previa', json.fecha_actualizacion);",
+              "    pm.collectionVariables.set('frecuencia_previa', String(json.frecuencia_muestreo));",
+              "    pm.collectionVariables.set('heartbeat_previo', String(json.heartbeat));",
+              "    console.log('Ya existe una configuracion activa: id=' + json.id_configuracion_global + ', fecha_actualizacion=' + json.fecha_actualizacion);",
+              "} else {",
+              "    pm.collectionVariables.set('config_existe', 'false');",
+              "    console.log('No existe configuracion activa; se creara una en el paso siguiente.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": { "raw": "{{base_url}}/configuracion/parametros", "host": ["{{base_url}}"], "path": ["configuracion", "parametros"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Crear configuracion operativa base (solo si no existe)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// FA-13: solo puede existir una configuracion activa. Si el paso 2 ya",
+              "// encontro una, este request se salta para no chocar con el 409.",
+              "if (pm.collectionVariables.get('config_existe') === 'true') {",
+              "    console.log('Configuracion ya existente: se omite la creacion.');",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Configuracion base creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_configuracion_global', String(json.id_configuracion_global));",
+              "pm.collectionVariables.set('fecha_actualizacion_previa', json.fecha_actualizacion);",
+              "pm.collectionVariables.set('frecuencia_previa', String(json.frecuencia_muestreo));",
+              "pm.collectionVariables.set('heartbeat_previo', String(json.heartbeat));",
+              "console.log('Configuracion base creada: id=' + json.id_configuracion_global);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_muestreo\": 60,\n  \"heartbeat\": 120\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/parametros", "host": ["{{base_url}}"], "path": ["configuracion", "parametros"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-79 - Modificar parametros operativos (modificacion valida)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Modificacion aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('frecuencia_muestreo actualizada a 45', function () {",
+              "    pm.expect(json.frecuencia_muestreo).to.eql(45);",
+              "});",
+              "pm.test('heartbeat actualizado a 100', function () {",
+              "    pm.expect(json.heartbeat).to.eql(100);",
+              "});",
+              "pm.test('fecha_actualizacion rotada respecto a la version previa (evidencia de que hubo escritura nueva)', function () {",
+              "    pm.expect(json.fecha_actualizacion).to.not.eql(pm.collectionVariables.get('fecha_actualizacion_previa'));",
+              "});",
+              "pm.test('id_usuario de la configuracion corresponde al administrador que hizo la modificacion', function () {",
+              "    pm.expect(String(json.id_usuario)).to.eql(pm.collectionVariables.get('id_usuario_admin'));",
+              "});",
+              "",
+              "pm.collectionVariables.set('fecha_actualizacion_nueva', json.fecha_actualizacion);",
+              "console.log('Modificacion aplicada. Nueva fecha_actualizacion=' + json.fecha_actualizacion + '. El use case (actualizar_configuracion_use_case.py) registra ademas, en la misma transaccion, un snapshot antes/despues en modulo9.auditorias_configuraciones_globales via AuditoriaConfigRepository.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_muestreo\": 45,\n  \"heartbeat\": 100,\n  \"fecha_actualizacion\": \"{{fecha_actualizacion_previa}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros/{{id_configuracion_global}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "parametros", "{{id_configuracion_global}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 5 - Releer configuracion para confirmar persistencia (evidencia indirecta de trazabilidad)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Relectura exitosa (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Los valores modificados persisten tras un GET independiente', function () {",
+              "    pm.expect(json.frecuencia_muestreo).to.eql(45);",
+              "    pm.expect(json.heartbeat).to.eql(100);",
+              "});",
+              "pm.test('fecha_actualizacion coincide con la devuelta por el PATCH', function () {",
+              "    pm.expect(json.fecha_actualizacion).to.eql(pm.collectionVariables.get('fecha_actualizacion_nueva'));",
+              "});",
+              "",
+              "console.log('NOTA DE ALCANCE (gap): esta coleccion confirma por API que la modificacion se aplico, persistio y quedo atribuida al usuario correcto. La fila espejo en modulo9.auditorias_configuraciones_globales (valores_anteriores/valores_nuevos en JSONB, generada en la misma transaccion del PATCH) no es consultable via REST -no existe endpoint- por lo que su verificacion puntual requiere un SELECT directo en BD:');",
+              "console.log(\"SELECT * FROM modulo9.auditorias_configuraciones_globales WHERE id_configuracion_global = \" + pm.collectionVariables.get('id_configuracion_global') + \" ORDER BY fecha_gestion DESC LIMIT 1;\");",
+              "console.log('Se espera 1 fila con tipo_operacion=UPDATE, id_usuario=' + pm.collectionVariables.get('id_usuario_admin') + \", valores_anteriores.frecuencia_muestreo=\" + pm.collectionVariables.get('frecuencia_previa') + \" y valores_nuevos.frecuencia_muestreo=45.\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": { "raw": "{{base_url}}/configuracion/parametros", "host": ["{{base_url}}"], "path": ["configuracion", "parametros"] }
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-11-01 | Arekkazu | RF-22: guarda el nombre sin espacios de borde (lo envía el firmware) |
 """DTO de entrada para registrar un sensor en un dispositivo IoT (POST /{id}/sensores)."""
 from __future__ import annotations
 
@@ -22,4 +25,5 @@ class RegistrarSensorDTO(BaseDTO):
             raise ValueError("El nombre del sensor es obligatorio.")
         if len(v.strip()) > 100:
             raise ValueError("El nombre del sensor no puede superar los 100 caracteres.")
-        return v
+        # El firmware envía este nombre tal cual y el broker lo compara exacto.
+        return v.strip()

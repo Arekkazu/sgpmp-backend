@@ -1,0 +1,192 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Newman G068</title><h1>Newman G068</h1><pre>{
+  &quot;herramienta&quot;: &quot;Newman&quot;,
+  &quot;version&quot;: &quot;6.2.2&quot;,
+  &quot;solicitudes&quot;: [
+    {
+      &quot;caso&quot;: &quot;TC-M04-210&quot;,
+      &quot;metodo&quot;: &quot;POST&quot;,
+      &quot;ruta&quot;: &quot;/prediccion/retroalimentacion&quot;,
+      &quot;http&quot;: 404,
+      &quot;eco&quot;: true,
+      &quot;duracion_ms&quot;: 442,
+      &quot;respuesta&quot;: {
+        &quot;id_retroalimentacion&quot;: null,
+        &quot;id_resultado_inferencia&quot;: null,
+        &quot;error_code&quot;: &quot;RESULTADO_INFERENCIA_NO_ENCONTRADO&quot;,
+        &quot;mensaje&quot;: &quot;El resultado de inferencia no existe o no está disponible.&quot;,
+        &quot;campo&quot;: null,
+        &quot;detalle_campo&quot;: &quot;&quot;
+      },
+      &quot;herramienta&quot;: &quot;Newman&quot;,
+      &quot;nombre&quot;: &quot;G068-210&quot;,
+      &quot;aserciones&quot;: [
+        {
+          &quot;nombre&quot;: &quot;HTTP recibido&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        },
+        {
+          &quot;nombre&quot;: &quot;Eco de RUN&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        }
+      ]
+    },
+    {
+      &quot;caso&quot;: &quot;TC-M04-211&quot;,
+      &quot;metodo&quot;: &quot;POST&quot;,
+      &quot;ruta&quot;: &quot;/prediccion/retroalimentacion&quot;,
+      &quot;http&quot;: 422,
+      &quot;eco&quot;: true,
+      &quot;duracion_ms&quot;: 142,
+      &quot;respuesta&quot;: {
+        &quot;id_retroalimentacion&quot;: null,
+        &quot;id_resultado_inferencia&quot;: null,
+        &quot;error_code&quot;: &quot;ACTIVO_BIOLOGICO_INCONSISTENTE&quot;,
+        &quot;mensaje&quot;: &quot;El activo biológico no corresponde al resultado de inferencia indicado.&quot;,
+        &quot;campo&quot;: &quot;id_activo_biologico&quot;,
+        &quot;detalle_campo&quot;: &quot;El activo biológico no corresponde al resultado de inferencia indicado.&quot;
+      },
+      &quot;herramienta&quot;: &quot;Newman&quot;,
+      &quot;nombre&quot;: &quot;G068-211&quot;,
+      &quot;aserciones&quot;: [
+        {
+          &quot;nombre&quot;: &quot;HTTP recibido&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        },
+        {
+          &quot;nombre&quot;: &quot;Eco de RUN&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        }
+      ]
+    },
+    {
+      &quot;caso&quot;: &quot;TC-M04-245&quot;,
+      &quot;metodo&quot;: &quot;POST&quot;,
+      &quot;ruta&quot;: &quot;/activos-biologicos/885/eventos/baja&quot;,
+      &quot;http&quot;: 201,
+      &quot;eco&quot;: true,
+      &quot;duracion_ms&quot;: 206,
+      &quot;respuesta&quot;: {
+        &quot;id_activo_biologico&quot;: 885,
+        &quot;id_estado&quot;: null,
+        &quot;fase&quot;: null,
+        &quot;error_code&quot;: null
+      },
+      &quot;herramienta&quot;: &quot;Newman&quot;,
+      &quot;nombre&quot;: &quot;G068-BAJA-VET&quot;,
+      &quot;aserciones&quot;: [
+        {
+          &quot;nombre&quot;: &quot;HTTP recibido&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        },
+        {
+          &quot;nombre&quot;: &quot;Eco de RUN&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        }
+      ]
+    },
+    {
+      &quot;caso&quot;: &quot;TC-M04-245&quot;,
+      &quot;metodo&quot;: &quot;GET&quot;,
+      &quot;ruta&quot;: &quot;/activos-biologicos/885&quot;,
+      &quot;http&quot;: 200,
+      &quot;eco&quot;: true,
+      &quot;duracion_ms&quot;: 167,
+      &quot;respuesta&quot;: {
+        &quot;id_activo_biologico&quot;: 885,
+        &quot;id_estado&quot;: 6,
+        &quot;fase&quot;: null,
+        &quot;error_code&quot;: null
+      },
+      &quot;herramienta&quot;: &quot;Newman&quot;,
+      &quot;nombre&quot;: &quot;G068-ESTADO-BAJA&quot;,
+      &quot;aserciones&quot;: [
+        {
+          &quot;nombre&quot;: &quot;HTTP recibido&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        },
+        {
+          &quot;nombre&quot;: &quot;Eco de RUN&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        },
+        {
+          &quot;nombre&quot;: &quot;GET en 30 s&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        }
+      ]
+    },
+    {
+      &quot;caso&quot;: &quot;TC-M04-245&quot;,
+      &quot;metodo&quot;: &quot;GET&quot;,
+      &quot;ruta&quot;: &quot;/activos-biologicos/auditoria&quot;,
+      &quot;http&quot;: 200,
+      &quot;eco&quot;: true,
+      &quot;duracion_ms&quot;: 158,
+      &quot;respuesta&quot;: {
+        &quot;id_activo_biologico&quot;: null,
+        &quot;id_estado&quot;: null,
+        &quot;fase&quot;: null,
+        &quot;error_code&quot;: null
+      },
+      &quot;herramienta&quot;: &quot;Newman&quot;,
+      &quot;nombre&quot;: &quot;G068-BITACORA-BAJA&quot;,
+      &quot;aserciones&quot;: [
+        {
+          &quot;nombre&quot;: &quot;HTTP recibido&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        },
+        {
+          &quot;nombre&quot;: &quot;Eco de RUN&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        },
+        {
+          &quot;nombre&quot;: &quot;GET en 30 s&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        }
+      ]
+    },
+    {
+      &quot;caso&quot;: &quot;TC-M04-245&quot;,
+      &quot;metodo&quot;: &quot;POST&quot;,
+      &quot;ruta&quot;: &quot;/prediccion/retroalimentacion&quot;,
+      &quot;http&quot;: 422,
+      &quot;eco&quot;: true,
+      &quot;duracion_ms&quot;: 151,
+      &quot;respuesta&quot;: {
+        &quot;id_retroalimentacion&quot;: null,
+        &quot;id_resultado_inferencia&quot;: null,
+        &quot;error_code&quot;: &quot;ACTIVO_EN_BAJA&quot;,
+        &quot;mensaje&quot;: &quot;El activo biológico 885 está en estado BAJA y no admite retroalimentación clínica.&quot;,
+        &quot;campo&quot;: &quot;id_activo_biologico&quot;,
+        &quot;detalle_campo&quot;: &quot;El activo biológico 885 está en estado BAJA y no admite retroalimentación clínica.&quot;
+      },
+      &quot;herramienta&quot;: &quot;Newman&quot;,
+      &quot;nombre&quot;: &quot;G068-245&quot;,
+      &quot;aserciones&quot;: [
+        {
+          &quot;nombre&quot;: &quot;HTTP recibido&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        },
+        {
+          &quot;nombre&quot;: &quot;Eco de RUN&quot;,
+          &quot;aprobada&quot;: true,
+          &quot;error&quot;: null
+        }
+      ]
+    }
+  ],
+  &quot;error&quot;: null,
+  &quot;fallos&quot;: []
+}</pre></html>

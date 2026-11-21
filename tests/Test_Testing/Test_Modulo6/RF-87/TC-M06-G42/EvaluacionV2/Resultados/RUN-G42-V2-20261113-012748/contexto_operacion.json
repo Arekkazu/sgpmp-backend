@@ -1,0 +1,22 @@
+{
+  "grupo": "G42",
+  "version": 2,
+  "intento": 8,
+  "run_id": "RUN-G42-V2-20261113-012748",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G42-V2-R3-20261112",
+  "casos": [
+    "TC-M06-021",
+    "TC-M06-022",
+    "TC-M06-023"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M06-021",
+      "TC-M06-022",
+      "TC-M06-023"
+    ],
+    "motivo": "Reintento técnico de V2 (intento 3 de V2) de TC-M06-G42, grupo completo (021, 022 y 023). El intento anterior (RUN-G42-V2-20261113-010212, AUT-G42-V2-R2-20261112 consumida) quedó TECNICO sin escrituras (DELETE 200, rollback CONFIRMADO) por PENDIENTE_241_NO_RESUELTO: la línea 1431 (DEPRECIACION_ACTIVO_COSTO/UNICO, bovino) seguía PENDIENTE_CUENTA porque la matriz ya cubría la combinación y el ejecutor no guardaba ninguna asignación, mientras que el resolutor del producto solo corre al guardar (guardar_asignacion_cuenta_use_case.py). ORD-G42-020 (ronda 3 aprobada) guarda una asignación específica con las mismas cuentas, exige lineas_resueltas ≥ 1 y prevalidación limpia del 241 antes de seguir. Oráculos sin cambios. SHA-256: g42.mjs e4d64b308a96003f9699a8d7f70852f231ccd232863b236142fbdf55668d26ed; lib/g42_core.mjs e2118988fe957011add6cadd8566fe79e858b54307ce756e4c91c8400305b129; colección 83f990afa508e59bec898a9f43d62801ec1dad70ca7a4ae5ef998ac5e21e9f01; contrato e3b1049efff10a9c1dff5c75aba435b986116b47639ccdd85dab393708835b0b. 42 pruebas, escenarios y DTO en verde (Codex); ensayo Windows pendiente al redactar."
+  },
+  "version_anterior": null
+}

@@ -1,0 +1,128 @@
+{
+  "caso": "TC-M06-G112",
+  "rf_alcance_aprobacion": [
+    "RF-90",
+    "RF-109",
+    "RF-94"
+  ],
+  "rf_relacionados_fuera_aprobacion_grupo": [
+    "RF-93"
+  ],
+  "rf": [
+    "RF-90",
+    "RF-109",
+    "RF-94",
+    "RF-93"
+  ],
+  "subcasos": [
+    "TC-M06-39",
+    "TC-M06-40"
+  ],
+  "incidente": "INC-M06-87-G112 (#1098)",
+  "actualizado_en": "2026-11-15",
+  "actualizado_utc": "2026-11-16T03:05:00+00:00",
+  "ambiente_evidencia": "https://api.inmero.co/api-sgpmp-test",
+  "dictamen_general": "APROBADO",
+  "aprobado": true,
+  "fase": "cierre_documental_html_2026-11-15",
+  "alcance_aprobacion": {
+    "incluye": [
+      "TC-M06-39 CAPITALIZAR (RF-90 / RF-94)",
+      "TC-M06-40 GASTO (RF-90 / RF-109 / RF-94)"
+    ],
+    "excluye_de_aprobacion_grupo": [
+      "RF-93 E2E (cierre de período aislado + componente inversiones_llevadas_a_gasto)"
+    ],
+    "fundamento": "resultados/DICTAMEN_ALCANCE_RF93_G112.md",
+    "decision_rf93": "B_REQUISITO_RELACIONADO_CASO_INDEPENDIENTE"
+  },
+  "escenarios": [
+    {
+      "id": "TC-M06-39",
+      "politica": "CAPITALIZAR",
+      "activo": 1573,
+      "periodo": 220,
+      "aprobacion": "APROBADO",
+      "estado": "APROBADO",
+      "evidencia": "resultados/ejecucion_tc39_2026-11-15/",
+      "ids": {
+        "id_registro_costo": 4498,
+        "id_linea_asiento": 7121,
+        "evento_rf94": 28938
+      },
+      "resumen_criterios": {
+        "cumple": 15,
+        "no_cumple": 0,
+        "no_verificable": 1,
+        "total": 16,
+        "nota_no_verificable": "39-X1 RF-93/cerrar 220 — excluido del alcance"
+      },
+      "http_post": 201,
+      "valor_activo_final": "4100000.0000",
+      "periodo_estado": "ABIERTO"
+    },
+    {
+      "id": "TC-M06-40",
+      "politica": "GASTO",
+      "activo": 2552,
+      "periodo": 629,
+      "aprobacion": "APROBADO",
+      "estado": "APROBADO",
+      "evidencia": "resultados/ejecucion_tc40_2026-11-15/",
+      "ids": {
+        "id_registro_costo": 4497,
+        "id_linea_asiento": 6918,
+        "evento_rf94": 28193
+      },
+      "resumen_criterios": {
+        "cumple": 13,
+        "no_cumple": 0,
+        "total": 13
+      },
+      "http_post": 201,
+      "valor_activo_final": "3000000.0000",
+      "periodo_estado": "ABIERTO"
+    },
+    {
+      "id": "RF-93",
+      "aprobacion": null,
+      "estado": "PENDIENTE_CASO_INDEPENDIENTE",
+      "ni_aprobado_ni_rechazado": true,
+      "fundamento": "resultados/DICTAMEN_ALCANCE_RF93_G112.md",
+      "nota": "Relacionado funcionalmente con el GASTO de TC-M06-40 (costo 4497 / período 629). No es criterio de aprobación de TC-39/TC-40 ni del cierre G112 RF-90/RF-94. No cerrar 220. Verificar en escenario independiente o suite RF-93."
+    }
+  ],
+  "evaluaciones_aprobadas_encontradas": [
+    {
+      "id": "TC-M06-39",
+      "ubicacion": "resultados/ejecucion_tc39_2026-11-15/",
+      "dictamen": "APROBADO"
+    },
+    {
+      "id": "TC-M06-40",
+      "ubicacion": "resultados/ejecucion_tc40_2026-11-15/",
+      "dictamen": "APROBADO"
+    }
+  ],
+  "precondiciones": {
+    "matriz_mop_capitalizacion": "VERIFICADO",
+    "matriz_mop_unico_tc40": "RESUELTO_POR_ASIGNACION_8581",
+    "activo_1573_tc39": "VERIFICADO_Y_EJECUTADO",
+    "activo_2552_tc40": "VERIFICADO_Y_EJECUTADO",
+    "periodo_220_abierto": "VERIFICADO",
+    "periodo_629_abierto": "VERIFICADO",
+    "rf93_e2e": "FUERA_APROBACION_GRUPO"
+  },
+  "hallazgo_h1": {
+    "descripcion": "No afirmar que asignación 34 conserve D158405/C250505. General vigente 8898 D510506/C250505; específica 8581 para especie 655.",
+    "evidencia": "resultados/ejecucion_tc40_2026-11-15/hallazgo_H1_configuracion.json",
+    "impacto_en_aprobacion": "Ninguno para TC-M06-40 (resolvió 8581)"
+  },
+  "fuentes_archivadas": "resultados/_arch/",
+  "prevalidacion_tc39": "resultados/prevalidacion_tc39_2026-11-15/",
+  "dictamen_alcance_rf93": "resultados/DICTAMEN_ALCANCE_RF93_G112.md",
+  "commit_push": false,
+  "escrituras_adicionales_en_cierre": false,
+  "nota": "Cierre documental 2026-11-15 con HTML final. TC-M06-39 y TC-M06-40 APROBADOS. G112 APROBADO (RF-90/RF-109/RF-94). RF-93 PENDIENTE_CASO_INDEPENDIENTE. Matrices individuales de ejecución no alteradas. Período 220 no cerrado.",
+  "informe_html": "resultados/REPORTE_FINAL_G112_RF90.html"
+}

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-79: SUPERADO y entrega a M06           |
 """Implementación SQLAlchemy del puerto :class:`ProvisionNic41Repository` (RF-79, CU-05).
 
 Usa ``flush()``/``refresh()`` (nunca ``commit()``) y traduce errores de BD con
@@ -10,6 +13,7 @@ serializada desde ``consolidador_nic41._a_dict``.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -97,3 +101,15 @@ class SqlAlchemyProvisionNic41Repository(ProvisionNic41Repository):
             .all()
         )
         return [self._a_entidad(o) for o in registros]
+
+    def marcar_superado(self, id_provision: int) -> None:
+        orm = self.db.get(ProvisionNic41Model, id_provision)
+        if orm is not None:
+            orm.estado = "SUPERADO"
+            self.db.flush()
+
+    def marcar_entregado(self, id_provision: int, fecha: datetime) -> None:
+        orm = self.db.get(ProvisionNic41Model, id_provision)
+        if orm is not None:
+            orm.fecha_entrega_m06 = fecha
+            self.db.flush()

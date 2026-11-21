@@ -1,0 +1,29 @@
+{
+  "info": {
+    "name": "G064 RF-72 retroalimentación clínica",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "POST evaluado por Newman; selección, verificaciones públicas, cierre y veredicto coordinados por g064.mjs."
+  },
+  "item": [
+    {
+      "name": "API-G064-POST",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_veterinario}}" },
+          { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+          { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+          { "key": "X-Zona-Horaria", "value": "UTC" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{base_url}}/prediccion/retroalimentacion", "host": ["{{base_url}}"], "path": ["prediccion", "retroalimentacion"] },
+        "body": { "mode": "raw", "raw": "{{cuerpo_retroalimentacion}}", "options": { "raw": { "language": "json" } } }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('HTTP 201 explícito', function () { pm.response.to.have.status(201); });",
+        "pm.test('Eco X-Test-Run-Id', function () { pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')); });",
+        "pm.test('Estado enviado conservado', function () { if (pm.response.code === 201) pm.expect(pm.response.json().estado_retroalimentacion).to.eql(pm.iterationData.get('estado_retroalimentacion')); });"
+      ] } }]
+    }
+  ]
+}

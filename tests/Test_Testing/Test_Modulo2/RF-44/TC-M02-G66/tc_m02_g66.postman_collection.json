@@ -1,0 +1,281 @@
+{
+  "info": {
+    "name": "TC-M02-G66 - Restricciones de la matriz de transicion de estados (RF-44, CU04)",
+    "description": "TC-M02-G66 (RF-44, CU04), sub-casos TC-M02-066, TC-M02-067 y TC-M02-068. Ejecutada contra DEV (convencion vigente desde 2026-09-12).\n\nSub-caso 1 (TC-M02-066): un activo en estado CERRADO no puede volver a ACTIVO -> 422 TRANSICION_INVALIDA (TRANSICIONES_VALIDAS[CERRADO] = {BAJA} unicamente, ver activo_biologico.py cambiar_estado() y estado_activo.py). Para llegar a CERRADO en DEV hace falta primero tener una fase activa (RF-37, antes bloqueado por un bug de 500 ya documentado en TC-M02-G61/G65/G107 -- HALLAZGO IMPORTANTE de esta ficha: RF-37 (POST /activos-biologicos/{id}/fases) ya funciona en DEV, se confirmo en vivo con un 201 Created; esto desbloquea el cierre via RF-38 (POST /{id}/cierre) que antes era inalcanzable) y luego cerrar el ciclo (RF-38).\n\nSub-caso 2 (TC-M02-067): un activo en estado BAJA es irreversible -> cualquier intento de PATCH /estado se rechaza con 409 ESTADO_BAJA_IRREVERSIBLE (chequeo `if self.id_estado == EstadoActivo.BAJA` al inicio de cambiar_estado(), antes de evaluar la matriz de transiciones). Se reutiliza el activo 72 (ya llevado a BAJA en esta misma sesion de pruebas via POST /eventos/baja, tipo_baja=muerte -- HALLAZGO ADICIONAL: la baja TOTAL via API, que en TEST devolvia 500 segun TC-M02-G61b, tambien funciona correctamente en DEV siempre que el activo NO se haya registrado el mismo dia -- ver nota mas abajo) en vez de crear uno fresco dentro de esta misma coleccion, porque /eventos/baja compara fecha_baja contra la fecha_creacion CON HORA del activo: un activo registrado hoy no admite fecha_baja=hoy (queda 00:00:00, anterior a la hora de creacion) ni fecha_baja=manana (rechazado como FECHA_BAJA_FUTURA) -- en la practica, un activo no puede darse de baja el mismo dia en que se crea. No es el foco de este RF-44 pero queda documentado como hallazgo colateral.\n\nSub-caso 3 (TC-M02-068): cambiar un activo a su propio estado actual (ACTIVO -> ACTIVO) se rechaza con 409 ESTADO_REDUNDANTE, sin persistir ningun cambio.\n\nHallazgo adicional sobre el propio endpoint PATCH /estado en DEV: el DTO desplegado (CambiarEstadoDTO) ya NO acepta CERRADO ni BAJA como estado_nuevo -- responde 400 VAL_ENTRADA indicando que se debe usar POST /{id}/cierre (RF-38) para CERRADO y POST /{id}/eventos/baja (RF-45) para BAJA. El checkout local de cambiar_estado_dto.py todavia muestra los 6 estados como validos para este DTO -- confirma nuevamente que el codigo desplegado en DEV diverge del checkout local (mismo patron ya visto en las re-verificaciones de TC-M09-G125/G64/G126). Tambien se descubrio que el PATCH /estado exige los campos fecha_cambio_estado y motivo_cambio (obligatorios, no documentados en la ficha original).\n\nResponsable: Daniela Castillo. Tipo: Funcional. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion Sub-caso 1 - Crear activo fresco A",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el activo A se crea (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (respuesta && respuesta.id_activo_biologico) {",
+              "    pm.collectionVariables.set('id_activo_a', respuesta.id_activo_biologico);",
+              "    console.log('id_activo_a: ' + respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-g66-{{run_id}}.pdf\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"CG66-A-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion Sub-caso 1 - Asignar fase activa (RF-37)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: RF-37 asigna la fase (HTTP 201) -- confirma que el bug de 500 ya documentado (TC-M02-G61/G65/G107) esta corregido en DEV', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code !== 201) { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_ciclo_productiva\": 4,\n  \"motivo_cambio\": \"Asignacion inicial de fase - precondicion TC-M02-G66\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a}}/fases",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_a}}", "fases" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion Sub-caso 1 - Cerrar ciclo del activo A (RF-38)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el cierre del ciclo responde HTTP 200/201 y deja el activo en CERRADO', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+              "if (![200, 201].includes(pm.response.code)) { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"2026-09-14\",\n  \"motivo_cierre\": \"venta\",\n  \"descripcion_cierre\": \"Cierre de prueba - precondicion TC-M02-G66\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a}}/cierre",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_a}}", "cierre" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-066) - Rechazar CERRADO -> ACTIVO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: activo A recien cerrado, se intenta reabrirlo a ACTIVO ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: rechazado con HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: codigo de negocio TRANSICION_INVALIDA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('TRANSICION_INVALIDA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"ACTIVO\",\n  \"fecha_cambio_estado\": \"2026-09-14\",\n  \"motivo_cambio\": \"TC-M02-066 - intento de reabrir un activo CERRADO (prueba QA)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a}}/estado",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_a}}", "estado" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-067) - Rechazar transicion desde BAJA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: activo ' + pm.collectionVariables.get('id_activo_baja') + ', ya en BAJA (dado de baja en esta misma sesion via POST /eventos/baja) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2: rechazado con HTTP 409', function () { pm.response.to.have.status(409); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2: codigo de negocio ESTADO_BAJA_IRREVERSIBLE', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ESTADO_BAJA_IRREVERSIBLE');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"ACTIVO\",\n  \"fecha_cambio_estado\": \"2026-09-14\",\n  \"motivo_cambio\": \"TC-M02-067 - intento de revertir un activo en BAJA (prueba QA)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_baja}}/estado",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_baja}}", "estado" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion Sub-caso 3 - Crear activo fresco B",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el activo B se crea (HTTP 201) en estado ACTIVO', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (respuesta && respuesta.id_activo_biologico) {",
+              "    pm.collectionVariables.set('id_activo_b', respuesta.id_activo_biologico);",
+              "    console.log('id_activo_b: ' + respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-g66-b-{{run_id}}.pdf\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"CG66-B-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3 (TC-M02-068) - Rechazar cambio de estado redundante",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 3: activo B, recien creado y ACTIVO, se le pide cambiar a ACTIVO ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 3: rechazado con HTTP 409', function () { pm.response.to.have.status(409); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 3: codigo de negocio ESTADO_REDUNDANTE', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ESTADO_REDUNDANTE');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"ACTIVO\",\n  \"fecha_cambio_estado\": \"2026-09-14\",\n  \"motivo_cambio\": \"TC-M02-068 - cambio de estado redundante (prueba QA)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_b}}/estado",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_b}}", "estado" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_activo_a", "value": "" },
+    { "key": "id_activo_b", "value": "" },
+    { "key": "id_activo_baja", "value": "72" }
+  ]
+}

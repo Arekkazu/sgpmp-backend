@@ -72,6 +72,21 @@ Errores posibles:
 - `412` — concurrencia: otro administrador modificó los parámetros antes (FA-14)
 - `400` — heartbeat menor que frecuencia de muestreo (FA-12)
 
+**Auditoría (TC-M09-79 — verificado en BD el 2026-09-06):** cada `CREATE`/`UPDATE` sobre este
+recurso registra un snapshot antes/después en `modulo9.auditorias_configuraciones_globales`
+(ver `actualizar_configuracion_use_case.py` / `SqlAlchemyAuditoriaConfigRepository`). No existe
+endpoint REST que exponga esa tabla — se verificó con `SELECT` directo contra la BD de test tras
+correr la colección `tests/Test_Testing/Test_Modulo9/RF-18/TC-M09-G37/`:
+```sql
+SELECT * FROM modulo9.auditorias_configuraciones_globales
+WHERE id_configuracion_global = <id> ORDER BY fecha_gestion DESC LIMIT 1;
+```
+Resultado confirmado: fila `id_auditoria_config=4`, `tipo_operacion=UPDATE`, `id_usuario=1`,
+`valores_anteriores={frecuencia_muestreo:60, heartbeat:120}`,
+`valores_nuevos={frecuencia_muestreo:45, heartbeat:100}` — coincide exactamente con el `PATCH`
+de la colección. RF-18 queda cerrado al 100% en lo funcional; el gap de auditoría no
+consultable vía API sigue abierto como mejora pendiente (ver `estado_M09.md`).
+
 ---
 
 ## RF-19 — Fincas (`/configuracion/fincas`)
@@ -362,3 +377,52 @@ Errores posibles:
 - El control de concurrencia (FA-14) requiere enviar `fecha_actualizacion` con el valor exacto obtenido de la última lectura. Un timestamp desactualizado retorna `412`.
 - Tipos de área válidos (enum DB): `galpon`, `corral`, `potrero`, `estanque`, `invernadero`.
 - Para probar con Swagger: `http://localhost:8000/docs` → secciones "Configuración - Parámetros Operativos", "Configuración - Fincas", "Configuración - Infraestructura Productiva".
+
+---
+
+## DEV-10 — Propagar `tipo_modelo_asignado` al Gateway Edge (RF-20, D-06)
+
+Al **crear** un área con `tipo_modelo_asignado` o al **cambiarlo** con
+`PATCH /configuracion/infraestructuras/{id}`, después del commit se envía a los Gateway Edge
+del área por el broker con `origen: "tipo_modelo"` (BRK-05 de `BROKER-MQTT-SGPMP`:
+`tipo_comando = TIPO_MODELO_ASIGNADO`, confirmación `ACK_TIPO_MODELO`). El nodo reinicia su
+módulo de procesamiento con el esquema nuevo y conserva la calibración activa.
+
+- **Gateway del área:** los Gateway Edge activos instalados en el área o que atienden un
+  dispositivo activo de ella. Se buscan como el usuario de servicio (`modulo9` tiene RLS forzada).
+- **No se envía** si el área no tiene Gateway (un área recién creada todavía no tiene
+  dispositivos), si se quita el modelo (`null`) o si el PATCH no cambia el modelo (editar el
+  nombre no reinicia el nodo).
+- **La respuesta HTTP del área no cambia:** el área ya quedó guardada. El resultado de cada
+  Gateway queda en la bitácora IoT.
+
+Comando enviado a cada Gateway:
+
+```json
+{
+  "origen": "tipo_modelo",
+  "serial": "DISPOSITIVOCAMARONERA41",
+  "id_infraestructura": 19,
+  "tipo_modelo_asignado": "MODELO_ACUICULTURA"
+}
+```
+
+### Ver el resultado en la bitácora IoT
+
+Un evento `PROPAGACION_TIPO_MODELO_EDGE` por Gateway, sobre la entidad `DISPOSITIVO` (id del
+Gateway), con `componente_origen = RF20`:
+
+```bash
+curl -s "http://localhost:8000/iot/auditoria?tipo_evento=PROPAGACION_TIPO_MODELO_EDGE&entidad_afectada_id=38" \
+  -H "Authorization: Bearer <TOKEN_ADMIN>"
+```
+
+| Veredicto del broker | `resultado` | `severidad_log` |
+|---|---|---|
+| `APLICADA` (llegó `ACK_TIPO_MODELO`) | `EXITOSO` | `INFO` |
+| `PENDIENTE` (Gateway desconectado, no se publicó) | `ADVERTENCIA` | `WARNING` |
+| `SIN_INTEGRACION` (el ambiente no tiene broker) | `ADVERTENCIA` | `WARNING` |
+| `NO_CONF` (sin ACK, broker caído o error HTTP) | `FALLIDO` | `ERROR` |
+
+`accion_detallada`: `serial`, `id_infraestructura`, `estado`, `tipo_modelo_asignado`,
+`publicado`, `ack_tipo_modelo`, `mensaje` (con la causa si falló) y `duracion_ms`.

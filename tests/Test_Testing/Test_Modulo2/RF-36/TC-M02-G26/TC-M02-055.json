@@ -1,0 +1,125 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-055-rechazar-cambio-estado-directo",
+    "name": "TC-M02-055 - Rechazar cambio de estado directo del lote (RF-36)",
+    "description": "Prueba de aceptación para RF-36 (Módulo 2): Rechazar intento de cambiar estado_activo o id_estado directamente desde RF-36 mediante PATCH.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Intentar cambio directo de estado mediante PATCH (TC-M02-055)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_estado\": 2,\n  \"estado_activo\": \"INACTIVO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 400 Bad Request o 422', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('El backend rechaza el cambio directo de estado', function () {",
+              "    var resJson = {};",
+              "    try { resJson = pm.response.json(); } catch(e) {}",
+              "    var resText = pm.response.text();",
+              "    var isRejected = resJson.error_code === 'VAL_ENTRADA' ||",
+              "                     resJson.error_code === 'ESTADO_INVALIDO' ||",
+              "                     resJson.error_code === 'TIPO_INVALIDO' ||",
+              "                     resText.includes('Al menos un campo debe estar presente para actualizar') ||",
+              "                     resText.includes('RF-44') ||",
+              "                     resText.includes('estado');",
+              "    pm.expect(isRejected).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

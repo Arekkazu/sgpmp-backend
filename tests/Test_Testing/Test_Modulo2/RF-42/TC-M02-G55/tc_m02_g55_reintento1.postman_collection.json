@@ -1,0 +1,98 @@
+{
+  "info": {
+    "name": "TC-M02-G55 - Re-verificacion 2026-09-15 - Restricciones LOTE y activo_relacionado invalido",
+    "description": "Re-ejecucion de TC-M02-G55 (RF-42) contra TEST el 2026-09-15. La coleccion original (tc_m02_g55.postman_collection.json) queda intacta como evidencia historica del bug (500 en vez de 422); esta version documenta el estado ACTUAL.\n\nRESULTADO: sub-caso 1 (TC-M02-101) esta CORREGIDO -- un activo POBLACIONAL (lote) con categoria='parto' ahora devuelve correctamente 422 EVENTO_NO_PERMITIDO_LOTE en vez del 500 original. Consistente con la correccion de raise_from_db_error()/manejo del ERRCODE del trigger vista tambien en TC-M02-G53. Sub-caso 2 (TC-M02-102, id_padre inexistente -> 404) seguia funcionando entonces y sigue funcionando ahora, sin cambios (siempre fue Python puro, no dependia del bug de BD).\n\nUsa un lote POBLACIONAL ya existente en TEST (id=347, creado 2026-09-09) para el sub-caso 1, y un activo INDIVIDUAL ya existente (id=256, creado 2026-09-10, sin historial reproductivo) para el sub-caso 2 -- necesario porque en un LOTE la restriccion FA-04 (categoria debe ser nacimiento) se evalua ANTES que la validacion de id_padre (FA-05), asi que probar id_padre inexistente sobre el mismo lote del sub-caso 1 hubiera devuelto 422 EVENTO_NO_PERMITIDO_LOTE en vez de 404 (error de diseno de la coleccion original, corregido aqui). Ninguno se crea fresco por el bug de creacion 500 de POST /activos-biologicos (ver TC-M02-G66/G69).\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () { pm.expect(respuesta).to.have.property('token'); });",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-101) - LOTE con categoria=parto (CORREGIDO: ahora 422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: lote POBLACIONAL (id 347) con categoria=parto, deberia rechazarse ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1 CORREGIDO: rechazado con HTTP 422 (antes daba 500)', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: codigo de negocio EVENTO_NO_PERMITIDO_LOTE', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('EVENTO_NO_PERMITIDO_LOTE');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1,\n  \"fecha\": \"2026-09-14T12:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_lote}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_lote}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-102) - id_padre inexistente (sin cambios, sigue funcionando)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: servicio con id_padre inexistente ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2: rechazado con HTTP 404', function () { pm.response.to.have.status(404); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2: codigo de negocio ACTIVO_RELACIONADO_NO_ENCONTRADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACTIVO_RELACIONADO_NO_ENCONTRADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": 999999,\n  \"fecha\": \"2026-09-14T12:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_individual}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_individual}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_lote", "value": "347" },
+    { "key": "id_individual", "value": "256" }
+  ]
+}

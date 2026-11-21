@@ -74,6 +74,11 @@ class TelemetriaModel(Base):
     calidad_senal_snr: Mapped[Optional[Decimal]] = mapped_column(Numeric(7, 2))
     frecuencia_muestreo_min: Mapped[Optional[int]] = mapped_column(Integer)
     estado_conectividad: Mapped[Optional[bool]] = mapped_column(Boolean)
-    # RF-62: flags de aptitud
-    apto_para_ia: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    apto_para_nic41: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Columnas legadas: no son fuente de aptitud y no se cargan en lecturas ORM.
+    # raiseload evita reintroducir su consumo accidentalmente. RF-62 usa calidad.
+    apto_para_ia: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, deferred=True, deferred_raiseload=True,
+    )
+    apto_para_nic41: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, deferred=True, deferred_raiseload=True,
+    )

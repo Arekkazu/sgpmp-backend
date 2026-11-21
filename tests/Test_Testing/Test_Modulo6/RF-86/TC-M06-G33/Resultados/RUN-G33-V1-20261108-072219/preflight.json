@@ -1,0 +1,30 @@
+{
+  "grupo": "G33",
+  "run_id": "RUN-G33-V1-20261108-072219",
+  "fase": "PREFLIGHT_LOCAL",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 60,
+    "logins_fuera_run": 2,
+    "eventos_m02": 2,
+    "precios": 0,
+    "disparos": 2,
+    "deletes": 1,
+    "timeout_login_ms": 120000,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2"
+  },
+  "efectos": [
+    "Login de Contador y Administrador fuera del RUN",
+    "Uno o dos eventos M02 de crecimiento con peso constante",
+    "No se registran precios ni se cambia el estado M02",
+    "Uno o dos procesamientos M06 y auditoría dentro del sandbox",
+    "DELETE de RUN intenta rollback; el HTTP 200 no prueba reversión de efectos externos"
+  ]
+}

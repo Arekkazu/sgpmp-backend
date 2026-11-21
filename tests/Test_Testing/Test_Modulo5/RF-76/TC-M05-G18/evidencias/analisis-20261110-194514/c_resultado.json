@@ -1,0 +1,191 @@
+{
+  "timestamp_utc": "2026-11-11T00:58:03.922335+00:00",
+  "timestamp_bogota": "2026-11-10T19:58:03.922352-05:00",
+  "activo_id": 853,
+  "hoy_bogota": "2026-11-10",
+  "fecha_hace_6_dias": "2026-11-04",
+  "corrida_2_smoke": {
+    "run_id": "tc-m05-g18-fase1-smoke-afdc3824",
+    "login": {
+      "http": 200,
+      "tiene_token": true
+    },
+    "base_api_get": {
+      "total": 0,
+      "items": []
+    },
+    "base_sql_cnt": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "total": 0
+          }
+        ]
+      }
+    },
+    "abrir_fase": {
+      "http": 201,
+      "body": {
+        "id_gestion_fases": 722,
+        "id_activo_biologico": 853,
+        "id_ciclo_productiva": 5,
+        "id_ciclos_productivo_biologico": 12,
+        "nombre_ciclo": "Ciclo completo mojarra 2025-A",
+        "nombre_fase_actual": "Fase juvenil mojarra",
+        "paso_actual": 1,
+        "total_pasos": 2,
+        "fecha_inicio": "2026-11-11T00:58:07.979210Z",
+        "fecha_finalizacion": null,
+        "es_activa": true,
+        "motivo_cambio": "TC-M05-G18 Fase 1 smoke: apertura de fase en sandbox",
+        "es_transicion_no_estandar": false
+      }
+    },
+    "post_hoy": {
+      "http": 201,
+      "body": {
+        "medicamento": {
+          "id_registro_medicamento": 237,
+          "id_activo_biologico": 853,
+          "nombre_medicamento": "SmokeG18Hoy",
+          "via_aplicacion": "IM",
+          "unidad_dosis": "ml",
+          "cantidad": "5.000",
+          "dosis_por_individuo": null,
+          "fecha_aplicacion": "2026-11-10",
+          "hora_aplicacion": "10:11:00",
+          "periodo_retiro_dias": 0,
+          "fecha_fin_retiro": null,
+          "costo_unitario_medicamento": "1200.0000",
+          "costo_total_medicamento": "6000.0000",
+          "motivo_aplicacion": "Smoke Fase 1 TC-M05-G18 camino feliz sin retiro",
+          "id_evento_sanitario": null,
+          "nombre_veterinario": "Dra. Ana Ruiz",
+          "observaciones": null,
+          "id_usuario": 104,
+          "id_usuario_veterinario": null,
+          "estado_registro": "VALIDADO",
+          "fecha_registro": "2026-11-11T00:58:06.813603Z",
+          "justificacion_anulacion": null,
+          "fecha_hora_anulacion": null
+        },
+        "fecha_fin_retiro_vigente": null,
+        "tratamientos_activos": 0,
+        "mensaje": "El medicamento fue registrado correctamente. No aplica período de retiro."
+      }
+    },
+    "get_tras_post_hoy": {
+      "http": 200,
+      "body": {
+        "total": 1,
+        "items": [
+          {
+            "id_registro_medicamento": 237,
+            "id_activo_biologico": 853,
+            "nombre_medicamento": "SmokeG18Hoy",
+            "via_aplicacion": "IM",
+            "unidad_dosis": "ml",
+            "cantidad": "5.000",
+            "dosis_por_individuo": null,
+            "fecha_aplicacion": "2026-11-10",
+            "hora_aplicacion": "10:11:00",
+            "periodo_retiro_dias": 0,
+            "fecha_fin_retiro": null,
+            "costo_unitario_medicamento": "1200.0000",
+            "costo_total_medicamento": "6000.0000",
+            "motivo_aplicacion": "Smoke Fase 1 TC-M05-G18 camino feliz sin retiro",
+            "id_evento_sanitario": null,
+            "nombre_veterinario": "Dra. Ana Ruiz",
+            "observaciones": null,
+            "id_usuario": 104,
+            "id_usuario_veterinario": null,
+            "estado_registro": "VALIDADO",
+            "fecha_registro": "2026-11-11T00:58:06.813603Z",
+            "justificacion_anulacion": null,
+            "fecha_hora_anulacion": null
+          }
+        ]
+      }
+    },
+    "post_retro_6d": {
+      "http": 201,
+      "body": {
+        "medicamento": {
+          "id_registro_medicamento": 238,
+          "id_activo_biologico": 853,
+          "nombre_medicamento": "SmokeG18Retro6d",
+          "via_aplicacion": "ORAL",
+          "unidad_dosis": "ml",
+          "cantidad": "3.000",
+          "dosis_por_individuo": null,
+          "fecha_aplicacion": "2026-11-04",
+          "hora_aplicacion": "10:12:00",
+          "periodo_retiro_dias": 0,
+          "fecha_fin_retiro": null,
+          "costo_unitario_medicamento": "900.0000",
+          "costo_total_medicamento": "2700.0000",
+          "motivo_aplicacion": "Smoke Fase 1 TC-M05-G18 prueba fecha retroactiva -6d",
+          "id_evento_sanitario": null,
+          "nombre_veterinario": "Dra. Ana Ruiz",
+          "observaciones": null,
+          "id_usuario": 104,
+          "id_usuario_veterinario": null,
+          "estado_registro": "VALIDADO",
+          "fecha_registro": "2026-11-11T00:58:06.813603Z",
+          "justificacion_anulacion": null,
+          "fecha_hora_anulacion": null
+        },
+        "fecha_fin_retiro_vigente": null,
+        "tratamientos_activos": 0,
+        "mensaje": "El medicamento fue registrado correctamente. No aplica período de retiro."
+      }
+    },
+    "post_sql_cnt_en_sandbox": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "total": 2
+          }
+        ]
+      }
+    },
+    "close": {
+      "http": 200,
+      "body": {
+        "status": "Rollback exitoso"
+      }
+    }
+  },
+  "corrida_3_inocuidad": {
+    "run_id": "tc-m05-g18-fase1-inoc-d994fcb4",
+    "login": {
+      "http": 200,
+      "tiene_token": true
+    },
+    "final_sql_cnt": {
+      "http": 200,
+      "body": {
+        "data": [
+          {
+            "total": 0
+          }
+        ]
+      }
+    },
+    "final_api_get": {
+      "http": 200,
+      "body": {
+        "total": 0,
+        "items": []
+      }
+    },
+    "close": {
+      "http": 200,
+      "body": {
+        "status": "Rollback exitoso"
+      }
+    }
+  }
+}

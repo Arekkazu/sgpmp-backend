@@ -1,0 +1,26 @@
+# Reejecucion verificable — 7 pruebas unitarias RF-56 (G58/G59/G55)
+# Distinta de la corrida previa comunicada como "7 passed in 1.03s".
+# Inicio local: 2026-10-25T15:23:33-05:00
+# Rama: laura HEAD: 7292096f9cc708cb46f96d5aa0ed40df86114158
+# Aislamiento: --noconftest -p no:cacheprovider
+# Dobles: rf56_dobles.py. Sin MQTT ni PostgreSQL.
+# pytest reporto: 7 passed in 0.98s  EXIT_CODE=0
+# Fin local: 2026-10-25T15:23:36-05:00
+# Artefactos nativos de pytest (esta misma corrida): pytest-unitarios-rf56-7-2026-10-25.html y .xml
+
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe
+rootdir: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1, timeout-2.4.0
+collecting ... collected 7 items
+
+tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G58/test_tc_m03_g58.py::test_tc_m03_114_dto_acepta_clasificaciones_del_contrato[NORMAL] PASSED [ 14%]
+tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G58/test_tc_m03_g58.py::test_tc_m03_114_dto_acepta_clasificaciones_del_contrato[DESVIACION_SIMPLE] PASSED [ 28%]
+tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G58/test_tc_m03_g58.py::test_tc_m03_114_dto_acepta_clasificaciones_del_contrato[DESVIACION_COMPUESTA] PASSED [ 42%]
+tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G58/test_tc_m03_g58.py::test_tc_m03_114_dto_acepta_clasificaciones_del_contrato[ERROR_CONFIGURACION] PASSED [ 57%]
+tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G59/test_tc_m03_g59.py::test_tc_m03_117_error_configuracion_guarda_evento_sin_paquete PASSED [ 71%]
+tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G55/test_tc_m03_g55.py::test_tc_m03_090_error_configuracion_consolida_si_se_invoca_directo PASSED [ 85%]
+tests/Test_Testing/Test_Modulo3/RF-56/TC-M03-G55/test_tc_m03_g55.py::test_tc_m03_090_normal_no_genera_paquete PASSED [100%]
+
+============================== 7 passed in 0.98s ==============================

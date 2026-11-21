@@ -1,0 +1,27 @@
+{
+  "grupo": "G071",
+  "run_id": "RUN-G071-V1-20261029-143138",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 149,
+    "paginas_historial": 40,
+    "solicitudes_newman": 23,
+    "timeout_login_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "efectos": [
+    "Un login Veterinario QA A; último acceso y auditoría de autenticación",
+    "Lecturas de historial, catálogo, versión, OpenAPI y auditoría",
+    "Cinco retroalimentaciones aceptadas y auditoría, revertidas mediante DELETE",
+    "Intentos PUT/PATCH/DELETE y POST negativos; un efecto inesperado se revierte por DELETE",
+    "Lecturas poscierre pueden crear HISTORIAL_CONSULTADO fuera del sandbox; sin correos ni archivos externos"
+  ]
+}

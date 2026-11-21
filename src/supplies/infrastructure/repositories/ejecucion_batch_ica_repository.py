@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: persistir el motivo y serializar interrupción y finalización. |
 """Implementación SQLAlchemy de :class:`EjecucionBatchICARepository` (RF-74)."""
 from __future__ import annotations
 
@@ -32,6 +35,7 @@ class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
             hora_fin=orm.hora_fin,
             hora_corte=orm.hora_corte,
             causa_interrupcion=orm.causa_interrupcion,
+            motivo_interrupcion=orm.motivo_interrupcion,
             id_usuario_disparo=orm.id_usuario_disparo,
             id_usuario_interrupcion=orm.id_usuario_interrupcion,
         )
@@ -65,6 +69,7 @@ class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
         orm.hora_fin = ejecucion.hora_fin
         orm.hora_corte = ejecucion.hora_corte
         orm.causa_interrupcion = ejecucion.causa_interrupcion
+        orm.motivo_interrupcion = ejecucion.motivo_interrupcion
         orm.num_workers = ejecucion.num_workers
         orm.cantidad_activos_total = ejecucion.cantidad_activos_total
         orm.cantidad_activos_procesados = ejecucion.cantidad_activos_procesados
@@ -78,8 +83,12 @@ class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
             raise_from_db_error(exc, {})
         return self._a_entidad(orm)
 
-    def obtener(self, id_ejecucion: int) -> Optional[EjecucionBatchICA]:
-        orm = self.db.get(EjecucionBatchIcaModel, id_ejecucion)
+    def obtener(self, id_ejecucion: int, *, para_actualizar: bool = False) -> Optional[EjecucionBatchICA]:
+        orm = self.db.get(
+            EjecucionBatchIcaModel, id_ejecucion,
+            with_for_update=True if para_actualizar else None,
+            populate_existing=para_actualizar,
+        )
         return self._a_entidad(orm) if orm else None
 
     def obtener_en_ejecucion(self) -> Optional[EjecucionBatchICA]:

@@ -1,0 +1,263 @@
+{
+  "info": {
+    "_postman_id": "c1a9e5d0-3f2b-4e11-9a2f-tc09112v20",
+    "name": "TC-M09-G112 v2.0 - Validacion de datos y snapshot JSON al crear plantilla",
+    "description": "Retest de TC-M09-G112 (TC-M09-213/214/215/216/219/220). Confirma los 5 sub-casos que ya pasaban originalmente y re-verifica en vivo TC-M09-216 (rango fisico de umbrales ambientales), que fallo en la primera ejecucion (2026-09-04): se acepto un umbral con valor_min=-999/valor_max=999 sin ninguna validacion de rango. El codigo actual (esquema_plantilla.py: validar_rangos_fisicos_umbrales) ahora compara contra el rango fisico real (valor_fisico_min/valor_fisico_max) de la VariableAmbiental. Para no adivinar un id_variable_ambiental, este collection primero intenta DESCUBRIR uno real y activo consultando los umbrales ya configurados (RF-17, /configuracion/umbrales) de varias especies; si no encuentra ninguno, usa como respaldo el mismo id=1 que ya se sabe que acepta el POST (usado en la ejecucion original). Cada asercion expresa el comportamiento REQUERIDO por la ficha: si el defecto persiste, la asercion debe fallar (rojo); solo debe pasar (verde) si esta realmente corregido.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "template_name_dup", "value": "" },
+    { "key": "id_variable_real", "value": "1" },
+    { "key": "unidad_real", "value": "°C" },
+    { "key": "variable_confirmada", "value": "false" }
+  ],
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code);",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos una especie activa', function () { pm.expect(body.items.length).to.be.above(0); });",
+        "if (body.items && body.items.length > 0) {",
+        "    pm.collectionVariables.set('id_especie', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('template_name_dup', 'QA-Duplicado-v2-' + Date.now());",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "0C. Descubrir variable ambiental real (umbrales de la especie activa)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200 (umbrales por especie)', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "console.log('[DESCUBRIMIENTO especie=' + pm.collectionVariables.get('id_especie') + '] total umbrales=' + (body.total || 0));",
+        "if (pm.collectionVariables.get('variable_confirmada') !== 'true' && body.items && body.items.length > 0) {",
+        "    var u = body.items[0];",
+        "    pm.collectionVariables.set('id_variable_real', u.id_variable_ambiental);",
+        "    pm.collectionVariables.set('unidad_real', u.unidad_medida);",
+        "    pm.collectionVariables.set('variable_confirmada', 'true');",
+        "    console.log('[VARIABLE REAL CONFIRMADA] id_variable_ambiental=' + u.id_variable_ambiental + ' unidad=' + u.unidad_medida);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "0D. Descubrir variable ambiental real (respaldo: especie 1)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "if (pm.response.code === 200) {",
+        "    var body = pm.response.json();",
+        "    if (pm.collectionVariables.get('variable_confirmada') !== 'true' && body.items && body.items.length > 0) {",
+        "        var u = body.items[0];",
+        "        pm.collectionVariables.set('id_variable_real', u.id_variable_ambiental);",
+        "        pm.collectionVariables.set('unidad_real', u.unidad_medida);",
+        "        pm.collectionVariables.set('variable_confirmada', 'true');",
+        "        console.log('[VARIABLE REAL CONFIRMADA, respaldo especie 1] id_variable_ambiental=' + u.id_variable_ambiental + ' unidad=' + u.unidad_medida);",
+        "    }",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/umbrales?id_especie=1&solo_activas=true"
+      }
+    },
+    {
+      "name": "0E. Descubrir variable ambiental real (respaldo: especie 2)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "if (pm.response.code === 200) {",
+        "    var body = pm.response.json();",
+        "    if (pm.collectionVariables.get('variable_confirmada') !== 'true' && body.items && body.items.length > 0) {",
+        "        var u = body.items[0];",
+        "        pm.collectionVariables.set('id_variable_real', u.id_variable_ambiental);",
+        "        pm.collectionVariables.set('unidad_real', u.unidad_medida);",
+        "        pm.collectionVariables.set('variable_confirmada', 'true');",
+        "        console.log('[VARIABLE REAL CONFIRMADA, respaldo especie 2] id_variable_ambiental=' + u.id_variable_ambiental + ' unidad=' + u.unidad_medida);",
+        "    }",
+        "}",
+        "if (pm.collectionVariables.get('variable_confirmada') !== 'true') {",
+        "    console.log('[SIN CONFIRMAR] Ninguna especie consultada (activa, 1, 2) tiene umbrales configurados. Se usara id_variable_ambiental=' + pm.collectionVariables.get('id_variable_real') + ' como en la ejecucion original, sin confirmar independientemente que exista en el catalogo.');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/umbrales?id_especie=2&solo_activas=true"
+      }
+    },
+    {
+      "name": "1a. TC-M09-213 - Crear plantilla baseline (para probar duplicado despues)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[BASELINE] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Se crea con 201 (baseline)', function () { pm.response.to.have.status(201); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "1b. TC-M09-213 v2.0 - Un payload identico a uno ya existente debe rechazarse (409)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[DUPLICADO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-213 v2.0 - un payload identico (nombre + especie + snapshot) a uno ya existente debe rechazarse con 409', function () {",
+        "    pm.response.to.have.status(409);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-214 v2.0 - Un snapshot vacio debe rechazarse (400)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SNAPSHOT VACIO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-214 v2.0 - un params_snapshot vacio debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-214 v2.0 - el error debe identificar el campo faltante', function () {",
+        "    pm.expect(body.fields && body.fields.length).to.be.above(0);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-SnapshotVacio-v2-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {}\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "3. TC-M09-215 v2.0 - Una estructura invalida en el snapshot debe rechazarse (400)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[ESTRUCTURA INVALIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-215 v2.0 - metricas_produccion enviado como texto plano (no arreglo) debe rechazarse con 400', function () { pm.response.to.have.status(400); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-EstructuraInvalida-v2-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": \"esto-deberia-ser-un-arreglo-no-un-texto\"\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "4. TC-M09-216 v2.0 - Un umbral fuera del rango fisico real de la variable debe rechazarse (422)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TC-M09-216 v2.0] id_variable_ambiental=' + pm.collectionVariables.get('id_variable_real') + ' (confirmada=' + pm.collectionVariables.get('variable_confirmada') + ')');",
+        "console.log('[TC-M09-216 v2.0] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 201) {",
+        "    var b = pm.response.json();",
+        "    console.log('DEFECTO SIGUE PRESENTE: se acepto un umbral con valor_min=-999/valor_max=999, fuera de cualquier rango fisico razonable (id_plantilla=' + b.id_plantilla + ').');",
+        "}",
+        "pm.test('TC-M09-216 v2.0 - un umbral con valores fuera del rango fisico real de la variable debe rechazarse con 422', function () {",
+        "    pm.response.to.have.status(422);",
+        "});",
+        "if (pm.response.code === 422) {",
+        "    var err = pm.response.json();",
+        "    pm.test('TC-M09-216 v2.0 - el error trae el codigo RANGO_FISICO_INVALIDO', function () {",
+        "        pm.expect(err.error_code).to.eql('RANGO_FISICO_INVALIDO');",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-FueraDeRango-v2-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"umbrales_ambientales\": [ { \"id_variable_ambiental\": {{id_variable_real}}, \"unidad_medida\": \"{{unidad_real}}\", \"valor_min\": -999, \"valor_max\": 999 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5a. TC-M09-219 v2.0 - Sin template_name debe rechazarse (400)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SIN TEMPLATE_NAME] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-219a v2.0 - sin template_name debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-219a v2.0 - el error identifica el campo template_name', function () {",
+        "    pm.expect(JSON.stringify(body)).to.include('template_name');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5b. TC-M09-219 v2.0 - Sin id_especie debe rechazarse (400)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SIN ID_ESPECIE] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-219b v2.0 - sin id_especie debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-219b v2.0 - el error identifica el campo id_especie', function () {",
+        "    pm.expect(JSON.stringify(body)).to.include('id_especie');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-SinEspecie-v2-{{$timestamp}}\",\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5c. TC-M09-219 v2.0 - Sin params_snapshot debe rechazarse (400)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SIN PARAMS_SNAPSHOT] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-219c v2.0 - sin params_snapshot debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-219c v2.0 - el error identifica el campo params_snapshot', function () {",
+        "    pm.expect(JSON.stringify(body)).to.include('params_snapshot');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-SinSnapshot-v2-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}}\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "6. TC-M09-220 v2.0 - Una propiedad no declarada en el snapshot debe rechazarse (400)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[PROPIEDAD NO PERMITIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-220 v2.0 - una propiedad no declarada en el snapshot debe rechazarse con 400', function () { pm.response.to.have.status(400); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-PropiedadNoPermitida-v2-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ],\n    \"campo_no_declarado_en_el_esquema\": \"intento_de_manipulacion\"\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    }
+  ]
+}

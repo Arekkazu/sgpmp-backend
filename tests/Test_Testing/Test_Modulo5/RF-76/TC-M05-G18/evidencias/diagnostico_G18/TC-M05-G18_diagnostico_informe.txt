@@ -1,0 +1,743 @@
+================================================================================
+DIAGNOSTICO DE LAS 2 FALLAS DE LA CORRIDA OFICIAL - TC-M05-G18 (RF-76)
+================================================================================
+Fecha: 2026-11-10
+Corrida oficial analizada: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/run-20261110-204212/
+Carpeta de diagnostico: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/diagnostico_G18/
+Integridad sin cambios:
+- test_tc_m05_g18.py SHA-256 = 789C21DA45A93BA564FA419DCD49C3B81A4E165D83DD72CE8F4DE16CE6F1AE4A
+- ejecutar_tc_m05_g18.ps1 SHA-256 = BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0
+
+--------------------------------------------------------------------------------
+1. RESUMEN DE 5 LINEAS
+--------------------------------------------------------------------------------
+1) Falla 2 (G18_S3_03 - 5xx sin incidente de auditoria sobreviviente al rollback): CONFIRMADA por [LECTURA DE CODIGO] (A1-A3, opcion (a)); no es falso positivo.
+2) Ningun middleware (main.py:1011-1039) ni handler 5xx (error_handlers.py:76-105, 327-383) ni RegistrarMedicamentoUseCase audita 5xx de POST /suministros/medicamentos.
+3) A4 ([OBSERVADO en TEST]) quedo bloqueado por caida/timeout de TEST (www.api.inmero.co ReadTimeout en /sesiones/, /test-control/runs/, /health y /openapi.json).
+4) Falla 1 (G18_S1_03 - fin de retiro no notifica al Veterinario): CONFIRMADA por [LECTURA DE CODIGO] (B1-B2) y [OBSERVADO] en B4 (notificar_fin_retiro solo envia al Productor).
+5) En B2 se confirma ademas que tampoco hay notificacion interna en fin de retiro pese a existir NotificacionSuministrosM01Adapter / modulo1.notificaciones; B3 bloqueado por TEST ReadTimeout.
+
+--------------------------------------------------------------------------------
+2. PARTE A - FALLA 2 (G18_S3_03: 5xx SIN INCIDENTE EN AUDITORIA)
+--------------------------------------------------------------------------------
+
+A1. [LECTURA DE CODIGO] Middlewares registrados en main.py y orden de ejecucion
+En Starlette/FastAPI cada add_middleware envuelve la capa anterior (ultimo agregado = mas externo en la peticion). Orden de registro en main.py:
+1) main.py:1011 -> TestSandboxMiddleware (src/shared/rollback/infraestructure/testing_middlaware.py:12-39) [capa mas interna entre los middlewares].
+   - Que hace: valida ENABLE_TEST_SANDBOX, cabeceras X-Test-Run-Id y X-Sandbox-Secret (lineas 14-27), fija test_run_id_context (linea 33), ejecuta await call_next(request) (linea 35) y resetea el contexto en finally (lineas 38-39).
+   - Auditoria/errores/5xx: NO registra peticiones ni errores en ninguna tabla, tampoco en 5xx o excepcion. No usa fabrica de sesion. No atrapa excepciones.
+2) main.py:1012-1029 -> CORSMiddleware (fastapi.middleware.cors.CORSMiddleware).
+   - Auditoria/errores/5xx: NO registra peticiones ni errores en BD; sin sesion.
+3) main.py:1033 -> RequestContextMiddleware (src/shared/middlewares.py:70-102).
+   - dispatch esta en 74-102 (call_next en linea 96): fija request.state.request_id/ip/user_agent (75-84, atrapando Exception en 80-84 para no bloquear), llama audit_context.iniciar_request(...) en memoria via ContextVar (89-92; src/shared/audit_context.py:44-51) y establecer_zona_usuario(...) (94), ejecuta response = await call_next(request) (96) y agrega cabecera X-Request-ID en response (98-101, atrapando Exception en silencio en 100-101 solo al escribir la cabecera).
+   - Auditoria/errores/5xx: NO escribe filas en ninguna tabla (auditoria, accesos, RF-10 ni incidentes), ni en 2xx ni en 5xx ni en excepcion (en excepcion de call_next salta 98-102). Solo deja ContextVar de IP/UA para repositorios RF-10 que eventualmente se llamen. No importa ni usa fabrica de sesion.
+4) main.py:1039 -> SecurityHeadersMiddleware (src/shared/middlewares.py:124-142) [capa mas externa].
+   - dispatch esta en 135-142 (call_next en linea 136): ejecuta await call_next(request) y agrega cabeceras OWASP (X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Content-Security-Policy).
+   - Auditoria/errores/5xx: NO registra peticiones ni errores en ninguna tabla, ni en 5xx ni en excepcion. Sin sesion. No atrapa excepciones.
+Nota adicional [LECTURA DE CODIGO]:
+- main.py:34 importa from audit_sdk.context_fastapi import AuditContextMiddleware y src/shared/middlewares.py:105,145 define AccessLogMiddleware y setup_middlewares, pero NINGUNO de los dos se registra con add_middleware en main.py.
+
+A2. [LECTURA DE CODIGO] Busqueda en src/ de escrituras de auditoria asociadas a errores y fabricas de sesion
+Patrones buscados en src/: "auditoria", "incidente", "RF-10", "registrar_evento", "bitacora", "sesion_sistema(", "SessionLocal(".
+1) src/shared/error_handlers.py (handlers globales):
+   - app_error_handler (76-105): maneja AppError (incluye 5xx InfrastructureError, ServiceUnavailableError, GatewayTimeoutError). Solo hace logger.error(...) (93-99) y retorna JSONResponse. NO abre sesion ni escribe auditoria/incidentes. No aplica auditoria a POST /suministros/medicamentos.
+   - _auditar_evento_edge_rechazado (131-155): importa sesion_sistema por nombre dentro de la funcion (136: from src.shared.database import sesion_sistema), abre db = sesion_sistema() (145), registra en bitacora_auditoria_iot con logger.warning silencioso en except Exception (152-153). Solo corre en 422 RequestValidationError (319) cuando el path termina en /iot/eventos-edge (134). NO aplica a POST /suministros/medicamentos ni a 5xx.
+   - _auditar_evento_alerta_rechazado (158-190): importa sesion_sistema por nombre local (163), abre db = sesion_sistema() (175), logger.warning silencioso (187-188). Solo corre en 422 RequestValidationError (320) cuando el path termina en /iot/alertas (161). NO aplica a POST /suministros/medicamentos ni a 5xx.
+   - _auditar_validacion_rechazada_m02 (203-250): importa SessionLocal por nombre local (220: from src.shared.database import SessionLocal), abre db = SessionLocal() (228), rollback silencioso en except Exception (243-245). Solo corre en 400 RequestValidationError (318) y retorna inmediato si path no inicia con /activos-biologicos (210-211). NO aplica a POST /suministros/medicamentos ni a 5xx.
+   - db_no_disponible_handler (327-347): solo logger.error y HTTP 503 BD_NO_DISPONIBLE. Sin sesion ni auditoria.
+   - error_no_controlado_handler (350-371): solo logger.exception y HTTP 500 ERROR_INTERNO. Sin sesion ni auditoria.
+   - rechazo_trigger_handler (374-383): traduce trigger conocido -> app_error_handler o error_no_controlado_handler. Docstring explicito (377): "No genera auditoria sin el contexto de negocio". No audita.
+2) Modulo 5 - Suministros (src/supplies/):
+   - src/supplies/infrastructure/factories/suministros_factory.py:84-96 (build_registrar_medicamento_use_case): instancia RegistrarMedicamentoUseCase sin pasarle AuditoriaSuministroPort ni otro puerto de auditoria de errores.
+   - src/supplies/application/use_cases/suministros/registrar_medicamento_use_case.py (1-286): NO registra incidentes en modulo5.auditorias_suministros ni en modulo1.eventos cuando falla el calculo de fecha_fin_retiro (linea 193) ni cuando hace self.db.rollback(); raise (lineas 248-250).
+   - src/supplies/infrastructure/models/registro_medicamento_model.py:12: la auditoria de medicamentos la genera unicamente el trigger SQL fn_trg_auditoria_medicamento en modulo5.auditorias_suministros dentro de la misma transaccion, la cual se revierte completa en cualquier rollback.
+   - src/supplies/application/use_cases/costeo_suministros/registrar_correccion_suministro_use_case.py:192-204 y src/supplies/infrastructure/repositories/auditoria_suministro_repository.py:27-57: escriben CONFLICTO_CONCURRENCIA o REGISTRO_FALLIDO unicamente en correcciones de suministro directo tras agotar reintentos sobre la misma sesion (sin abrir sesion independiente ni aplicar a POST /suministros/medicamentos).
+3) Otros llamadores de sesion_sistema( / SessionLocal( o auditoria en src/:
+   - src/shared/database.py:218,288,349 (definicion de sesion_sistema y helpers de sesion).
+   - src/shared/rollback/infraestructure/rollback_test.py:34 y testing_sandbox.py:54 (infraestructura sandbox).
+   - Workers/adapters asincronos y endpoints IoT/M02/M04/M01:
+     * src/identity_access/infrastructure/routers/auditoria_routers.py:98 (incidente por hash manipulado al consultar auditoria).
+     * src/identity_access/application/use_cases/contrasena/cambiar_contrasena_use_case.py:89,128 (incidente de cambio sobre cuenta ajena).
+     * src/identity_access/infrastructure/adapters/correo_recuperacion_background_adapter.py:61 y notificacion_sesion_background_adapter.py:48 (tareas background M01).
+     * src/biological_assets/infrastructure/adapters/recalibracion_vision_m09_adapter.py:35 (M02).
+     * src/configuration/infrastructure/adapters/mqtt_http_adapter.py:54 (M09).
+     * src/prediction/infrastructure/routers/version_modelo_router.py:231 (M04).
+     * src/telemetry/ (ruta_ingesta_auditada.py:78,98; calidad_router.py:167; evento_edge_router.py:52; aviso_sin_umbral_background_adapter.py:39; reenvio_inferencia_worker.py:31; respaldo_auditoria_iot_worker.py:19).
+   Ninguno de estos sitios aplica a errores 5xx de POST /suministros/medicamentos.
+
+A3. Conclusion de A1-A2
+- Se cumple la opcion (a): NO existe ningun mecanismo en middlewares, error_handlers ni en RegistrarMedicamentoUseCase/repositorio que registre un incidente de auditoria ante un error 5xx en POST /suministros/medicamentos, ni existe ningun import por nombre a nivel de modulo o local que haya esquivado el guard del test para ese endpoint.
+- Por lo tanto, G18_S3_03 NO es falso positivo: la falla del producto contra CU03 FA-13 se mantiene.
+
+A4. [OBSERVADO en TEST] Reproduccion real de 5xx en sandbox (sin retiro)
+- Tablas candidatas identificadas en A1-A2: modulo1.eventos (columna fecha_evento) y modulo5.auditorias_suministros (columna fecha_evento).
+- Ejecucion de diagnostico_a4_5xx_auditoria.py (corrida sandbox prevista para activo 853, periodo_retiro_dias=0, dosis_aplicada=0.0004):
+  * Intento 1 (run_id = diag-g18-a4-r1-1ea58109): POST /sesiones/ fallo con ReadTimeout (timeout=45s) sobre https://www.api.inmero.co; DELETE /test-control/runs/diag-g18-a4-r1-1ea58109 en finally tambien fallo con ReadTimeout (45s).
+  * Limpieza previa + Intento 2 (run_id = diag-g18-a4-r1-51fac8ae, con reintento R2 y timeout=90s): DELETE previo a diag-g18-a4-r1-1ea58109 dio ReadTimeout (90s); POST /sesiones/ en diag-g18-a4-r1-51fac8ae agoto reintentos R2 (>200s) con ReadTimeout (90s) y su DELETE /test-control/runs/diag-g18-a4-r1-51fac8ae en finally tambien dio ReadTimeout (45s).
+  * Sondas de conectividad posteriores sobre TEST (www.api.inmero.co, entre 21:05 y 21:06 UTC-5):
+    - GET /health (timeout 20s) -> ERR ReadTimeout (21.03s)
+    - GET /openapi.json (timeout 20s) -> ERR ReadTimeout (21.70s)
+    - GET /health (timeout 15s) -> ERR ReadTimeout (16.09s)
+- Resultado de A4 [OBSERVADO en TEST]: BLOQUEADO POR AMBIENTE (TEST www.api.inmero.co no respondio ninguna peticion HTTP en esta ventana). No se pudo obtener codigo HTTP/error_code del POST ni conteos antes/durante/despues en TEST; corrida_2 no se ejecuto al no obtenerse respuesta de corrida_1.
+
+A5. Veredicto de la falla 2 (G18_S3_03)
+- Veredicto: CONFIRMADA (defecto de PRODUCTO contra CU03 FA-13).
+- Evidencia de soporte:
+  * [LECTURA DE CODIGO] A1-A3 demuestran de forma concluyente que main.py, src/shared/middlewares.py, src/shared/error_handlers.py y src/supplies/ no tienen ningun handler, middleware ni caso de uso que abra sesion independiente y persista un incidente en auditoria cuando POST /suministros/medicamentos falla con 5xx (500 o 503).
+  * [OBSERVADO] En la corrida oficial evidencias/run-20261110-204212 (test_g18_s3_03_incidente_auditoria_sobrevive_rollback), tanto Escenario A (OverflowError -> HTTP 500 ERROR_INTERNO) como Escenario B (OperationalError en flush() -> HTTP 503 BD_NO_DISPONIBLE) ejecutaron contra el router y handlers reales y cerraron con sesiones_indep_commiteadas=0 e incidentes_confirmados=0.
+  * [OBSERVADO en TEST] A4 no pudo confirmar ni refutar en vivo contra TEST porque www.api.inmero.co presento ReadTimeout total (/health, /openapi.json, /sesiones/, /test-control/runs/).
+
+--------------------------------------------------------------------------------
+3. PARTE B - FALLA 1 (G18_S1_03: FIN DE RETIRO NO NOTIFICA AL VETERINARIO)
+--------------------------------------------------------------------------------
+
+B1. [LECTURA DE CODIGO] Metodos notificar_inicio_retiro / notificar_fin_retiro e invocacion en el job
+1) src/supplies/infrastructure/adapters/notificacion_medicamento_email_adapter.py (lineas 48-79):
+ 48:     def notificar_inicio_retiro(
+ 49:         self,
+ 50:         id_activo: int,
+ 51:         id_usuario_veterinario: Optional[int],
+ 52:         nombre_medicamento: str,
+ 53:         fecha_fin_retiro: date,
+ 54:     ) -> None:
+ 55:         productor = self._productor_de_activo(id_activo)
+ 56:         if productor is not None:
+ 57:             self._enviar(
+ 58:                 productor[1],
+ 59:                 "Inicio de período de retiro por aplicación de medicamento",
+ 60:                 inicio_retiro_email(productor[0], nombre_medicamento, fecha_fin_retiro),
+ 61:             )
+ 62: 
+ 63:         if id_usuario_veterinario is not None:
+ 64:             veterinario = self._usuario(id_usuario_veterinario)
+ 65:             if veterinario is not None:
+ 66:                 self._enviar(
+ 67:                     veterinario[1],
+ 68:                     "Inicio de período de retiro por aplicación de medicamento",
+ 69:                     inicio_retiro_email(veterinario[0], nombre_medicamento, fecha_fin_retiro),
+ 70:                 )
+ 71: 
+ 72:     def notificar_fin_retiro(self, id_activo: int, fecha_fin_retiro: date) -> None:
+ 73:         productor = self._productor_de_activo(id_activo)
+ 74:         if productor is not None:
+ 75:             self._enviar(
+ 76:                 productor[1],
+ 77:                 "Fin de período de retiro",
+ 78:                 fin_retiro_email(productor[0], fecha_fin_retiro),
+ 79:             )
+
+2) src/supplies/application/use_cases/suministros/revertir_retiros_vencidos_use_case.py (lineas 53-105):
+ 53:     def _revertir_si_vencido(self, id_activo: int, hoy: date) -> bool:
+ 54:         from src.supplies.infrastructure.adapters.estado_activo_m02_adapter import EstadoActivoM02Adapter
+ 55:         from src.supplies.infrastructure.repositories.medicamento_repository import (
+ 56:             SqlAlchemyMedicamentoRepository,
+ 57:         )
+ 58: 
+ 59:         db = self.session_factory()
+ 60:         fecha_fin_retiro = None
+ 61:         try:
+ 62:             medicamento_repo = SqlAlchemyMedicamentoRepository(db)
+ 63:             vigente = medicamento_repo.obtener_tratamiento_vigente(id_activo)
+ 64: 
+ 65:             if vigente is not None and vigente.fecha_fin_retiro is not None and vigente.fecha_fin_retiro > hoy:
+ 66:                 return False  # aún hay retiro activo
+ 67: 
+ 68:             if vigente is None or vigente.id_usuario is None:
+ 69:                 logger.warning(
+ 70:                     "Activo %s EN_TRATAMIENTO sin tratamiento con retiro referenciable; "
+ 71:                     "se omite la reversión automática.",
+ 72:                     id_activo,
+ 73:                 )
+ 74:                 return False
+ 75: 
+ 76:             fecha_fin_retiro = vigente.fecha_fin_retiro
+ 77:             EstadoActivoM02Adapter(db).revertir_a_activo(
+ 78:                 id_activo=id_activo,
+ 79:                 id_usuario=vigente.id_usuario,
+ 80:                 motivo=_MOTIVO_REVERSION,
+ 81:             )
+ 82:             db.commit()
+ 83:         except Exception:
+ 84:             db.rollback()
+ 85:             logger.exception("Error revirtiendo el retiro vencido del activo %s.", id_activo)
+ 86:             return False
+ 87:         finally:
+ 88:             db.close()
+ 89: 
+ 90:         if fecha_fin_retiro is not None:
+ 91:             self._notificar_fin_retiro(id_activo, fecha_fin_retiro)
+ 92:         return True
+ 93: 
+ 94:     def _notificar_fin_retiro(self, id_activo: int, fecha_fin_retiro: date) -> None:
+ 95:         from src.supplies.infrastructure.adapters.notificacion_medicamento_email_adapter import (
+ 96:             NotificacionMedicamentoEmailAdapter,
+ 97:         )
+ 98: 
+ 99:         db = self.session_factory()
+100:         try:
+101:             NotificacionMedicamentoEmailAdapter(db).notificar_fin_retiro(id_activo, fecha_fin_retiro)
+102:         except Exception:
+103:             logger.warning("No se pudo notificar el fin de retiro del activo %s.", id_activo)
+104:         finally:
+105:             db.close()
+
+3) Que datos tiene disponibles RevertirRetirosVencidosUseCase en ese momento y por que no se pasan [LECTURA DE CODIGO]:
+- En linea 63, `vigente = medicamento_repo.obtener_tratamiento_vigente(id_activo)` retorna una entidad `Medicamento` (mapeada en `src/supplies/infrastructure/repositories/medicamento_repository.py:43-70`, entidad en `src/supplies/domain/entities/medicamento.py:25-53`).
+- Esa entidad `vigente` YA contiene tanto `vigente.id_usuario` (usuario que registro el medicamento) como `vigente.id_usuario_veterinario` (`medicamento_repository.py:59` / `medicamento.py:46`).
+- Sin embargo:
+  * `_revertir_si_vencido` (lineas 76-92) extrae unicamente `fecha_fin_retiro = vigente.fecha_fin_retiro` y llama `self._notificar_fin_retiro(id_activo, fecha_fin_retiro)` (linea 91) sin pasar `vigente.id_usuario_veterinario`.
+  * `_notificar_fin_retiro` (lineas 94-105) invoca `NotificacionMedicamentoEmailAdapter(db).notificar_fin_retiro(id_activo, fecha_fin_retiro)` (linea 101).
+  * `notificar_fin_retiro` (adapter, lineas 72-79) ni siquiera acepta `id_usuario_veterinario` como parametro y tampoco consulta `modulo5.registros_medicamentos` en SQL: solo llama `self._productor_de_activo(id_activo)` y envia correo al Productor (lineas 73-79).
+
+B2. [LECTURA DE CODIGO] Mecanismo de notificacion INTERNA y su uso en fin de retiro
+- Si existe un mecanismo de notificacion interna (bandeja dentro del sistema):
+  * Modelo `Notificaciones` sobre `modulo1.notificaciones` (`src/identity_access/infrastructure/models/notificaciones_model.py:22-49`), conectado a `modulo1.eventos`.
+  * Repositorio `SqlAlchemyNotificacionRepository` (`src/identity_access/infrastructure/repositories/notificacion_repository.py:25-67`) con `ID_CANAL_INTERNO = 2` (linea 25), consultado en bandeja por `listar_notificaciones_use_case.py`.
+  * En Modulo 5 (Suministros), ya existe el adaptador `NotificacionSuministrosM01Adapter` (`src/supplies/infrastructure/adapters/notificacion_suministros_m01_adapter.py:28,47-97`), usado por `eficiencia_factory.py`, `historial_suministros_factory.py`, `provision_nic41_factory.py` y `reporte_gastos_factory.py`, e incluso incluye `_SQL_RESPONSABLES` (lineas 30-44) que resuelve tanto al Productor como a los Veterinarios de la finca y publica con `_ID_CANAL_INTERNO = 2` en `modulo1.notificaciones` (lineas 81-94).
+- Uso en fin de retiro (`revertir_retiros_vencidos_use_case.py` y `notificacion_medicamento_email_adapter.py`):
+  * NO se usa para NINGUNO de los dos roles (ni para Productor ni para Veterinario).
+  * El fin de retiro unicamente llama `NotificacionMedicamentoEmailAdapter(db).notificar_fin_retiro(...)` -> solo `send_email` (canal SMTP/correo) y solo al Productor. Tampoco `notificar_inicio_retiro` usa `modulo1.notificaciones`.
+
+B3. [OBSERVADO en TEST, solo lectura] Poblado de id_usuario_veterinario en registros VALIDADO con retiro
+- Se preparo el script `diagnostico_b3_vet_poblado.py` con la consulta:
+  `SELECT count(*) AS total_validados_con_retiro, count(id_usuario_veterinario) AS con_id_usuario_veterinario, count(*) - count(id_usuario_veterinario) AS sin_id_usuario_veterinario FROM modulo5.registros_medicamentos WHERE estado_registro = 'VALIDADO' AND fecha_fin_retiro IS NOT NULL`
+- NO pudo ejecutarse en TEST porque www.api.inmero.co presento `ReadTimeout` persistente en /sesiones/, /health y /openapi.json (misma caida de ambiente observada en A4), por lo que no se ejecuto ninguna corrida sandbox para B3 para evitar acumular timeouts de login. Conteo real en TEST: PENDIENTE por ambiente TEST caido.
+
+B4. [OBSERVADO, sin BD ni SMTP] Prueba aislada de NotificacionMedicamentoEmailAdapter
+- Script ejecutado: `.\.venv\Scripts\python.exe tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\evidencias\diagnostico_G18\diagnostico_b4_fin_retiro.py`
+- Codigo de salida: 0.
+- Salida literal observada:
+  notificar_fin_retiro destinatarios=['productor.g18@finca.example'] detalle=[{'to': 'productor.g18@finca.example', 'subject': 'Fin de período de retiro', 'len_html': '5314'}]
+  notificar_inicio_retiro destinatarios=['productor.g18@finca.example', 'veterinario.g18@finca.example'] detalle=[{'to': 'productor.g18@finca.example', 'subject': 'Inicio de período de retiro por aplicación de medicamento', 'len_html': '5725'}, {'to': 'veterinario.g18@finca.example', 'subject': 'Inicio de período de retiro por aplicación de medicamento', 'len_html': '5729'}]
+- Comportamiento demostrado sin job ni scheduler de por medio: con exactamente los mismos stubs de sesion y activo/veterinario, `notificar_inicio_retiro` envia a Productor y Veterinario, mientras que `notificar_fin_retiro` omite por completo al Veterinario y envia solo al Productor.
+
+B5. Veredicto de la falla 1 (G18_S1_03)
+- Veredicto: CONFIRMADA (defecto de PRODUCTO contra RF-76 flujo paso 13 y CA-4).
+- Evidencia de soporte:
+  * [LECTURA DE CODIGO] B1 demuestra que `RevertirRetirosVencidosUseCase._revertir_si_vencido` tiene `vigente.id_usuario_veterinario` en memoria pero no lo pasa (lineas 63, 91, 101), y `NotificacionMedicamentoEmailAdapter.notificar_fin_retiro` solo consulta y envia correo al Productor (lineas 72-79). B2 demuestra que tampoco usa la bandeja interna (`modulo1.notificaciones` / `NotificacionSuministrosM01Adapter`) para ninguno de los dos roles.
+  * [OBSERVADO] Ejecucion oficial `evidencias/run-20261110-204212` (`G18_S1_03`) y ejecucion aislada B4 (`diagnostico_b4_fin_retiro.py`) obtienen unicamente `['productor.g18@finca.example']` en fin de retiro frente a `['productor.g18@finca.example', 'veterinario.g18@finca.example']` en inicio de retiro.
+  * B3 quedo pendiente en TEST por `ReadTimeout` de www.api.inmero.co.
+
+--------------------------------------------------------------------------------
+4. PARTE C - CONTEXTO DEL CODIGO
+--------------------------------------------------------------------------------
+- git rev-parse HEAD:
+  6ee0e5e9461c680015236d88bc0bda63457fff01
+- git status -sb:
+  ## test-JuanSG
+   M .gitignore
+   M tests/conftest.py
+  ?? anotaciones/modulo_3/inc_m03_g168_cierre_nota.md
+  ?? baseline_g165.json
+  ?? baseline_probe.py
+  ?? scratch/
+  ?? scratch_diag_binario_res.json
+  ?? scratch_diag_candidates.json
+  ?? scratch_diag_candidates.py
+  ?? scratch_latencia_res.json
+  ?? scratch_no_sandbox_res.json
+  ?? scratch_post_c_res.json
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/ejecutar_tc_m05_g18.ps1
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/analisis-20261110-194514/
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/diagnostico_G18/
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/fase3-20261110-201535/
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/fase3r2-20261110-203613/
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/run-20261110-202406/
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/run-20261110-204212/
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/resultados/
+  ?? tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/test_tc_m05_g18.py
+- git log -n 5 --format="%h %ad %s" --date=short -- src/supplies/infrastructure/adapters/notificacion_medicamento_email_adapter.py src/supplies/application/use_cases/suministros/revertir_retiros_vencidos_use_case.py src/shared/error_handlers.py src/shared/middlewares.py:
+  d5d61e95 2026-10-26 Merge remote-tracking branch 'origin/fix/inc-m03-103-g164-calidad-rf62' into release/fixes-m03-m04-26-10
+  c1401d5a 2026-10-26 fix(rf62-mod3): validar consultas y parametros de calidad (INC-M03-103-G164)
+  e77e7ff9 2026-10-26 fix(shared): 422 por ruta en validacion de parametros y bitacora E1 de alertas (RF-59, RF-73, RF-57)
+  36830d4a 2026-10-23 docs(shared): X-Zona-Horaria documentada en cada endpoint de Swagger
+  51c60dd1 2026-10-23 fix(shared): fechas en UTC y dia calendario en la zona del usuario (X-Zona-Horaria)
+
+--------------------------------------------------------------------------------
+5. QUE CAMBIA EN CADA INC (NOTA: NO SE CREA NINGUN INC EN ESTA TAREA)
+--------------------------------------------------------------------------------
+- INC de Falla 1 (G18_S1_03): AJUSTAR TEXTO (se mantiene como defecto confirmado; no crearlo ahora por regla).
+  * Ajuste requerido en la descripcion/evidencia:
+    1) Citar la causa exacta observada en `revertir_retiros_vencidos_use_case.py:63,91,101` (tiene `vigente.id_usuario_veterinario`, pero llama `notificar_fin_retiro(id_activo, fecha_fin_retiro)` sin pasarlo) y `notificacion_medicamento_email_adapter.py:72-79` frente a `notificar_inicio_retiro` (`48-70`), junto con la salida de `diagnostico_b4_fin_retiro.py`.
+    2) Agregar hallazgo B2 sobre notificacion interna ("notifica internamente"): tampoco se usa `modulo1.notificaciones` (`NotificacionSuministrosM01Adapter` / `SqlAlchemyNotificacionRepository`) en fin de retiro ni para Veterinario ni para Productor (solo envia correo SMTP al Productor).
+    3) Dejar constancia de que B3 (conteo en vivo de `id_usuario_veterinario` poblado en TEST) no se pudo ejecutar por `ReadTimeout` de `www.api.inmero.co`.
+
+- INC de Falla 2 (G18_S3_03): AJUSTAR TEXTO (se mantiene como defecto confirmado, NO es falso positivo; no crearlo ahora por regla).
+  * Ajuste requerido en la descripcion/evidencia:
+    1) Incorporar el descarte completo de falsos positivos (A1-A3): verificados todos los middlewares en `main.py:1011-1039` (`TestSandboxMiddleware`, `CORSMiddleware`, `RequestContextMiddleware`, `SecurityHeadersMiddleware`), todos los handlers de `src/shared/error_handlers.py:76-399`, `RegistrarMedicamentoUseCase` y `suministros_factory.py:84-96`. Los unicos usos de `sesion_sistema`/`SessionLocal` en `error_handlers.py` (`136, 163, 220`) aplican exclusivamente a 400/422 de `/activos-biologicos`, `/iot/eventos-edge` y `/iot/alertas`, nunca a 5xx ni a `/suministros/medicamentos`.
+    2) Dejar constancia explicita de que la reproduccion en vivo en TEST (A4) quedo bloqueada por `ReadTimeout` de `www.api.inmero.co` en esta ventana y debera reintentarse si se requiere evidencia SQL en vivo cuando TEST vuelva a responder.
+
+--------------------------------------------------------------------------------
+6. ESCANEO DE SECRETOS
+--------------------------------------------------------------------------------
+Escaneo sobre todos los archivos en evidencias/diagnostico_G18/
+(diagnostico_a4_5xx_auditoria.py, diagnostico_b3_vet_poblado.py,
+diagnostico_b4_fin_retiro.py y TC-M05-G18_diagnostico_informe.txt):
+0 coincidencias
+
+================================================================================
+7. ANEXOS: CONTENIDO COMPLETO DE SCRIPTS DEL DIAGNOSTICO
+================================================================================
+
+--------------------------------------------------------------------------------
+ANEXO 1: diagnostico_a4_5xx_auditoria.py (ejecutado; bloqueado por ReadTimeout TEST)
+--------------------------------------------------------------------------------
+"""Diagnostico A4 (TC-M05-G18): reproduccion controlada de 5xx en TEST (sin retiro) y verificacion de auditoria."""
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+import json
+import os
+from pathlib import Path
+import time
+from typing import Any, Callable, Optional
+import uuid
+
+from dotenv import dotenv_values
+import requests
+
+try:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+    try:
+        _ZONA_BOGOTA = ZoneInfo("America/Bogota")
+    except ZoneInfoNotFoundError:
+        _ZONA_BOGOTA = timezone(timedelta(hours=-5), "America/Bogota")
+except ImportError:
+    _ZONA_BOGOTA = timezone(timedelta(hours=-5), "America/Bogota")
+
+ACTIVO_ID = 853
+CICLO_ID = 5
+
+
+def cargar_env_test() -> dict[str, str]:
+    repo = Path(__file__).resolve().parents[7]
+    env_path = repo / ".env.test"
+    if not env_path.exists():
+        raise FileNotFoundError(f"Falta .env.test en {repo}")
+    vals = dotenv_values(env_path)
+    cfg: dict[str, str] = {}
+    for k in ("TEST_BASE_URL", "TEST_SANDBOX_SECRET", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD", "TEST_M05_ACTIVO_ID"):
+        v = (os.environ.get(k) or vals.get(k) or "").strip()
+        if v:
+            cfg[k] = v
+    return cfg
+
+
+def login_sandbox_r2(session: requests.Session, base_url: str, email: str, pwd: str) -> None:
+    """Un login por run_id con reintento cada 30 s hasta 200 s ante 423/429/5xx o error de red."""
+    inicio = time.monotonic()
+    for _ in range(7):
+        try:
+            resp = session.post(
+                f"{base_url}/sesiones/",
+                json={"correo_electronico": email, "contrasena": pwd},
+                timeout=90,
+            )
+            if resp.status_code in (423, 429, 502, 503, 504) and (time.monotonic() - inicio) < 200:
+                time.sleep(30)
+                continue
+        except requests.RequestException:
+            if (time.monotonic() - inicio) < 200:
+                time.sleep(30)
+                continue
+            raise
+        if resp.status_code != 200:
+            raise RuntimeError(f"Login Admin fallo en TEST HTTP {resp.status_code}")
+        token = (resp.json() or {}).get("token")
+        if not token:
+            raise RuntimeError("Login Admin no devolvio token")
+        session.headers["Authorization"] = f"Bearer {token}"
+        return
+    raise RuntimeError("Login Admin agoto ventana de reintentos (200 s)")
+
+
+def query_sandbox(session: requests.Session, base_url: str, sql: str) -> list[dict[str, Any]]:
+    resp = session.post(f"{base_url}/test-control/query", json={"query": sql}, timeout=45)
+    if resp.status_code != 200:
+        raise RuntimeError(f"/test-control/query HTTP {resp.status_code}: {resp.text[:250]}")
+    return (resp.json() or {}).get("data") or []
+
+
+def ejecutar_corrida_sandbox(
+    base_url: str,
+    secret: str,
+    run_id: str,
+    fn: Callable[[requests.Session], Any],
+) -> tuple[Any, str]:
+    session = requests.Session()
+    session.headers.update(
+        {
+            "X-Test-Run-Id": run_id,
+            "X-Sandbox-Secret": secret,
+            "X-Zona-Horaria": "America/Bogota",
+        }
+    )
+    exc_capturada: Optional[BaseException] = None
+    resultado: Any = None
+    try:
+        resultado = fn(session)
+    except BaseException as exc:
+        exc_capturada = exc
+    finally:
+        cierre = "NO_INICIADO"
+        try:
+            r_del = session.delete(f"{base_url}/test-control/runs/{run_id}", timeout=45)
+            cierre = f"HTTP {r_del.status_code}"
+        except Exception as exc_del:
+            cierre = f"ERROR {type(exc_del).__name__}: {exc_del}"
+        finally:
+            session.close()
+        if exc_capturada is not None:
+            raise RuntimeError(f"Error en {run_id} (cierre={cierre}): {exc_capturada}") from exc_capturada
+    return resultado, cierre
+
+
+def consultar_tablas_auditoria(
+    session: requests.Session, base_url: str, hora_utc_iso: str, activo_id: int
+) -> dict[str, Any]:
+    ev_cnt = query_sandbox(
+        session,
+        base_url,
+        f"SELECT count(*) AS total FROM modulo1.eventos WHERE fecha_evento >= '{hora_utc_iso}'::timestamptz",
+    )
+    ev_m5_rows = query_sandbox(
+        session,
+        base_url,
+        (
+            "SELECT id_evento, tipo_evento, fecha_evento, modulo, resultado, categoria, estado, descripcion "
+            "FROM modulo1.eventos "
+            f"WHERE fecha_evento >= '{hora_utc_iso}'::timestamptz "
+            "ORDER BY id_evento DESC LIMIT 20"
+        ),
+    )
+    sum_cnt = query_sandbox(
+        session,
+        base_url,
+        (
+            "SELECT count(*) AS total FROM modulo5.auditorias_suministros "
+            f"WHERE fecha_evento >= '{hora_utc_iso}'::timestamptz "
+            f"AND (entidad_afectada ILIKE '%medicamento%' OR id_activo_biologico = {activo_id})"
+        ),
+    )
+    sum_all_cnt = query_sandbox(
+        session,
+        base_url,
+        (
+            "SELECT count(*) AS total FROM modulo5.auditorias_suministros "
+            f"WHERE fecha_evento >= '{hora_utc_iso}'::timestamptz"
+        ),
+    )
+    sum_rows = query_sandbox(
+        session,
+        base_url,
+        (
+            "SELECT id_auditoria_suministro, entidad_afectada, tipo_operacion, resultado, fecha_evento, id_activo_biologico, detalle_causa "
+            "FROM modulo5.auditorias_suministros "
+            f"WHERE fecha_evento >= '{hora_utc_iso}'::timestamptz "
+            "ORDER BY id_auditoria_suministro DESC LIMIT 20"
+        ),
+    )
+    return {
+        "modulo1_eventos_desde_hora_count": int(ev_cnt[0]["total"]),
+        "modulo1_eventos_desde_hora_filas": ev_m5_rows,
+        "modulo5_auditorias_medicamento_o_activo_count": int(sum_cnt[0]["total"]),
+        "modulo5_auditorias_total_desde_hora_count": int(sum_all_cnt[0]["total"]),
+        "modulo5_auditorias_filas": sum_rows,
+    }
+
+
+def main() -> None:
+    cfg = cargar_env_test()
+    base_url = cfg["TEST_BASE_URL"].rstrip("/")
+    secret = cfg["TEST_SANDBOX_SECRET"]
+    email = cfg["TEST_ADMIN_EMAIL"]
+    pwd = cfg["TEST_ADMIN_PASSWORD"]
+    activo_id = int(cfg.get("TEST_M05_ACTIVO_ID") or ACTIVO_ID)
+
+    run1_id = f"diag-g18-a4-r1-{uuid.uuid4().hex[:8]}"
+    estado_r1: dict[str, Any] = {}
+
+    def _cuerpo_r1(s1: requests.Session) -> dict[str, Any]:
+        login_sandbox_r2(s1, base_url, email, pwd)
+        now_row = query_sandbox(
+            s1, base_url, "SELECT to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS ahora_utc"
+        )
+        hora_utc = str(now_row[0]["ahora_utc"])
+
+        antes = consultar_tablas_auditoria(s1, base_url, hora_utc, activo_id)
+
+        r_fases = s1.get(f"{base_url}/activos-biologicos/{activo_id}/fases", timeout=45)
+        if r_fases.status_code == 200:
+            activas = [f for f in (r_fases.json().get("fases") or []) if f.get("es_activa") is True]
+            if not activas:
+                s1.post(
+                    f"{base_url}/activos-biologicos/{activo_id}/fases",
+                    json={"id_ciclo_productiva": CICLO_ID, "motivo_cambio": "Diagnostico A4 G18"},
+                    timeout=45,
+                )
+
+        hoy_bogota = datetime.now(_ZONA_BOGOTA).date()
+        payload = {
+            "id_activo_biologico": activo_id,
+            "nombre_medicamento": f"DiagA4Med-{uuid.uuid4().hex[:6]}",
+            "fecha_aplicacion": hoy_bogota.isoformat(),
+            "hora_aplicacion": "11:15",
+            "via_administracion": "INTRAMUSCULAR",
+            "dosis_aplicada": 0.0004,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 0,
+            "motivo_aplicacion": "Diagnostico A4 G18 reproduccion controlada sin retiro",
+            "costo_unitario": 25000,
+            "nombre_veterinario": "Dra. Ana Veterinaria",
+            "id_evento_sanitario": None,
+        }
+        r_post = s1.post(f"{base_url}/suministros/medicamentos", json=payload, timeout=45)
+        post_info: dict[str, Any] = {
+            "status_code": r_post.status_code,
+            "x_request_id": r_post.headers.get("X-Request-ID"),
+            "error_code": None,
+            "message": None,
+        }
+        try:
+            body = r_post.json()
+            if isinstance(body, dict):
+                post_info["error_code"] = body.get("error_code") or body.get("code")
+                post_info["message"] = body.get("message") or body.get("detail")
+        except Exception:
+            post_info["message"] = r_post.text[:250]
+
+        durante = None
+        if 500 <= r_post.status_code < 600:
+            durante = consultar_tablas_auditoria(s1, base_url, hora_utc, activo_id)
+
+        return {
+            "run_id": run1_id,
+            "activo_id": activo_id,
+            "hora_utc_anotada": hora_utc,
+            "antes": antes,
+            "post": post_info,
+            "durante": durante,
+        }
+
+    estado_r1, cierre_r1 = ejecutar_corrida_sandbox(base_url, secret, run1_id, _cuerpo_r1)
+    estado_r1["cierre"] = cierre_r1
+
+    resultado_final: dict[str, Any] = {"corrida_1": estado_r1, "corrida_2": None}
+
+    if 500 <= int(estado_r1["post"]["status_code"]) < 600:
+        run2_id = f"diag-g18-a4-r2-{uuid.uuid4().hex[:8]}"
+        hora_utc = estado_r1["hora_utc_anotada"]
+
+        def _cuerpo_r2(s2: requests.Session) -> dict[str, Any]:
+            login_sandbox_r2(s2, base_url, email, pwd)
+            despues = consultar_tablas_auditoria(s2, base_url, hora_utc, activo_id)
+            return {"run_id": run2_id, "despues": despues}
+
+        estado_r2, cierre_r2 = ejecutar_corrida_sandbox(base_url, secret, run2_id, _cuerpo_r2)
+        estado_r2["cierre"] = cierre_r2
+        resultado_final["corrida_2"] = estado_r2
+
+    out_path = Path(__file__).resolve().parent / "a4_resultado.json"
+    out_path.write_text(json.dumps(resultado_final, indent=2, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
+    print(json.dumps(resultado_final, indent=2, ensure_ascii=False, default=str))
+
+
+if __name__ == "__main__":
+    main()
+
+--------------------------------------------------------------------------------
+ANEXO 2: diagnostico_b4_fin_retiro.py (ejecutado; exit code 0)
+--------------------------------------------------------------------------------
+"""Diagnostico B4 (TC-M05-G18): prueba aislada de NotificacionMedicamentoEmailAdapter (sin BD ni SMTP)."""
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+import sys
+from types import SimpleNamespace
+from typing import Any, Optional
+
+REPO_ROOT = Path(__file__).resolve().parents[7]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+import src.supplies.infrastructure.adapters.notificacion_medicamento_email_adapter as adapter_mod
+from src.supplies.infrastructure.adapters.notificacion_medicamento_email_adapter import (
+    NotificacionMedicamentoEmailAdapter,
+)
+
+ACTIVO_ID = 853
+VET_USER_ID = 301
+PRODUCTOR_CORREO = "productor.g18@finca.example"
+VET_CORREO = "veterinario.g18@finca.example"
+
+
+class _FakeResult:
+    def __init__(self, row: Optional[Any]) -> None:
+        self._row = row
+
+    def fetchone(self) -> Optional[Any]:
+        return self._row
+
+
+class _FakeSessionSinBD:
+    """Sesion falsa con las mismas respuestas SQL usadas en TC-M05-G18."""
+
+    def execute(self, stmt: Any, _params: Optional[dict[str, Any]] = None) -> _FakeResult:
+        sql = str(stmt)
+        if "modulo2.activos_biologicos" in sql:
+            return _FakeResult(
+                SimpleNamespace(nombre="Carlos", apellidos="Productor", correo_electronico=PRODUCTOR_CORREO)
+            )
+        if "modulo1.usuarios" in sql:
+            return _FakeResult(
+                SimpleNamespace(nombre="Dra. Ana", apellidos="Veterinaria", correo_electronico=VET_CORREO)
+            )
+        return _FakeResult(None)
+
+
+def main() -> None:
+    enviados_fin: list[dict[str, str]] = []
+    enviados_inicio: list[dict[str, str]] = []
+    bucket_actual = enviados_fin
+
+    def _fake_send_email(*, to: str, subject: str, html_body: str) -> None:
+        bucket_actual.append({"to": to, "subject": subject, "len_html": str(len(html_body))})
+
+    orig_send = adapter_mod.send_email
+    adapter_mod.send_email = _fake_send_email
+    try:
+        adapter = NotificacionMedicamentoEmailAdapter(_FakeSessionSinBD())  # type: ignore[arg-type]
+
+        bucket_actual = enviados_fin
+        adapter.notificar_fin_retiro(id_activo=ACTIVO_ID, fecha_fin_retiro=date(2026, 11, 10))
+
+        bucket_actual = enviados_inicio
+        adapter.notificar_inicio_retiro(
+            id_activo=ACTIVO_ID,
+            id_usuario_veterinario=VET_USER_ID,
+            nombre_medicamento="Oxitetraciclina-20",
+            fecha_fin_retiro=date(2026, 11, 14),
+        )
+    finally:
+        adapter_mod.send_email = orig_send
+
+    print(f"notificar_fin_retiro destinatarios={[x['to'] for x in enviados_fin]} detalle={enviados_fin}")
+    print(f"notificar_inicio_retiro destinatarios={[x['to'] for x in enviados_inicio]} detalle={enviados_inicio}")
+
+
+if __name__ == "__main__":
+    main()
+
+--------------------------------------------------------------------------------
+ANEXO 3: diagnostico_b3_vet_poblado.py (preparado; no ejecutado por ReadTimeout TEST)
+--------------------------------------------------------------------------------
+"""Diagnostico B3 (TC-M05-G18): conteo en TEST de registros de medicamento con retiro y veterinario."""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import time
+from typing import Any
+import uuid
+
+from dotenv import dotenv_values
+import requests
+
+
+def cargar_env_test() -> dict[str, str]:
+    repo = Path(__file__).resolve().parents[7]
+    env_path = repo / ".env.test"
+    vals = dotenv_values(env_path)
+    cfg: dict[str, str] = {}
+    for k in ("TEST_BASE_URL", "TEST_SANDBOX_SECRET", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD"):
+        v = (os.environ.get(k) or vals.get(k) or "").strip()
+        if v:
+            cfg[k] = v
+    return cfg
+
+
+def login_sandbox_r2(session: requests.Session, base_url: str, email: str, pwd: str) -> None:
+    inicio = time.monotonic()
+    for _ in range(7):
+        try:
+            resp = session.post(
+                f"{base_url}/sesiones/",
+                json={"correo_electronico": email, "contrasena": pwd},
+                timeout=90,
+            )
+            if resp.status_code in (423, 429, 502, 503, 504) and (time.monotonic() - inicio) < 200:
+                time.sleep(30)
+                continue
+        except requests.RequestException:
+            if (time.monotonic() - inicio) < 200:
+                time.sleep(30)
+                continue
+            raise
+        if resp.status_code != 200:
+            raise RuntimeError(f"Login Admin fallo HTTP {resp.status_code}")
+        token = (resp.json() or {}).get("token")
+        if not token:
+            raise RuntimeError("Login Admin no devolvio token")
+        session.headers["Authorization"] = f"Bearer {token}"
+        return
+    raise RuntimeError("Login Admin agoto reintentos")
+
+
+def main() -> None:
+    cfg = cargar_env_test()
+    base_url = cfg["TEST_BASE_URL"].rstrip("/")
+    secret = cfg["TEST_SANDBOX_SECRET"]
+    email = cfg["TEST_ADMIN_EMAIL"]
+    pwd = cfg["TEST_ADMIN_PASSWORD"]
+
+    run_id = f"diag-g18-b3-{uuid.uuid4().hex[:8]}"
+    session = requests.Session()
+    session.headers.update(
+        {
+            "X-Test-Run-Id": run_id,
+            "X-Sandbox-Secret": secret,
+            "X-Zona-Horaria": "America/Bogota",
+        }
+    )
+
+    exc_capturada: BaseException | None = None
+    resultado: dict[str, Any] = {}
+    cierre = "NO_INICIADO"
+    try:
+        login_sandbox_r2(session, base_url, email, pwd)
+        sql = (
+            "SELECT "
+            "count(*) AS total_validados_con_retiro, "
+            "count(id_usuario_veterinario) AS con_id_usuario_veterinario, "
+            "count(*) - count(id_usuario_veterinario) AS sin_id_usuario_veterinario "
+            "FROM modulo5.registros_medicamentos "
+            "WHERE estado_registro = 'VALIDADO' AND fecha_fin_retiro IS NOT NULL"
+        )
+        r_q = session.post(f"{base_url}/test-control/query", json={"query": sql}, timeout=45)
+        if r_q.status_code != 200:
+            raise RuntimeError(f"/test-control/query HTTP {r_q.status_code}: {r_q.text[:250]}")
+        rows = (r_q.json() or {}).get("data") or []
+        resultado = {"run_id": run_id, "conteos": rows[0] if rows else {}}
+    except BaseException as exc:
+        exc_capturada = exc
+    finally:
+        try:
+            r_del = session.delete(f"{base_url}/test-control/runs/{run_id}", timeout=45)
+            cierre = f"HTTP {r_del.status_code}"
+        except Exception as exc_del:
+            cierre = f"ERROR {type(exc_del).__name__}: {exc_del}"
+        finally:
+            session.close()
+        if exc_capturada is not None:
+            raise RuntimeError(f"Error en {run_id} (cierre={cierre}): {exc_capturada}") from exc_capturada
+
+    resultado["cierre"] = cierre
+    out_path = Path(__file__).resolve().parent / "b3_resultado.json"
+    out_path.write_text(json.dumps(resultado, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps(resultado, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

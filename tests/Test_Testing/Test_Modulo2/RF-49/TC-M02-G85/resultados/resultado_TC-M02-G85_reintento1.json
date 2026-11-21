@@ -1,0 +1,32 @@
+{
+  "tc": "TC-M02-G85",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-15",
+  "run_id": "G85-REEVAL-V2-20260915-165000",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-146: Rechazar asociación a activo en BAJA",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: ACTIVO_EN_BAJA",
+      "obtenido": "HTTP 422 Unprocessable Entity, error_code: ACTIVO_EN_BAJA sobre activo 10",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G85-REEVAL-V2-20260915-165000/reporte_v2.html"
+    },
+    {
+      "paso": "TC-M02-147: Rechazar asociación entre fincas distintas",
+      "esperado": "HTTP 409 Conflict, error_code: INFRAESTRUCTURA_INCOMPATIBLE",
+      "obtenido": "HTTP 409 Conflict, error_code: INFRAESTRUCTURA_INCOMPATIBLE entre activo 108 (Finca 1) y sensor 8 (Finca 2)",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G85-REEVAL-V2-20260915-165000/reporte_v2.html"
+    },
+    {
+      "paso": "TC-M02-148: Rechazar incompatibilidad de especie sensor-activo",
+      "esperado": "HTTP 400 Bad Request con mensaje de incompatibilidad biológica (RF-49 Restricción 3 / FA-04)",
+      "obtenido": "HTTP 409 Conflict: enmascaramiento territorial (activo 279 Finca 57 vs sensor 1 Finca 1) y ausencia de modelo de datos / regla de especie en backend (gap confirmado commit 893048287)",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G85-REEVAL-V2-20260915-165000/reporte_v2.html",
+      "nota_qa": "Bloqueo confirmado en V2 por incumplimiento de requisito contractual explícito. El backend no validaba compatibilidad de especie."
+    }
+  ]
+}

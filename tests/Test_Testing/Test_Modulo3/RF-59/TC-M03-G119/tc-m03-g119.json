@@ -1,0 +1,477 @@
+{
+  "info": {
+    "name": "TC-M03-G119 - Resumen estadistico por variable del historial de telemetria: exactitud y completitud",
+    "description": "RF-59 CU04 sobre GET /iot/monitoreo/historial, bloque estadisticas. (1) TC-M03-239: para tres conjuntos de lecturas existentes de TEST (sensor 467, sensor 545 y Humedad Relativa; todos caben en una pagina) calcula a mano minimo, maximo, promedio y conteo por variable y los compara con el resumen. No se crea el conjunto controlado 10, 20 y 30 porque exige escribir lecturas; el paso queda como no concluyente. (2) TC-M03-240: con incluir_alertas=true revisa que el resumen traiga desviacion_estandar, que total_alertas_en_periodo refleje las alertas del periodo, que los periodos sin datos se informen (vacios_temporales) y que el porcentaje fuera de rango se calcule contra los umbrales y no contra el estado de calidad. Solo GET. Las claves no se guardan en este archivo: correr_newman.ps1 pide correo y contrasena del Administrador. Ejecucion (desde tests\\Test_Testing): .\\correr_newman.ps1 -Caso G119 -Rf RF-59. Ambiente: solo TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": ""
+    },
+    {
+      "key": "contrasena_admin",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. Exactitud de minimo, maximo y promedio (TC-M03-239)",
+      "item": [
+        {
+          "name": "1.1 Sensor 467 (250 lecturas, 20/10 a 22/10): minimo, maximo y promedio (TC-M03-239)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-20&fecha_fin=2026-10-22&sensor_id=467&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G119 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const est = Array.isArray(J.estadisticas) ? J.estadisticas : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const grupos = {};",
+                  "items.forEach(function (i) { const v = (i.valor_ajustado !== null && i.valor_ajustado !== undefined) ? Number(i.valor_ajustado) : Number(i.valor); (grupos[i.tipo_variable] = grupos[i.tipo_variable] || []).push({ v: v, i: i }); });",
+                  "const calc = {}; Object.keys(grupos).forEach(function (k) { const vs = grupos[k].map(function (x) { return x.v; }).filter(function (x) { return isFinite(x); }); calc[k] = { n: grupos[k].length, min: Math.min.apply(null, vs), max: Math.max.apply(null, vs), prom: vs.reduce(function (a, b) { return a + b; }, 0) / vs.length }; });",
+                  "pm.test('El conjunto cabe en una pagina para calcular a mano (' + J.total_encontrado + ' lecturas)', function () { pm.expect(J.total_encontrado).to.be.above(0); pm.expect(items.length, 'items vs total_encontrado').to.eql(J.total_encontrado); });",
+                  "Object.keys(calc).forEach(function (k) {",
+                  "  const r = est.find(function (s) { return s.tipo_variable === k; });",
+                  "  const c = calc[k];",
+                  "  pm.test(k + ': resumen coincide con el calculo manual (minimo ' + c.min + ', maximo ' + c.max + ', promedio ' + c.prom.toFixed(4) + ', ' + c.n + ' lecturas)', function () {",
+                  "    pm.expect(r, 'sin resumen para ' + k).to.be.ok;",
+                  "    pm.expect(Number(r.valor_minimo), 'valor_minimo ' + r.valor_minimo).to.be.closeTo(c.min, 0.0001);",
+                  "    pm.expect(Number(r.valor_maximo), 'valor_maximo ' + r.valor_maximo).to.be.closeTo(c.max, 0.0001);",
+                  "    pm.expect(Number(r.valor_promedio), 'valor_promedio ' + r.valor_promedio).to.be.closeTo(c.prom, 0.001);",
+                  "    pm.expect(r.total_lecturas, 'total_lecturas').to.eql(c.n); });",
+                  "});",
+                  "pm.test('Hay un resumen por cada variable devuelta y ninguno de mas', function () { pm.expect(est.map(function (s) { return s.tipo_variable; }).sort()).to.eql(Object.keys(calc).sort()); });",
+                  "console.log('[G119-1.1][OBSERVADO] calculo manual=' + JSON.stringify(calc) + ' resumen=' + JSON.stringify(est));",
+                  "",
+                  "pm.test.skip('Conjunto controlado 10, 20 y 30: NO CONCLUYENTE, la prueba usa lecturas existentes de TEST porque crear lecturas requiere escribir datos');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Sensor 545 (8 lecturas, 18/10 a 25/10): minimo, maximo y promedio (TC-M03-239)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&sensor_id=545&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G119 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const est = Array.isArray(J.estadisticas) ? J.estadisticas : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const grupos = {};",
+                  "items.forEach(function (i) { const v = (i.valor_ajustado !== null && i.valor_ajustado !== undefined) ? Number(i.valor_ajustado) : Number(i.valor); (grupos[i.tipo_variable] = grupos[i.tipo_variable] || []).push({ v: v, i: i }); });",
+                  "const calc = {}; Object.keys(grupos).forEach(function (k) { const vs = grupos[k].map(function (x) { return x.v; }).filter(function (x) { return isFinite(x); }); calc[k] = { n: grupos[k].length, min: Math.min.apply(null, vs), max: Math.max.apply(null, vs), prom: vs.reduce(function (a, b) { return a + b; }, 0) / vs.length }; });",
+                  "pm.test('El conjunto cabe en una pagina para calcular a mano (' + J.total_encontrado + ' lecturas)', function () { pm.expect(J.total_encontrado).to.be.above(0); pm.expect(items.length, 'items vs total_encontrado').to.eql(J.total_encontrado); });",
+                  "Object.keys(calc).forEach(function (k) {",
+                  "  const r = est.find(function (s) { return s.tipo_variable === k; });",
+                  "  const c = calc[k];",
+                  "  pm.test(k + ': resumen coincide con el calculo manual (minimo ' + c.min + ', maximo ' + c.max + ', promedio ' + c.prom.toFixed(4) + ', ' + c.n + ' lecturas)', function () {",
+                  "    pm.expect(r, 'sin resumen para ' + k).to.be.ok;",
+                  "    pm.expect(Number(r.valor_minimo), 'valor_minimo ' + r.valor_minimo).to.be.closeTo(c.min, 0.0001);",
+                  "    pm.expect(Number(r.valor_maximo), 'valor_maximo ' + r.valor_maximo).to.be.closeTo(c.max, 0.0001);",
+                  "    pm.expect(Number(r.valor_promedio), 'valor_promedio ' + r.valor_promedio).to.be.closeTo(c.prom, 0.001);",
+                  "    pm.expect(r.total_lecturas, 'total_lecturas').to.eql(c.n); });",
+                  "});",
+                  "pm.test('Hay un resumen por cada variable devuelta y ninguno de mas', function () { pm.expect(est.map(function (s) { return s.tipo_variable; }).sort()).to.eql(Object.keys(calc).sort()); });",
+                  "console.log('[G119-1.2][OBSERVADO] calculo manual=' + JSON.stringify(calc) + ' resumen=' + JSON.stringify(est));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Humedad Relativa (185 lecturas, 18/10 a 25/10): minimo, maximo y promedio (TC-M03-239)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&tipo_variable=Humedad%20Relativa&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G119 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const est = Array.isArray(J.estadisticas) ? J.estadisticas : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const grupos = {};",
+                  "items.forEach(function (i) { const v = (i.valor_ajustado !== null && i.valor_ajustado !== undefined) ? Number(i.valor_ajustado) : Number(i.valor); (grupos[i.tipo_variable] = grupos[i.tipo_variable] || []).push({ v: v, i: i }); });",
+                  "const calc = {}; Object.keys(grupos).forEach(function (k) { const vs = grupos[k].map(function (x) { return x.v; }).filter(function (x) { return isFinite(x); }); calc[k] = { n: grupos[k].length, min: Math.min.apply(null, vs), max: Math.max.apply(null, vs), prom: vs.reduce(function (a, b) { return a + b; }, 0) / vs.length }; });",
+                  "pm.test('El conjunto cabe en una pagina para calcular a mano (' + J.total_encontrado + ' lecturas)', function () { pm.expect(J.total_encontrado).to.be.above(0); pm.expect(items.length, 'items vs total_encontrado').to.eql(J.total_encontrado); });",
+                  "Object.keys(calc).forEach(function (k) {",
+                  "  const r = est.find(function (s) { return s.tipo_variable === k; });",
+                  "  const c = calc[k];",
+                  "  pm.test(k + ': resumen coincide con el calculo manual (minimo ' + c.min + ', maximo ' + c.max + ', promedio ' + c.prom.toFixed(4) + ', ' + c.n + ' lecturas)', function () {",
+                  "    pm.expect(r, 'sin resumen para ' + k).to.be.ok;",
+                  "    pm.expect(Number(r.valor_minimo), 'valor_minimo ' + r.valor_minimo).to.be.closeTo(c.min, 0.0001);",
+                  "    pm.expect(Number(r.valor_maximo), 'valor_maximo ' + r.valor_maximo).to.be.closeTo(c.max, 0.0001);",
+                  "    pm.expect(Number(r.valor_promedio), 'valor_promedio ' + r.valor_promedio).to.be.closeTo(c.prom, 0.001);",
+                  "    pm.expect(r.total_lecturas, 'total_lecturas').to.eql(c.n); });",
+                  "});",
+                  "pm.test('Hay un resumen por cada variable devuelta y ninguno de mas', function () { pm.expect(est.map(function (s) { return s.tipo_variable; }).sort()).to.eql(Object.keys(calc).sort()); });",
+                  "console.log('[G119-1.3][OBSERVADO] calculo manual=' + JSON.stringify(calc) + ' resumen=' + JSON.stringify(est));",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Completitud del resumen (TC-M03-240)",
+      "item": [
+        {
+          "name": "2.1 Campos del resumen estadistico con incluir_alertas=true (TC-M03-240)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-20&fecha_fin=2026-10-22&sensor_id=467&incluir_alertas=true&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G119 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const est = Array.isArray(J.estadisticas) ? J.estadisticas : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Hay resumen estadistico para revisar', function () { pm.expect(est.length).to.be.above(0); });",
+                  "const r0 = est[0] || {};",
+                  "pm.test('El resumen incluye desviacion_estandar (campos recibidos: ' + Object.keys(r0).join(', ') + ')', function () { pm.expect(r0, 'campos').to.have.property('desviacion_estandar'); });",
+                  "pm.test('El resumen incluye valor_minimo, valor_maximo, valor_promedio, pct_dentro_rango y pct_fuera_rango', function () { ['valor_minimo', 'valor_maximo', 'valor_promedio', 'pct_dentro_rango', 'pct_fuera_rango'].forEach(function (k) { pm.expect(r0, 'falta ' + k).to.have.property(k); }); });",
+                  "const conAlerta = items.filter(function (i) { return i.id_alerta != null; });",
+                  "const sumaAlertas = est.reduce(function (a, s) { return a + Number(s.total_alertas_en_periodo || 0); }, 0);",
+                  "pm.test('total_alertas_en_periodo refleja las alertas del periodo (' + conAlerta.length + ' lecturas con alerta en el periodo, resumen = ' + sumaAlertas + ')', function () { pm.expect(conAlerta.length, 'el periodo no tiene alertas para comparar').to.be.above(0); pm.expect(sumaAlertas, 'total_alertas_en_periodo').to.be.at.least(1); });",
+                  "pm.test('Los periodos sin datos se informan con sus campos (vacios_temporales: sensor_id, tipo_variable, desde, hasta, duracion_min, frecuencia_esperada_min)', function () { pm.expect(J.vacios_temporales, 'vacios_temporales').to.be.an('array'); J.vacios_temporales.forEach(function (v) { ['sensor_id', 'tipo_variable', 'desde', 'hasta', 'duracion_min', 'frecuencia_esperada_min'].forEach(function (k) { pm.expect(v, 'falta ' + k).to.have.property(k); }); }); });",
+                  "console.log('[G119-2.1][OBSERVADO] resumen=' + JSON.stringify(est) + ' vacios_temporales=' + JSON.stringify(J.vacios_temporales));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Sensor 467: porcentaje dentro y fuera de rango frente a los umbrales y no a la calidad del dato (TC-M03-240)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-20&fecha_fin=2026-10-22&sensor_id=467&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G119 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const est = Array.isArray(J.estadisticas) ? J.estadisticas : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const grupos = {}; items.forEach(function (i) { (grupos[i.tipo_variable] = grupos[i.tipo_variable] || []).push(i); });",
+                  "Object.keys(grupos).forEach(function (k) {",
+                  "  const ls = grupos[k]; const r = est.find(function (s) { return s.tipo_variable === k; }) || {};",
+                  "  const fuera = ls.filter(function (i) { return i.estado_semaforo_historico === 'ROJO' || i.estado_semaforo_historico === 'AMARILLO'; }).length;",
+                  "  const noValidas = ls.filter(function (i) { return i.estado_calidad !== 'LECTURA_VALIDA'; }).length;",
+                  "  const pctUmbral = Math.round(fuera / ls.length * 10000) / 100, pctCalidad = Math.round(noValidas / ls.length * 10000) / 100;",
+                  "  const sem = {}; ls.forEach(function (i) { sem[i.estado_semaforo_historico] = (sem[i.estado_semaforo_historico] || 0) + 1; });",
+                  "  console.log('[G119-2.2][OBSERVADO] ' + k + ': semaforos=' + JSON.stringify(sem) + ' no_validas=' + noValidas + ' pct_fuera_rango resumen=' + r.pct_fuera_rango + ' pct_dentro_rango=' + r.pct_dentro_rango + ' (fuera de umbral=' + pctUmbral + '%, no validas=' + pctCalidad + '%)');",
+                  "  if (fuera === 0 || pctUmbral === pctCalidad) { pm.test.skip(k + ': NO CONCLUYENTE, en este conjunto no se distingue calidad de umbral'); }",
+                  "  else { pm.test(k + ': pct_fuera_rango = ' + pctUmbral + '% de lecturas fuera de umbral (ROJO o AMARILLO) y no ' + pctCalidad + '% de lecturas no validas; el resumen informa ' + r.pct_fuera_rango + '%', function () { pm.expect(Number(r.pct_fuera_rango), 'pct_fuera_rango').to.be.closeTo(pctUmbral, 0.05); }); }",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Sensor 76: porcentaje dentro y fuera de rango frente a los umbrales y no a la calidad del dato (TC-M03-240)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&sensor_id=76&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G119 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const est = Array.isArray(J.estadisticas) ? J.estadisticas : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const grupos = {}; items.forEach(function (i) { (grupos[i.tipo_variable] = grupos[i.tipo_variable] || []).push(i); });",
+                  "Object.keys(grupos).forEach(function (k) {",
+                  "  const ls = grupos[k]; const r = est.find(function (s) { return s.tipo_variable === k; }) || {};",
+                  "  const fuera = ls.filter(function (i) { return i.estado_semaforo_historico === 'ROJO' || i.estado_semaforo_historico === 'AMARILLO'; }).length;",
+                  "  const noValidas = ls.filter(function (i) { return i.estado_calidad !== 'LECTURA_VALIDA'; }).length;",
+                  "  const pctUmbral = Math.round(fuera / ls.length * 10000) / 100, pctCalidad = Math.round(noValidas / ls.length * 10000) / 100;",
+                  "  const sem = {}; ls.forEach(function (i) { sem[i.estado_semaforo_historico] = (sem[i.estado_semaforo_historico] || 0) + 1; });",
+                  "  console.log('[G119-2.2][OBSERVADO] ' + k + ': semaforos=' + JSON.stringify(sem) + ' no_validas=' + noValidas + ' pct_fuera_rango resumen=' + r.pct_fuera_rango + ' pct_dentro_rango=' + r.pct_dentro_rango + ' (fuera de umbral=' + pctUmbral + '%, no validas=' + pctCalidad + '%)');",
+                  "  if (fuera === 0 || pctUmbral === pctCalidad) { pm.test.skip(k + ': NO CONCLUYENTE, en este conjunto no se distingue calidad de umbral'); }",
+                  "  else { pm.test(k + ': pct_fuera_rango = ' + pctUmbral + '% de lecturas fuera de umbral (ROJO o AMARILLO) y no ' + pctCalidad + '% de lecturas no validas; el resumen informa ' + r.pct_fuera_rango + '%', function () { pm.expect(Number(r.pct_fuera_rango), 'pct_fuera_rango').to.be.closeTo(pctUmbral, 0.05); }); }",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 Sensor 90: porcentaje dentro y fuera de rango frente a los umbrales y no a la calidad del dato (TC-M03-240)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&sensor_id=90&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G119 2.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const est = Array.isArray(J.estadisticas) ? J.estadisticas : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const grupos = {}; items.forEach(function (i) { (grupos[i.tipo_variable] = grupos[i.tipo_variable] || []).push(i); });",
+                  "Object.keys(grupos).forEach(function (k) {",
+                  "  const ls = grupos[k]; const r = est.find(function (s) { return s.tipo_variable === k; }) || {};",
+                  "  const fuera = ls.filter(function (i) { return i.estado_semaforo_historico === 'ROJO' || i.estado_semaforo_historico === 'AMARILLO'; }).length;",
+                  "  const noValidas = ls.filter(function (i) { return i.estado_calidad !== 'LECTURA_VALIDA'; }).length;",
+                  "  const pctUmbral = Math.round(fuera / ls.length * 10000) / 100, pctCalidad = Math.round(noValidas / ls.length * 10000) / 100;",
+                  "  const sem = {}; ls.forEach(function (i) { sem[i.estado_semaforo_historico] = (sem[i.estado_semaforo_historico] || 0) + 1; });",
+                  "  console.log('[G119-2.2][OBSERVADO] ' + k + ': semaforos=' + JSON.stringify(sem) + ' no_validas=' + noValidas + ' pct_fuera_rango resumen=' + r.pct_fuera_rango + ' pct_dentro_rango=' + r.pct_dentro_rango + ' (fuera de umbral=' + pctUmbral + '%, no validas=' + pctCalidad + '%)');",
+                  "  if (fuera === 0 || pctUmbral === pctCalidad) { pm.test.skip(k + ': NO CONCLUYENTE, en este conjunto no se distingue calidad de umbral'); }",
+                  "  else { pm.test(k + ': pct_fuera_rango = ' + pctUmbral + '% de lecturas fuera de umbral (ROJO o AMARILLO) y no ' + pctCalidad + '% de lecturas no validas; el resumen informa ' + r.pct_fuera_rango + '%', function () { pm.expect(Number(r.pct_fuera_rango), 'pct_fuera_rango').to.be.closeTo(pctUmbral, 0.05); }); }",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5 Sensor 545: porcentaje dentro y fuera de rango frente a los umbrales y no a la calidad del dato (TC-M03-240)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&sensor_id=545&por_pagina=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G119 2.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const est = Array.isArray(J.estadisticas) ? J.estadisticas : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const grupos = {}; items.forEach(function (i) { (grupos[i.tipo_variable] = grupos[i.tipo_variable] || []).push(i); });",
+                  "Object.keys(grupos).forEach(function (k) {",
+                  "  const ls = grupos[k]; const r = est.find(function (s) { return s.tipo_variable === k; }) || {};",
+                  "  const fuera = ls.filter(function (i) { return i.estado_semaforo_historico === 'ROJO' || i.estado_semaforo_historico === 'AMARILLO'; }).length;",
+                  "  const noValidas = ls.filter(function (i) { return i.estado_calidad !== 'LECTURA_VALIDA'; }).length;",
+                  "  const pctUmbral = Math.round(fuera / ls.length * 10000) / 100, pctCalidad = Math.round(noValidas / ls.length * 10000) / 100;",
+                  "  const sem = {}; ls.forEach(function (i) { sem[i.estado_semaforo_historico] = (sem[i.estado_semaforo_historico] || 0) + 1; });",
+                  "  console.log('[G119-2.2][OBSERVADO] ' + k + ': semaforos=' + JSON.stringify(sem) + ' no_validas=' + noValidas + ' pct_fuera_rango resumen=' + r.pct_fuera_rango + ' pct_dentro_rango=' + r.pct_dentro_rango + ' (fuera de umbral=' + pctUmbral + '%, no validas=' + pctCalidad + '%)');",
+                  "  if (fuera === 0 || pctUmbral === pctCalidad) { pm.test.skip(k + ': NO CONCLUYENTE, en este conjunto no se distingue calidad de umbral'); }",
+                  "  else { pm.test(k + ': pct_fuera_rango = ' + pctUmbral + '% de lecturas fuera de umbral (ROJO o AMARILLO) y no ' + pctCalidad + '% de lecturas no validas; el resumen informa ' + r.pct_fuera_rango + '%', function () { pm.expect(Number(r.pct_fuera_rango), 'pct_fuera_rango').to.be.closeTo(pctUmbral, 0.05); }); }",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo:",
+          "// se pasa al ejecutar:  newman run <coleccion> --env-var \"sandbox_secret=<secreto>\"",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (!secreto) {",
+          "  // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que",
+          "  // NADA llegue a TEST (sin sandbox el login dejaria una sesion permanente).",
+          "  console.error('Falta sandbox_secret: ejecutar con --env-var sandbox_secret=<secreto>. Peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  let runId = pm.variables.get('run_id');",
+          "  if (!runId || runId.trim() === '') { runId = 'test-' + pm.variables.replaceIn('{{$guid}}'); pm.collectionVariables.set('run_id', runId); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: runId });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}"
+        ]
+      }
+    }
+  ]
+}

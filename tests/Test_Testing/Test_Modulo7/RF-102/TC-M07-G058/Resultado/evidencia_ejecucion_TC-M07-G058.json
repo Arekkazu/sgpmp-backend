@@ -1,0 +1,135 @@
+{
+  "caso": "TC-M07-G058",
+  "rf": "RF-102",
+  "fecha_ejecucion_utc": "2026-11-18T03:31:32.363431+00:00",
+  "estado_final": "RECHAZADO",
+  "escenarios": [
+    {
+      "id": "E1",
+      "nombre": "Políticas de retención 5 y 10 años",
+      "caso_original": "TC-M07-102-015",
+      "estado": "RECHAZADO",
+      "validacion": "Existencia de políticas 5y/10y implementadas",
+      "esperado": "Política ejecutables: 5 años generales, 10 años AAEF",
+      "obtenido": "Solo requisito/caso de prueba; sin configuración, columnas de vencimiento, procedimientos ni reglas de eliminación/exclusión AAEF en M07",
+      "evidencia": "evidencia_e1_retencion_TC-M07-G058.json",
+      "pasos": [
+        "Escaneo src/accounting_integration + migración 94b14a6931d6",
+        "Coincidencias retención/archivado filtradas: 0",
+        "DDL: hash_integridad NOT NULL + triggers inmutabilidad; sin retencion_hasta / fecha_expiracion",
+        "SQL local: sin jobs cron M07 de retención"
+      ],
+      "observaciones": "Clasificado RECHAZADO: RF-102 exige retención y no está implementada. No es NO APLICA (el requisito sí corresponde al alcance)."
+    },
+    {
+      "id": "E2",
+      "nombre": "Archivado automático",
+      "caso_original": "TC-M07-102-015",
+      "estado": "RECHAZADO",
+      "validacion": "Proceso automático de archivado M07",
+      "esperado": "Job/worker/servicio que archive registros según política",
+      "obtenido": "No hay workers/cron/tareas M07 de archivado; repositorio solo INSERT/SELECT; pg_cron local=False; jobs filtrados vacíos/no aplicables",
+      "evidencia": "evidencia_e2_archivado_TC-M07-G058.json",
+      "pasos": [
+        "Búsqueda archiv* / retention en accounting_integration → vacío útil",
+        "Catálogo SQL modulo7: vistas rf102 pero sin tabla de archivo",
+        "Contraste: modulo1.eventos_archivados existe (otro módulo, no RF-102)"
+      ],
+      "observaciones": "Archivado M07 ausente → RECHAZADO respecto al requisito obligatorio del caso."
+    },
+    {
+      "id": "E3",
+      "nombre": "Conservación / verificación de hash_integridad",
+      "caso_original": "TC-M07-102-015",
+      "estado": "APROBADO",
+      "validacion": "Hash presente, SHA-256, verificación en consulta actual",
+      "esperado": "Hash en registros; verificable; conservación tras archivado si existe",
+      "obtenido": "algoritmo_ok=True; api_n=160; integridad INTEGRO=160 CORRUPTO=0; pct_integro=100.0; conservación en archivado: NO EVALUABLE (no hay archivado)",
+      "evidencia": "evidencia_e3_hash_TC-M07-G058.json",
+      "pasos": [
+        "Propiedad EventoIntegracion.hash_integridad = SHA-256 de campos (sin el hash)",
+        "Migración: hash_integridad varchar(64) NOT NULL + CHECK ^[0-9a-f]{64}$",
+        "Use case consulta marca integridad INTEGRO/CORRUPTO al leer",
+        "Muestra TEST: 160 registros, corrupto=0",
+        "No se alteraron registros reales para forzar corrupción"
+      ],
+      "observaciones": "APROBADO por integridad de registros actuales y algoritmo. No se afirma conservación durante archivado (mecanismo inexistente)."
+    },
+    {
+      "id": "E4",
+      "nombre": "Disponibilidad de registros históricos archivados",
+      "caso_original": "TC-M07-102-015",
+      "estado": "RECHAZADO",
+      "validacion": "Almacenamiento histórico + consulta de archivados",
+      "esperado": "Repositorio histórico consultable con ids/fechas/hashes",
+      "obtenido": "Solo existe consulta de registros actuales (GET /integracion/auditoria). No hay endpoint/tabla de archivados M07. Confundir actual≠histórico.",
+      "evidencia": "evidencia_e4_historicos_TC-M07-G058.json",
+      "pasos": [
+        "Router M07: GET /auditoria y /auditoria/exportar sobre la misma tabla",
+        "Sin rutas /historico ni /archivo",
+        "SQL: sin tablas eventos_integracion_archivo/historico en catálogo esperado"
+      ],
+      "observaciones": "RECHAZADO: requisito de histórico archivado no implementado."
+    },
+    {
+      "id": "E5",
+      "nombre": "Pruebas de antigüedad 5 y 10 años",
+      "caso_original": "TC-M07-102-015",
+      "estado": "BLOQUEADO",
+      "validacion": "Registros reales ge 5y / AAEF ge 10y consultables",
+      "esperado": "Existencia y recuperacion de registros con esa antiguedad",
+      "obtenido": "Registros API=160; min=2026-11-14 01:48:57.742013+00:00; max=2026-11-18 03:30:49.026617+00:00; ge_5y=0; aaef_ge_10y=0. Sin evidencia de plazos cumplidos (ausencia de vencidos ≠ retención implementada).",
+      "evidencia": "evidencia_e5_antiguedad_TC-M07-G058.json",
+      "pasos": [
+        "Export/consulta TEST sin modificar fechas",
+        "Conteo ge_5y=0, aaef_ge_10y=0",
+        "No se simularon fechas en BD compartida"
+      ],
+      "observaciones": "BLOQUEADO por falta de registros suficientemente antiguos en TEST. No se inventó histórico. Distinto de E1 (ausencia de implementación)."
+    },
+    {
+      "id": "E6",
+      "nombre": "Comportamiento ante fallos de archivado",
+      "caso_original": "TC-M07-102-015",
+      "estado": "NO APLICA",
+      "validacion": "Fallos de escritura/hash/reintento en archivado",
+      "esperado": "Manejo de fallos del proceso de archivado",
+      "obtenido": "No existe proceso de archivado M07 que pueda fallar",
+      "evidencia": "evidencia_e6_fallos_archivado_TC-M07-G058.json",
+      "pasos": [
+        "Confirmada ausencia de archivado en E2",
+        "No se construyó proceso ficticio ni mocks de un flujo inexistente"
+      ],
+      "observaciones": "NO APLICA: sin proceso de archivado no hay superficie de fallo que probar. La ausencia del proceso en sí está en E2=RECHAZADO."
+    }
+  ],
+  "diagnostico": {
+    "retencion_5y_10y": "NO_IMPLEMENTADA",
+    "archivado_automatico": "NO_IMPLEMENTADO",
+    "hash_pct_integro": 100.0,
+    "hash_algoritmo": "SHA-256",
+    "almacenamiento_historico": false,
+    "registros_api": 160,
+    "min_fecha": "2026-11-14T01:48:57.742013+00:00",
+    "max_fecha": "2026-11-18T03:30:49.026617+00:00",
+    "ge_5y": 0,
+    "aaef_ge_10y": 0,
+    "sql_local": false
+  },
+  "limitaciones": [
+    "SQL Docker local: rc=0; existe_eventos_integracion_local=False",
+    "Docker local sgpmp no tiene aplicada la migración RF-102 (sin eventos_integracion); SQL estructural/cron sí.",
+    "Datos de antigüedad/hash tomados de API TEST (solo lectura).",
+    "No se modificó backend ni G052–G057.",
+    "modulo1.eventos_archivados no se usa como evidencia de RF-102."
+  ],
+  "resumen": {
+    "aprobados": 1,
+    "rechazados": 3,
+    "bloqueados": 1,
+    "no_aplica": 1,
+    "estado_final": "RECHAZADO"
+  },
+  "consultas_sql": "consultas_sql_TC-M07-G058.sql",
+  "resultado_sql": "resultado_consultas_sql_TC-M07-G058.txt"
+}

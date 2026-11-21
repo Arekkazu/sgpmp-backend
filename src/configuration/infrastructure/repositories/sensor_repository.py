@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-11-01 | Arekkazu | RF-22: 409 si el nombre del sensor ya existe en el dispositivo     |
 """Implementación SQLAlchemy del puerto ``SensorRepository``."""
 from __future__ import annotations
 
@@ -9,6 +12,8 @@ from src.configuration.domain.entities.sensor import Sensor
 from src.configuration.domain.repositories.sensor_repository import SensorRepository
 from src.configuration.infrastructure.models.sensor_model import SensorModel
 from src.shared.db_error_translator import raise_from_db_error
+
+_NOMBRE_DUPLICADO = {"uq_sensores_nombre": "Ya existe un sensor con ese nombre en este dispositivo."}
 
 
 class SqlAlchemySensorRepository(SensorRepository):
@@ -42,7 +47,7 @@ class SqlAlchemySensorRepository(SensorRepository):
             self.db.flush()
             self.db.refresh(orm)
         except Exception as exc:
-            raise_from_db_error(exc, {})
+            raise_from_db_error(exc, _NOMBRE_DUPLICADO)
         return self._a_entidad(orm)
 
     def listar_por_dispositivo(self, id_dispositivo_iot: int) -> list[Sensor]:

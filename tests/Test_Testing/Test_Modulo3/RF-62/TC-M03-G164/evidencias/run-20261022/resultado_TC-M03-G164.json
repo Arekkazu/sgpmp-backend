@@ -1,0 +1,240 @@
+{
+    "tc":  "TC-M03-G164",
+    "summary":  {
+                    "total":  38,
+                    "ok":  30,
+                    "falla":  8,
+                    "veredicto":  "RECHAZADO",
+                    "bloqueo_externo":  null
+                },
+    "checkpoints":  [
+                        {
+                            "paso":  "NW-00-Setup-Login-Admin :: [TC-M03-300] Setup Login Administrador exitoso (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-01-PreflightA-Inventario :: [TC-M03-300] Preflight A: Descarga de dataset y construccion de oraculo (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-01-PreflightA-Inventario :: [TC-M03-300] Preflight A: Descarga de dataset y construccion de oraculo (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-01-PreflightA-DB-Query-Count :: [TC-M03-300] Preflight A: Oraculo SQL via /test-control/query (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-03-PreflightB-Recalcular-Gating :: [TC-M03-300] Preflight B: Recalcular precondiciones de gating (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-03-PreflightB-Recalcular-Gating :: [TC-M03-300] Preflight B: Recalcular precondiciones de gating (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-301-Listar-Sin-Filtros :: [TC-M03-301] Estructura paginada y defaults (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-301-Listar-Sin-Filtros :: [TC-M03-301] Todos los campos de CalidadEvaluacion presentes en cada item",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-301-Listar-Sin-Filtros :: [TC-M03-301] Orden cronolÃƒÂ³gico descendente por timestamp_evaluacion",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-302-Detalle-Telemetria :: [TC-M03-302] Consulta por id_telemetria (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-302-Detalle-Telemetria :: [TC-M03-302][RNF-07/CA-15] Existencia de claves de metadatos requeridos",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-302-Detalle-Telemetria :: [TC-M03-302][RNF-07/CA-15] Valores no nulos y estructura de parametros aplicados",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-302-Detalle-Telemetria :: [TC-M03-302] Coherencia estricta de aptitud e indice",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-304-Filtrar-Sensor-Candidato :: [TC-M03-304] Aislamiento: 100% de items pertenecen al sensor y total coincide con oraculo",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-304-Aislamiento-Segundo-Sensor :: [TC-M03-304] Aislamiento cruzado respecto a segundo sensor",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-304-Paginacion-Combinada-Pag1 :: [TC-M03-304] Paginacion reducida Pagina 1 (por_pagina=3)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-304-Paginacion-Combinada-Pag2 :: [TC-M03-304] Paginacion reducida Pagina 2 y total consistente",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-305-Enum-INDETERMINADA :: [TC-M03-305] Filtrar por clasificacion=INDETERMINADA (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-305-Enum-APTO :: [TC-M03-305] Filtrar por clasificacion=APTO (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-305-Enum-APTO_CON_RESERVA :: [TC-M03-305] Filtrar por clasificacion=APTO_CON_RESERVA (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-305-Enum-NO_APTO :: [TC-M03-305] Filtrar por clasificacion=NO_APTO (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-305-Invalido-Rechazo :: [TC-M03-305] Rechazo de valor de enum invalido (espera 422)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-306-Rango-Fechas-Valido :: [TC-M03-306] Filtrado por rango temporal valido (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-306-Frontera-Exacta :: [TC-M03-306] Frontera exacta fecha_desde == fecha_hasta (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-306-Rango-Temporal-UTC :: [TC-M03-306] Equivalencia de rango temporal UTC (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-306-Fechas-Invertidas-Rechazo :: [TC-M03-306] Rechazo de fecha_desde \u003e fecha_hasta (espera 422)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-307-ACTIVA-Invalido :: [TC-M03-307] Rechazo de estado_evaluacion=ACTIVA invalido (espera 422)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-Limite-Maximo-200 :: [TC-M03-308] Limite maximo por_pagina=200 (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-Exceso-PorPagina-201 :: [TC-M03-308] Rechazo de por_pagina=201 (espera 4xx sin items)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-Exceso-PorPagina-201 :: [TC-M03-308] Exceso status coincide con status_validacion_esperado (422)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-Pagina-Cero-Rechazo :: [TC-M03-308] Rechazo de pagina=0 (espera 4xx sin items)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-Pagina-Cero-Rechazo :: [TC-M03-308] Pagina cero status coincide con status_validacion_esperado (422)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-PorPagina-Cero-Rechazo :: [TC-M03-308] Rechazo de por_pagina=0 (espera 4xx sin items)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-PorPagina-Cero-Rechazo :: [TC-M03-308] por_pagina=0 status coincide con status_validacion_esperado (422)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-Pagina-Mayor-Ultima :: [TC-M03-308] Pagina mayor a la ultima retorna items vacios y total intacto (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-TC-M03-308-Frontera-PorPagina-1 :: [TC-M03-308] Frontera minima valida por_pagina=1 (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-98-Cobertura :: [COBERTURA] Subcasos con precondicion cumplida: 6/7",
+                            "esperado":  "PASSED",
+                            "obtenido":  "FAILED",
+                            "estado":  "FALLA"
+                        },
+                        {
+                            "paso":  "NW-99-Teardown-Cierre-Sandbox :: [TEARDOWN] Cierre transaccional del sandbox (200)",
+                            "esperado":  "PASSED",
+                            "obtenido":  "PASSED",
+                            "estado":  "OK"
+                        }
+                    ]
+}

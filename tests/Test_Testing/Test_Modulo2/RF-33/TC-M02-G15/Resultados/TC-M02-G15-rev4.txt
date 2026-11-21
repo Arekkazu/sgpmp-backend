@@ -1,0 +1,103 @@
+TC-M02-G15 rev4 — RF-33 / RF-34 — TEST
+Fecha UTC: 2026-09-26T06:13:51.861537+00:00
+Estado global: BLOQUEADO
+
+{
+  "TC-M02-027": {
+    "resultado": "APROBADO",
+    "usuario": "m2m.nuevo@ejemplo.com",
+    "fincas_usuario": [],
+    "activo": 350,
+    "finca_activo": 65,
+    "estado_activo": "BAJA",
+    "get_http": 404,
+    "patch_http": 404,
+    "persistencia": false,
+    "restauracion": null,
+    "conclusion_bola": "GET HTTP 404, PATCH HTTP 404. Raza intacta ('Cachama'). Autorizacion de objeto efectiva.",
+    "me_http": 200,
+    "me": "{\"id_usuario\": 35, \"nombre\": \"Ana\", \"apellidos\": \"Ramirez\", \"correo_electronico\": \"m2m.nuevo@ejemplo.com\", \"tipo_identificacion\": \"CC\", \"numero_identificacion\": \"5551*****\", \"fecha_nacimiento\": \"1992-03-10\", \"fecha_registro\": \"2026-08-08T20:35:36.387305\", \"nombre_rol\": \"Productor\", \"estado_cuenta\": \"Activo\", \"version\": 2, \"fincas\": []}",
+    "fincas_http": 400,
+    "permisos_http": 200,
+    "permisos_resumen": "{\"permisos\": [{\"id_recurso\": 1, \"id_accion\": 1}, {\"id_recurso\": 1, \"id_accion\": 2}, {\"id_recurso\": 8, \"id_accion\": 2}, {\"id_recurso\": 9, \"id_accion\": 2}, {\"id_recurso\": 10, \"id_accion\": 2}, {\"id_recurso\": 11, \"id_accion\": 2}, {\"id_recurso\": 12, \"id_accion\": 2}, {\"id_recurso\": 15, \"id_accion\": 5}, {\"id_recurso\": 22, \"id_accion\": 2}, {\"id_recurso\": 24, \"id_accion\": 2}, {\"id_recurso\": 24, \"id_accion\": 3}, {\"id_recurso\": 25, \"id_accion\": 2}, {\"id_recurso\": 25, \"id_accion\": 3}, {\"id_recurso\": 26, \"id_accion\": 2}, {\"id_recurso\": 26, \"id_accion\": 3}, {\"id_recurso\": 29, \"id_accion\": 1}, {\"id_recurso\": 29, \"id_accion\": 2}, {\"id_recurso\": 29, \"id_accion\": 3}, {\"id_recurso\": 29, \"id_accion\": 4}, {\"id_recurso\": 29, \"id_accion\": 5}, {\"id_recurso\": 30, \"id_accion\": 1}, {\"id_recurso\": 30, \"id_accion\": 2}...[TRUNCATED]",
+    "admin_get_http": 200,
+    "admin_get": "{\"id_activo_biologico\": 350, \"id_especie\": 41, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"TCM02-G15-031-1789176563\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"compra\", \"costo_adquisicion\": \"1500000.0000\", \"soporte_documental\": \"soporte_TC-M02-031.pdf\", \"descripcion\": null, \"id_infraestructura\": 61, \"atributos_dinamicos\": {}, \"id_estado\": 6, \"nombre_estado\": \"BAJA\", \"id_usuario\": 1, \"fecha_creacion\": \"2026-09-12T01:29:23.251704Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 225, \"raza\": \"Cachama\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-12T01:29:23.251704Z\"}, \"detalle_poblacional\": null}",
+    "id_infraestructura": 61,
+    "raza_original": "Cachama",
+    "infra_http": 200,
+    "get_body": "{\"error_code\": \"ACTIVO_NO_ENCONTRADO\", \"message\": \"El activo biológico con ID 350 no existe.\", \"fields\": [], \"timestamp\": \"2026-09-26T06:13:59.850228+00:00\"}",
+    "get_expone_datos": false,
+    "patch_body": "{\"error_code\": \"ACTIVO_NO_ENCONTRADO\", \"message\": \"El activo biológico con ID 350 no existe.\", \"fields\": [], \"timestamp\": \"2026-09-26T06:14:00.301492+00:00\"}",
+    "admin_get_post_patch_http": 200,
+    "raza_despues": "Cachama"
+  },
+  "TC-M02-028": {
+    "resultado": "APROBADO",
+    "payload_protegidos": {
+      "estado": "CERRADO",
+      "cantidad_actual": 9999
+    },
+    "http_post": 201,
+    "id_creado": 505,
+    "estado_final": "ACTIVO",
+    "cantidad_inicial": 10,
+    "cantidad_actual": 10,
+    "comportamiento": "campo ignorado",
+    "restauracion": {
+      "http": 200,
+      "body": "{\"id_activo_biologico\": 505, \"estado_anterior\": 1, \"estado_nuevo\": 2, \"historial\": {\"id_historico\": 268, \"id_activo_biologico\": 505, \"id_estado_anterior\": 1, \"nombre_estado_anterior\": null, \"id_estado_nuevo\": 2, \"nombre_estado_nuevo\": null, \"fecha_cambio\": \"2026-09-26T00:00:00Z\", \"motivo_cambio\": \"Restauracion TC-M02-G15 rev4 mass assignment\", \"modulo_origen\": \"MANUAL\", \"id_usuario\": 1}}"
+    },
+    "conclusion_mass_assignment": "Extras ignorados. estado=ACTIVO, cantidad_actual=cantidad_inicial. Activo 505 restaurado a INACTIVO via PATCH /estado HTTP 200.",
+    "usuario_post": "productor@pecuaria.co",
+    "payload": {
+      "tipo_activo": "POBLACIONAL",
+      "id_especie": 5,
+      "fecha_inicio_ciclo": "2026-09-09",
+      "origen_financiero": "nacimiento",
+      "id_infraestructura": 3,
+      "atributos_dinamicos": {},
+      "cantidad_inicial": 10,
+      "peso_promedio_inicial": 2.5,
+      "costo_adquisicion": null,
+      "soporte_documental": null,
+      "estado": "CERRADO",
+      "cantidad_actual": 9999
+    },
+    "respuesta_post": "{\"id_activo_biologico\": 505, \"id_especie\": 5, \"tipo\": \"POBLACIONAL\", \"identificador\": null, \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T06:14:01.196202Z\", \"fecha_actualizacion\": null, \"detalle_individual\": null, \"detalle_poblacional\": {\"id_detalle\": 132, \"cantidad_inicial\": 10, \"cantidad_actual\": 10, \"peso_promedio_inicial\": \"2.5000\", \"peso_promedio\": null, \"biomasa_total\": null, \"densidad\": \"0.02\"}}",
+    "http_get": 200,
+    "respuesta_get": "{\"id_activo_biologico\": 505, \"id_especie\": 5, \"tipo\": \"POBLACIONAL\", \"identificador\": null, \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T06:14:01.196202Z\", \"fecha_actualizacion\": null, \"detalle_individual\": null, \"detalle_poblacional\": {\"id_detalle\": 132, \"cantidad_inicial\": 10, \"cantidad_actual\": 10, \"peso_promedio_inicial\": \"2.5000\", \"peso_promedio\": null, \"biomasa_total\": null, \"densidad\": \"0.02\"}}"
+  },
+  "TC-M02-031": {
+    "resultado": "BLOQUEADO",
+    "usuario": null,
+    "rol": null,
+    "permiso_financiero": null,
+    "endpoint": "GET /activos-biologicos/350",
+    "campos_presentes": [],
+    "campos_con_valor": [],
+    "conclusion_exceso": "BLOQUEADO: Ingeniero ingeniero@pecuaria.co HTTP 401 CREDENCIALES_INVALIDAS.",
+    "login_ingeniero": {
+      "correo": "ingeniero@pecuaria.co",
+      "http": 401,
+      "ok": false,
+      "token": "[REDACTED]",
+      "error_code": "CREDENCIALES_INVALIDAS",
+      "intentos": 1
+    },
+    "login_alt": {
+      "correo": "daniiella.vargass@gmail.com",
+      "http": 401,
+      "ok": false,
+      "token": "[REDACTED]",
+      "error_code": "CREDENCIALES_INVALIDAS",
+      "intentos": 1
+    }
+  }
+}
+
+{
+  "id": "INC-M02-G15-001",
+  "estado": "NO REPRODUCIBLE"
+}
+Rev2 y rev3 no modificadas. Sin DML. Sin cambios productivos. Sin commit/push. SELECT solo lectura para precondiciones. Mutaciones via API oficial y restauracion API.
+Password/JWT: [REDACTED]. Rev2/rev3 no modificados.

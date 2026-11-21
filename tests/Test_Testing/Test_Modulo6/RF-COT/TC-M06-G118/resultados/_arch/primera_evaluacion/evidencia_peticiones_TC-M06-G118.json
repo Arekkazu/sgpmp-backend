@@ -1,0 +1,134 @@
+{
+  "caso": "TC-M06-G118",
+  "generado_en": "2026-11-08T12:09:34.541655-05:00",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "duracion_ms": 728,
+      "escritura": false,
+      "en": "2026-11-08T12:09:35.270493-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "token": {
+          "omitido": true
+        },
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/usuarios/me",
+      "codigo": 200,
+      "duracion_ms": 364,
+      "escritura": false,
+      "en": "2026-11-08T12:09:35.634534-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "nombre_rol": "Contador"
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/sesiones/me/permisos",
+      "codigo": 200,
+      "duracion_ms": 362,
+      "escritura": false,
+      "en": "2026-11-08T12:09:35.996581-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "cotizaciones_puede_crear": true
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos",
+      "codigo": 200,
+      "duracion_ms": 398,
+      "escritura": false,
+      "en": "2026-11-08T12:09:36.394334-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "con_valor_razonable": 7,
+        "elegido": {
+          "id_activo_biologico": 943,
+          "estado": "ACTIVO",
+          "especie": "Bovino",
+          "valor_razonable_neto": "3015990.0000",
+          "fecha_calculo": "2026-11-07T20:16:42.872378Z",
+          "valorado_por_costo": false
+        }
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/activos/943",
+      "codigo": 200,
+      "duracion_ms": 427,
+      "escritura": false,
+      "en": "2026-11-08T12:09:36.821187-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 200,
+        "lineas": 6,
+        "calculos": 4
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/activos-biologicos/943",
+      "codigo": 403,
+      "duracion_ms": 423,
+      "escritura": false,
+      "en": "2026-11-08T12:09:37.244404-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "http": 403,
+        "nombre_estado": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/lineas",
+      "codigo": 200,
+      "duracion_ms": 413,
+      "escritura": false,
+      "en": "2026-11-08T12:09:37.657328-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "periodo": 8,
+        "total": 8
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/cotizaciones",
+      "codigo": 200,
+      "duracion_ms": 388,
+      "escritura": false,
+      "en": "2026-11-08T12:09:38.045252-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total": 2
+      }
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria",
+      "codigo": 200,
+      "duracion_ms": 424,
+      "escritura": false,
+      "en": "2026-11-08T12:09:38.469435-05:00",
+      "cuerpo": null,
+      "respuesta": {
+        "total_registros": 0
+      }
+    }
+  ],
+  "registro_ejecutado": false,
+  "sql_local": false
+}

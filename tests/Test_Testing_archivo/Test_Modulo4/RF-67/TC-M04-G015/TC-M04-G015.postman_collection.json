@@ -1,0 +1,1349 @@
+{
+  "info": {
+    "name": "RF-67 - TC-M04-G015 Seguridad transversal del historial diagnóstico",
+    "description": "Automatiza TC-M04-037/038/039 (RF-67; OWASP API2, API8/A03, RNF-02 y ASVS V9) sobre GET /prediccion/historial/{id}, con un activo propio. 037: sin token, token expirado y firma alterada -> 401 sin datos clínicos (cargar un token expirado real en token_expirado; si no, se arma uno con exp en el pasado). 038: cursor_paginacion aleatorio, base64 no JSON, JSON sin campos, fecha inválida, id con inyección SQL e id no UUID -> 400 CURSOR_INVALIDO, nunca 500 ni detalles internos; filtros nivel_riesgo/id_patologia con sintaxis de inyección o fuera de rango -> 400, y los nombres de la ficha (enfermedad_filtro, nivel_riesgo_filtro) no rompen nada; un cursor válido no habilita a un usuario sin acceso ni saca eventos de otro activo. 039: HTTP plano -> rechazo o redirección a https:// (TLS obsoleto: test_tc_m03_g15_canal_cifrado.py o testssl.sh). Notas del código: los filtros reales son nivel_riesgo e id_patologia; el cursor (base64 de {ts, id}) no valida que el id sea UUID y la consulta lo convierte con ::uuid, por lo que un id malformado puede terminar en 500.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const l = 'abcdefghijklmnopqrstuvwxyz'; let s = ''; for (let i = 0; i < 8; i++) s += l.charAt(Math.floor(Math.random() * 26));",
+                  "pm.collectionVariables.set('sufijo', s);",
+                  "const d = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set('hoy', d(0)); pm.collectionVariables.set('desde', d(-30));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login (200)', function () { pm.response.to.have.status(200); });",
+                  "const token = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_admin', token);",
+                  "const ultimo = token.slice(-1);",
+                  "pm.collectionVariables.set('token_firma_alterada', token.slice(0, -1) + (ultimo === 'A' ? 'B' : 'A'));",
+                  "if (!pm.collectionVariables.get('token_expirado')) {",
+                  "  const partes = token.split('.');",
+                  "  const desde64url = (s) => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return CryptoJS.enc.Base64.parse(s).toString(CryptoJS.enc.Utf8); };",
+                  "  const a64url = (s) => CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(s)).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+                  "  const carga = JSON.parse(desde64url(partes[1]));",
+                  "  carga.exp = Math.floor(Date.now() / 1000) - 3600;",
+                  "  pm.collectionVariables.set('token_expirado_armado', partes[0] + '.' + a64url(JSON.stringify(carga)) + '.' + partes[2]);",
+                  "  console.log('TC-M04-037: sin token_expirado real; se usa uno con exp en el pasado (su firma tampoco es válida)');",
+                  "} else { pm.collectionVariables.set('token_expirado_armado', pm.collectionVariables.get('token_expirado')); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Productor (sin acceso a la granja del activo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Productor (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_productor', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Finca propia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca Seguridad Historial {{sufijo}}\",\n  \"ubicacion\": {\"departamento\": \"Huila\", \"municipio\": \"Neiva\", \"vereda\": \"El Caguan\", \"latitud\": \"2.93\", \"longitud\": \"-75.28\"},\n  \"tamano_h\": \"10.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Especie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Porcinos Seguridad Historial {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G015\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"grupo_manejo\": \"PORCINOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Corral",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Corral creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_area', pm.response.json().id_infraestructura);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Corral Seguridad {{sufijo}}\",\n  \"tipo_area\": \"Corral\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activo propio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_activo', pm.response.json().id_activo_biologico);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-09-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_area}},\n  \"identificador\": \"CERDO-{{sufijo}}\",\n  \"raza\": \"Landrace\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2026-05-01T00:00:00\",\n  \"peso_inicial\": \"30.0\",\n  \"detalles_procedencia\": \"Activo de prueba TC-M04-G015\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-037 Autenticación",
+      "item": [
+        {
+          "name": "TC-M04-037 - Historial con sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-037 (sin token): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-037 (sin token): sin datos clínicos', function () { pm.expect(pm.response.text()).to.not.include('eventos'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-037 - Historial con token expirado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-037 (token expirado): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-037 (token expirado): sin datos clínicos', function () { pm.expect(pm.response.text()).to.not.include('eventos'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_expirado_armado}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-037 - Historial con firma alterada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-037 (firma alterada): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-037 (firma alterada): sin datos clínicos', function () { pm.expect(pm.response.text()).to.not.include('eventos'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_firma_alterada}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-038 Cursor y filtros",
+      "item": [
+        {
+          "name": "TC-M04-038 - cursor_paginacion: texto aleatorio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (cursor texto aleatorio): error controlado 400, nunca 500', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-038 (cursor texto aleatorio): código CURSOR_INVALIDO', function () { pm.expect(j.error_code).to.eql('CURSOR_INVALIDO'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (cursor texto aleatorio): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&cursor_paginacion=esto-no-es-un-cursor",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "cursor_paginacion",
+                  "value": "esto-no-es-un-cursor"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - cursor_paginacion: base64 que no es JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (cursor base64 que no es JSON): error controlado 400, nunca 500', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-038 (cursor base64 que no es JSON): código CURSOR_INVALIDO', function () { pm.expect(j.error_code).to.eql('CURSOR_INVALIDO'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (cursor base64 que no es JSON): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&cursor_paginacion=bm8gZXMganNvbg==",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "cursor_paginacion",
+                  "value": "bm8gZXMganNvbg=="
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - cursor_paginacion: JSON sin campos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (cursor JSON sin campos): error controlado 400, nunca 500', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-038 (cursor JSON sin campos): código CURSOR_INVALIDO', function () { pm.expect(j.error_code).to.eql('CURSOR_INVALIDO'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (cursor JSON sin campos): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&cursor_paginacion=eyJ4IjogMX0=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "cursor_paginacion",
+                  "value": "eyJ4IjogMX0="
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - cursor_paginacion: fecha inválida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (cursor fecha inválida): error controlado 400, nunca 500', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-038 (cursor fecha inválida): código CURSOR_INVALIDO', function () { pm.expect(j.error_code).to.eql('CURSOR_INVALIDO'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (cursor fecha inválida): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&cursor_paginacion=eyJ0cyI6ICJheWVyIiwgImlkIjogIjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "cursor_paginacion",
+                  "value": "eyJ0cyI6ICJheWVyIiwgImlkIjogIjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - cursor_paginacion: id con inyección SQL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (cursor id con inyección SQL): error controlado 400, nunca 500', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-038 (cursor id con inyección SQL): código CURSOR_INVALIDO', function () { pm.expect(j.error_code).to.eql('CURSOR_INVALIDO'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (cursor id con inyección SQL): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&cursor_paginacion=eyJ0cyI6ICIyMDI2LTEwLTAxVDAwOjAwOjAwKzAwOjAwIiwgImlkIjogIngnIE9SICcxJz0nMSJ9",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "cursor_paginacion",
+                  "value": "eyJ0cyI6ICIyMDI2LTEwLTAxVDAwOjAwOjAwKzAwOjAwIiwgImlkIjogIngnIE9SICcxJz0nMSJ9"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - cursor_paginacion: id no UUID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (cursor id no UUID): error controlado 400, nunca 500', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-038 (cursor id no UUID): código CURSOR_INVALIDO', function () { pm.expect(j.error_code).to.eql('CURSOR_INVALIDO'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (cursor id no UUID): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&cursor_paginacion=eyJ0cyI6ICIyMDI2LTEwLTAxVDAwOjAwOjAwKzAwOjAwIiwgImlkIjogIjEyMzQ1In0=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "cursor_paginacion",
+                  "value": "eyJ0cyI6ICIyMDI2LTEwLTAxVDAwOjAwOjAwKzAwOjAwIiwgImlkIjogIjEyMzQ1In0="
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - Filtro: nivel_riesgo con SQL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (nivel_riesgo con SQL): respuesta controlada [400]', function () { pm.expect(pm.response.code).to.be.oneOf([400]); });",
+                  "pm.test('TC-M04-038 (nivel_riesgo con SQL): sin reflejar el script', function () { pm.expect(pm.response.text()).to.not.include('<script>'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (nivel_riesgo con SQL): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&nivel_riesgo=3 OR 1=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "nivel_riesgo",
+                  "value": "3 OR 1=1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - Filtro: nivel_riesgo fuera de rango",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (nivel_riesgo fuera de rango): respuesta controlada [400]', function () { pm.expect(pm.response.code).to.be.oneOf([400]); });",
+                  "pm.test('TC-M04-038 (nivel_riesgo fuera de rango): sin reflejar el script', function () { pm.expect(pm.response.text()).to.not.include('<script>'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (nivel_riesgo fuera de rango): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&nivel_riesgo=99",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "nivel_riesgo",
+                  "value": "99"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - Filtro: id_patologia con SQL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (id_patologia con SQL): respuesta controlada [400]', function () { pm.expect(pm.response.code).to.be.oneOf([400]); });",
+                  "pm.test('TC-M04-038 (id_patologia con SQL): sin reflejar el script', function () { pm.expect(pm.response.text()).to.not.include('<script>'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (id_patologia con SQL): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&id_patologia=1;DROP TABLE modulo4.resultados_inferencia",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "id_patologia",
+                  "value": "1;DROP TABLE modulo4.resultados_inferencia"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - Filtro: enfermedad_filtro (nombre de la ficha) con SQL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (enfermedad_filtro (nombre de la ficha) con SQL): respuesta controlada [200, 400]', function () { pm.expect(pm.response.code).to.be.oneOf([200, 400]); });",
+                  "pm.test('TC-M04-038 (enfermedad_filtro (nombre de la ficha) con SQL): sin reflejar el script', function () { pm.expect(pm.response.text()).to.not.include('<script>'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (enfermedad_filtro (nombre de la ficha) con SQL): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&enfermedad_filtro=' OR '1'='1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "enfermedad_filtro",
+                  "value": "' OR '1'='1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - Filtro: nivel_riesgo_filtro (nombre de la ficha) con script",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (nivel_riesgo_filtro (nombre de la ficha) con script): respuesta controlada [200, 400]', function () { pm.expect(pm.response.code).to.be.oneOf([200, 400]); });",
+                  "pm.test('TC-M04-038 (nivel_riesgo_filtro (nombre de la ficha) con script): sin reflejar el script', function () { pm.expect(pm.response.text()).to.not.include('<script>'); });",
+                  "const t = pm.response.text() || '';",
+                  "pm.test('TC-M04-038 (nivel_riesgo_filtro (nombre de la ficha) con script): sin detalles internos (trazas, SQL, librerías)', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax|invalid input|modulo4\\.|resultados_inferencia/i.test(t), t.slice(0, 200)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&nivel_riesgo_filtro=<script>alert(1)</script>",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "nivel_riesgo_filtro",
+                  "value": "<script>alert(1)</script>"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - Cursor válido usado por un usuario sin acceso al activo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (alcance): el cursor no habilita acceder al activo ajeno (403/404)', function () { pm.expect(pm.response.code).to.be.oneOf([403, 404]); });",
+                  "pm.test('TC-M04-038 (alcance): sin datos clínicos', function () { pm.expect(pm.response.text()).to.not.include('eventos'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&cursor_paginacion=eyJ0cyI6ICIyMDk5LTAxLTAxVDAwOjAwOjAwKzAwOjAwIiwgImlkIjogImZmZmZmZmZmLWZmZmYtZmZmZi1mZmZmLWZmZmZmZmZmZmZmZiJ9",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "cursor_paginacion",
+                  "value": "eyJ0cyI6ICIyMDk5LTAxLTAxVDAwOjAwOjAwKzAwOjAwIiwgImlkIjogImZmZmZmZmZmLWZmZmYtZmZmZi1mZmZmLWZmZmZmZmZmZmZmZiJ9"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-038 - Cursor fabricado no sale del activo consultado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-038 (alcance): HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M04-038 (alcance): todos los eventos son del activo de la ruta', function () {",
+                  "  const id = Number(pm.collectionVariables.get('id_activo'));",
+                  "  pm.expect((pm.response.json().eventos || []).filter(e => e.id_activo_biologico !== id).length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}&cursor_paginacion=eyJ0cyI6ICIyMDk5LTAxLTAxVDAwOjAwOjAwKzAwOjAwIiwgImlkIjogImZmZmZmZmZmLWZmZmYtZmZmZi1mZmZmLWZmZmZmZmZmZmZmZiJ9",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "cursor_paginacion",
+                  "value": "eyJ0cyI6ICIyMDk5LTAxLTAxVDAwOjAwOjAwKzAwOjAwIiwgImlkIjogImZmZmZmZmZmLWZmZmYtZmZmZi1mZmZmLWZmZmZmZmZmZmZmZiJ9"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M04-039 Canal cifrado",
+      "item": [
+        {
+          "name": "TC-M04-039 - Historial por HTTP plano (sin TLS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const redirige = [301, 302, 307, 308].includes(pm.response.code);",
+                  "const destino = pm.response.headers.get('Location') || '';",
+                  "pm.test('TC-M04-039: HTTP plano se rechaza o redirige a HTTPS', function () {",
+                  "  pm.expect(redirige ? destino.startsWith('https://') : pm.response.code >= 400, 'HTTP ' + pm.response.code + ' ' + destino).to.eql(true);",
+                  "});",
+                  "pm.test('TC-M04-039: ningún dato clínico por el canal sin cifrar', function () { pm.expect(pm.response.text()).to.not.include('eventos'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "http://{{host}}/api-sgpmp-test/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "http://{{host}}"
+              ],
+              "path": [
+                "api-sgpmp-test",
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "host",
+      "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io"
+    },
+    {
+      "key": "token_expirado",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "token_firma_alterada",
+      "value": ""
+    },
+    {
+      "key": "token_expirado_armado",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "hoy",
+      "value": ""
+    },
+    {
+      "key": "desde",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_area",
+      "value": ""
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    }
+  ]
+}

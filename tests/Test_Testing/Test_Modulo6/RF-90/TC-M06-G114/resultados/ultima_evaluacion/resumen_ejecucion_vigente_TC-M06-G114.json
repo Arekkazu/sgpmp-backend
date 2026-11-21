@@ -1,0 +1,1264 @@
+{
+  "caso": "TC-M06-G114",
+  "subcaso": "TC-M06-43",
+  "rf": [
+    "RF-90",
+    "RF-94"
+  ],
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "fase": "ejecucion_trazabilidad_solo_lectura",
+  "generado_en": "2026-11-12T20:57:36.475638-05:00",
+  "datos_autorizados": {
+    "costos": [
+      4453,
+      4454,
+      4455
+    ],
+    "nota": "Costos de G113; no se crearon registros nuevos."
+  },
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "consulta": "/sesiones/",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:37.272067-05:00",
+      "respuesta": {
+        "ok": true
+      },
+      "escenario": "sesion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/costos?id_periodo_contable=220",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:37.892722-05:00",
+      "respuesta": {
+        "total": 4,
+        "ids_objetivo_presentes": {
+          "4453": true,
+          "4454": true,
+          "4455": true
+        }
+      },
+      "escenario": "precondicion"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4453&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:38.389111-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19671,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": {
+              "omitido": true
+            },
+            "id_sistema": null,
+            "id_activo_biologico": 1569,
+            "id_periodo_contable": 220,
+            "id_referencia": 4453,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "150000.0000",
+            "identificador_activo": "QA-M06O-VR-01"
+          }
+        ]
+      },
+      "escenario": "auditoria_tecnico_4453"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4453&formato=LEGIBLE&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:38.913412-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19671,
+            "descripcion_evento": "Costo registrado",
+            "tipo_evento": "COSTO_REGISTRADO",
+            "fecha_hora": "2026-11-13T01:28:54.109380Z",
+            "actor": "Contador Financiero",
+            "activo": "QA-M06O-VR-01",
+            "id_periodo_contable": 220,
+            "resumen_payload": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "monto_afectado": "150000.0000",
+            "severidad": "INFO",
+            "integridad_verificable": true,
+            "hash_integridad": {
+              "omitido": true
+            },
+            "informacion_adicional_truncada": false,
+            "origen": "Repositorio central"
+          }
+        ]
+      },
+      "escenario": "auditoria_legible_4453"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4454&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:39.391634-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19672,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": {
+              "omitido": true
+            },
+            "id_sistema": null,
+            "id_activo_biologico": 1570,
+            "id_periodo_contable": 220,
+            "id_referencia": 4454,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "300000.0000",
+            "identificador_activo": "QA-M06O-VR-02"
+          }
+        ]
+      },
+      "escenario": "auditoria_tecnico_4454"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4454&formato=LEGIBLE&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:39.937470-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19672,
+            "descripcion_evento": "Costo registrado",
+            "tipo_evento": "COSTO_REGISTRADO",
+            "fecha_hora": "2026-11-13T01:28:54.109380Z",
+            "actor": "Contador Financiero",
+            "activo": "QA-M06O-VR-02",
+            "id_periodo_contable": 220,
+            "resumen_payload": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "monto_afectado": "300000.0000",
+            "severidad": "INFO",
+            "integridad_verificable": true,
+            "hash_integridad": {
+              "omitido": true
+            },
+            "informacion_adicional_truncada": false,
+            "origen": "Repositorio central"
+          }
+        ]
+      },
+      "escenario": "auditoria_legible_4454"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4455&formato=TECNICO&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:40.446584-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19673,
+            "tipo_evento": "COSTO_REGISTRADO",
+            "modulo": "M06",
+            "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 141,
+            "nombre_usuario": {
+              "omitido": true
+            },
+            "id_sistema": null,
+            "id_activo_biologico": 1571,
+            "id_periodo_contable": 220,
+            "id_referencia": 4455,
+            "payload_evento": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "datos_anteriores": null,
+            "severidad_evento": "INFO",
+            "hash_integridad": {
+              "omitido": true
+            },
+            "payload_truncado": false,
+            "origen_registro": "REPOSITORIO",
+            "monto_afectado": "450000.0000",
+            "identificador_activo": "QA-M06O-VR-03"
+          }
+        ]
+      },
+      "escenario": "auditoria_tecnico_4455"
+    },
+    {
+      "metodo": "GET",
+      "consulta": "/finanzas/auditoria?tipo_evento=COSTO_REGISTRADO&id_referencia=4455&formato=LEGIBLE&tamano=50&orden=DESC",
+      "codigo": 200,
+      "escritura": false,
+      "en": "2026-11-12T20:57:40.845805-05:00",
+      "respuesta": {
+        "total_registros": 1,
+        "cantidad": 1,
+        "eventos": [
+          {
+            "id_evento": 19673,
+            "descripcion_evento": "Costo registrado",
+            "tipo_evento": "COSTO_REGISTRADO",
+            "fecha_hora": "2026-11-13T01:28:54.109380Z",
+            "actor": "Contador Financiero",
+            "activo": "QA-M06O-VR-03",
+            "id_periodo_contable": 220,
+            "resumen_payload": {
+              "origen": "MANO_OBRA_PROPIA",
+              "factura": null,
+              "subtipo": "ALIMENTO",
+              "politica": "GASTO",
+              "vehiculo": "ASIENTO_NIC41",
+              "naturaleza": "MANTENIMIENTO",
+              "tercero_nit": {
+                "omitido": true
+              },
+              "cuenta_manual": null,
+              "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+            },
+            "monto_afectado": "450000.0000",
+            "severidad": "INFO",
+            "integridad_verificable": true,
+            "hash_integridad": {
+              "omitido": true
+            },
+            "informacion_adicional_truncada": false,
+            "origen": "Repositorio central"
+          }
+        ]
+      },
+      "escenario": "auditoria_legible_4455"
+    }
+  ],
+  "registros": {
+    "4453": {
+      "costo": {
+        "id_registro_costo": 4453,
+        "naturaleza_costo": "MANTENIMIENTO",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "id_activo_biologico": 1569,
+        "activo": "QA-M06O-VR-01",
+        "monto_costo": "150000.0000",
+        "fecha_costo": "2026-11-12",
+        "id_periodo_contable": 220,
+        "estado": "REGISTRADO",
+        "politica_capitalizacion": "GASTO",
+        "justificacion": null,
+        "id_origen_m05": null,
+        "tercero_nit": {
+          "omitido": true
+        },
+        "tercero_dv": null,
+        "tercero_razon_social": {
+          "omitido": true
+        },
+        "factura_prefijo": null,
+        "factura_numero": null,
+        "fecha_factura": null,
+        "fecha_vencimiento_factura": null,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "cuenta_debito": null,
+        "cuenta_credito": null,
+        "es_cuenta_manual": false,
+        "es_reverso": false,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-13T01:28:54.109380Z",
+        "id_especie": 422,
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "especie": "Caprino Qa Aislado",
+        "finca": {
+          "omitido": true
+        }
+      },
+      "evento_tecnico": {
+        "id_evento": 19671,
+        "tipo_evento": "COSTO_REGISTRADO",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 141,
+        "nombre_usuario": {
+          "omitido": true
+        },
+        "id_sistema": null,
+        "id_activo_biologico": 1569,
+        "id_periodo_contable": 220,
+        "id_referencia": 4453,
+        "payload_evento": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "150000.0000",
+        "identificador_activo": "QA-M06O-VR-01"
+      },
+      "evento_legible": {
+        "id_evento": 19671,
+        "descripcion_evento": "Costo registrado",
+        "tipo_evento": "COSTO_REGISTRADO",
+        "fecha_hora": "2026-11-13T01:28:54.109380Z",
+        "actor": "Contador Financiero",
+        "activo": "QA-M06O-VR-01",
+        "id_periodo_contable": 220,
+        "resumen_payload": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "monto_afectado": "150000.0000",
+        "severidad": "INFO",
+        "integridad_verificable": true,
+        "hash_integridad": {
+          "omitido": true
+        },
+        "informacion_adicional_truncada": false,
+        "origen": "Repositorio central"
+      },
+      "esperado": {
+        "activo": 1569,
+        "periodo": 220,
+        "monto": "150000.00",
+        "evento": 19671
+      }
+    },
+    "4454": {
+      "costo": {
+        "id_registro_costo": 4454,
+        "naturaleza_costo": "MANTENIMIENTO",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "id_activo_biologico": 1570,
+        "activo": "QA-M06O-VR-02",
+        "monto_costo": "300000.0000",
+        "fecha_costo": "2026-11-12",
+        "id_periodo_contable": 220,
+        "estado": "REGISTRADO",
+        "politica_capitalizacion": "GASTO",
+        "justificacion": null,
+        "id_origen_m05": null,
+        "tercero_nit": {
+          "omitido": true
+        },
+        "tercero_dv": null,
+        "tercero_razon_social": {
+          "omitido": true
+        },
+        "factura_prefijo": null,
+        "factura_numero": null,
+        "fecha_factura": null,
+        "fecha_vencimiento_factura": null,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "cuenta_debito": null,
+        "cuenta_credito": null,
+        "es_cuenta_manual": false,
+        "es_reverso": false,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-13T01:28:54.109380Z",
+        "id_especie": 422,
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "especie": "Caprino Qa Aislado",
+        "finca": {
+          "omitido": true
+        }
+      },
+      "evento_tecnico": {
+        "id_evento": 19672,
+        "tipo_evento": "COSTO_REGISTRADO",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 141,
+        "nombre_usuario": {
+          "omitido": true
+        },
+        "id_sistema": null,
+        "id_activo_biologico": 1570,
+        "id_periodo_contable": 220,
+        "id_referencia": 4454,
+        "payload_evento": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "300000.0000",
+        "identificador_activo": "QA-M06O-VR-02"
+      },
+      "evento_legible": {
+        "id_evento": 19672,
+        "descripcion_evento": "Costo registrado",
+        "tipo_evento": "COSTO_REGISTRADO",
+        "fecha_hora": "2026-11-13T01:28:54.109380Z",
+        "actor": "Contador Financiero",
+        "activo": "QA-M06O-VR-02",
+        "id_periodo_contable": 220,
+        "resumen_payload": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "monto_afectado": "300000.0000",
+        "severidad": "INFO",
+        "integridad_verificable": true,
+        "hash_integridad": {
+          "omitido": true
+        },
+        "informacion_adicional_truncada": false,
+        "origen": "Repositorio central"
+      },
+      "esperado": {
+        "activo": 1570,
+        "periodo": 220,
+        "monto": "300000.00",
+        "evento": 19672
+      }
+    },
+    "4455": {
+      "costo": {
+        "id_registro_costo": 4455,
+        "naturaleza_costo": "MANTENIMIENTO",
+        "subtipo_costo": "ALIMENTO",
+        "origen_costo": "MANO_OBRA_PROPIA",
+        "vehiculo_contable": "ASIENTO_NIC41",
+        "id_activo_biologico": 1571,
+        "activo": "QA-M06O-VR-03",
+        "monto_costo": "450000.0000",
+        "fecha_costo": "2026-11-12",
+        "id_periodo_contable": 220,
+        "estado": "REGISTRADO",
+        "politica_capitalizacion": "GASTO",
+        "justificacion": null,
+        "id_origen_m05": null,
+        "tercero_nit": {
+          "omitido": true
+        },
+        "tercero_dv": null,
+        "tercero_razon_social": {
+          "omitido": true
+        },
+        "factura_prefijo": null,
+        "factura_numero": null,
+        "fecha_factura": null,
+        "fecha_vencimiento_factura": null,
+        "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275",
+        "metodo_reparto": "POR_BIOMASA",
+        "cuenta_debito": null,
+        "cuenta_credito": null,
+        "es_cuenta_manual": false,
+        "es_reverso": false,
+        "id_usuario": 141,
+        "fecha_registro": "2026-11-13T01:28:54.109380Z",
+        "id_especie": 422,
+        "id_infraestructura": 1016,
+        "id_finca": 467,
+        "especie": "Caprino Qa Aislado",
+        "finca": {
+          "omitido": true
+        }
+      },
+      "evento_tecnico": {
+        "id_evento": 19673,
+        "tipo_evento": "COSTO_REGISTRADO",
+        "modulo": "M06",
+        "timestamp_evento": "2026-11-13T01:28:54.109380Z",
+        "tipo_actor": "USUARIO",
+        "id_usuario": 141,
+        "nombre_usuario": {
+          "omitido": true
+        },
+        "id_sistema": null,
+        "id_activo_biologico": 1571,
+        "id_periodo_contable": 220,
+        "id_referencia": 4455,
+        "payload_evento": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "datos_anteriores": null,
+        "severidad_evento": "INFO",
+        "hash_integridad": {
+          "omitido": true
+        },
+        "payload_truncado": false,
+        "origen_registro": "REPOSITORIO",
+        "monto_afectado": "450000.0000",
+        "identificador_activo": "QA-M06O-VR-03"
+      },
+      "evento_legible": {
+        "id_evento": 19673,
+        "descripcion_evento": "Costo registrado",
+        "tipo_evento": "COSTO_REGISTRADO",
+        "fecha_hora": "2026-11-13T01:28:54.109380Z",
+        "actor": "Contador Financiero",
+        "activo": "QA-M06O-VR-03",
+        "id_periodo_contable": 220,
+        "resumen_payload": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "monto_afectado": "450000.0000",
+        "severidad": "INFO",
+        "integridad_verificable": true,
+        "hash_integridad": {
+          "omitido": true
+        },
+        "informacion_adicional_truncada": false,
+        "origen": "Repositorio central"
+      },
+      "esperado": {
+        "activo": 1571,
+        "periodo": 220,
+        "monto": "450000.00",
+        "evento": 19673
+      }
+    }
+  },
+  "validaciones": [
+    {
+      "validacion": "costo_4453_existe",
+      "resultado": "OK",
+      "detalle": {
+        "id": 4453
+      }
+    },
+    {
+      "validacion": "costo_4453_un_evento_tecnico",
+      "resultado": "OK",
+      "detalle": {
+        "cantidad": 1
+      }
+    },
+    {
+      "validacion": "costo_4453_un_evento_legible",
+      "resultado": "OK",
+      "detalle": {
+        "cantidad": 1
+      }
+    },
+    {
+      "validacion": "costo_4453_id_referencia",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 4453,
+        "esperado": 4453
+      }
+    },
+    {
+      "validacion": "costo_4453_activo",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 1569,
+        "costo": 1569,
+        "esperado": 1569
+      }
+    },
+    {
+      "validacion": "costo_4453_periodo",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 220,
+        "costo": 220,
+        "esperado": 220
+      }
+    },
+    {
+      "validacion": "costo_4453_monto",
+      "resultado": "OK",
+      "detalle": {
+        "evento": "150000.0000",
+        "costo": "150000.0000",
+        "esperado": "150000.00"
+      }
+    },
+    {
+      "validacion": "costo_4453_naturaleza",
+      "resultado": "OK",
+      "detalle": {
+        "costo": "MANTENIMIENTO",
+        "payload": "MANTENIMIENTO",
+        "subtipo": "ALIMENTO",
+        "politica": "GASTO"
+      }
+    },
+    {
+      "validacion": "costo_4453_actor_usuario_141",
+      "resultado": "OK",
+      "detalle": {
+        "tipo_actor": "USUARIO",
+        "id_usuario_evento": 141,
+        "id_usuario_costo": 141,
+        "id_sistema": null
+      }
+    },
+    {
+      "validacion": "costo_4453_evento_esperado",
+      "resultado": "OK",
+      "detalle": {
+        "obtenido": 19671,
+        "esperado": 19671
+      }
+    },
+    {
+      "validacion": "costo_4453_tipo_evento",
+      "resultado": "OK",
+      "detalle": {
+        "tipo": "COSTO_REGISTRADO"
+      }
+    },
+    {
+      "validacion": "costo_4454_existe",
+      "resultado": "OK",
+      "detalle": {
+        "id": 4454
+      }
+    },
+    {
+      "validacion": "costo_4454_un_evento_tecnico",
+      "resultado": "OK",
+      "detalle": {
+        "cantidad": 1
+      }
+    },
+    {
+      "validacion": "costo_4454_un_evento_legible",
+      "resultado": "OK",
+      "detalle": {
+        "cantidad": 1
+      }
+    },
+    {
+      "validacion": "costo_4454_id_referencia",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 4454,
+        "esperado": 4454
+      }
+    },
+    {
+      "validacion": "costo_4454_activo",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 1570,
+        "costo": 1570,
+        "esperado": 1570
+      }
+    },
+    {
+      "validacion": "costo_4454_periodo",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 220,
+        "costo": 220,
+        "esperado": 220
+      }
+    },
+    {
+      "validacion": "costo_4454_monto",
+      "resultado": "OK",
+      "detalle": {
+        "evento": "300000.0000",
+        "costo": "300000.0000",
+        "esperado": "300000.00"
+      }
+    },
+    {
+      "validacion": "costo_4454_naturaleza",
+      "resultado": "OK",
+      "detalle": {
+        "costo": "MANTENIMIENTO",
+        "payload": "MANTENIMIENTO",
+        "subtipo": "ALIMENTO",
+        "politica": "GASTO"
+      }
+    },
+    {
+      "validacion": "costo_4454_actor_usuario_141",
+      "resultado": "OK",
+      "detalle": {
+        "tipo_actor": "USUARIO",
+        "id_usuario_evento": 141,
+        "id_usuario_costo": 141,
+        "id_sistema": null
+      }
+    },
+    {
+      "validacion": "costo_4454_evento_esperado",
+      "resultado": "OK",
+      "detalle": {
+        "obtenido": 19672,
+        "esperado": 19672
+      }
+    },
+    {
+      "validacion": "costo_4454_tipo_evento",
+      "resultado": "OK",
+      "detalle": {
+        "tipo": "COSTO_REGISTRADO"
+      }
+    },
+    {
+      "validacion": "costo_4455_existe",
+      "resultado": "OK",
+      "detalle": {
+        "id": 4455
+      }
+    },
+    {
+      "validacion": "costo_4455_un_evento_tecnico",
+      "resultado": "OK",
+      "detalle": {
+        "cantidad": 1
+      }
+    },
+    {
+      "validacion": "costo_4455_un_evento_legible",
+      "resultado": "OK",
+      "detalle": {
+        "cantidad": 1
+      }
+    },
+    {
+      "validacion": "costo_4455_id_referencia",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 4455,
+        "esperado": 4455
+      }
+    },
+    {
+      "validacion": "costo_4455_activo",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 1571,
+        "costo": 1571,
+        "esperado": 1571
+      }
+    },
+    {
+      "validacion": "costo_4455_periodo",
+      "resultado": "OK",
+      "detalle": {
+        "evento": 220,
+        "costo": 220,
+        "esperado": 220
+      }
+    },
+    {
+      "validacion": "costo_4455_monto",
+      "resultado": "OK",
+      "detalle": {
+        "evento": "450000.0000",
+        "costo": "450000.0000",
+        "esperado": "450000.00"
+      }
+    },
+    {
+      "validacion": "costo_4455_naturaleza",
+      "resultado": "OK",
+      "detalle": {
+        "costo": "MANTENIMIENTO",
+        "payload": "MANTENIMIENTO",
+        "subtipo": "ALIMENTO",
+        "politica": "GASTO"
+      }
+    },
+    {
+      "validacion": "costo_4455_actor_usuario_141",
+      "resultado": "OK",
+      "detalle": {
+        "tipo_actor": "USUARIO",
+        "id_usuario_evento": 141,
+        "id_usuario_costo": 141,
+        "id_sistema": null
+      }
+    },
+    {
+      "validacion": "costo_4455_evento_esperado",
+      "resultado": "OK",
+      "detalle": {
+        "obtenido": 19673,
+        "esperado": 19673
+      }
+    },
+    {
+      "validacion": "costo_4455_tipo_evento",
+      "resultado": "OK",
+      "detalle": {
+        "tipo": "COSTO_REGISTRADO"
+      }
+    },
+    {
+      "validacion": "sin_duplicados_ni_huerfanos",
+      "resultado": "OK",
+      "detalle": {
+        "eventos": 3,
+        "referencias": [
+          4453,
+          4454,
+          4455
+        ],
+        "ids_evento": [
+          19671,
+          19672,
+          19673
+        ],
+        "sin_duplicados_referencia": true,
+        "sin_duplicados_evento": true,
+        "huerfanos": [],
+        "sin_evento": []
+      }
+    },
+    {
+      "validacion": "rf90_costos_existentes_trazables",
+      "resultado": "OK",
+      "detalle": {
+        "costos": [
+          4453,
+          4454,
+          4455
+        ]
+      }
+    },
+    {
+      "validacion": "rf94_auditoria_m06_por_id_referencia",
+      "resultado": "OK",
+      "detalle": {
+        "endpoint": "GET /finanzas/auditoria",
+        "filtro": "id_referencia"
+      }
+    }
+  ],
+  "integridad": {
+    "eventos": 3,
+    "referencias": [
+      4453,
+      4454,
+      4455
+    ],
+    "ids_evento": [
+      19671,
+      19672,
+      19673
+    ],
+    "sin_duplicados_referencia": true,
+    "sin_duplicados_evento": true,
+    "huerfanos": [],
+    "sin_evento": []
+  },
+  "formatos": {
+    "4453": {
+      "tecnico_claves": [
+        "datos_anteriores",
+        "hash_integridad",
+        "id_activo_biologico",
+        "id_evento",
+        "id_periodo_contable",
+        "id_referencia",
+        "id_sistema",
+        "id_usuario",
+        "identificador_activo",
+        "modulo",
+        "monto_afectado",
+        "nombre_usuario",
+        "origen_registro",
+        "payload_evento",
+        "payload_truncado",
+        "severidad_evento",
+        "timestamp_evento",
+        "tipo_actor",
+        "tipo_evento"
+      ],
+      "legible_claves": [
+        "activo",
+        "actor",
+        "descripcion_evento",
+        "fecha_hora",
+        "hash_integridad",
+        "id_evento",
+        "id_periodo_contable",
+        "informacion_adicional_truncada",
+        "integridad_verificable",
+        "monto_afectado",
+        "origen",
+        "resumen_payload",
+        "severidad",
+        "tipo_evento"
+      ],
+      "tecnico_tiene_payload_evento": true,
+      "legible_muestra": {
+        "id_evento": 19671,
+        "descripcion_evento": "Costo registrado",
+        "tipo_evento": "COSTO_REGISTRADO",
+        "fecha_hora": "2026-11-13T01:28:54.109380Z",
+        "actor": "Contador Financiero",
+        "activo": "QA-M06O-VR-01",
+        "id_periodo_contable": 220,
+        "resumen_payload": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "monto_afectado": "150000.0000",
+        "severidad": "INFO",
+        "integridad_verificable": true,
+        "hash_integridad": {
+          "omitido": true
+        },
+        "informacion_adicional_truncada": false,
+        "origen": "Repositorio central"
+      },
+      "nota": "TECNICO expone payload_evento y campos crudos; LEGIBLE presenta la misma trazabilidad en forma legible."
+    },
+    "4454": {
+      "tecnico_claves": [
+        "datos_anteriores",
+        "hash_integridad",
+        "id_activo_biologico",
+        "id_evento",
+        "id_periodo_contable",
+        "id_referencia",
+        "id_sistema",
+        "id_usuario",
+        "identificador_activo",
+        "modulo",
+        "monto_afectado",
+        "nombre_usuario",
+        "origen_registro",
+        "payload_evento",
+        "payload_truncado",
+        "severidad_evento",
+        "timestamp_evento",
+        "tipo_actor",
+        "tipo_evento"
+      ],
+      "legible_claves": [
+        "activo",
+        "actor",
+        "descripcion_evento",
+        "fecha_hora",
+        "hash_integridad",
+        "id_evento",
+        "id_periodo_contable",
+        "informacion_adicional_truncada",
+        "integridad_verificable",
+        "monto_afectado",
+        "origen",
+        "resumen_payload",
+        "severidad",
+        "tipo_evento"
+      ],
+      "tecnico_tiene_payload_evento": true,
+      "legible_muestra": {
+        "id_evento": 19672,
+        "descripcion_evento": "Costo registrado",
+        "tipo_evento": "COSTO_REGISTRADO",
+        "fecha_hora": "2026-11-13T01:28:54.109380Z",
+        "actor": "Contador Financiero",
+        "activo": "QA-M06O-VR-02",
+        "id_periodo_contable": 220,
+        "resumen_payload": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "monto_afectado": "300000.0000",
+        "severidad": "INFO",
+        "integridad_verificable": true,
+        "hash_integridad": {
+          "omitido": true
+        },
+        "informacion_adicional_truncada": false,
+        "origen": "Repositorio central"
+      },
+      "nota": "TECNICO expone payload_evento y campos crudos; LEGIBLE presenta la misma trazabilidad en forma legible."
+    },
+    "4455": {
+      "tecnico_claves": [
+        "datos_anteriores",
+        "hash_integridad",
+        "id_activo_biologico",
+        "id_evento",
+        "id_periodo_contable",
+        "id_referencia",
+        "id_sistema",
+        "id_usuario",
+        "identificador_activo",
+        "modulo",
+        "monto_afectado",
+        "nombre_usuario",
+        "origen_registro",
+        "payload_evento",
+        "payload_truncado",
+        "severidad_evento",
+        "timestamp_evento",
+        "tipo_actor",
+        "tipo_evento"
+      ],
+      "legible_claves": [
+        "activo",
+        "actor",
+        "descripcion_evento",
+        "fecha_hora",
+        "hash_integridad",
+        "id_evento",
+        "id_periodo_contable",
+        "informacion_adicional_truncada",
+        "integridad_verificable",
+        "monto_afectado",
+        "origen",
+        "resumen_payload",
+        "severidad",
+        "tipo_evento"
+      ],
+      "tecnico_tiene_payload_evento": true,
+      "legible_muestra": {
+        "id_evento": 19673,
+        "descripcion_evento": "Costo registrado",
+        "tipo_evento": "COSTO_REGISTRADO",
+        "fecha_hora": "2026-11-13T01:28:54.109380Z",
+        "actor": "Contador Financiero",
+        "activo": "QA-M06O-VR-03",
+        "id_periodo_contable": 220,
+        "resumen_payload": {
+          "origen": "MANO_OBRA_PROPIA",
+          "factura": null,
+          "subtipo": "ALIMENTO",
+          "politica": "GASTO",
+          "vehiculo": "ASIENTO_NIC41",
+          "naturaleza": "MANTENIMIENTO",
+          "tercero_nit": {
+            "omitido": true
+          },
+          "cuenta_manual": null,
+          "id_grupo_reparto": "97e56560-f488-41e9-a5eb-b9a93455f275"
+        },
+        "monto_afectado": "450000.0000",
+        "severidad": "INFO",
+        "integridad_verificable": true,
+        "hash_integridad": {
+          "omitido": true
+        },
+        "informacion_adicional_truncada": false,
+        "origen": "Repositorio central"
+      },
+      "nota": "TECNICO expone payload_evento y campos crudos; LEGIBLE presenta la misma trazabilidad en forma legible."
+    }
+  },
+  "estado_final": "APROBADO",
+  "dictamen_general": "APROBADO",
+  "aprobados": 1,
+  "fallidos": 0,
+  "bloqueados": 0,
+  "porcentaje_aprobacion": 100,
+  "subcasos": [
+    {
+      "id": "TC-M06-43",
+      "estado": "APROBADO",
+      "costos": [
+        4453,
+        4454,
+        4455
+      ],
+      "eventos": [
+        19671,
+        19672,
+        19673
+      ]
+    }
+  ],
+  "motivo": "Se verificó la trazabilidad integral de los costos 4453/4454/4455: exactamente un evento COSTO_REGISTRADO por costo, con correspondencia de activo, período, monto, naturaleza y actor USUARIO 141 (RF-90 / RF-94).",
+  "caso_completo_aprobado": true,
+  "ejecucion": "COMPLETADA",
+  "resultado": "SATISFACTORIO",
+  "requerimientos_verificados": [
+    "RF-90",
+    "RF-94"
+  ],
+  "analisis": "# TC-M06-G114 / TC-M06-43 — APROBADO\n\n**Caso:** TC-M06-G114  \n**Subcaso:** TC-M06-43 — APROBADO  \n**RF:** RF-90, RF-94  \n**Ambiente:** TEST  \n**Dictamen:** APROBADO  \n**Aprobados:** 1/1  \n\n## Alcance\n\nValidación integral de la trazabilidad de costos registrados y sus movimientos contables,\nusando exclusivamente los costos 4453, 4454 y 4455 de G113. No se crearon costos nuevos.\n\n## Resultado\n\nSe verificó la trazabilidad integral de los costos 4453/4454/4455: exactamente un evento COSTO_REGISTRADO por costo, con correspondencia de activo, período, monto, naturaleza y actor USUARIO 141 (RF-90 / RF-94).\n\n## Validaciones\n\n| Validación | Resultado |\n|---|---|\n| costo_4453_existe | OK |\n| costo_4453_un_evento_tecnico | OK |\n| costo_4453_un_evento_legible | OK |\n| costo_4453_id_referencia | OK |\n| costo_4453_activo | OK |\n| costo_4453_periodo | OK |\n| costo_4453_monto | OK |\n| costo_4453_naturaleza | OK |\n| costo_4453_actor_usuario_141 | OK |\n| costo_4453_evento_esperado | OK |\n| costo_4453_tipo_evento | OK |\n| costo_4454_existe | OK |\n| costo_4454_un_evento_tecnico | OK |\n| costo_4454_un_evento_legible | OK |\n| costo_4454_id_referencia | OK |\n| costo_4454_activo | OK |\n| costo_4454_periodo | OK |\n| costo_4454_monto | OK |\n| costo_4454_naturaleza | OK |\n| costo_4454_actor_usuario_141 | OK |\n| costo_4454_evento_esperado | OK |\n| costo_4454_tipo_evento | OK |\n| costo_4455_existe | OK |\n| costo_4455_un_evento_tecnico | OK |\n| costo_4455_un_evento_legible | OK |\n| costo_4455_id_referencia | OK |\n| costo_4455_activo | OK |\n| costo_4455_periodo | OK |\n| costo_4455_monto | OK |\n| costo_4455_naturaleza | OK |\n| costo_4455_actor_usuario_141 | OK |\n| costo_4455_evento_esperado | OK |\n| costo_4455_tipo_evento | OK |\n| sin_duplicados_ni_huerfanos | OK |\n| rf90_costos_existentes_trazables | OK |\n| rf94_auditoria_m06_por_id_referencia | OK |\n\n## Conclusión\n\nTC-M06-G114 queda **APROBADO**. Requerimientos verificados: RF-90 y RF-94.\n"
+}

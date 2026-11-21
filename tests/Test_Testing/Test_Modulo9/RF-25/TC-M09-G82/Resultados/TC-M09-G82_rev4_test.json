@@ -1,0 +1,65 @@
+{
+  "caso": "TC-M09-G82",
+  "subcaso": "TC-M09-157",
+  "revision": "cuarta / tercera evaluacion funcional",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "generado": "2026-09-25T06:00:57Z",
+  "nota_git": "laura local sigue en f6f51ea7; origin/test NO fusionado. La evaluacion usa el API TEST desplegado, cuyo comportamiento coincide con origen/test (alcance usuarios_fincas).",
+  "construccion_coleccion_historica": {
+    "archivo": "tc_m09_g82.json",
+    "login": "ingeniero@pecuaria.co password hardcodeada",
+    "finca": 19,
+    "no_usa_matriz": "usuario 20 / finca 999",
+    "assertion_error_code": "ACCESO_DENEGADO",
+    "contrato_producto": "FINCA_NO_AUTORIZADA",
+    "problema": "La coleccion historica no usa 20/999; espera ACCESO_DENEGADO. Ejecutarla tal cual seria ERROR DE PRUEBA si el backend responde 403 FINCA_NO_AUTORIZADA. No se ejecuto Newman historico. Ingeniero: un intento de login con password de entorno = 401 CREDENCIALES_INVALIDAS intento 2/5; no se reintento."
+  },
+  "matriz": {
+    "usuario": 20,
+    "finca": 999,
+    "usuario_20": { "GET /usuarios/20/detalle": 404, "error_code": "USUARIO_NO_ENCONTRADO" },
+    "finca_999": { "GET /configuracion/fincas/999": 404, "error_code": "FINCA_NO_ENCONTRADA" }
+  },
+  "alternativa_valida": {
+    "motivo": "20/999 no existen. Productor id=2 autenticable; finca 19 existe y no aparece en GET /configuracion/fincas ni en GET /usuarios/2/detalle.fincas. Reproduce finca existente no autorizada.",
+    "usuario": {
+      "id_usuario": 2,
+      "correo": "productor@pecuaria.co",
+      "rol": "Productor",
+      "id_rol_jwt": 2,
+      "estado": "Activo",
+      "login_http": 200
+    },
+    "finca": {
+      "id_finca": 19,
+      "nombre": "Finca Ajena RBAC nunraqtorm",
+      "existe": true,
+      "autorizada": false
+    }
+  },
+  "comprobacion_alcance": {
+    "GET /usuarios/2/detalle fincas": [1, 2, 3, 4, 5, 6, 8, 20],
+    "GET /configuracion/fincas como productor": { "http": 200, "ids": [3, 1, 8, 5, 6, 20, 4, 2], "incluye_19": false },
+    "GET /usuarios/me fincas": [],
+    "nota_me": " /me devolvio fincas vacias; el alcance real del GET detalle es GET /configuracion/fincas (8 fincas, sin 19)."
+  },
+  "control_positivo": {
+    "GET /configuracion/fincas/1": { "http": 200, "id_finca": 1 }
+  },
+  "tc_m09_157": {
+    "endpoint": "GET /configuracion/fincas/19",
+    "http_esperado": 403,
+    "http_recibido": 403,
+    "error_code": "FINCA_NO_AUTORIZADA",
+    "message": "No tiene autorización para consultar la finca solicitada.",
+    "datos_expuestos": "NO (sin id_finca, sin nombre)",
+    "contraste_999": { "GET /configuracion/fincas/999": 404, "error_code": "FINCA_NO_ENCONTRADA" },
+    "evento_seguridad_GET_auditoria": {
+      "consultado": "GET /auditoria/?id_usuario=2",
+      "tras_403": "solo LOGIN_EXITOSO y CONSULTA_PERFIL_PROPIO; no hay evento de denegacion de finca",
+      "resultado": "NO COMPROBABLE / no registrado en modulo1.eventos"
+    },
+    "resultado": "APROBADO"
+  }
+}

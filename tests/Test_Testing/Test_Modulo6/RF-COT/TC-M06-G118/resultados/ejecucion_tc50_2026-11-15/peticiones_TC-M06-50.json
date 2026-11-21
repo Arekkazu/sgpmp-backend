@@ -1,0 +1,74 @@
+{
+  "peticiones": [
+    {
+      "fase": "login",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "error": null
+    },
+    {
+      "fase": "baseline",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1571",
+      "http": 200
+    },
+    {
+      "fase": "baseline",
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones?id_activo_biologico=1571",
+      "http": 200
+    },
+    {
+      "fase": "baseline",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas?id_periodo_contable=220",
+      "http": 200
+    },
+    {
+      "fase": "escritura",
+      "metodo": "POST",
+      "ruta": "/finanzas/cotizaciones",
+      "http": 201,
+      "error": null,
+      "posts": 1
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones?id_activo_biologico=1571",
+      "http": 200
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/cotizaciones/15",
+      "http": 405
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/activos/1571",
+      "http": 200
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/lineas?id_periodo_contable=220",
+      "http": 200
+    },
+    {
+      "fase": "verificacion",
+      "metodo": "GET",
+      "ruta": "/finanzas/auditoria?...activo=1571",
+      "http": 401
+    },
+    {
+      "fase": "aaef",
+      "metodo": "GET",
+      "ruta": "/integracion/aaef/vista-previa/productores/900000003",
+      "http": 401
+    }
+  ],
+  "posts_ejecutados": 1
+}

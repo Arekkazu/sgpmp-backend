@@ -1,0 +1,25 @@
+{
+  "origen": "QA_PROPUESTAS_G87/TC-M03-G87_resultado_PROPUESTA.md, contrastado con resultado.json del RUN-G87-V1-20261023-145303 y código local de src/telemetry; revisión desplegada en TEST no acreditada",
+  "documentacion": {
+    "orden": "ORD-G87-026",
+    "fechaUTC": "2026-10-23T16:11:12Z",
+    "primeraOrden": "ORD-G87-025",
+    "hashOriginalPrimero": "8e3567fcb2bb30bc497af93c7a17891c137b39c0960a4b8dfce889713e8ffc98"
+  },
+  "casos": {
+    "TC-M03-177": {
+      "estadoIngesta": "FUERA_DE_RANGO",
+      "hipotesis": "El mecanismo que conserva la última lectura válida como valor operativo podría no transportar por separado el evento posterior FUERA_DE_RANGO hasta el estado que consulta el dashboard. El mecanismo exacto sigue por verificar.",
+      "puntos": "Inspeccionar src/telemetry/application/use_cases/monitoreo/obtener_dashboard_use_case.py (_calcular_semaforo_efectivo), src/telemetry/infrastructure/repositories/monitoreo_repository.py y su lectura de modulo3.estados_actuales_sensores; contrastar con el contrato API y la UI. Los archivos y la referencia a la tabla existen en el código local; no se acreditó que esta revisión esté desplegada en TEST. El trigger trg_rf58_01_cache_estado_sensor y la función fn_actualizar_estado_sensor fueron mencionados en la propuesta, pero su definición no se verificó en src/telemetry.",
+      "verificacion": "Correlacionar la ingesta FUERA_DE_RANGO con estado persistido, respuesta API y UI; identificar el primer punto causal y la revisión desplegada. Solicitar apoyo a DBA solo si se acredita causalidad SQL; a AIoT o Implementación solo con señales propias de sus componentes.",
+      "accion": "Conservar la última lectura válida como referencia operativa y comunicar simultáneamente la anomalía mediante el indicador exigido; reevaluar API/UI solo con autorización QA."
+    },
+    "TC-M03-178": {
+      "estadoIngesta": "ERROR_CALIBRACION",
+      "hipotesis": "La selección correcta de la última lectura válida como valor operativo podría no estar acompañada de un estado técnico independiente que informe al Ingeniero de los eventos posteriores ERROR_CALIBRACION. El mecanismo exacto sigue por verificar.",
+      "puntos": "Inspeccionar la proyección de estado_calidad en modulo3.estados_actuales_sensores, src/telemetry/infrastructure/repositories/monitoreo_repository.py, src/telemetry/application/use_cases/monitoreo/obtener_dashboard_use_case.py y el contrato por rol. Los archivos y la referencia a la tabla existen en el código local; no se acreditó que esta revisión esté desplegada en TEST. La definición del trigger o función de caché citados en la propuesta no se verificó en src/telemetry.",
+      "verificacion": "Correlacionar las ingestas ERROR_CALIBRACION con el registro, estado actual, respuesta API y detalle del Ingeniero; ubicar dónde se pierde la condición técnica y verificar la revisión desplegada. Solicitar apoyo a DBA solo si se acredita causalidad SQL; a AIoT o Implementación solo con señales propias de sus componentes.",
+      "accion": "Conservar la última lectura válida sin presentar como normal la condición técnica del sensor ante el Ingeniero; indicar la necesidad de calibración y reevaluar ambos roles solo con autorización QA."
+    }
+  }
+}

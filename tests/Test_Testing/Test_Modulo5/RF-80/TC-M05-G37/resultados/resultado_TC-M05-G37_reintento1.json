@@ -1,0 +1,95 @@
+{
+  "tc": "TC-M05-G37",
+  "summary": {
+    "total": 14,
+    "ok": 11,
+    "falla": 3,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Linea base en corrida sandbox independiente de solo lectura",
+      "esperado": "HTTP 200 en auditoria base con total y ultimo_id capturados; cierre DELETE -> 200 Rollback exitoso",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=f2be3c48-119c-4d97-9962-b5d10d4ee4a9]; DELETE /test-control/runs/tc-m05-g37-inobase-db295fa3 -> HTTP 200 [X-Request-Id=230d6c4b-8f67-4f08-872d-a094bd54ab94]; POST /sesiones/ -> HTTP 200 [X-Request-Id=7ff8d523-6dd8-4712-8543-e6d63da0118f] | Eventos vistos: ev#72166:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01a RF-78 exito: SERVICIO_VETERINARIO con unidad 'servicio' y 3 eventos <= 2 s",
+      "esperado": "HTTP 200 y exactamente SUMINISTRO_REGISTRADO, PRECIO_MANUAL_INGRESADO, ACUMULADO_ACTUALIZADO en <= 2.0 s con campos R8/RNF-08 y sub JWT",
+      "obtenido": "HTTP: POST /activos-biologicos -> HTTP 201 [X-Request-Id=dec5e3b9-7fbb-476e-9864-fc0b76e820ba]; POST /activos-biologicos/1850/fases -> HTTP 201 [X-Request-Id=5cfc72dc-7521-4f2f-8d4c-924508d4e364]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=1b352817-046c-43e5-bcd8-6fe9b07eeb02] | Eventos vistos: ev#72166:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False, ev#72193:SUMINISTRO_REGISTRADO/EXITOSO/NIC41/5 años/inc=False, ev#72194:PRECIO_MANUAL_INGRESADO/EXITOSO/TECNICO/1 año/inc=False, ev#72195:ACUMULADO_ACTUALIZADO/EXITOSO/NIC41/5 años/inc=False",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01b RF-81 exito: GET /suministros/historial -> 1 CONSULTA_HISTORIAL_EJECUTADA <= 2 s",
+      "esperado": "HTTP 200 y exactamente 1 CONSULTA_HISTORIAL_EJECUTADA con id_usuario, hash SHA-256 y latencia <= 2.0 s",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=934d4538-3a41-49f8-86b0-ade897a11c18]; GET /suministros/historial -> HTTP 200 [X-Request-Id=42d0c785-9435-4c1c-ae5a-0cc3d8af7375]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=55c6a786-debb-47e4-b9c2-8d1f52bca187] | Eventos vistos: ev#72193:SUMINISTRO_REGISTRADO/EXITOSO/NIC41/5 años/inc=False, ev#72194:PRECIO_MANUAL_INGRESADO/EXITOSO/TECNICO/1 año/inc=False, ev#72195:ACUMULADO_ACTUALIZADO/EXITOSO/NIC41/5 años/inc=False, ev#72196:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02a RF-78 rechazo sin fase abierta (409 CICLO_NO_ACTIVO), sin efectos parciales y repeticion",
+      "esperado": "HTTP 409 CICLO_NO_ACTIVO, 1 REGISTRO_FALLIDO (RECHAZADO/FALLIDO, TECNICO/1 año, registro_incompleto=true), acumulado 404, historial 0 y +1 evento al repetir",
+      "obtenido": "HTTP: POST /activos-biologicos -> HTTP 201 [X-Request-Id=41167bb6-cb69-49dd-a8c6-9e117b13ad5e]; POST /suministros/costeo-directo -> HTTP 409 (CICLO_NO_ACTIVO) [X-Request-Id=8bbab589-6498-4909-9881-933e84b33324]; GET /suministros/costeo-directo/acumulado/activo/1851 -> HTTP 404 (CICLO_NO_ACTIVO) [X-Request-Id=8bdd2f2a-e4c5-406e-ad26-9f56df43e341]; GET /suministros/historial -> HTTP 200 [X-Request-Id=be1b1cba-35e3-4958-b164-7d2a135f190c]; POST /suministros/costeo-directo -> HTTP 409 (CICLO_NO_ACTIVO) [X-Request-Id=47db925f-f055-45ab-8e85-a0f903f748c0] | Eventos vistos: ev#72196:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False, ev#72197:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=True, ev#72198:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False, ev#72199:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=True",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02b RF-78 rechazo con fase abierta (cantidad -1 -> 422 COSTO_REGISTRO_INVALIDO)",
+      "esperado": "HTTP 422 COSTO_REGISTRO_INVALIDO y 1 REGISTRO_FALLIDO con id_ciclo_productivo e id_gestion_fases no nulos en <= 2.0 s",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=20b3c3ee-3529-4ac3-a7ea-3422543d23e5]; POST /suministros/costeo-directo -> HTTP 422 (COSTO_REGISTRO_INVALIDO) [X-Request-Id=45161fbf-95c1-4170-a815-55ab32d76852]; GET /suministros/auditoria -> HTTP 200 [X-Request-Id=d52e9f44-b26d-4d54-925c-2473fe3e5268] | Eventos vistos: ev#72197:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=True, ev#72198:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False, ev#72199:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=True, ev#72200:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=False",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02c RF-79 rechazo: consolidar con ciclo activo (409 CICLO_ACTIVO)",
+      "esperado": "HTTP 409 CICLO_ACTIVO y >= 1 evento nuevo con resultado FALLIDO/RECHAZADO, id_usuario=Admin y latencia <= 2.0 s",
+      "obtenido": "AssertionError: RF-80 v2.0 CA-1 / TC-M05-090: Se esperaba >= 1 evento con resultado FALLIDO/RECHAZADO tras HTTP 409 (CICLO_ACTIVO, X-Request-Id=3d39c986-07f7-4ff1-8677-0bcdd1b48268); eventos nuevos observados: 0 ([]) | HTTP: POST /suministros/nic41/ciclo/834/consolidar -> HTTP 409 (CICLO_ACTIVO) [X-Request-Id=3d39c986-07f7-4ff1-8677-0bcdd1b48268] | Eventos vistos: ev#72197:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=True, ev#72198:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False, ev#72199:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=True, ev#72200:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=False",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "A02d RF-81 rechazo: historial con fecha_fin < fecha_inicio (422 COMBINACION_FILTROS_INVALIDA)",
+      "esperado": "HTTP 422 COMBINACION_FILTROS_INVALIDA y >= 1 evento nuevo con resultado FALLIDO/RECHAZADO, id_usuario=Admin y latencia <= 2.0 s",
+      "obtenido": "AssertionError: RF-80 v2.0 CA-1 / TC-M05-090: Se esperaba >= 1 evento con resultado FALLIDO/RECHAZADO tras HTTP 422 (COMBINACION_FILTROS_INVALIDA, X-Request-Id=5f33cd85-b797-410f-b32e-dbe1b31a397e); eventos nuevos observados: 0 ([]) | HTTP: GET /suministros/historial -> HTTP 422 (COMBINACION_FILTROS_INVALIDA) [X-Request-Id=5f33cd85-b797-410f-b32e-dbe1b31a397e] | Eventos vistos: ev#72197:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=True, ev#72198:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False, ev#72199:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=True, ev#72200:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=False",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "A01c RF-79 exito: cierre de ciclo -> CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO <= 2 s",
+      "esperado": "HTTP 200 en cierre y eventos CICLO_CONSOLIDADO y REPORTE_COSTOS_GENERADO EXITOSO con costo_afectado y hash <= 2.0 s",
+      "obtenido": "HTTP: POST /activos-biologicos/1850/cierre -> HTTP 200 [X-Request-Id=2ddb102b-44c7-477d-a9e8-7f58d42f19f1]; GET /suministros/nic41/ciclo/834/versiones -> HTTP 200 [X-Request-Id=4583660a-6401-4216-869c-c960c0e99f31] | Eventos vistos: ev#72200:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=False, ev#72201:INSERT/EXITOSO/NIC41/5 años/inc=False, ev#72202:CICLO_CONSOLIDADO/EXITOSO/NIC41/5 años/inc=False, ev#72203:REPORTE_COSTOS_GENERADO/EXITOSO/NIC41/5 años/inc=False",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Consistencia lista vs detalle /{id} y filtros para EXITOSO y REGISTRO_FALLIDO",
+      "esperado": "Identidad campo por campo lista == detalle /{id} y aparicion en los 6 filtros para SUMINISTRO_REGISTRADO y REGISTRO_FALLIDO",
+      "obtenido": "HTTP: GET /suministros/auditoria/72193 -> HTTP 200 [X-Request-Id=c4f3806c-8493-470e-ba73-2870360feb7e]; GET /suministros/auditoria/72197 -> HTTP 200 [X-Request-Id=453bb830-6746-4544-86e5-60074725951d] | Eventos vistos: ev#72200:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=False, ev#72201:INSERT/EXITOSO/NIC41/5 años/inc=False, ev#72202:CICLO_CONSOLIDADO/EXITOSO/NIC41/5 años/inc=False, ev#72203:REPORTE_COSTOS_GENERADO/EXITOSO/NIC41/5 años/inc=False",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Restriccion 8: campos minimos por tipo y flag registro_incompleto",
+      "esperado": "Todos los eventos del catalogo cumplen campos minimos o registran registro_incompleto=true con detalle_causa nombrando el faltante",
+      "obtenido": "AssertionError: RF-80 v2.0 Restriccion 8 / E2 / CA-12: Hay eventos del catalogo con campos minimos ausentes sin registro_incompleto=true o sin nombrar el campo faltante en detalle_causa. Incumplimientos (evento, tipo, campo_faltante, registro_incompleto): [{'id_auditoria_suministro': 72193, 'tipo_operacion': 'SUMINISTRO_REGISTRADO', 'campo_faltante': 'id_registro_suministro', 'registro_incompleto': False, 'detalle_causa': ''}, {'id_auditoria_suministro': 72193, 'tipo_operacion': 'SUMINISTRO_REGISTRADO', 'campo_faltante': 'id_tipo_suministro', 'registro_incompleto': False, 'detalle_causa': ''}, {'id_auditoria_suministro': 72194, 'tipo_operacion': 'PRECIO_MANUAL_INGRESADO', 'campo_faltante': 'id_registro_suministro', 'registro_incompleto': False, 'detalle_causa': ''}, {'id_auditoria_suministro': 72195, 'tipo_operacion': 'ACUMULADO_ACTUALIZADO', 'campo_faltante': 'id_registro_suministro', 'registro_incompleto': False, 'detalle_causa': ''}, {'id_auditoria_suministro': 72196, 'tipo_operacion': 'CONSULTA_HISTORIAL_EJECUTADA', 'campo_faltante': 'id_ciclo_productivo', 'registro_incompleto': False, 'detalle_causa': ''}, {'id_auditoria_suministro': 72197, 'tipo_operacion': 'REGISTRO_FALLIDO', 'campo_faltante': 'id_ciclo_productivo', 'registro_incompleto': True, 'detalle_causa': 'Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1851. Solicitud: c732ebd8-6c1f-4377-8edf-a7183c18aab2. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.'}, {'id_auditoria_suministro': 72197, 'tipo_operacion': 'REGISTRO_FALLIDO', 'campo_faltante': 'id_tipo_suministro', 'registro_incompleto': True, 'detalle_causa': 'Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1851. Solicitud: c732ebd8-6c1f-4377-8edf-a7183c18aab2. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.'}, {'id_auditoria_suministro': 72198, 'tipo_operacion': 'CONSULTA_HISTORIAL_EJECUTADA', 'campo_faltante': 'id_ciclo_productivo', 'registro_incompleto': False, 'detalle_causa': ''}, {'id_auditoria_suministro': 72199, 'tipo_operacion': 'REGISTRO_FALLIDO', 'campo_faltante': 'id_ciclo_productivo', 'registro_incompleto': True, 'detalle_causa': 'Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1851. Solicitud: e1d684c8-ef67-4f2c-8c8a-e0cfdfb1f4ec. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.'}, {'id_auditoria_suministro': 72199, 'tipo_operacion': 'REGISTRO_FALLIDO', 'campo_faltante': 'id_tipo_suministro', 'registro_incompleto': True, 'detalle_causa': 'Registro de suministro rechazado: El activo no tiene un ciclo productivo abierto. Activo solicitado: 1851. Solicitud: e1d684c8-ef67-4f2c-8c8a-e0cfdfb1f4ec. No se pudo acreditar una fase productiva abierta para el intento. Campos faltantes: ciclo productivo.'}, {'id_auditoria_suministro': 72200, 'tipo_operacion': 'REGISTRO_FALLIDO', 'campo_faltante': 'id_tipo_suministro', 'registro_incompleto': False, 'detalle_causa': 'Registro de suministro rechazado: La cantidad y el precio deben producir un costo mayor que cero. Activo solicitado: 1850. Solicitud: 93183fa7-ffe2-4d39-aed8-90b4bc173f14.'}] | HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=4669b689-149c-4e89-add3-d259e73a9ff4] | Eventos vistos: ev#72200:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=False, ev#72201:INSERT/EXITOSO/NIC41/5 años/inc=False, ev#72202:CICLO_CONSOLIDADO/EXITOSO/NIC41/5 años/inc=False, ev#72203:REPORTE_COSTOS_GENERADO/EXITOSO/NIC41/5 años/inc=False",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "B01 Clasificacion y retencion por catalogo (NIC41 / 5 años vs TECNICO / 1 año)",
+      "esperado": "SUMINISTRO_REGISTRADO, ACUMULADO_ACTUALIZADO, CICLO_CONSOLIDADO, REPORTE_COSTOS_GENERADO=NIC41/5 años; PRECIO_MANUAL_INGRESADO, CONSULTA_HISTORIAL_EJECUTADA, REGISTRO_FALLIDO=TECNICO/1 año",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=8577f51c-9454-49bb-a7dc-b6b2d69b4d52] | Eventos vistos: ev#72200:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=False, ev#72201:INSERT/EXITOSO/NIC41/5 años/inc=False, ev#72202:CICLO_CONSOLIDADO/EXITOSO/NIC41/5 años/inc=False, ev#72203:REPORTE_COSTOS_GENERADO/EXITOSO/NIC41/5 años/inc=False",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Tipo no catalogado -> NIC41 / 5 años en TEST y en clasificar_retencion",
+      "esperado": ">= 1 evento real no catalogado en TEST clasificado NIC41/5 años y unitario clasificar_retencion=('NIC41', '5 años')",
+      "obtenido": "HTTP: GET /suministros/auditoria -> HTTP 200 [X-Request-Id=5c8af848-6e79-4970-913e-2fd3d7543cd0] | Eventos vistos: ev#72200:REGISTRO_FALLIDO/RECHAZADO/TECNICO/1 año/inc=False, ev#72201:INSERT/EXITOSO/NIC41/5 años/inc=False, ev#72202:CICLO_CONSOLIDADO/EXITOSO/NIC41/5 años/inc=False, ev#72203:REPORTE_COSTOS_GENERADO/EXITOSO/NIC41/5 años/inc=False",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre de la corrida sandbox principal",
+      "esperado": "DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso",
+      "obtenido": "HTTP: DELETE /test-control/runs/tc-m05-g37-adm-b6d9c187 -> HTTP 200 [X-Request-Id=35fb892d-c557-423d-ab1c-794bd35897b9]",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad en corrida sandbox independiente de solo lectura",
+      "esperado": "total y ultimo_id iguales a T00; GET a activos, acumulados/historial de suministro y provision creados -> HTTP 404",
+      "obtenido": "HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=c3fe1eda-0a3a-41c1-bf1b-adda4bc358a0]; GET /activos-biologicos/1850 -> HTTP 404 (ACTIVO_NO_ENCONTRADO) [X-Request-Id=c4960bdd-aafc-4761-9d56-c9fd2706e70c]; GET /suministros/costeo-directo/acumulado/activo/1850 -> HTTP 404 (CICLO_NO_ACTIVO) [X-Request-Id=a6c29c62-7b64-400d-9fad-600860cf988e]; GET /suministros/historial -> HTTP 404 (ACTIVO_NO_ENCONTRADO) [X-Request-Id=08b08e93-3e64-4ed8-808c-472ad5df0fca]; GET /suministros/costeo-directo/acumulado/ciclo/834 -> HTTP 404 (ACUMULADO_NO_ENCONTRADO) [X-Request-Id=87e3c581-1e89-434c-9e4f-74710927bad8] (+3 requests) | Eventos vistos: ev#72166:CONSULTA_HISTORIAL_EJECUTADA/EXITOSO/TECNICO/1 año/inc=False",
+      "estado": "OK"
+    }
+  ]
+}

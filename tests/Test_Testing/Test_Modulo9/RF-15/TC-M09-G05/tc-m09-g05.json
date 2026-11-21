@@ -1,0 +1,218 @@
+{
+  "info": {
+    "name": "TC-M09-G05 - Restricción de rol: Ingeniero de Campo no puede crear ni desactivar especies",
+    "description": "TC-M09-G05 (RF-15, CU-01, OWASP A01). Verifica que un usuario autenticado con rol Ingeniero de Campo (id_rol=4, ingeniero@pecuaria.co) no pueda realizar operaciones de creación (POST /configuracion/especies) ni desactivación (PATCH /configuracion/especies/{id}/desactivar). SC-1: Intento de POST -> 403 ACCESO_DENEGADO. SC-2: Intento de PATCH /desactivar sobre id_especie=10 (Tilapia) -> 403 ACCESO_DENEGADO, y confirmación de que su estado es_activo se mantiene en true.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 0 - Autenticación Ingeniero de Campo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 0: Inicio de sesión exitoso como Ingeniero de Campo (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta contiene un token de acceso válido', function () {",
+              "    pm.expect(respuesta).to.not.be.null;",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_ingeniero', respuesta.token);",
+              "    console.log('Token de Ingeniero de Campo guardado correctamente.');",
+              "} else {",
+              "    console.log('Fallo en el inicio de sesión del Ingeniero. Se cancela la ejecución.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"Pruebas12#\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      }
+    },
+    {
+      "name": "Paso 1 - SC-1 (TC-M09-14): Intento de Creación de Especie por Ingeniero de Campo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('SC-1: La creación de especies por Ingeniero de Campo es rechazada con HTTP 403 Forbidden', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "let res;",
+              "try { res = pm.response.json(); } catch (e) { res = {}; }",
+              "",
+              "pm.test('SC-1: El error_code es ACCESO_DENEGADO', function () {",
+              "    pm.expect(res).to.have.property('error_code', 'ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Especie No Autorizada QA\",\n  \"descripcion\": \"Intento de registro de especie por rol Ingeniero de Campo\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "especies" ]
+        }
+      }
+    },
+    {
+      "name": "Paso 2 - SC-2 Precondición: Lectura de estado inicial de id_especie=10 (Tilapia)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 2: Lectura de catálogo por Ingeniero de Campo exitosa (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let res;",
+              "try { res = pm.response.json(); } catch (e) { res = { items: [] }; }",
+              "",
+              "let item10 = res.items ? res.items.find(i => i.id_especie === 10) : null;",
+              "pm.test('La especie id_especie=10 (Tilapia) existe y está activa', function () {",
+              "    pm.expect(item10).to.not.be.null;",
+              "    pm.expect(item10.es_activo).to.be.true;",
+              "});",
+              "",
+              "if (item10) {",
+              "    pm.collectionVariables.set('es_activo_inicial', item10.es_activo);",
+              "    console.log('Estado inicial es_activo para id_especie=10:', item10.es_activo);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "especies" ]
+        }
+      }
+    },
+    {
+      "name": "Paso 3 - SC-2 (TC-M09-15): Intento de Desactivación de Especie id=10 por Ingeniero de Campo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('SC-2: La desactivación de especies por Ingeniero de Campo es rechazada con HTTP 403 Forbidden', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "let res;",
+              "try { res = pm.response.json(); } catch (e) { res = {}; }",
+              "",
+              "pm.test('SC-2: El error_code es ACCESO_DENEGADO (Compuerta RBAC ejecutada antes de BD)', function () {",
+              "    pm.expect(res).to.have.property('error_code', 'ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies/10/desactivar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "especies", "10", "desactivar" ]
+        }
+      }
+    },
+    {
+      "name": "Paso 4 - SC-2 Verificación: Confirmación de Inmutabilidad de Estado id_especie=10",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 4: Consulta post-intento exitosa (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let res;",
+              "try { res = pm.response.json(); } catch (e) { res = { items: [] }; }",
+              "",
+              "let item10 = res.items ? res.items.find(i => i.id_especie === 10) : null;",
+              "let esActivoInicial = pm.collectionVariables.get('es_activo_inicial');",
+              "",
+              "pm.test('SC-2: El estado es_activo de id_especie=10 se mantiene intacto en true (Sin cambios)', function () {",
+              "    pm.expect(item10).to.not.be.null;",
+              "    pm.expect(item10.es_activo).to.equal(esActivoInicial);",
+              "    pm.expect(item10.es_activo).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "especies" ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_ingeniero", "value": "" },
+    { "key": "es_activo_inicial", "value": "true" }
+  ]
+}

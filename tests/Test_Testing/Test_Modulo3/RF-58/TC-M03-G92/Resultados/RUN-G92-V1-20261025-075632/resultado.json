@@ -1,0 +1,1394 @@
+{
+  "grupo": "G92",
+  "rf": "RF-58",
+  "run_id": "RUN-G92-V1-20261025-075632",
+  "version": 1,
+  "autorizacion": "AUT-G92-V1-R2-20261025",
+  "commit": "NO_VERIFICADO",
+  "oficial": false,
+  "consume_version": false,
+  "estado": "NO_CONCLUYENTE",
+  "casos": {
+    "TC-M03-181": {
+      "estado": "NO_CONCLUYENTE",
+      "veredicto": null,
+      "estado_tecnico": "NO_CONCLUYENTE",
+      "comprobaciones": [],
+      "observado": null
+    },
+    "TC-M03-182": {
+      "estado": "NO_CONCLUYENTE",
+      "veredicto": null,
+      "estado_tecnico": "NO_CONCLUYENTE",
+      "comprobaciones": [],
+      "observado": null
+    },
+    "TC-M03-183": {
+      "estado": "NO_CONCLUYENTE",
+      "veredicto": null,
+      "estado_tecnico": "NO_CONCLUYENTE",
+      "comprobaciones": [],
+      "observado": null
+    }
+  },
+  "comprobaciones": [],
+  "datos": {
+    "ids_telemetria": [],
+    "ids_alerta": [],
+    "inventario": [
+      {
+        "tipo": "finca_preexistente",
+        "id": 184,
+        "depende_de": null
+      },
+      {
+        "tipo": "area",
+        "id": 512,
+        "depende_de": {
+          "finca": 184
+        }
+      },
+      {
+        "tipo": "area",
+        "id": 513,
+        "depende_de": {
+          "finca": 184
+        }
+      },
+      {
+        "tipo": "dispositivo",
+        "id": 521,
+        "depende_de": {
+          "area": 512
+        }
+      },
+      {
+        "tipo": "dispositivo",
+        "id": 522,
+        "depende_de": {
+          "area": 513
+        }
+      }
+    ],
+    "areas_creadas": [
+      512,
+      513
+    ],
+    "dispositivos_creados": [
+      521,
+      522
+    ],
+    "sensores_creados": []
+  },
+  "newman": [],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 1107
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 633
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 148,
+      "respuesta": {
+        "id_usuario": "[REDACTADO]",
+        "nombre": "[REDACTADO]",
+        "apellidos": "[REDACTADO]",
+        "correo_electronico": "[REDACTADO]",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "[REDACTADO]",
+        "fecha_nacimiento": "[REDACTADO]",
+        "fecha_registro": "2026-08-08T20:35:36.387305Z",
+        "telefono": "[REDACTADO]",
+        "direccion": "[REDACTADO]",
+        "nombre_rol": "[REDACTADO]",
+        "estado_cuenta": "Activo",
+        "ultimo_acceso": "2026-10-25T07:56:34.472609Z",
+        "version": 3,
+        "fincas": [
+          {
+            "id_finca": 1,
+            "nombre": "[REDACTADO]"
+          },
+          {
+            "id_finca": 80,
+            "nombre": "[REDACTADO]"
+          },
+          {
+            "id_finca": 184,
+            "nombre": "[REDACTADO]"
+          },
+          {
+            "id_finca": 57,
+            "nombre": "[REDACTADO]"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/184",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 144,
+      "respuesta": {
+        "id_finca": 184,
+        "nombre": "[REDACTADO]",
+        "ubicacion": {
+          "departamento": "Huila",
+          "municipio": "Neiva",
+          "vereda": "",
+          "latitud": "2.9273",
+          "longitud": "-75.2819"
+        },
+        "tamano_h": "50.00",
+        "es_activo": true,
+        "fecha_creacion": "2026-10-21T20:18:33Z",
+        "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+        "id_usuario": "[REDACTADO]",
+        "nombre_usuario": "[REDACTADO]"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 150,
+      "respuesta": {
+        "id_infraestructura": 349,
+        "nombre_infraestructura": "[REDACTADO]",
+        "tipo_area": "Galpón",
+        "superficie": "25.00",
+        "id_finca": 184,
+        "descripcion_infraestructura": "Semilla QA G87 (RF-58): área sin sensores con especie 126 para umbral 70 de Temperatura Ambiental.",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especies": [
+          126
+        ],
+        "especie_id": 126,
+        "tipo_modelo_asignado": null,
+        "nivel_criticidad": "MEDIA",
+        "capacidad_maxima": 250
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 156,
+      "respuesta": {
+        "id_dispositivo_iot": 357,
+        "serial": "[REDACTADO]",
+        "descripcion": "QA G87 S1 (TC-M03-168/177): sensor de Temperatura Ambiental del área 349",
+        "id_infraestructura": 349,
+        "id_tipo_dispositivo": 3,
+        "categoria": "SENSOR",
+        "es_activo": true,
+        "fecha_creacion": "2026-10-23T06:35:14.221134Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357/sensores",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 140,
+      "respuesta": {
+        "total": 2,
+        "items": [
+          {
+            "id_sensores": 552,
+            "nombre": "[REDACTADO]",
+            "id_dispositivo_iot": 357,
+            "es_activo": true,
+            "categoria": "TEMPERATURA"
+          },
+          {
+            "id_sensores": 737,
+            "nombre": "[REDACTADO]",
+            "id_dispositivo_iot": 357,
+            "es_activo": true,
+            "categoria": "AMONIACO"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales?id_especie=126",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 144,
+      "respuesta": {
+        "total": 4,
+        "items": [
+          {
+            "id_umbral_ambiental": 71,
+            "id_especie": 126,
+            "id_variable_ambiental": 1,
+            "unidad_medida": "°C",
+            "valor_min": "14.00",
+            "valor_max": "30.00",
+            "es_activo": true,
+            "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "20.00",
+                "limite_superior": "30.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "18.00",
+                "limite_superior": "20.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "14.00",
+                "limite_superior": "18.00"
+              }
+            ],
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_ultima_sincronizacion": null,
+            "motivo_fallo_sincronizacion": null
+          },
+          {
+            "id_umbral_ambiental": 70,
+            "id_especie": 126,
+            "id_variable_ambiental": 9,
+            "unidad_medida": "°C",
+            "valor_min": "15.00",
+            "valor_max": "30.00",
+            "es_activo": true,
+            "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "20.00",
+                "limite_superior": "30.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "19.00",
+                "limite_superior": "20.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "15.00",
+                "limite_superior": "19.00"
+              }
+            ],
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_ultima_sincronizacion": null,
+            "motivo_fallo_sincronizacion": null
+          },
+          {
+            "id_umbral_ambiental": 72,
+            "id_especie": 126,
+            "id_variable_ambiental": 10,
+            "unidad_medida": "%",
+            "valor_min": "5.00",
+            "valor_max": "20.00",
+            "es_activo": true,
+            "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "10.00",
+                "limite_superior": "20.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "9.00",
+                "limite_superior": "10.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "5.00",
+                "limite_superior": "9.00"
+              }
+            ],
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_ultima_sincronizacion": null,
+            "motivo_fallo_sincronizacion": null
+          },
+          {
+            "id_umbral_ambiental": 69,
+            "id_especie": 126,
+            "id_variable_ambiental": 13,
+            "unidad_medida": "°C",
+            "valor_min": "30.00",
+            "valor_max": "39.00",
+            "es_activo": true,
+            "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "35.00",
+                "limite_superior": "39.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "34.60",
+                "limite_superior": "35.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "30.00",
+                "limite_superior": "34.60"
+              }
+            ],
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_ultima_sincronizacion": null,
+            "motivo_fallo_sincronizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 146,
+      "respuesta": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_dispositivo_iot": 357,
+            "id_infraestructura": 349,
+            "punto_instalacion": "QA G87 S1",
+            "tiene_estado": true,
+            "fecha_asociacion": "2026-10-23T06:35:14.221134Z",
+            "fecha_finalizacion": null,
+            "id_usuario": "[REDACTADO]"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 135,
+      "respuesta": {
+        "total": 1,
+        "items": [
+          {
+            "id_calibracion": 68,
+            "id_dispositivo_iot": 357,
+            "id_sensor": 552,
+            "valor_referencia": 25,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-23T06:35:14.221134Z",
+            "id_usuario": "[REDACTADO]",
+            "observaciones": "QA G87 S1: calibración identidad (ganancia 1, offset 0)",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?id_sensor=552&fecha_desde=2026-10-25T07%3A54%3A32.634Z&fecha_hasta=2026-10-26T07%3A56%3A32.634Z&por_pagina=200",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 162,
+      "respuesta": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 200,
+        "items": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/737/asociaciones",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 129,
+      "respuesta": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 522,
+            "id_sensor": 737,
+            "id_dispositivo_iot": 357,
+            "id_infraestructura": 349,
+            "punto_instalacion": "Punto QA G88 180 NH3",
+            "tiene_estado": true,
+            "fecha_asociacion": "2026-10-24T16:06:09.505316Z",
+            "fecha_finalizacion": null,
+            "id_usuario": "[REDACTADO]"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/737/calibraciones",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 135,
+      "respuesta": {
+        "total": 1,
+        "items": [
+          {
+            "id_calibracion": 69,
+            "id_dispositivo_iot": 357,
+            "id_sensor": 737,
+            "valor_referencia": 5,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-24T16:06:10Z",
+            "id_usuario": "[REDACTADO]",
+            "observaciones": "Calibracion QA G88 TC-M03-180, sensor NH3",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?id_sensor=737&fecha_desde=2026-10-25T07%3A54%3A32.634Z&fecha_hasta=2026-10-26T07%3A56%3A32.634Z&por_pagina=200",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 132,
+      "respuesta": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 200,
+        "items": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-25&fecha_fin=2026-10-25&id_infraestructura=349&por_pagina=500",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 161,
+      "respuesta": {
+        "total": 0,
+        "total_encontrado": 0,
+        "truncado": false,
+        "aviso": null,
+        "pagina": 1,
+        "por_pagina": 500,
+        "paginas_totales": 1,
+        "filtros_aplicados": {
+          "fecha_inicio": "2026-10-25",
+          "fecha_fin": "2026-10-25",
+          "sensor_id": null,
+          "tipo_variable": null,
+          "categoria_variable": null,
+          "id_infraestructura": 349,
+          "especie": null,
+          "estado_dato": null,
+          "origen_dato": null,
+          "incluir_alertas": false
+        },
+        "rango_real_datos": {
+          "primer_timestamp": null,
+          "ultimo_timestamp": null
+        },
+        "items": [],
+        "estadisticas": [],
+        "vacios_temporales": []
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/infraestructuras",
+      "en_run": true,
+      "http": 201,
+      "eco_run": true,
+      "ms": 164,
+      "respuesta": {
+        "id_infraestructura": 512,
+        "nombre_infraestructura": "[REDACTADO]",
+        "tipo_area": "Galpón",
+        "superficie": "1.00",
+        "id_finca": 184,
+        "descripcion_infraestructura": null,
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especies": [
+          126
+        ],
+        "especie_id": 126,
+        "tipo_modelo_asignado": null,
+        "nivel_criticidad": "MEDIA",
+        "capacidad_maxima": 10
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/512",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 139,
+      "respuesta": {
+        "id_infraestructura": 512,
+        "nombre_infraestructura": "[REDACTADO]",
+        "tipo_area": "Galpón",
+        "superficie": "1.00",
+        "id_finca": 184,
+        "descripcion_infraestructura": null,
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especies": [
+          126
+        ],
+        "especie_id": 126,
+        "tipo_modelo_asignado": null,
+        "nivel_criticidad": "MEDIA",
+        "capacidad_maxima": 10
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/infraestructuras",
+      "en_run": true,
+      "http": 201,
+      "eco_run": true,
+      "ms": 138,
+      "respuesta": {
+        "id_infraestructura": 513,
+        "nombre_infraestructura": "[REDACTADO]",
+        "tipo_area": "Galpón",
+        "superficie": "1.00",
+        "id_finca": 184,
+        "descripcion_infraestructura": null,
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especies": [
+          126
+        ],
+        "especie_id": 126,
+        "tipo_modelo_asignado": null,
+        "nivel_criticidad": "MEDIA",
+        "capacidad_maxima": 10
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/513",
+      "en_run": true,
+      "http": 200,
+      "eco_run": true,
+      "ms": 145,
+      "respuesta": {
+        "id_infraestructura": 513,
+        "nombre_infraestructura": "[REDACTADO]",
+        "tipo_area": "Galpón",
+        "superficie": "1.00",
+        "id_finca": 184,
+        "descripcion_infraestructura": null,
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especies": [
+          126
+        ],
+        "especie_id": 126,
+        "tipo_modelo_asignado": null,
+        "nivel_criticidad": "MEDIA",
+        "capacidad_maxima": 10
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/dispositivos-iot",
+      "en_run": true,
+      "http": 201,
+      "eco_run": true,
+      "ms": 168,
+      "respuesta": {
+        "id_dispositivo_iot": 521,
+        "serial": "[REDACTADO]",
+        "descripcion": "QA G92 A",
+        "id_infraestructura": 512,
+        "id_tipo_dispositivo": 3,
+        "categoria": "SENSOR",
+        "es_activo": true,
+        "fecha_creacion": "2026-10-25T07:56:36.960402Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/dispositivos-iot",
+      "en_run": true,
+      "http": 201,
+      "eco_run": true,
+      "ms": 163,
+      "respuesta": {
+        "id_dispositivo_iot": 522,
+        "serial": "[REDACTADO]",
+        "descripcion": "QA G92 B",
+        "id_infraestructura": 513,
+        "id_tipo_dispositivo": 3,
+        "categoria": "SENSOR",
+        "es_activo": true,
+        "fecha_creacion": "2026-10-25T07:56:37.133799Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/configuracion/dispositivos-iot/522/sensores",
+      "en_run": true,
+      "http": 500,
+      "eco_run": true,
+      "ms": 148,
+      "respuesta": {
+        "error_code": "ERROR_INTERNO",
+        "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+        "fields": [],
+        "timestamp": "2026-10-25T07:56:37.297348+00:00"
+      }
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/G92-V1-20261025-075632",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 129,
+      "respuesta": {
+        "status": "Rollback exitoso"
+      }
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 390
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 401
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-25&fecha_fin=2026-10-25&id_infraestructura=512&por_pagina=500",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 145,
+      "respuesta": {
+        "total": 0,
+        "total_encontrado": 0,
+        "truncado": false,
+        "aviso": null,
+        "pagina": 1,
+        "por_pagina": 500,
+        "paginas_totales": 1,
+        "filtros_aplicados": {
+          "fecha_inicio": "2026-10-25",
+          "fecha_fin": "2026-10-25",
+          "sensor_id": null,
+          "tipo_variable": null,
+          "categoria_variable": null,
+          "id_infraestructura": 512,
+          "especie": null,
+          "estado_dato": null,
+          "origen_dato": null,
+          "incluir_alertas": false
+        },
+        "rango_real_datos": {
+          "primer_timestamp": null,
+          "ultimo_timestamp": null
+        },
+        "items": [],
+        "estadisticas": [],
+        "vacios_temporales": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-25&fecha_fin=2026-10-25&id_infraestructura=513&por_pagina=500",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 157,
+      "respuesta": {
+        "total": 0,
+        "total_encontrado": 0,
+        "truncado": false,
+        "aviso": null,
+        "pagina": 1,
+        "por_pagina": 500,
+        "paginas_totales": 1,
+        "filtros_aplicados": {
+          "fecha_inicio": "2026-10-25",
+          "fecha_fin": "2026-10-25",
+          "sensor_id": null,
+          "tipo_variable": null,
+          "categoria_variable": null,
+          "id_infraestructura": 513,
+          "especie": null,
+          "estado_dato": null,
+          "origen_dato": null,
+          "incluir_alertas": false
+        },
+        "rango_real_datos": {
+          "primer_timestamp": null,
+          "ultimo_timestamp": null
+        },
+        "items": [],
+        "estadisticas": [],
+        "vacios_temporales": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/521/sensores",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 139,
+      "respuesta": {
+        "total": 0,
+        "items": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/521",
+      "en_run": false,
+      "http": 404,
+      "eco_run": null,
+      "ms": 143,
+      "respuesta": {
+        "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+        "message": "No existe un dispositivo IoT con ID 521.",
+        "fields": [],
+        "timestamp": "2026-10-25T07:56:38.802382+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/522/sensores",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 140,
+      "respuesta": {
+        "total": 0,
+        "items": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/522",
+      "en_run": false,
+      "http": 404,
+      "eco_run": null,
+      "ms": 152,
+      "respuesta": {
+        "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+        "message": "No existe un dispositivo IoT con ID 522.",
+        "fields": [],
+        "timestamp": "2026-10-25T07:56:39.094999+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/512",
+      "en_run": false,
+      "http": 404,
+      "eco_run": null,
+      "ms": 133,
+      "respuesta": {
+        "error_code": "INFRAESTRUCTURA_NO_ENCONTRADA",
+        "message": "No existe un área productiva con ID 512.",
+        "fields": [],
+        "timestamp": "2026-10-25T07:56:39.228205+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=512&pagina=1&por_pagina=50",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 250,
+      "respuesta": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "resumen_unidades": [],
+        "sensores": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/513",
+      "en_run": false,
+      "http": 404,
+      "eco_run": null,
+      "ms": 135,
+      "respuesta": {
+        "error_code": "INFRAESTRUCTURA_NO_ENCONTRADA",
+        "message": "No existe un área productiva con ID 513.",
+        "fields": [],
+        "timestamp": "2026-10-25T07:56:39.613349+00:00"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=513&pagina=1&por_pagina=50",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 219,
+      "respuesta": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "resumen_unidades": [],
+        "sensores": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas/184",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 134,
+      "respuesta": {
+        "id_finca": 184,
+        "nombre": "[REDACTADO]",
+        "ubicacion": {
+          "departamento": "Huila",
+          "municipio": "Neiva",
+          "vereda": "",
+          "latitud": "2.9273",
+          "longitud": "-75.2819"
+        },
+        "tamano_h": "50.00",
+        "es_activo": true,
+        "fecha_creacion": "2026-10-21T20:18:33Z",
+        "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+        "id_usuario": "[REDACTADO]",
+        "nombre_usuario": "[REDACTADO]"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 142,
+      "respuesta": {
+        "id_infraestructura": 349,
+        "nombre_infraestructura": "[REDACTADO]",
+        "tipo_area": "Galpón",
+        "superficie": "25.00",
+        "id_finca": 184,
+        "descripcion_infraestructura": "Semilla QA G87 (RF-58): área sin sensores con especie 126 para umbral 70 de Temperatura Ambiental.",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especies": [
+          126
+        ],
+        "especie_id": 126,
+        "tipo_modelo_asignado": null,
+        "nivel_criticidad": "MEDIA",
+        "capacidad_maxima": 250
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 140,
+      "respuesta": {
+        "id_dispositivo_iot": 357,
+        "serial": "[REDACTADO]",
+        "descripcion": "QA G87 S1 (TC-M03-168/177): sensor de Temperatura Ambiental del área 349",
+        "id_infraestructura": 349,
+        "id_tipo_dispositivo": 3,
+        "categoria": "SENSOR",
+        "es_activo": true,
+        "fecha_creacion": "2026-10-23T06:35:14.221134Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357/sensores",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 140,
+      "respuesta": {
+        "total": 2,
+        "items": [
+          {
+            "id_sensores": 552,
+            "nombre": "[REDACTADO]",
+            "id_dispositivo_iot": 357,
+            "es_activo": true,
+            "categoria": "TEMPERATURA"
+          },
+          {
+            "id_sensores": 737,
+            "nombre": "[REDACTADO]",
+            "id_dispositivo_iot": 357,
+            "es_activo": true,
+            "categoria": "AMONIACO"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales?id_especie=126",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 136,
+      "respuesta": {
+        "total": 4,
+        "items": [
+          {
+            "id_umbral_ambiental": 71,
+            "id_especie": 126,
+            "id_variable_ambiental": 1,
+            "unidad_medida": "°C",
+            "valor_min": "14.00",
+            "valor_max": "30.00",
+            "es_activo": true,
+            "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "20.00",
+                "limite_superior": "30.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "18.00",
+                "limite_superior": "20.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "14.00",
+                "limite_superior": "18.00"
+              }
+            ],
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_ultima_sincronizacion": null,
+            "motivo_fallo_sincronizacion": null
+          },
+          {
+            "id_umbral_ambiental": 70,
+            "id_especie": 126,
+            "id_variable_ambiental": 9,
+            "unidad_medida": "°C",
+            "valor_min": "15.00",
+            "valor_max": "30.00",
+            "es_activo": true,
+            "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "20.00",
+                "limite_superior": "30.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "19.00",
+                "limite_superior": "20.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "15.00",
+                "limite_superior": "19.00"
+              }
+            ],
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_ultima_sincronizacion": null,
+            "motivo_fallo_sincronizacion": null
+          },
+          {
+            "id_umbral_ambiental": 72,
+            "id_especie": 126,
+            "id_variable_ambiental": 10,
+            "unidad_medida": "%",
+            "valor_min": "5.00",
+            "valor_max": "20.00",
+            "es_activo": true,
+            "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "10.00",
+                "limite_superior": "20.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "9.00",
+                "limite_superior": "10.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "5.00",
+                "limite_superior": "9.00"
+              }
+            ],
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_ultima_sincronizacion": null,
+            "motivo_fallo_sincronizacion": null
+          },
+          {
+            "id_umbral_ambiental": 69,
+            "id_especie": 126,
+            "id_variable_ambiental": 13,
+            "unidad_medida": "°C",
+            "valor_min": "30.00",
+            "valor_max": "39.00",
+            "es_activo": true,
+            "fecha_actualizacion": "2026-10-21T20:18:32.541708Z",
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "35.00",
+                "limite_superior": "39.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "34.60",
+                "limite_superior": "35.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "30.00",
+                "limite_superior": "34.60"
+              }
+            ],
+            "estado_sincronizacion": "PENDIENTE",
+            "fecha_ultima_sincronizacion": null,
+            "motivo_fallo_sincronizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 144,
+      "respuesta": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_dispositivo_iot": 357,
+            "id_infraestructura": 349,
+            "punto_instalacion": "QA G87 S1",
+            "tiene_estado": true,
+            "fecha_asociacion": "2026-10-23T06:35:14.221134Z",
+            "fecha_finalizacion": null,
+            "id_usuario": "[REDACTADO]"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 143,
+      "respuesta": {
+        "total": 1,
+        "items": [
+          {
+            "id_calibracion": 68,
+            "id_dispositivo_iot": 357,
+            "id_sensor": 552,
+            "valor_referencia": 25,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-23T06:35:14.221134Z",
+            "id_usuario": "[REDACTADO]",
+            "observaciones": "QA G87 S1: calibración identidad (ganancia 1, offset 0)",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?id_sensor=552&fecha_desde=2026-10-25T07%3A54%3A32.634Z&fecha_hasta=2026-10-26T07%3A56%3A32.634Z&por_pagina=200",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 143,
+      "respuesta": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 200,
+        "items": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/737/asociaciones",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 134,
+      "respuesta": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 522,
+            "id_sensor": 737,
+            "id_dispositivo_iot": 357,
+            "id_infraestructura": 349,
+            "punto_instalacion": "Punto QA G88 180 NH3",
+            "tiene_estado": true,
+            "fecha_asociacion": "2026-10-24T16:06:09.505316Z",
+            "fecha_finalizacion": null,
+            "id_usuario": "[REDACTADO]"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/737/calibraciones",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 138,
+      "respuesta": {
+        "total": 1,
+        "items": [
+          {
+            "id_calibracion": 69,
+            "id_dispositivo_iot": 357,
+            "id_sensor": 737,
+            "valor_referencia": 5,
+            "ganancia": 1,
+            "offset": 0,
+            "fecha_calibracion": "2026-10-24T16:06:10Z",
+            "id_usuario": "[REDACTADO]",
+            "observaciones": "Calibracion QA G88 TC-M03-180, sensor NH3",
+            "modo_calibracion": "SENSOR"
+          }
+        ]
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas?id_sensor=737&fecha_desde=2026-10-25T07%3A54%3A32.634Z&fecha_hasta=2026-10-26T07%3A56%3A32.634Z&por_pagina=200",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 134,
+      "respuesta": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 200,
+        "items": []
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-25&fecha_fin=2026-10-25&id_infraestructura=349&por_pagina=500",
+      "en_run": false,
+      "http": 200,
+      "eco_run": null,
+      "ms": 148,
+      "respuesta": {
+        "total": 0,
+        "total_encontrado": 0,
+        "truncado": false,
+        "aviso": null,
+        "pagina": 1,
+        "por_pagina": 500,
+        "paginas_totales": 1,
+        "filtros_aplicados": {
+          "fecha_inicio": "2026-10-25",
+          "fecha_fin": "2026-10-25",
+          "sensor_id": null,
+          "tipo_variable": null,
+          "categoria_variable": null,
+          "id_infraestructura": 349,
+          "especie": null,
+          "estado_dato": null,
+          "origen_dato": null,
+          "incluir_alertas": false
+        },
+        "rango_real_datos": {
+          "primer_timestamp": null,
+          "ultimo_timestamp": null
+        },
+        "items": [],
+        "estadisticas": [],
+        "vacios_temporales": []
+      }
+    }
+  ],
+  "problemas_tecnicos": [
+    "POST_/configuracion/dispositivos-iot/522/sensores_HTTP_500"
+  ],
+  "presupuesto": {
+    "nominal_directas": 497,
+    "maximo_directas": 521,
+    "tope_operativo_directas": 525,
+    "margen_cierre": 4,
+    "solicitudes_directas": 47,
+    "exceso_cierre": 0
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "semilla_intacta": true,
+      "comprobaciones": [
+        {
+          "tipo": "telemetrias_ausentes",
+          "area": 512,
+          "http": 200,
+          "coincide": true
+        },
+        {
+          "tipo": "telemetrias_ausentes",
+          "area": 513,
+          "http": 200,
+          "coincide": true
+        },
+        {
+          "tipo": "sensores_del_dispositivo",
+          "id": 521,
+          "http": 200,
+          "coincide": true
+        },
+        {
+          "tipo": "dispositivo_ausente",
+          "id": 521,
+          "http": 404,
+          "coincide": true
+        },
+        {
+          "tipo": "sensores_del_dispositivo",
+          "id": 522,
+          "http": 200,
+          "coincide": true
+        },
+        {
+          "tipo": "dispositivo_ausente",
+          "id": 522,
+          "http": 404,
+          "coincide": true
+        },
+        {
+          "tipo": "entidad_area_ausente",
+          "id": 512,
+          "http": 404,
+          "coincide": true
+        },
+        {
+          "tipo": "area_ausente",
+          "id": 512,
+          "http": 200,
+          "coincide": true
+        },
+        {
+          "tipo": "entidad_area_ausente",
+          "id": 513,
+          "http": 404,
+          "coincide": true
+        },
+        {
+          "tipo": "area_ausente",
+          "id": 513,
+          "http": 200,
+          "coincide": true
+        },
+        {
+          "tipo": "semilla_intacta",
+          "coincide": true
+        }
+      ],
+      "riesgos_residuales": [
+        "No hay GET público de sensor independiente del dispositivo ni GET directo de estado actual."
+      ]
+    },
+    "motivo": "DELETE y GET posteriores acreditan reversión."
+  },
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "TC-M03-G92_resultado.md"
+  ]
+}

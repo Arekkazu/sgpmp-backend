@@ -1,0 +1,127 @@
+{
+  "grupo": "TC-M09-G141",
+  "caso": "TC-M09-287",
+  "run_id": "run-20261007-102458",
+  "ambiente": "TEST",
+  "prueba_local": false,
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? ../TC-M09-G130/\n?? ../TC-M09-G131/\n?? ../TC-M09-G132/\n?? ../TC-M09-G133/\n?? ../TC-M09-G134/\n?? ../TC-M09-G135/\n?? ../TC-M09-G137/\n?? ../TC-M09-G138/\n?? ../TC-M09-G139/\n?? ./\n?? ../TC-M09-G74-v2.0/\n?? ../TC-M09-G75-v2.0/\n?? ../TC-M09-G76-v2.0/\n?? ../TC-M09-G77-v2.0/\n?? ../TC-M09-G79-v2.0/\n?? ../TC-M09-G80-v2.0/",
+    "diff_stat": "",
+    "diff_cached_stat": "",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi_http": 200,
+  "openapi_observed_at_utc": "2026-10-07T10:25:12.125447+00:00",
+  "openapi_sha256": "3c5399809538cc403904725612dc20072bbc2c964eb10c8ad7f802731d21eed8",
+  "openapi_vision": {
+    "encontrada": false,
+    "method": null,
+    "path": null,
+    "request_schema": null,
+    "responses": null,
+    "security": null,
+    "busqueda": {
+      "paths_totales": 210,
+      "post_totales": 77,
+      "schemas_totales": 305,
+      "apariciones_exactas": {
+        "VISION": 0,
+        "modo_calibracion": 0,
+        "ventana_observacion": 0,
+        "origen_disparo": 0
+      },
+      "candidatas": []
+    },
+    "operacion_sensor_existente": {
+      "method": "POST",
+      "path": "/configuracion/sensores/{id_sensor}/calibrar",
+      "summary": "Registrar calibración de sensor (RF-24 Flujo D)",
+      "request_schema": {
+        "$ref": "#/components/schemas/RegistrarCalibracionDTO"
+      },
+      "campos_dto": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "observaciones"
+      ]
+    }
+  },
+  "newman": {
+    "exit_code": 0,
+    "stdout": "newman\n\nTC-M09-G141 - preflight VISION TEST\n\n→ GET OpenAPI TEST\n  GET https://api.inmero.co/back-sigab-test/openapi.json [200 OK, 568.78kB, 924ms]\n  √  OpenAPI TEST responde 200\n  √  OpenAPI contiene rutas y esquemas\n\n┌─────────────────────────┬────────────────────┬───────────────────┐\n│                         │           executed │            failed │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│              iterations │                  1 │                 0 │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│                requests │                  1 │                 0 │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│            test-scripts │                  1 │                 0 │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│      prerequest-scripts │                  0 │                 0 │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│              assertions │                  2 │                 0 │\n├─────────────────────────┴────────────────────┴───────────────────┤\n│ total run duration: 1045ms                                       │\n├──────────────────────────────────────────────────────────────────┤\n│ total data received: 568.4kB (approx)                            │\n├──────────────────────────────────────────────────────────────────┤\n│ average response time: 924ms [min: 924ms, max: 924ms, s.d.: 0µs] │\n└──────────────────────────────────────────────────────────────────┘\n",
+    "stderr": ""
+  },
+  "pytest": {
+    "exit_code": 0,
+    "resultado": "..                                                                       [100%]\n2 passed in 1.27s\n"
+  },
+  "actor": {
+    "estado": "NO CONSULTADO: caso bloqueado antes de POST"
+  },
+  "fixture": {
+    "area": null,
+    "especie": null,
+    "camara": null,
+    "N": null,
+    "estado": "NO PREPARADO: no hay operación VISION"
+  },
+  "L1": {
+    "fuente": "TC-M09-275",
+    "trazabilidad_tc275": {
+      "fuente_preferida": "TC-M09-275",
+      "runs_encontrados": [
+        {
+          "run_id": "run-20261007-100743",
+          "fuente": "TC-M09-G137/RESULTADOS/run-20261007-100743/evidencia.json",
+          "resultado": "BLOQUEADO / NO VERIFICABLE",
+          "post_ejecutado": false,
+          "post_vision_total": 0,
+          "vision_publicada": false,
+          "baseline_publicada": null
+        }
+      ],
+      "run_valido_con_L1": null,
+      "conclusion": "No hay RUN válido de TC-275 que demuestre L1 vigente"
+    },
+    "snapshot_pre": null,
+    "vigente_pre": null,
+    "motivo": "TC-275 bloqueado; L1 no demostrada"
+  },
+  "W2": {
+    "inicio": null,
+    "fin": null,
+    "count_aptas": null,
+    "ids": [],
+    "estado": "NO PREPARADA"
+  },
+  "request": null,
+  "response": null,
+  "baseline_post": null,
+  "comparacion_vigencia": {
+    "L1_sigue_vigente": null,
+    "L2_vigente": null,
+    "corresponde_a_W2": null,
+    "estado": "NO VERIFICABLE sin segundo POST"
+  },
+  "post_vision_planificados": 0,
+  "post_vision_ejecutados": 0,
+  "post_setup_ejecutados": 0,
+  "sql_ejecutado": "ninguno",
+  "resultado": "BLOQUEADO / NO VERIFICABLE",
+  "motivo": "VISION no publicada en TEST y TC-275 previo bloqueado sin una L1 vigente trazable.",
+  "incidencia": {
+    "incidencia_requerida": "NO con evidencia disponible",
+    "grupo_responsable": "No asignado; por determinar si se confirma entrega obligatoria",
+    "grupo": "TC-M09-G141",
+    "caso": "TC-M09-287",
+    "causa": "Faltan contrato VISION y L1 proveniente de TC-275; no se probó el reemplazo."
+  }
+}

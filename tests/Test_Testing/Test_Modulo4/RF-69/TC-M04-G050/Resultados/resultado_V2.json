@@ -1,0 +1,803 @@
+{
+  "grupo": "G050",
+  "run_id": "RUN-G050-V2-20261101-021157",
+  "version": 2,
+  "operacion": "reevaluar",
+  "autorizacion": "AUT-G050-V2-20261101",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M04-118": {
+      "estado": "APROBADO",
+      "motivo": "POST 201; POST si incluye formato/hash y GET ONNX con hash SHA-256 fiel"
+    },
+    "TC-M04-119": {
+      "estado": "APROBADO",
+      "motivo": "POST 201; POST si incluye formato/hash y GET TENSORFLOW_SAVED_MODEL con hash SHA-256 fiel"
+    },
+    "TC-M04-120": {
+      "estado": "APROBADO",
+      "motivo": "Seis tipos con POST 201 y GET 200, IDs propios, paradigmas, componentes y métricas independientes"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-118",
+      "fuente": "API",
+      "id": "API-118-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "POST 201; POST si incluye formato/hash y GET ONNX con hash SHA-256 fiel",
+      "evidencia": "newman/newman-G050.json",
+      "observado": {
+        "post": {
+          "http": 201,
+          "eco": true,
+          "id": 131,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "formato_artefacto": "ONNX",
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "estado": "APROBADO",
+          "error": null
+        },
+        "get": {
+          "http": 200,
+          "eco": true,
+          "id": 131,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "formato_artefacto": "ONNX",
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "estado": "APROBADO",
+          "error": null
+        },
+        "hash_enviado": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9"
+      }
+    },
+    {
+      "caso": "TC-M04-119",
+      "fuente": "API",
+      "id": "API-119-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "POST 201; POST si incluye formato/hash y GET TENSORFLOW_SAVED_MODEL con hash SHA-256 fiel",
+      "evidencia": "newman/newman-G050.json",
+      "observado": {
+        "post": {
+          "http": 201,
+          "eco": true,
+          "id": 132,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "formato_artefacto": "TENSORFLOW_SAVED_MODEL",
+          "hash_artefacto_sha256": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "estado": "APROBADO",
+          "error": null
+        },
+        "get": {
+          "http": 200,
+          "eco": true,
+          "id": 132,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "formato_artefacto": "TENSORFLOW_SAVED_MODEL",
+          "hash_artefacto_sha256": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "estado": "APROBADO",
+          "error": null
+        },
+        "hash_enviado": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0"
+      }
+    },
+    {
+      "caso": "TC-M04-120",
+      "fuente": "API",
+      "id": "API-120-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Seis tipos con POST 201 y GET 200, IDs propios, paradigmas, componentes y métricas independientes",
+      "evidencia": "newman/newman-G050.json",
+      "observado": [
+        {
+          "version": 1,
+          "tipo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null
+        },
+        {
+          "version": 2,
+          "tipo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null
+        },
+        {
+          "version": 3,
+          "tipo": "MODELO_RIESGO_CONTAGIO",
+          "paradigma": "META",
+          "componente": null,
+          "metricas_poblacionales": null
+        },
+        {
+          "version": 4,
+          "tipo": "MODELO_AVES",
+          "paradigma": "POBLACIONAL",
+          "componente": "DETECTOR",
+          "metricas_poblacionales": {
+            "calibracion_completada": true,
+            "tasa_falsos_positivos_rutina": 0.02,
+            "tasa_deteccion_eventos_clinicos": 0.96
+          }
+        },
+        {
+          "version": 5,
+          "tipo": "MODELO_PORCINOS",
+          "paradigma": "POBLACIONAL",
+          "componente": "SEGUIMIENTO",
+          "metricas_poblacionales": {
+            "calibracion_completada": true,
+            "tasa_falsos_positivos_rutina": 0.02,
+            "tasa_deteccion_eventos_clinicos": 0.96
+          }
+        },
+        {
+          "version": 6,
+          "tipo": "MODELO_ACUICULTURA",
+          "paradigma": "POBLACIONAL",
+          "componente": "ANOMALIAS",
+          "metricas_poblacionales": {
+            "calibracion_completada": true,
+            "tasa_falsos_positivos_rutina": 0.02,
+            "tasa_deteccion_eventos_clinicos": 0.96
+          }
+        }
+      ]
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G050.json",
+    "newman/newman-G050.html",
+    "TC-M04-G050_reevaluacion_V2.md",
+    "resultado.json"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G050-V2-20261101-021157",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    }
+  ],
+  "datos": {
+    "versiones": [
+      {
+        "tipo": "MODELO_ESPECIES_GRANDES",
+        "paradigma": "INDIVIDUAL",
+        "formato": "ONNX",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "d441d4b2-c159-4415-8bc1-244592a1cf75",
+        "metricas": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        }
+      },
+      {
+        "tipo": "MODELO_ESPECIES_MEDIANAS",
+        "paradigma": "INDIVIDUAL",
+        "formato": "TENSORFLOW_SAVED_MODEL",
+        "hash": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+        "proceso": "bb8b9272-cdd6-4db0-83b3-1f41d95860cb",
+        "metricas": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        }
+      },
+      {
+        "tipo": "MODELO_RIESGO_CONTAGIO",
+        "paradigma": "META",
+        "formato": "ONNX",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "78948d73-22f4-4f00-a223-a41777d63b34",
+        "metricas": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        }
+      },
+      {
+        "tipo": "MODELO_AVES",
+        "paradigma": "POBLACIONAL",
+        "formato": "ONNX",
+        "componente": "DETECTOR",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "52b46684-be6d-4422-a173-0102fdffd5d0",
+        "metricas": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96,
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93
+        }
+      },
+      {
+        "tipo": "MODELO_PORCINOS",
+        "paradigma": "POBLACIONAL",
+        "formato": "ONNX",
+        "componente": "SEGUIMIENTO",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "9f3dcff5-76a5-4a33-bc4b-046c0c01a66d",
+        "metricas": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96,
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93
+        }
+      },
+      {
+        "tipo": "MODELO_ACUICULTURA",
+        "paradigma": "POBLACIONAL",
+        "formato": "ONNX",
+        "componente": "ANOMALIAS",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "9bd16364-cec4-46d3-abfc-d1f7136f0f5e",
+        "metricas": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96,
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93
+        }
+      }
+    ],
+    "version2b": {
+      "tipo": "MODELO_ESPECIES_MEDIANAS",
+      "paradigma": "INDIVIDUAL",
+      "formato": "ONNX",
+      "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+      "proceso": "0765bb58-ab58-4637-b9b0-d3b30d24cbbb",
+      "metricas": {
+        "f1_score_global": 0.91,
+        "recall_clase_riesgo_alto": 0.93,
+        "precision_global": 0.92,
+        "accuracy": 0.94,
+        "roc_auc_score": 0.95,
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ]
+      }
+    },
+    "dataset_hash": "bc5482863dc51321b14ad08b0c51b2ecca562c193c36b37fb9d39cbffbfa369f",
+    "fecha_entrenamiento": "2026-10-31T02:12:01.997Z",
+    "compatibilidad_variables": [
+      16
+    ]
+  },
+  "respuestas": {
+    "posts": [
+      {
+        "http": 201,
+        "eco": true,
+        "id": 131,
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "paradigma": "INDIVIDUAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 132,
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "paradigma": "INDIVIDUAL",
+        "formato_artefacto": "TENSORFLOW_SAVED_MODEL",
+        "hash_artefacto_sha256": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 133,
+        "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
+        "paradigma": "META",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 134,
+        "tipo_modelo": "MODELO_AVES",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "DETECTOR",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 135,
+        "tipo_modelo": "MODELO_PORCINOS",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "SEGUIMIENTO",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 136,
+        "tipo_modelo": "MODELO_ACUICULTURA",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "ANOMALIAS",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      }
+    ],
+    "gets": [
+      {
+        "http": 200,
+        "eco": true,
+        "id": 131,
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "paradigma": "INDIVIDUAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 132,
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "paradigma": "INDIVIDUAL",
+        "formato_artefacto": "TENSORFLOW_SAVED_MODEL",
+        "hash_artefacto_sha256": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 133,
+        "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
+        "paradigma": "META",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 134,
+        "tipo_modelo": "MODELO_AVES",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "DETECTOR",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 135,
+        "tipo_modelo": "MODELO_PORCINOS",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "SEGUIMIENTO",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 136,
+        "tipo_modelo": "MODELO_ACUICULTURA",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "ANOMALIAS",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      }
+    ],
+    "v2b": null
+  },
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Transacción externa cerrada; archivos y respaldo local fuera de rollback"
+    }
+  }
+}

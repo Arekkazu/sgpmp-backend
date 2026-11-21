@@ -1,0 +1,403 @@
+{
+  "info": {
+    "name": "RF-67 - TC-M04-G010 Consulta del historial diagnóstico con y sin filtros",
+    "description": "Automatiza TC-M04-017/018 (RF-67, CA-3 y CA-4) sobre GET /prediccion/historial/{id_activo_biologico}. 017: sin filtros (rango amplio) -> 200, eventos del más reciente al más antiguo, con todos los campos exigidos y sin ALERTA. 018: por rango de fechas, por nivel_riesgo=3, por patología (id_patologia) y con incluir_alertas=true -> solo los eventos que cumplen cada filtro y la alerta correlacionada con su inferencia. Como TEST no tiene inferencias de RF-66 y ningún endpoint las genera, esta colección la ejecuta test_tc_m04_g010_historial.py, que crea el activo por API, siembra las inferencias de prueba en la BD, pasa por --env-var el activo y los conteos esperados (id_activo, desde, hasta, rango_desde, rango_hasta, esperado_*, id_patologia_a, id_resultado_con_alerta, id_alerta) y borra lo sembrado al terminar. Nota del código: los eventos ALERTA y RETROALIMENTACION se intercalan detrás de su inferencia con su propia fecha, así que el orden global puede no ser DESC.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login",
+      "item": [
+        {
+          "name": "Login (rol veterinario; por defecto Administrador)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_vet', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-017 Historial sin filtros",
+      "item": [
+        {
+          "name": "TC-M04-017 - Historial sin filtros (rango amplio, sin alertas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-017: HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const eventos = pm.response.json().eventos || [];",
+                  "const inferencias = eventos.filter(e => e.tipo_evento === 'INFERENCIA');",
+                  "pm.test('TC-M04-017: devuelve las ' + pm.environment.get('esperado_total') + ' inferencias esperadas', function () {",
+                  "  pm.expect(inferencias.length).to.eql(Number(pm.environment.get('esperado_total')));",
+                  "});",
+                  "pm.test('TC-M04-017: ordenado del más reciente al más antiguo (fecha_evento DESC)', function () {",
+                  "  const f = eventos.map(e => new Date(e.fecha_evento).getTime());",
+                  "  pm.expect(f).to.eql(f.slice().sort((a, b) => b - a));",
+                  "});",
+                  "pm.test('TC-M04-017: cada evento trae tipo, activo, fecha e id de inferencia', function () {",
+                  "  eventos.forEach(e => { pm.expect(e.tipo_evento).to.be.ok; pm.expect(e.fecha_evento).to.be.ok; pm.expect(e.id_resultado_inferencia).to.be.ok;",
+                  "    pm.expect(e.id_activo_biologico).to.eql(Number(pm.environment.get('id_activo'))); });",
+                  "});",
+                  "pm.test('TC-M04-017: cada inferencia trae todos los campos exigidos', function () {",
+                  "  const campos = ['nivel_riesgo', 'id_patologia', 'nombre_patologia', 'probabilidad_riesgo', 'probabilidad_enfermedad', 'confianza_global', 'tipo_modelo', 'id_version_modelo', 'modo_ejecucion', 'fecha_inicio_ventana', 'fecha_fin_ventana', 'tiene_alerta_generada'];",
+                  "  inferencias.forEach(e => pm.expect(campos.filter(c => !(c in (e.payload || {}))), 'faltan').to.eql([]));",
+                  "});",
+                  "pm.test('TC-M04-017: sin incluir_alertas no aparecen eventos ALERTA', function () { pm.expect(eventos.filter(e => e.tipo_evento === 'ALERTA').length).to.eql(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hasta}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hasta}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-018 Historial con filtros",
+      "item": [
+        {
+          "name": "TC-M04-018 - Filtro por rango de fechas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-018 fechas: HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const eventos = pm.response.json().eventos || [];",
+                  "const inferencias = eventos.filter(e => e.tipo_evento === 'INFERENCIA');",
+                  "pm.test('TC-M04-018 fechas: devuelve las ' + pm.environment.get('esperado_rango') + ' inferencias esperadas', function () {",
+                  "  pm.expect(inferencias.length).to.eql(Number(pm.environment.get('esperado_rango')));",
+                  "});",
+                  "pm.test('TC-M04-018 fechas: todos los eventos dentro del rango', function () {",
+                  "  const d = new Date(pm.environment.get('rango_desde') + 'T00:00:00Z').getTime();",
+                  "  const h = new Date(pm.environment.get('rango_hasta') + 'T23:59:59.999Z').getTime();",
+                  "  pm.expect(inferencias.filter(e => { const t = new Date(e.fecha_evento).getTime(); return t < d || t > h; }).length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{rango_desde}}&fecha_fin={{rango_hasta}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{rango_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{rango_hasta}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-018 - Filtro por nivel_riesgo=3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-018 riesgo: HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const eventos = pm.response.json().eventos || [];",
+                  "const inferencias = eventos.filter(e => e.tipo_evento === 'INFERENCIA');",
+                  "pm.test('TC-M04-018 riesgo: devuelve las ' + pm.environment.get('esperado_riesgo3') + ' inferencias esperadas', function () {",
+                  "  pm.expect(inferencias.length).to.eql(Number(pm.environment.get('esperado_riesgo3')));",
+                  "});",
+                  "pm.test('TC-M04-018 riesgo: todas las inferencias con nivel_riesgo 3', function () {",
+                  "  pm.expect(inferencias.filter(e => e.payload.nivel_riesgo !== 3).length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hasta}}&nivel_riesgo=3",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hasta}}"
+                },
+                {
+                  "key": "nivel_riesgo",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-018 - Filtro por patología concreta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-018 patología: HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const eventos = pm.response.json().eventos || [];",
+                  "const inferencias = eventos.filter(e => e.tipo_evento === 'INFERENCIA');",
+                  "pm.test('TC-M04-018 patología: devuelve las ' + pm.environment.get('esperado_patologia_a') + ' inferencias esperadas', function () {",
+                  "  pm.expect(inferencias.length).to.eql(Number(pm.environment.get('esperado_patologia_a')));",
+                  "});",
+                  "pm.test('TC-M04-018 patología: todas son de la patología filtrada', function () {",
+                  "  pm.expect(inferencias.filter(e => e.payload.id_patologia !== Number(pm.environment.get('id_patologia_a'))).length).to.eql(0);",
+                  "});",
+                  "pm.test('TC-M04-018 patología: traen el nombre de la patología', function () {",
+                  "  pm.expect(inferencias.every(e => !!e.payload.nombre_patologia)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hasta}}&id_patologia={{id_patologia_a}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hasta}}"
+                },
+                {
+                  "key": "id_patologia",
+                  "value": "{{id_patologia_a}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-018 - Con incluir_alertas=true",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-018 alertas: HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const eventos = pm.response.json().eventos || [];",
+                  "const inferencias = eventos.filter(e => e.tipo_evento === 'INFERENCIA');",
+                  "const alertas = eventos.filter(e => e.tipo_evento === 'ALERTA');",
+                  "pm.test('TC-M04-018 alertas: la alerta de RF-57 aparece', function () { pm.expect(alertas.length).to.be.above(0); });",
+                  "const a = alertas.find(e => e.id_resultado_inferencia === pm.environment.get('id_resultado_con_alerta'));",
+                  "pm.test('TC-M04-018 alertas: correlacionada con su inferencia (id_resultado_inferencia)', function () { pm.expect(a, 'alerta correlacionada').to.exist; });",
+                  "pm.test('TC-M04-018 alertas: corresponde a la alerta generada', function () {",
+                  "  pm.expect(a && a.payload.id_alerta_patologica).to.eql(Number(pm.environment.get('id_alerta')));",
+                  "});",
+                  "pm.test('TC-M04-018 alertas: el orden general sigue siendo del más reciente al más antiguo', function () {",
+                  "  const f = eventos.map(e => new Date(e.fecha_evento).getTime());",
+                  "  pm.expect(f).to.eql(f.slice().sort((x, y) => y - x));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hasta}}&incluir_alertas=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hasta}}"
+                },
+                {
+                  "key": "incluir_alertas",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    }
+  ]
+}

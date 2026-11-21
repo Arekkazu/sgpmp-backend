@@ -1,0 +1,583 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "d7c76e42-35e6-4743-9086-6ceab27370df",
+        "name": "estados_get",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "periodos",
+              "{{periodo}}",
+              "estados-resultados"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "47c67a1e-1f54-465d-9d14-5e032a08fd21",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                "pm.test('Versiones RF-93', () => pm.expect(pm.response.json()).to.be.an('array'));"
+              ],
+              "_lastExecutionId": "5d3d49b6-20ac-407e-a9cf-1abd761bf942"
+            }
+          }
+        ]
+      },
+      {
+        "id": "148be34b-e7e6-4f2d-9091-989340073823",
+        "name": "auditoria",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "auditoria"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "{{periodo}}"
+              },
+              {
+                "key": "tipo_evento",
+                "value": "VARIACION_REGISTRADA"
+              },
+              {
+                "key": "formato",
+                "value": "TECNICO"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "500"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "10790c89-b8c9-4ac7-88d7-49541379e191",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                "pm.test('Auditoría paginada', () => pm.expect(pm.response.json().eventos).to.be.an('array'));"
+              ],
+              "_lastExecutionId": "36dd5133-b6f7-43cd-aca0-e59e7e98de02"
+            }
+          }
+        ]
+      },
+      {
+        "id": "abde26e7-2e3b-43bc-b3d7-d6959cac87cd",
+        "name": "cadena",
+        "request": {
+          "url": {
+            "path": [
+              "finanzas",
+              "lineas",
+              "{{linea}}",
+              "cadena"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "6e625cc3-108f-4d4d-b855-6dea4f44ad6c",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                "pm.test('Cadena navegable', () => pm.expect(pm.response.json()).to.have.property('eslabones'));"
+              ],
+              "_lastExecutionId": "4feba5d3-d3a1-4ff6-89aa-76244d91d049"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "9cbe7d53-4d27-442c-a653-bc17aeed7fcd",
+      "name": "TC-M06-G37 RF-86",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "41a20970-b413-44e4-b2e1-feb8bf27c2ae",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G37-V1-20261108-233956",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "contador_token"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "admin_token"
+      },
+      {
+        "type": "any",
+        "value": "8",
+        "key": "periodo"
+      },
+      {
+        "type": "any",
+        "value": "901",
+        "key": "linea"
+      }
+    ]
+  },
+  "globals": {
+    "id": "bcd579cb-f93d-4622-bd66-155cb19aecc6",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 297,
+      "responseMin": 145,
+      "responseMax": 579,
+      "responseSd": 199.60627912635078,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1794181241429,
+      "completed": 1794181242583
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "835268e7-8204-4476-94fe-985adb4ae1a8",
+          "httpRequestId": "0ce3701b-6b03-469a-b86d-0ddee4f28cc2"
+        },
+        "item": {
+          "id": "d7c76e42-35e6-4743-9086-6ceab27370df",
+          "name": "estados_get",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "periodos",
+                "{{periodo}}",
+                "estados-resultados"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "47c67a1e-1f54-465d-9d14-5e032a08fd21",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                  "pm.test('Versiones RF-93', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "_lastExecutionId": "5d3d49b6-20ac-407e-a9cf-1abd761bf942"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "periodos",
+              "8",
+              "estados-resultados"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "637b97b1-7762-4129-813d-62776f48d760",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 579,
+          "responseSize": 2
+        },
+        "id": "d7c76e42-35e6-4743-9086-6ceab27370df",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Eco del RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "Versiones RF-93",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "c77f6ef6-34f2-4dd6-be0a-a3a5893cb533",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "707d07a7-7acf-40a3-8688-8fc90649635a"
+        },
+        "item": {
+          "id": "148be34b-e7e6-4f2d-9091-989340073823",
+          "name": "auditoria",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "auditoria"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_periodo_contable",
+                  "value": "{{periodo}}"
+                },
+                {
+                  "key": "tipo_evento",
+                  "value": "VARIACION_REGISTRADA"
+                },
+                {
+                  "key": "formato",
+                  "value": "TECNICO"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "500"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "10790c89-b8c9-4ac7-88d7-49541379e191",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                  "pm.test('Auditoría paginada', () => pm.expect(pm.response.json().eventos).to.be.an('array'));"
+                ],
+                "_lastExecutionId": "36dd5133-b6f7-43cd-aca0-e59e7e98de02"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "auditoria"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "id_periodo_contable",
+                "value": "8"
+              },
+              {
+                "key": "tipo_evento",
+                "value": "VARIACION_REGISTRADA"
+              },
+              {
+                "key": "formato",
+                "value": "TECNICO"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "500"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "8c98fd5d-e274-47eb-b043-dd61a90ae20a",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 167,
+          "responseSize": 6774
+        },
+        "id": "148be34b-e7e6-4f2d-9091-989340073823",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Eco del RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "Auditoría paginada",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "0a697dec-4769-46e7-8990-36c41745156d",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "aec4aae2-8280-44be-90c6-c02bc9287071"
+        },
+        "item": {
+          "id": "abde26e7-2e3b-43bc-b3d7-d6959cac87cd",
+          "name": "cadena",
+          "request": {
+            "url": {
+              "path": [
+                "finanzas",
+                "lineas",
+                "{{linea}}",
+                "cadena"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "6e625cc3-108f-4d4d-b855-6dea4f44ad6c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.equal(200));",
+                  "pm.test('Eco del RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.equal(pm.environment.get('run_id')));",
+                  "pm.test('Cadena navegable', () => pm.expect(pm.response.json()).to.have.property('eslabones'));"
+                ],
+                "_lastExecutionId": "4feba5d3-d3a1-4ff6-89aa-76244d91d049"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "finanzas",
+              "lineas",
+              "901",
+              "cadena"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "51513d56-46d1-4282-a2e6-a9cd4fe02254",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 145,
+          "responseSize": 460
+        },
+        "id": "abde26e7-2e3b-43bc-b3d7-d6959cac87cd",
+        "assertions": [
+          {
+            "assertion": "HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Eco del RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "Cadena navegable",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 7236
+    },
+    "failures": [],
+    "error": null
+  }
+}

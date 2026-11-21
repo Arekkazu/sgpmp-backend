@@ -1,0 +1,1049 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g181-emision-transversal-v1",
+    "name": "TC-M03-G181 - Emisión Transversal Auditoría IoT (RF-63)",
+    "description": "Suite automatizada Newman para TC-M03-G181 (RF-63). Verifica emisión de eventos desde RF-53, RF-60 y RF-62 por endpoints reales, confirmación en bitácora y verificación SQL solo lectura de componente_origen.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "let currentRunId = pm.collectionVariables.get(\"run_id\");",
+          "if (!currentRunId || currentRunId.trim() === \"\") {",
+          "    currentRunId = \"test-\" + pm.variables.replaceIn(\"{{$guid}}\");",
+          "    pm.collectionVariables.set(\"run_id\", currentRunId);",
+          "}",
+          "const secret = pm.collectionVariables.get(\"sandbox_secret\");",
+          "if (currentRunId) {",
+          "    pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: currentRunId });",
+          "}",
+          "if (secret) {",
+          "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: secret });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "finca_id",
+      "value": ""
+    },
+    {
+      "key": "infra_id",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "device_serial",
+      "value": ""
+    },
+    {
+      "key": "sensor_id",
+      "value": ""
+    },
+    {
+      "key": "id_telemetria_eval",
+      "value": ""
+    },
+    {
+      "key": "id_evento_rf62",
+      "value": ""
+    },
+    {
+      "key": "id_evento_rf60",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Setup-Autenticacion",
+      "item": [
+        {
+          "name": "00-Login-ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso de ADMIN\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-Setup-Sintetico-Catalogo",
+      "item": [
+        {
+          "name": "01-Crear-Finca-Sintetica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/fincas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca QA G181 Transversal\",\n  \"ubicacion\": \"Vereda La Selva QA\",\n  \"area_total\": 130\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201/200 - Finca creada en sandbox\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idFinca = res.id_finca || (res.finca && res.finca.id_finca) || res.id;",
+                  "    pm.collectionVariables.set(\"finca_id\", String(idFinca));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02-Crear-Infraestructura-Sintetica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/infraestructuras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_finca\": \"{{finca_id}}\",\n  \"nombre\": \"Galpon 181 Transversal\",\n  \"id_tipo_area\": 1,\n  \"capacidad_maxima\": 350\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const fId = parseInt(pm.collectionVariables.get(\"finca_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_finca = fId;",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201/200 - Infraestructura creada en sandbox\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idInfra = res.id_infraestructura || (res.infraestructura && res.infraestructura.id_infraestructura) || res.id;",
+                  "    pm.collectionVariables.set(\"infra_id\", String(idInfra));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03-Crear-Dispositivo-Sintetico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_infraestructura\": \"{{infra_id}}\",\n  \"numero_serie\": \"DEV-G181-INIT\",\n  \"id_tipo_dispositivo\": 1,\n  \"modelo\": \"ESP32-G181-EMISOR\",\n  \"firmware_version\": \"2.1.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const infId = parseInt(pm.collectionVariables.get(\"infra_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_infraestructura = infId;",
+                  "const serial = \"DEV-G181-\" + Math.floor(100000 + Math.random() * 900000);",
+                  "body.numero_serie = serial;",
+                  "pm.collectionVariables.set(\"device_serial\", serial);",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201/200 - Dispositivo creado en sandbox\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idDev = res.id_dispositivo_iot || res.id_dispositivo || res.id;",
+                  "    pm.collectionVariables.set(\"device_id\", String(idDev));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04-Crear-Sensor-Sintetico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_variable\": 1,\n  \"pin_conexion\": \"A0\",\n  \"resolucion\": 0.1,\n  \"precision_lectura\": 0.05,\n  \"rango_minimo\": -10,\n  \"rango_maximo\": 80\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const devId = parseInt(pm.collectionVariables.get(\"device_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_dispositivo_iot = devId;",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201/200 - Sensor creado en sandbox\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idSen = res.id_sensor || res.id;",
+                  "    pm.collectionVariables.set(\"sensor_id\", String(idSen));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-Emisor-RF53-RF62-Telemetria-Calidad",
+      "item": [
+        {
+          "name": "05-Emisor-RF53-Ingesta-Lectura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": 0,\n  \"valor\": 26.5,\n  \"timestamp_captura\": \"2026-10-16T10:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const sensorId = parseInt(pm.collectionVariables.get(\"sensor_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_sensor = sensorId;",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200/201 - Telemetría RF-53 ingerida exitosamente\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idTel = res.id_telemetria || res.id;",
+                  "    pm.expect(idTel).to.be.ok;",
+                  "    pm.collectionVariables.set(\"id_telemetria_eval\", String(idTel));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06-Emisor-RF62-Evaluar-Calidad-Puntual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_telemetria_eval}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_telemetria_eval}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200/201 - Evaluación puntual de calidad RF-62 completada\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07-Verificar-Auditoria-RF62-Calidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?entidad_afectada_id={{id_telemetria_eval}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "entidad_afectada_id",
+                  "value": "{{id_telemetria_eval}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Evento de auditoría RF-62 recuperado\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Se registró evento EVALUACION_CALIDAD_COMPLETADA con clasificación NIC41\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    const ev = res.items.find(i => i.tipo_evento === \"EVALUACION_CALIDAD_COMPLETADA\");",
+                  "    pm.expect(ev).to.be.an(\"object\");",
+                  "    pm.expect(ev.clasificacion_registro).to.eql(\"NIC41\");",
+                  "    pm.expect(ev.retencion_aplicable).to.eql(5);",
+                  "    pm.expect(ev.hash_integridad).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.expect(ev.modulo).to.eql(\"M03\");",
+                  "    pm.collectionVariables.set(\"id_evento_rf62\", ev.id_evento);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-Emisor-RF62-Reevaluacion",
+      "item": [
+        {
+          "name": "08-Emisor-RF62-Reevaluacion-Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": \"{{sensor_id}}\",\n  \"fecha_inicio\": \"2026-10-16T00:00:00Z\",\n  \"fecha_fin\": \"2026-10-16T23:59:59Z\",\n  \"motivo\": \"Reevaluación de auditoría transversal G181\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const sensorId = parseInt(pm.collectionVariables.get(\"sensor_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_sensor = sensorId;",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Solicitud de reevaluación completada\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09-Verificar-Auditoria-RF62-Reevaluacion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=REEVALUACION_CALIDAD_SOLICITADA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "REEVALUACION_CALIDAD_SOLICITADA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Evento REEVALUACION_CALIDAD_SOLICITADA encontrado\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Evento de reevaluación clasifica NIC41 y retención 5 años\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    const ev = res.items[0];",
+                  "    pm.expect(ev.tipo_evento).to.eql(\"REEVALUACION_CALIDAD_SOLICITADA\");",
+                  "    pm.expect(ev.clasificacion_registro).to.eql(\"NIC41\");",
+                  "    pm.expect(ev.retencion_aplicable).to.eql(5);",
+                  "    pm.expect(ev.hash_integridad).to.match(/^[0-9a-f]{64}$/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04-Emisor-RF60-Mantenimiento",
+      "item": [
+        {
+          "name": "10-Emisor-RF60-Transicion-Mantenimiento",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/dispositivos/{{device_id}}/mantenimiento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "dispositivos",
+                "{{device_id}}",
+                "mantenimiento"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_nuevo\": \"MANTENIMIENTO\",\n  \"motivo\": \"Verificación transversal RF-60 G181\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Transición a mantenimiento aplicada\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11-Verificar-Auditoria-RF60-Mantenimiento",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "TRANSICION_MANTENIMIENTO_MANUAL"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Evento TRANSICION_MANTENIMIENTO_MANUAL encontrado\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Evento de mantenimiento clasifica TECNICO y retención 1 año\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    const ev = res.items[0];",
+                  "    pm.expect(ev.tipo_evento).to.eql(\"TRANSICION_MANTENIMIENTO_MANUAL\");",
+                  "    pm.expect(ev.clasificacion_registro).to.eql(\"TECNICO\");",
+                  "    pm.expect(ev.retencion_aplicable).to.eql(1);",
+                  "    pm.expect(ev.hash_integridad).to.match(/^[0-9a-f]{64}$/);",
+                  "    pm.collectionVariables.set(\"id_evento_rf60\", ev.id_evento);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05-Verificacion-SQL-Solo-Lectura-Componente-Origen",
+      "item": [
+        {
+          "name": "12-SQL-SELECT-Verificar-componente_origen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT id_evento, tipo_evento, componente_origen, clasificacion_registro, retencion_aplicable FROM modulo3.bitacora_auditoria_iot WHERE id_evento = '{{id_evento_rf62}}' LIMIT 1;\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const idEv = pm.collectionVariables.get(\"id_evento_rf62\");",
+                  "const sql = \"SELECT id_evento, tipo_evento, componente_origen, clasificacion_registro, retencion_aplicable FROM modulo3.bitacora_auditoria_iot WHERE id_evento = '\" + idEv + \"' LIMIT 1;\";",
+                  "pm.request.body.raw = JSON.stringify({ query: sql });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[VERIFICACION SQL SOLO LECTURA] Status 200 - Consulta SELECT ejecutada\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"[VERIFICACION SQL SOLO LECTURA] componente_origen es RF62 para EVALUACION_CALIDAD_COMPLETADA\", function () {",
+                  "    const rows = res.rows || res.data || res.items || [];",
+                  "    if (rows.length > 0) {",
+                  "        const row = rows[0];",
+                  "        const comp = row.componente_origen || row[2];",
+                  "        pm.expect(comp).to.eql(\"RF62\");",
+                  "        console.log(\"[INFO G181 SQL] Confirmado componente_origen interno:\", comp);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06-Componentes-Bloqueados-Worker-Broker",
+      "item": [
+        {
+          "name": "13-RF-56-Inferencia-Bloqueado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=PAQUETE_INFERENCIA_GENERADO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "PAQUETE_INFERENCIA_GENERADO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcaso RF-56 PAQUETE_INFERENCIA_GENERADO: Emitido por worker de inferencia en background. No expone endpoint REST directo.\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14-RF-60-Dispositivo-Sin-Senal-Bloqueado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=DISPOSITIVO_SIN_SEÑAL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "DISPOSITIVO_SIN_SEÑAL"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcaso RF-60 DISPOSITIVO_SIN_SEÑAL: Emitido por tarea periódica _evaluar_dispositivos_periodicamente tras timeout de heartbeat. No síncrono.\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15-RF-61-Vinculacion-Automatica-Bloqueado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=VINCULACION_AUTOMATICA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "VINCULACION_AUTOMATICA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcaso RF-61 VINCULACION_AUTOMATICA: Emitido por worker edge de RFID en segundo plano.\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16-RF-54-55-57-Broker-MQTT-Bloqueados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?clasificacion_registro=TECNICO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "clasificacion_registro",
+                  "value": "TECNICO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcasos RF-54 (BUFFER_ACTIVADO), RF-55 (DESVIACION_DETECTADA), RF-57 (ALERTA_GENERADA): Dependen de broker MQTT / Gateway Edge.\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

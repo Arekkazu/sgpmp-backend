@@ -1,0 +1,59 @@
+{
+  "grupo": "TC-M09-G137",
+  "casos": [
+    "TC-M09-275",
+    "TC-M09-276",
+    "TC-M09-277"
+  ],
+  "runId": "run-20261010-124936",
+  "evaluacion": "REEJECUCION OFICIAL POST-FIX",
+  "herramienta": "API - Postman / Newman",
+  "nota": "Artefactos finales de la reejecucion. El runner y la coleccion se actualizaron respecto del RUN baseline para reutilizar el fixture en vez de crearlo; los artefactos del RUN baseline quedan intactos en su propia carpeta.",
+  "baseline_conservado": "run-20261010-105849 — artefactos ELIMINADOS el 2026-10-11 por decisión de QA; su resultado, el defecto 409 RECURSO_DUPLICADO, su causa raíz y sus 15 assertions fallidas quedan recogidos en la sección HISTORIAL DE EJECUCIONES del informe",
+  "newmanHtmlPersistentes": 1,
+  "automationDentroDeResultados": "NO",
+  "artefactos": [
+    {
+      "archivo": "run-g137-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/EvaluacionV2/automation/run-g137-v2.cjs",
+      "funcion": "Runner unico de la reejecucion POST-FIX, con los modos precheck (Newman de solo lectura sin HTML ni archivos, mas la verificacion del fix por SELECT y la revalidacion por API del fixture historico), run (RUN oficial con el setup minimo, los 3 POST funcionales, la restauracion y el unico HTML) y close (oraculo por caso, verificacion final de solo lectura, comprobacion en BD del reemplazo, red de seguridad y consolidacion de evidencia). Aborta si la coleccion intentara crear finca, area o especie, que esta reejecucion prohibe.",
+      "sha256": "f329370f4c1847dcd76d71e2f6c5786f8ee291a5b3e24db6972b77e41ce01786",
+      "bytes": 80361,
+      "sha256_en_disco_tras_la_reorganizacion": "2626533f2cff1359fb6848f8ea74ea07da19777d609f03476c7a67d27ad0d154",
+      "bytes_en_disco_tras_la_reorganizacion": 81723,
+      "correccion_posterior_a_la_ejecucion": {
+        "motivo": "reorganización de EvaluacionV2 del 2026-10-11: la colección se movió a automation/ y el runner pasó a resolverla con __dirname en vez de EVAL_DIR",
+        "naturaleza": "ORGANIZACIÓN DE ARCHIVOS (QA). No cambia ninguna assertion ni el comportamiento funcional del RUN.",
+        "validacion": "`node --check` sobre el runner y resolución de la ruta comprobada: la colección se localiza en automation/ y su JSON sigue siendo válido con 43 items. NO se reejecutó Newman."
+      }
+    },
+    {
+      "archivo": "TC-M09-G137.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/EvaluacionV2/automation/TC-M09-G137.postman_collection.json",
+      "funcion": "Coleccion de la reejecucion POST-FIX. Es duena de sus tres sesiones y reutiliza el fixture anterior sin tocarlo: revalida finca, area y especie por API, comprueba que AMBOS actores ven la finca y el area, registra solo una camara activa y un lote de observaciones, y ejercita los tres casos con el PRE que confirma que el Administrador ve la linea de TC-275 antes de calibrar, que es la condicion en la que se manifestaba el 409.",
+      "sha256": "4896c51270a7dfb5a3c781e2900437f0b07b6a58bc304d98b6650d77e6fdce14",
+      "bytes": 71438,
+      "movido_tras_la_ejecucion": "de tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/EvaluacionV2/TC-M09-G137.postman_collection.json a automation/, para que la estructura del grupo sea la misma que la de G139 a G143"
+    },
+    {
+      "archivo": "TC-M09-G137.postman_collection.json (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/TC-M09-G137.postman_collection.json",
+      "funcion": "Coleccion de la primera evaluacion: un unico GET de /openapi.json. Reutilizada en solo lectura como fuente del criterio del preflight; no fue modificada.",
+      "sha256": "e91d5548f97dd4b67e64ef98f7310c2964cafcec7db1c9423682bf0db95becf4",
+      "bytes": 972
+    },
+    {
+      "archivo": "run-newman.cjs (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/run-newman.cjs",
+      "funcion": "Runner de la primera evaluacion. NO se utiliza: se registra por trazabilidad del baseline.",
+      "sha256": "889c644a8a92ef754e4771cef8fb7262b2175cc9782dd5bd5acfdf6d5a1cc9f7",
+      "bytes": 16353
+    }
+  ],
+  "informe": "TC-M09-G137_reevaluacion_V2.md",
+  "informes_en_evaluacionv2": 1,
+  "runs_en_evaluacionv2": 1,
+  "nota_trazabilidad": "`sha256` describe la automatización que produjo los artefactos de este RUN. Si una entrada trae `sha256_en_disco_tras_la_reorganizacion`, el archivo se movió o se ajustó después de ejecutar y el detalle está en `correccion_posterior_a_la_ejecucion`.",
+  "informe_sha256": "b928e4adcf577214afd94fc621146718f3893eff26f90c4d8343cab1d862f6ce",
+  "informe_bytes": 28574
+}

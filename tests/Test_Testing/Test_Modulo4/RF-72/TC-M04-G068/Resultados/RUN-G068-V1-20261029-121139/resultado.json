@@ -1,0 +1,556 @@
+{
+  "grupo": "G068",
+  "version": 1,
+  "run_id": "RUN-G068-V1-20261029-121139",
+  "operacion": "reintentar",
+  "ambiente": "TEST",
+  "casos": {
+    "TC-M04-210": {
+      "estado": "APROBADO",
+      "motivo": "rechazo, historial y auditoría concordantes"
+    },
+    "TC-M04-211": {
+      "estado": "APROBADO",
+      "motivo": "rechazo, historial y auditoría concordantes"
+    },
+    "TC-M04-245": {
+      "estado": "RECHAZADO",
+      "motivo": "HTTP 201; se exige rechazo 4xx; retroalimentación persistida; evento RETROALIMENTACION_REGISTRADA"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-210",
+      "fuente": "API",
+      "id": "API-210-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "rechazo, historial y auditoría concordantes",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-211",
+      "fuente": "API",
+      "id": "API-211-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "rechazo, historial y auditoría concordantes",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-245",
+      "fuente": "API",
+      "id": "API-245-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "HTTP 201; se exige rechazo 4xx; retroalimentación persistida; evento RETROALIMENTACION_REGISTRADA",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "registros": [
+    {
+      "caso": "TC-M04-210",
+      "resultado": "e2875782-9d23-4700-a440-beb351df5a6d",
+      "activo_enviado": 885,
+      "tipo_modelo": null,
+      "http": 404,
+      "codigo": "RESULTADO_INFERENCIA_NO_ENCONTRADO",
+      "mensaje": "El resultado de inferencia no existe o no está disponible.",
+      "persistio": false,
+      "historial_http": 200,
+      "auditoria_http": 200,
+      "veredicto": {
+        "estado": "APROBADO",
+        "motivo": "rechazo, historial y auditoría concordantes"
+      }
+    },
+    {
+      "caso": "TC-M04-211",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "activo_enviado": 884,
+      "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+      "http": 422,
+      "codigo": "ACTIVO_BIOLOGICO_INCONSISTENTE",
+      "mensaje": "El activo biológico no corresponde al resultado de inferencia indicado.",
+      "persistio": false,
+      "historial_http": 200,
+      "auditoria_http": 200,
+      "veredicto": {
+        "estado": "APROBADO",
+        "motivo": "rechazo, historial y auditoría concordantes"
+      }
+    },
+    {
+      "caso": "TC-M04-245",
+      "resultado": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+      "activo_enviado": 885,
+      "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+      "http": 201,
+      "codigo": null,
+      "mensaje": null,
+      "persistio": true,
+      "historial_http": 200,
+      "auditoria_http": 200,
+      "veredicto": {
+        "estado": "RECHAZADO",
+        "motivo": "HTTP 201; se exige rechazo 4xx; retroalimentación persistida; evento RETROALIMENTACION_REGISTRADA"
+      }
+    }
+  ],
+  "datos_elegidos": {
+    "otro_activo": {
+      "id": 884,
+      "nombre": "QA-G88-IND-001"
+    },
+    "activo_885_antes": {
+      "http": 200,
+      "estado": "ACTIVO",
+      "fase": []
+    },
+    "descubrimiento_885": {
+      "eventos_examinados": 14,
+      "resultados_libres": 14,
+      "paginas": 1,
+      "cursor_pendiente": false
+    },
+    "resultados_libres": 14,
+    "baja_885": {
+      "http": 201,
+      "estado_http": 200,
+      "estado": "BAJA",
+      "bitacora_http": 200,
+      "fase": [],
+      "fase_http": 200,
+      "evento_rf52_en_sandbox": true
+    }
+  },
+  "solicitudes": [
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 1099,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 649,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 184,
+      "respuesta": {
+        "total": 5,
+        "registros": 5,
+        "eventos": null,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 152,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": 1,
+        "fase": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885/fases",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 168,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": null,
+        "fase": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 244,
+      "respuesta": {
+        "total": null,
+        "registros": null,
+        "eventos": 14,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-210",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 404,
+      "eco": true,
+      "duracion_ms": 524,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "error_code": "RESULTADO_INFERENCIA_NO_ENCONTRADO",
+        "mensaje": "El resultado de inferencia no existe o no está disponible.",
+        "detalle_campo": ""
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-210"
+    },
+    {
+      "caso": "TC-M04-211",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 155,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "error_code": "ACTIVO_BIOLOGICO_INCONSISTENTE",
+        "mensaje": "El activo biológico no corresponde al resultado de inferencia indicado.",
+        "detalle_campo": "El activo biológico no corresponde al resultado de inferencia indicado."
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-211"
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/885/eventos/baja",
+      "http": 201,
+      "eco": true,
+      "duracion_ms": 225,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": null,
+        "fase": null,
+        "error_code": null
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-BAJA-VET"
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 158,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": 6,
+        "fase": null,
+        "error_code": null
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-ESTADO-BAJA"
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 167,
+      "respuesta": {
+        "id_activo_biologico": null,
+        "id_estado": null,
+        "fase": null,
+        "error_code": null
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-BITACORA-BAJA"
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "duracion_ms": 161,
+      "respuesta": {
+        "id_retroalimentacion": "21d91e24-a72d-4d62-a9ab-c870c2ec21ea",
+        "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+        "error_code": null,
+        "mensaje": "",
+        "detalle_campo": ""
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-245"
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885/fases",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 512,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": null,
+        "fase": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-210",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 181,
+      "respuesta": {
+        "total": null,
+        "registros": null,
+        "eventos": 15,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-210",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 146,
+      "respuesta": {
+        "total": 1,
+        "registros": null,
+        "eventos": null,
+        "items": 1,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-211",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 233,
+      "respuesta": {
+        "total": null,
+        "registros": null,
+        "eventos": 15,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-211",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 147,
+      "respuesta": {
+        "total": 1,
+        "registros": null,
+        "eventos": null,
+        "items": 1,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 237,
+      "respuesta": {
+        "total": null,
+        "registros": null,
+        "eventos": 15,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 147,
+      "respuesta": {
+        "total": 1,
+        "registros": null,
+        "eventos": null,
+        "items": 1,
+        "error_code": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G068-V1-20261029-121139",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 130,
+      "respuesta": {
+        "total": null,
+        "registros": null,
+        "eventos": null,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-210",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 261,
+      "respuesta": {
+        "total": null,
+        "registros": null,
+        "eventos": 14,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-211",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 179,
+      "respuesta": {
+        "total": null,
+        "registros": null,
+        "eventos": 14,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 248,
+      "respuesta": {
+        "total": null,
+        "registros": null,
+        "eventos": 14,
+        "items": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 158,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": 1,
+        "fase": null,
+        "error_code": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885/fases",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 160,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": null,
+        "fase": null,
+        "error_code": null
+      }
+    }
+  ],
+  "observaciones": [
+    "Activo 885 sin fase activa antes de la baja"
+  ],
+  "problemas_tecnicos": [],
+  "incidencias": [
+    {
+      "id": "INC-M04-G068-245-01",
+      "casos": [
+        "TC-M04-245"
+      ],
+      "severidad": "ALTA",
+      "certeza": "CONFIRMADA",
+      "equipo_inicial": "Desarrollo",
+      "fundamento": "primera discrepancia en API pública",
+      "motivo": "HTTP 201; se exige rechazo 4xx; retroalimentación persistida; evento RETROALIMENTACION_REGISTRADA",
+      "justificacion": "Aceptación de dato inválido o vínculo incorrecto",
+      "causa_raiz": "NO DETERMINADA"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "duracion_ms": 14,
+      "limite_ms": 30000,
+      "iteraciones": 1,
+      "solicitudes": 6,
+      "aserciones": 12
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "TC-M04-G068_resultado.md",
+    "newman/newman-G068.json",
+    "newman/newman-G068.html"
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Ausencia de registros y estado/fase 885 concordantes poscierre"
+    },
+    "activo_885": {
+      "http": 200,
+      "estado": "ACTIVO",
+      "fase": []
+    }
+  },
+  "oficial": true,
+  "consume_version": true
+}

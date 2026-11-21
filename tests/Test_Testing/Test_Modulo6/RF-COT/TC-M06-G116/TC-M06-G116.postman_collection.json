@@ -1,0 +1,65 @@
+{
+  "info": {
+    "name": "TC-M06-G116",
+    "description": "TC-M06-G116: rechazos de POST /finanzas/cotizaciones (activos_cotizados enteros). Escenarios vigentes en resultados/ultima_evaluacion/: inexistente 404, BAJA 422, sin VR 422, periodo cerrado 422 PERIODO_CONTABLE_CERRADO. No ejecuta altas positivas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    }
+  ],
+  "item": [
+    {
+      "name": "Activo entero ausente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "America/Bogota"
+          }
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activos_cotizados\": [{{id_ausente}}],\n  \"valor_cotizacion_propuesto\": \"1000.0000\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Activo sin valor razonable",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "America/Bogota"
+          }
+        ],
+        "url": "{{base}}/finanzas/cotizaciones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activos_cotizados\": [{{id_sin_valor}}],\n  \"valor_cotizacion_propuesto\": \"1000.0000\"\n}"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="2.708" timestamp="2026-11-07T09:43:35.464431-05:00" hostname="LAPTOP-TMUKKLVF"><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G14.test_tc_m05_g14" name="test_01_preparacion" time="2.071"><error message="failed on setup with &quot;AssertionError: PRECONDICION_NO_CUMPLIDA: paso=listar ciclos: la especie del activo 930 no tiene ciclos productivos con fases (total=0)&#10;assert []&quot;">request = &lt;SubRequest 'corrida_principal' for &lt;Function test_01_preparacion&gt;&gt;
+
+    @pytest.fixture(scope="module")
+    def corrida_principal(request):
+        """Corrida principal: 1 login + preparación; el teardown se verifica en test_zz y aquí como red."""
+        c = Corrida("test-m05-g14")
+    
+        def _finalizar() -&gt; None:
+            resp = c.cerrar()
+            if resp is not None:
+                _assert_teardown(resp, c)
+    
+        request.addfinalizer(_finalizar)
+        c.login()
+&gt;       c.preparacion = _preparar(c, _id_activo())
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G14\test_tc_m05_g14.py:494: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G14\test_tc_m05_g14.py:331: in _preparar
+    ciclo_usado = _elegir_ciclo(c, id_activo)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+c = &lt;test_tc_m05_g14.Corrida object at 0x000001BC779CFB60&gt;, id_activo = 930
+
+    def _elegir_ciclo(c: Corrida, id_activo: int) -&gt; dict:
+        """Ciclo productivo compatible con la especie del activo.
+    
+        ``GET /activos-biologicos/{id}/ciclos-productivos`` devuelve SOLO los ciclos de la
+        especie del activo (``ciclo_productivo_m09_adapter.listar_por_especie``: filtro
+        ``cb.id_especie = :id_especie``). De esos se toma, de forma determinista, el de menor
+        ``id_ciclo_productivo`` que tenga fases configuradas (un ciclo sin fases da
+        ``CICLO_SIN_FASES``). ``POST /fases`` vuelve a validar la especie en el servidor
+        (``CICLO_ESPECIE_INCOMPATIBLE``); si ocurriera, la preparación falla con ese error_code.
+        """
+        r = c.get(f"/activos-biologicos/{id_activo}/ciclos-productivos")
+        assert r.status_code == 200, (
+            f"PRECONDICION_NO_CUMPLIDA: paso=listar ciclos de la especie GET "
+            f"/activos-biologicos/{id_activo}/ciclos-productivos HTTP {r.status_code}, error_code={_error_code(r)}"
+        )
+        body = _json_o_vacio(r)
+        assert body.get("id_activo_biologico") == id_activo, (
+            f"PRECONDICION_NO_CUMPLIDA: paso=listar ciclos devolvió el activo {body.get('id_activo_biologico')}, "
+            f"esperado {id_activo}"
+        )
+        con_fases = sorted(
+            (ci for ci in body.get("items") or [] if ci.get("fases")),
+            key=lambda ci: ci["id_ciclo_productivo"],
+        )
+&gt;       assert con_fases, (
+            f"PRECONDICION_NO_CUMPLIDA: paso=listar ciclos: la especie del activo {id_activo} no tiene ciclos "
+            f"productivos con fases (total={body.get('total')})"
+        )
+E       AssertionError: PRECONDICION_NO_CUMPLIDA: paso=listar ciclos: la especie del activo 930 no tiene ciclos productivos con fases (total=0)
+E       assert []
+
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G14\test_tc_m05_g14.py:310: AssertionError</error></testcase></testsuite></testsuites>

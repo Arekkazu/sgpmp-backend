@@ -1,0 +1,27 @@
+{
+  "grupo": "TC-M06-G96",
+  "nombre": "Validación del cálculo del valor en libros y control de límites para evitar valores negativos",
+  "modulo": 6,
+  "rf": "RF-88",
+  "estado_final": "APROBADO",
+  "alcance": "Validación técnica A+B sobre lógica real del backend (dominio + integración PostgreSQL temporal aislada). No incluye corrida HTTP de escritura en API TEST compartido.",
+  "fecha_ejecucion": "2026-11-13",
+  "codigo_evaluado": {
+    "worktree": "sgpmp-backend-g96-ab",
+    "head": "91f79e75bd8f91fe399ab180e77aed1c614b09d3",
+    "incluye_fix_968": "8829599f",
+    "rama_laura": "intacta"
+  },
+  "resumen_conteos": {
+    "total_subcasos": 3,
+    "pass": 3,
+    "fail": 0,
+    "blocked": 0,
+    "alerta": "PASS"
+  },
+  "http_test_compartido_obligatorio_segun_ac": false,
+  "justificacion_ac": "Los criterios de aceptación del grupo exigen los montos de valor en libros (05/06/07), el piso en cero ante resultado negativo y la alerta persistente consultable VALOR_LIBROS_AJUSTADO_A_CERO. La colección Newman solo inventaría OpenAPI y exige 'operación real ejecutada' para APROBADO; A+B ejecutó valor_libros_calculado/valor_por_costo y RegistrarDeterioroUseCase + consulta de auditoría sobre PostgreSQL real aislado. No figura como AC obligatorio la persistencia vía HTTP en el seed compartido 2126.",
+  "test_compartido_modificado": false,
+  "informe_html": "INFORME_FINAL_G96.html",
+  "resumen_md": "RESUMEN_FINAL_G96.md"
+}

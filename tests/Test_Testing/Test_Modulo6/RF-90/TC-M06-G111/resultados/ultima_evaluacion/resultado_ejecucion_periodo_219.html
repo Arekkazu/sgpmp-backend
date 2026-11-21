@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G111 — período 219</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 920px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    code { font-family: Consolas, monospace; }
+    .ok { display: inline-block; background: #e5f6ea; border: 1px solid #8bc79a; border-radius: 4px; padding: .1rem .45rem; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-90 y RF-87 · Caso TC-M06-G111</p>
+  <h1>TC-M06-41 sobre el período 219</h1>
+  <p>Identificador vigente TC-M06-G111. Antes TC-M06-G83. Issue #987. Entorno TEST. 2026-11-10. America/Bogota.</p>
+  <p><span class="ok">APROBADO</span> para TC-M06-41. El script oficial no ejecuta este subcaso y apunta al activo compartido 951, así que esta ejecución usó solo el escenario aislado.</p>
+
+  <h2>Qué se comprobó</h2>
+  <p>Un costo OTRO sin naturaleza queda pendiente y bloquea el cierre antes de cambiar el estado del período. La clasificación posterior deja la prevalidación en condiciones de continuar.</p>
+  <table>
+    <tr><th>Paso</th><th>Resultado</th></tr>
+    <tr><td><code>POST /finanzas/costos</code></td><td>HTTP 201. Costo 1690, activo 1568, período 219, 100.0000, estado PENDIENTE_CLASIFICACION.</td></tr>
+    <tr><td><code>GET /finanzas/periodos/219/prevalidacion</code></td><td>HTTP 200. <code>puede_cerrar: false</code>. Bloqueo <code>COSTOS_PENDIENTE_CLASIFICACION</code>.</td></tr>
+    <tr><td><code>POST /finanzas/periodos/219/cierre</code></td><td>HTTP 422 <code>CIERRE_BLOQUEADO</code> a las 2026-11-10T06:16:55Z. El período siguió ABIERTO.</td></tr>
+    <tr><td><code>POST /finanzas/costos/1690/clasificacion</code></td><td>HTTP 200. Naturaleza MANTENIMIENTO. Línea 2625, <code>MANO_OBRA_PROPIA</code>, 100.00.</td></tr>
+    <tr><td>Prevalidación final</td><td>HTTP 200. <code>puede_cerrar: true</code>. Sin bloqueos.</td></tr>
+  </table>
+  <p>TC-M06-37 no se volvió a ejecutar. Su resultado aprobado del 2026-11-08 permanece en los archivos originales de esta carpeta. Repetirlo enviaría un costo contra el activo compartido 951.</p>
+  <p>No se usó SQL y no se consultó el período 220.</p>
+  <ul>
+    <li><a href="resumen_ejecucion_periodo_219.json">resumen_ejecucion_periodo_219.json</a></li>
+    <li><a href="evidencias_ejecucion_periodo_219.json">evidencias_ejecucion_periodo_219.json</a></li>
+  </ul>
+</body>
+</html>

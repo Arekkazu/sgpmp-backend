@@ -1,0 +1,100 @@
+================================================================================
+INFORME DE PORTON DE VIABILIDAD - TC-M05-G18 (RF-76)
+"Integracion con RF-44 y fallas de persistencia" (TC-M05-011, TC-M05-012, TC-M05-042)
+Fecha: 2026-11-07
+Capa: Backend - Pytest EN PROCESO
+Veredicto del Porton: BLOQUEADO (DETENCION POR ERROR DE AMBIENTE EN P2)
+================================================================================
+
+1. OBJETIVO DEL PORTON
+Evaluar la viabilidad de ejecucion en proceso del caso agrupado TC-M05-G18 bajo
+los tres criterios tecnicos definidos:
+  - P1: Localizacion de componentes del job, adaptador RF-44 y notificador.
+  - P2: Smoke REAL en proceso (transaccion exterior, creacion de estado/fase en
+        activo 853, ejecucion del job, rollback y verificacion de inocuidad).
+  - P3: Mecanismo de inyeccion de fallas y obtencion de respuestas HTTP en proceso.
+
+Regla aplicable: "si bloquea el nucleo, DETENTE con informe corto en evidencias/
+y NO construyas el script".
+
+--------------------------------------------------------------------------------
+2. RESULTADOS POR CRITERIO
+--------------------------------------------------------------------------------
+
+[P1. LOCALIZACION DE COMPONENTES] - SUPERADO
+- Job del scheduler:
+  Implementado en `RevertirRetirosVencidosUseCase`
+  (`src/supplies/application/use_cases/suministros/revertir_retiros_vencidos_use_case.py`).
+  Recibe `session_factory: Callable[[], Session]`. Invoca:
+  1) `ActivoM02Adapter(db).listar_en_tratamiento()` (SQL sobre `modulo2.activos_biologicos WHERE id_estado = 3`).
+  2) `SqlAlchemyMedicamentoRepository(db).obtener_tratamiento_vigente(id_activo)`.
+  3) `EstadoActivoM02Adapter(db).revertir_a_activo(id_activo, id_usuario, motivo)`.
+  4) `NotificacionMedicamentoEmailAdapter(db).notificar_fin_retiro(id_activo, fecha_fin_retiro)`.
+- Adaptador RF-44:
+  `EstadoActivoM02Adapter` (`src/supplies/infrastructure/adapters/estado_activo_m02_adapter.py`).
+  Metodos: `marcar_en_tratamiento` y `revertir_a_activo`. Registra el cambio a traves de
+  `SqlAlchemyHistoricoEstadoRepository` sobre `modulo2.historicos_estados_activos`.
+- Emisor de notificaciones:
+  `NotificacionMedicamentoEmailAdapter` (`src/supplies/infrastructure/adapters/notificacion_medicamento_email_adapter.py`).
+  Emite correo llamando a `send_email` (`src/shared/email.py`), con politica best-effort.
+
+[P2. SMOKE REAL EN PROCESO] - BLOQUEADO POR ERROR DE AMBIENTE (PERMISOS POSTGRESQL)
+Hecho observado:
+- Al intentar preparar el estado real del activo 853 en la base de datos de pruebas
+  (`TEST_DATABASE_URL`), cualquier operacion sobre tablas de `modulo2` (consultar o
+  crear fase en `modulo2.gestiones_fases`, cambiar estado del activo o consultar su
+  historico) es rechazada por el motor de base de datos PostgreSQL con el error:
+  `psycopg2.errors.InsufficientPrivilege: permission denied for function fn_activos_del_usuario`.
+Diagnostico factual de base de datos:
+- El usuario de conexion configurado en el ambiente pertenece al rol de base de datos `rol_qa`.
+- La funcion `modulo2.fn_activos_del_usuario(integer)` pertenece al usuario `dba` y sus permisos en `pg_proc` son:
+  `acl: {dba=X/dba,sgpmp_app=X/dba,sgpmp_owner=X/dba}`.
+  El rol `rol_qa` NO tiene concedido el privilegio `EXECUTE` sobre dicha funcion.
+- Las politicas de Row-Level Security (RLS) de las tablas:
+  * `modulo2.gestiones_fases` (`pol_gestiones_fases_select`, `pol_gestiones_fases_update`)
+  * `modulo2.detalles_activos_individuales` (`pol_detalles_activos_individuales_select`, `pol_detalles_activos_individuales_update`)
+  * `modulo2.detalles_activos_biologicos_poblacionales`
+  * `modulo2.historicos_estados_activos`
+  evaluan expresiones del tipo `id_activo_biologico IN (SELECT id_activo_biologico FROM modulo2.fn_activos_del_usuario(...))`.
+- En consecuencia:
+  1) `SELECT ... FROM modulo2.gestiones_fases` falla por falta de permiso de ejecucion en `fn_activos_del_usuario`.
+  2) `INSERT INTO modulo2.historicos_estados_activos` o `CALL modulo2.sp_cambiar_estado_activo` falla porque el trigger `trg_sincronizar_estado_activo` actualiza `modulo2.activos_biologicos`, lo cual dispara la verificacion de clave foranea en `modulo2.detalles_activos_individuales`, cuya politica RLS intenta ejecutar `fn_activos_del_usuario` y aborta la transaccion.
+  3) No es posible crear el estado previo en el activo 853 de forma real en la base de datos mediante ORM/SQL bajo la identidad `rol_qa`.
+- Clasificacion: ERROR DE AMBIENTE (Infraestructura / permisos de BD de pruebas).
+
+[P3. MECANISMO DE INYECCION DE FALLAS] - ANALIZADO Y DISENADO
+- Falla de RF-44 (TC-M05-012, B01):
+  Verificado en codigo que `RegistrarMedicamentoUseCase.execute()` ya implementa la OPCION A (RF-76 E10):
+  al fallar `self.estado_port.marcar_en_tratamiento`, se captura la excepcion, se ejecuta `self.db.rollback()`
+  y se lanza `InfrastructureError(code="ERROR_ESTADO_EN_TRATAMIENTO", message="El medicamento fue registrado correctamente, pero ocurrió un error al actualizar el estado del activo a EN_TRATAMIENTO. El sistema ha revertido la operación completa. Intente nuevamente.")`.
+  El manejador global de FastAPI convierte `InfrastructureError` en `HTTP 500 Internal Server Error`.
+  Se inyecta mockeando `estado_port.marcar_en_tratamiento` en la fabrica del caso de uso.
+- Falla en calculo de retiro (TC-M05-042, C01):
+  Al inyectar excepcion en el calculo de fecha, la transaccion no confirma y se responde error HTTP al cliente.
+- Falla de escritura en repositorio (TC-M05-042, C02):
+  Al inyectar excepcion en `medicamento_repo.guardar`, `execute()` invoca `self.db.rollback()` y propaga error HTTP 500.
+- Auditoria en fallos de transaccion:
+  Se verifico en codigo que `modulo5.registros_medicamentos` y las operaciones del caso de uso no escriben eventos de auditoria en tablas separadas; cualquier intento de persistencia en la misma sesion se revierte integramente con el `db.rollback()`. La auditoria de incidentes no es observable externamente bajo transaccion abortada.
+
+--------------------------------------------------------------------------------
+3. ACCION ADOPTADA
+--------------------------------------------------------------------------------
+Conforme a la regla expresa del porton:
+"PORTON (maximo ~15 min; si bloquea el nucleo, DETENTE con informe corto en evidencias/ y NO construyas el script)"
+
+Dado que el nucleo de P2 (crear estado real en activo 853, ejecutar transicion real en DB y verificar inocuidad)
+se encuentra bloqueado por la falta de privilegios de `rol_qa` sobre `modulo2.fn_activos_del_usuario`,
+se DETIENE la ejecucion en esta fase de Porton:
+  1) NO se construyo el script de prueba definitivo `test_tc_m05_g18.py`.
+  2) NO se creo el runner `ejecutar_tc_m05_g18.ps1`.
+  3) NO hubo promocion a `resultados/` (`resultados/` no existe o permanece sin archivos promocionados).
+  4) G14, G15, G16 y G19 permanecen intactos (integridad SHA-256 verificada).
+
+--------------------------------------------------------------------------------
+4. RECOMENDACION DE DESBLOQUEO PARA DBA / DEVOPS
+--------------------------------------------------------------------------------
+Para permitir la ejecucion de pruebas backend en proceso que involucren tablas del modulo 2:
+Ejecutar en la base de datos de pruebas (con rol `dba` o superusuario):
+  GRANT EXECUTE ON FUNCTION modulo2.fn_activos_del_usuario(integer) TO rol_qa;
+  GRANT EXECUTE ON FUNCTION modulo1.fn_id_usuario_por_correo(character varying) TO rol_qa;
+================================================================================

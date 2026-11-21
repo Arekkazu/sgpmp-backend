@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="10" skipped="0" tests="10" time="105.328" timestamp="2026-11-10T20:24:09.221729-05:00" hostname="LAPTOP-TMUKKLVF"><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte" time="0.025"><failure message="AttributeError: &lt;module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'&gt; has no attribute 'datetime'">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:789: in test_g18_s1_01_dos_tratamientos_vencido_y_vigente_manana_no_revierte
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:773: in _verificar
+    fake_asyncio = _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:496: in _ejecutar_scheduler_s1_con_dobles
+    monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+E   AttributeError: &lt;module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'&gt; has no attribute 'datetime'</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte" time="0.015"><failure message="AttributeError: &lt;module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'&gt; has no attribute 'datetime'">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:838: in test_g18_s1_02_retiro_vence_hoy_invoca_rf44_una_vez_y_revierte
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:822: in _verificar
+    fake_asyncio = _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:496: in _ejecutar_scheduler_s1_con_dobles
+    monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+E   AttributeError: &lt;module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'&gt; has no attribute 'datetime'</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor" time="0.017"><failure message="AttributeError: &lt;module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'&gt; has no attribute 'datetime'">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:881: in test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:867: in _verificar
+    _ejecutar_scheduler_s1_con_dobles(store, monkeypatch)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:496: in _ejecutar_scheduler_s1_con_dobles
+    monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+E   AttributeError: &lt;module 'main' from 'C:\\Users\\Juansegutt\\Integrador\\sgpmp-backend\\main.py'&gt; has no attribute 'datetime'</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion" time="0.054"><failure message="AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {&quot;error_code&quot;:&quot;CUENTA_NO_ACTIVA&quot;,&quot;message&quot;:&quot;Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-11-11T01:24:21.183663+00:00&quot;}&#10;assert 403 not in (401, 403)&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:919: in test_g18_s2_01_falla_rf44_retorna_500_y_mensaje_reversion
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:908: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.183663+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido" time="0.089"><failure message="AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {&quot;error_code&quot;:&quot;CUENTA_NO_ACTIVA&quot;,&quot;message&quot;:&quot;Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-11-11T01:24:21.362385+00:00&quot;}&#10;assert 403 not in (401, 403)&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:951: in test_g18_s2_02_falla_rf44_rollback_sin_registro_persistido
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:942: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.362385+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion" time="0.029"><failure message="AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {&quot;error_code&quot;:&quot;CUENTA_NO_ACTIVA&quot;,&quot;message&quot;:&quot;Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-11-11T01:24:21.471018+00:00&quot;}&#10;assert 403 not in (401, 403)&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:985: in test_g18_s2_03_falla_rf44_mantiene_estado_activo_y_sin_notificacion
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:974: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.471018+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s3_01_falla_calculo_fecha_fin_retiro" time="0.032"><failure message="AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {&quot;error_code&quot;:&quot;CUENTA_NO_ACTIVA&quot;,&quot;message&quot;:&quot;Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-11-11T01:24:21.571906+00:00&quot;}&#10;assert 403 not in (401, 403)&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1035: in test_g18_s3_01_falla_calculo_fecha_fin_retiro
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1018: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.571906+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback" time="0.031"><failure message="AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {&quot;error_code&quot;:&quot;CUENTA_NO_ACTIVA&quot;,&quot;message&quot;:&quot;Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-11-11T01:24:21.682467+00:00&quot;}&#10;assert 403 not in (401, 403)&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1082: in test_g18_s3_02_falla_bd_guardar_por_db_error_translator_y_rollback
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1065: in _verificar
+    _verificar_uso_stubs_api(resp, store)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.682467+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_s3_03_incidente_auditoria_sobrevive_rollback" time="0.031"><failure message="AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {&quot;error_code&quot;:&quot;CUENTA_NO_ACTIVA&quot;,&quot;message&quot;:&quot;Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-11-11T01:24:21.796097+00:00&quot;}&#10;assert 403 not in (401, 403)&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1164: in test_g18_s3_03_incidente_auditoria_sobrevive_rollback
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1119: in _verificar
+    _verificar_uso_stubs_api(resp_a, store, min_calls=1)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:734: in _verificar_uso_stubs_api
+    assert resp.status_code not in (401, 403), (
+E   AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {"error_code":"CUENTA_NO_ACTIVA","message":"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.","fields":[],"timestamp":"2026-11-11T01:24:21.796097+00:00"}
+E   assert 403 not in (401, 403)
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-76.TC-M05-G18.test_tc_m05_g18" name="test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad" time="92.213"><failure message="requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)&#10;Rollback sandbox: DELETE_ERR=ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)">.venv\Lib\site-packages\urllib3\connectionpool.py:534: in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\urllib3\connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\http\client.py:1430: in getresponse
+    response.begin()
+..\..\anaconda3\Lib\http\client.py:331: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\http\client.py:292: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\socket.py:719: in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\ssl.py:1304: in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\anaconda3\Lib\ssl.py:1138: in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TimeoutError: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+.venv\Lib\site-packages\requests\adapters.py:696: in send
+    resp = conn.urlopen(
+.venv\Lib\site-packages\urllib3\connectionpool.py:842: in urlopen
+    retries = retries.increment(
+.venv\Lib\site-packages\urllib3\util\retry.py:498: in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\urllib3\util\util.py:39: in reraise
+    raise value
+.venv\Lib\site-packages\urllib3\connectionpool.py:788: in urlopen
+    response = self._make_request(
+.venv\Lib\site-packages\urllib3\connectionpool.py:536: in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+.venv\Lib\site-packages\urllib3\connectionpool.py:367: in _raise_timeout
+    raise ReadTimeoutError(
+E   urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)
+
+During handling of the above exception, another exception occurred:
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1377: in test_g18_r_01_control_real_sandbox_sin_retiro_e_inocuidad
+    _ejecutar_con_traza(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:177: in _ejecutar_con_traza
+    obtenido = fn()
+               ^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1345: in _verificar
+    conteo_base = _ejecutar_corrida_sandbox(
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1262: in _ejecutar_corrida_sandbox
+    _relanzar_con_rollback(cuerpo_exc, del_resumen)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1224: in _relanzar_con_rollback
+    raise cuerpo_exc
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1246: in _ejecutar_corrida_sandbox
+    resultado = cuerpo_fn(session)
+                ^^^^^^^^^^^^^^^^^^
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1288: in _cuerpo_run1
+    _login_sandbox_con_reintento(s1, base_url, email, pwd)
+tests\Test_Testing\Test_Modulo5\RF-76\TC-M05-G18\test_tc_m05_g18.py:1194: in _login_sandbox_con_reintento
+    resp = session.post(
+.venv\Lib\site-packages\requests\sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\requests\sessions.py:651: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\requests\sessions.py:784: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\requests\adapters.py:742: in send
+    raise ReadTimeout(e, request=request)
+E   requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)
+E   Rollback sandbox: DELETE_ERR=ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)</failure></testcase></testsuite></testsuites>

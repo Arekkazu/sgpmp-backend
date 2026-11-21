@@ -1,0 +1,26 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>TC-M06-G116</title>
+<style>body{font-family:Segoe UI,sans-serif;margin:2rem;line-height:1.45}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#f3f3f3}
+pre{white-space:pre-wrap}</style></head><body>
+<h1>Módulo 6 — RF-COT — TC-M06-G116</h1>
+<p>Generado: 2026-11-08T16:33:58.487370+00:00. Aprobación: 0 %.</p>
+<table><tr><th>Escenario</th><th>Subcaso</th><th>HTTP</th><th>Código</th><th>Esperado</th><th>Estado</th></tr><tr><td>A activo inexistente</td><td>TC-M06-46</td><td>404</td><td>ACTIVO_NO_ENCONTRADO</td><td>HTTP 422</td><td>REQUIERE ACLARACION</td></tr><tr><td>D sin valor razonable</td><td>TC-M06-47</td><td>422</td><td>VALOR_RAZONABLE_NO_DISPONIBLE</td><td>HTTP 422</td><td>APROBADO</td></tr><tr><td>C período cerrado</td><td>TC-M06-47</td><td>None</td><td>None</td><td>HTTP 422</td><td>REQUIERE ACLARACION</td></tr><tr><td>B estado distinto de ACTIVO</td><td>TC-M06-46</td><td>422</td><td>ACTIVO_NO_DISPONIBLE</td><td>HTTP 422</td><td>APROBADO</td></tr></table>
+<h2>Contrato</h2><pre>POST /finanzas/cotizaciones recibe activos_cotizados como enteros y valor_cotizacion_propuesto mayor que cero. No acepta un UUID ni un período. El orden es: activo inexistente responde 404 ACTIVO_NO_ENCONTRADO; estado distinto de ACTIVO o sin reconocimiento responde 422 ACTIVO_NO_DISPONIBLE; sin cálculo CALCULADO responde 422 VALOR_RAZONABLE_NO_DISPONIBLE. Esas tres ocurren antes de resolver el período. Un período cerrado no se rechaza: periodo_para usa el primer período abierto posterior o crea uno, y después inserta. Esa solicitud no se envía. El diseño pedía 422 también para el activo inexistente.</pre>
+<h2>Conteos</h2><pre>{
+  &quot;cotizaciones_antes&quot;: [
+    4,
+    5
+  ],
+  &quot;cotizaciones_despues&quot;: [
+    4,
+    5
+  ],
+  &quot;eventos_antes&quot;: 0,
+  &quot;eventos_despues&quot;: 0,
+  &quot;sin_cotizacion_nueva&quot;: true,
+  &quot;sin_evento_nuevo&quot;: true,
+  &quot;valor_razonable_sin_cambio&quot;: true,
+  &quot;periodos_sin_cambio&quot;: true
+}</pre>
+<h2>Hallazgos</h2><ul><li>QUESTION-M06-G116-01: el activo inexistente responde 404 ACTIVO_NO_ENCONTRADO. El diseño esperaba 422. El DTO solo acepta enteros, no UUID.</li><li>QUESTION-M06-G116-02: un período cerrado no impide la cotización. El caso de uso la lleva al período abierto posterior y la guarda. Esa solicitud no se envió.</li></ul>
+</body></html>

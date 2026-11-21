@@ -1,0 +1,111 @@
+{
+  "tc": "TC-M05-G43",
+  "titulo": "RF-81 / RF-80 - Auditoria de consultas y exportaciones de historial de suministros",
+  "reintento": 1,
+  "fecha_utc": "2026-11-12T13:16:43.208735+00:00",
+  "staging": "C:/Users/Juansegutt/Integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/evidencias/run-20261112-081621",
+  "repro": "powershell -ExecutionPolicy Bypass -File \"tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G43/ejecutar_tc_m05_g43.ps1\" -Reintento 1",
+  "summary": {
+    "total": 10,
+    "ok": 7,
+    "falla": 3,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00",
+      "test_fn": "test_00_setup_linea_base_y_activo_c",
+      "esperado": "Linea base de auditoria en T00, usuario autenticado y creacion de activo C + suministro en sandbox",
+      "obtenido": "T00 OK (auditoria_inicial_total=None, ultimo_id=None); activo_c=None, ciclo_c=None, id_usuario_ref=None",
+      "estado": "OK",
+      "tiempo_s": 4.594
+    },
+    {
+      "paso": "B01",
+      "test_fn": "test_b01_consulta_con_resultados_auditoria",
+      "esperado": "CONSULTA_HISTORIAL_EJECUTADA en GET /suministros/auditoria con filtros_aplicados, pagina, registros_por_pagina, total_registros_retornados y total_registros_filtrados",
+      "obtenido": "GET /suministros/historial HTTP None; GET /suministros/auditoria HTTP None con CONSULTA_HISTORIAL_EJECUTADA y datos_nuevos completos",
+      "estado": "OK",
+      "tiempo_s": 0.449
+    },
+    {
+      "paso": "B02",
+      "test_fn": "test_b02_consulta_sin_resultados_auditoria",
+      "esperado": "Consulta vacia genera CONSULTA_HISTORIAL_EJECUTADA con total_registros_retornados=0 y total_registros_filtrados=0",
+      "obtenido": "GET /suministros/historial (vacia) HTTP 200; GET /suministros/auditoria HTTP None con CONSULTA_HISTORIAL_EJECUTADA y total_registros_retornados=0",
+      "estado": "OK",
+      "tiempo_s": 0.418
+    },
+    {
+      "paso": "B03",
+      "test_fn": "test_b03_exportacion_sincrona_auditoria",
+      "esperado": "Exportaciones PDF y EXCEL generan EXPORTACION_HISTORIAL_GENERADA con filtros_aplicados, formato y total_registros_retornados",
+      "obtenido": "Export PDF HTTP None, EXCEL HTTP None; GET /suministros/auditoria HTTP None con EXPORTACION_HISTORIAL_GENERADA PDF y EXCEL",
+      "estado": "OK",
+      "tiempo_s": 1.444
+    },
+    {
+      "paso": "B04",
+      "test_fn": "test_b04_solo_lectura_restr_4",
+      "esperado": "Restr. 4: PUT y DELETE sobre /suministros/auditoria rechazados con 405",
+      "obtenido": "PUT HTTP None, DELETE HTTP None rechazados sin modificar bitacora",
+      "estado": "OK",
+      "tiempo_s": 1.537
+    },
+    {
+      "paso": "A01",
+      "test_fn": "test_a01_gestor_granja_consulta_su_unidad",
+      "esperado": "CA-2: Gestor de Granja consulta activo 1042 de su unidad -> HTTP 200",
+      "obtenido": "Gestor de Granja consulta activo 1042 -> HTTP 200",
+      "estado": "OK",
+      "tiempo_s": 1.968
+    },
+    {
+      "paso": "A02",
+      "test_fn": "test_a02_gestor_granja_rechazo_sin_unidad",
+      "esperado": "CA-3 / E2: Gestor de Granja consulta activo 957 ajeno -> HTTP 403",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | AssertionError: DEFECTO DE PRODUCTO (E2 / CA-3): Se esperaba HTTP 403 con mensaje de permisos por rol y unidades, pero el backend respondio HTTP 404 ({\"error_code\":\"ACTIVO_NO_ENCONTRADO\",\"message\":\"El activo biológico 957 no existe.\",\"field",
+      "estado": "FALLA",
+      "tiempo_s": 0.129,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "A03",
+      "test_fn": "test_a03_auditoria_intento_rechazado",
+      "esperado": "CU04 FA-04 / RF-80: Intento rechazado registra evento con resultado != EXITOSO en /suministros/auditoria",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | TypeError: 'Response' object is not subscriptable",
+      "estado": "FALLA",
+      "tiempo_s": 3.714,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    },
+    {
+      "paso": "A04",
+      "test_fn": "test_a04_observacion_productor_consulta_su_unidad",
+      "esperado": "Observacion: Productor consulta activo 957 de su unidad -> HTTP 200",
+      "obtenido": "Productor consulta activo 957 -> HTTP 200 (observacion fuera de spec RF-81)",
+      "estado": "OBS",
+      "tiempo_s": 1.647
+    },
+    {
+      "paso": "T98",
+      "test_fn": "test_98_cierre_corridas",
+      "esperado": "Todas las corridas previas cerradas con DELETE /test-control/runs/{run_id} -> 200 Rollback exitoso",
+      "obtenido": "Corridas cerradas con DELETE 200 Rollback exitoso ()",
+      "estado": "OK",
+      "tiempo_s": 0.005
+    },
+    {
+      "paso": "T99",
+      "test_fn": "test_99_inocuidad_final",
+      "esperado": "Inocuidad en sandbox: total y max id de auditoria restaurados a T00; activo C y su historial retornan 404",
+      "obtenido": "PENDIENTE_DIAGNOSTICO | TypeError: 'Response' object is not subscriptable",
+      "estado": "FALLA",
+      "tiempo_s": 1.86,
+      "diagnostico": "PENDIENTE_DIAGNOSTICO"
+    }
+  ],
+  "observaciones": [],
+  "runs_orden": [],
+  "corridas_cerradas": {},
+  "total_trazas_http": 52
+}

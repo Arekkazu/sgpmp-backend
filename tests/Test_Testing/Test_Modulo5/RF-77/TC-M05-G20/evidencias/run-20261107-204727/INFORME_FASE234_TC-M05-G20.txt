@@ -1,0 +1,1093 @@
+================================================================================
+INFORME DE EJECUCION FASES 2, 3 Y 4 — TC-M05-G20
+RF-77: Reporte de Gastos Acumulados por Activo (CU04)
+================================================================================
+Fecha/Hora de Ejecución: 2026-11-07 20:47:40 (America/Bogota)
+Tipo de corrida: evaluacion oficial; corrida realizada tras corregir el test; la corrida anterior queda archivada en evidencias/.
+
+Caso de Prueba: TC-M05-G20 (Casos Planos: TC-M05-014, TC-M05-015)
+Ambiente: https://www.api.inmero.co/api-sgpmp-test
+Veredicto Global: RECHAZADO (6 OK, 1 Fallas)
+
+1. RESULTADO DEL ESCANEO DE SECRETOS
+--------------------------------------------------------------------------------
+- Patrones buscados: TEST_ADMIN_PASSWORD, TEST_SANDBOX_SECRET, ultimos 20 caracteres de cada uno, '***REDACTED***', TEST_ADMIN_EMAIL.
+- Total hallazgos en staging: 0 secretos (LIMPIO).
+- Estado de promocion: Aprobado para custodia y promocion.
+
+2. TABLA DE TEST Y CHECKPOINTS NORMATIVOS
+--------------------------------------------------------------------------------
+[01] [OK] T00 Línea base de historial del Administrador
+     Esperado: HTTP 200 en GET /suministros/reportes-gastos/historial, captura del total inicial de reportes
+     Obtenido: HTTP 200 en consulta de historial de Administrador. Estado: OK.
+
+[02] [OK] A01 Consolidado monetario y exclusión de anulados en activo individual
+     Esperado: HTTP 200; gasto_total_acumulado = 100.000 COP exacto (75.000 COP alimentación + 25.000 COP medicación); porcentajes exactos 75% y 25%; exclusión estricta de consumo anulado de 10.000 COP
+     Obtenido: Activo INDIVIDUAL creado (HTTP 201). 3 consumos (75.000 COP) y 2 medicamentos (25.000 COP) registrados. Consumo C4 (10.000 COP) registrado y anulado exitosamente (HTTP 200). Reporte consolidado HTTP 200 con gasto_total_acumulado = 100.000 COP exacto (75% ALIMENTACION, 25% MEDICACION); C4 excluido. Estado: OK.
+
+[03] [OK] A02 Filtro por categorias_incluidas=['ALIMENTACION']
+     Esperado: HTTP 200; total = 75.000 COP; desglose_categorias incluye únicamente la categoría ALIMENTACION
+     Obtenido: Reporte filtrado por categorias_incluidas=['ALIMENTACION'] HTTP 200; total = 75.000 COP exacto y única categoría presente en el desglose. Estado: OK.
+
+[04] [OK] B01 Gasto promedio por individuo en lote poblacional con bajas parciales
+     Esperado: HTTP 200; lote P1 con inicial 110 y 10 bajas (actual 100); total 1.000.000 COP; gasto_promedio_individuo = 10.000 COP exacto; nota_bajas presente informando N=10 bajas y uso de cantidad actual
+     Obtenido: Lote P1 creado (110 ind), fase abierta, 1.000.000 COP en gastos, baja de 10 ind (actual 100). Reporte HTTP 200: total 1.000.000 COP, gasto_promedio_individuo = 10.000 COP exacto y nota_bajas conforme con spec mencionando N=10 bajas y uso de cantidad actual. Estado: OK.
+
+[05] [FALLA] B02 Gasto promedio no calculable en lote poblacional con baja total
+     Esperado: gasto_promedio_individuo = 'NO_CALCULABLE'; causa_no_calculable_promedio = 'La cantidad actual del lote es cero. No es posible calcular el promedio por individuo.'
+     Obtenido: AssertionError: Defecto de producto: gasto_promedio_individuo es null en lugar del literal 'NO_CALCULABLE' exigido por spec (Restr. 6). Causa textual observada: 'La cantidad actual del lote es cero. No es posible calcular el promedio por individuo.'.
+
+[06] [OK] T98 Cierre ordenado de sandbox Administrador
+     Esperado: DELETE /test-control/runs/<run_id> responde HTTP 200 con 'Rollback exitoso'
+     Obtenido: DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.
+
+[07] [OK] T99 Verificación de inocuidad final e integridad de la base
+     Esperado: Historial de reportes del Administrador fuera de sandbox coincide exactamente con la línea base capturada en T00 (0 efectos persistidos)
+     Obtenido: Verificación sin sandbox completada; historial final coincide 100% con línea base (0 efectos persistidos). Estado: OK.
+
+3. LISTA CONCRETA DE OBSERVACIONES PARA ANALISIS Y ARQUITECTURA
+--------------------------------------------------------------------------------
+1. Umbral temporal (12 vs 6 meses): Conflicto entre E8 (que menciona 6 meses) y la Restricción 7 / RNF-01 (12 meses para individual, 6 meses para agregada).
+2. Tiempos límite (15 s vs 12 s): La especificación cita 15 s en unos apartados y 12 s en otros como tiempo límite síncrono.
+3. Fecha fin futura: Peticiones con fecha_fin futura son rechazadas pero sin código de error específico asignado.
+4. Período anterior inconsistente en la especificación: El ejemplo de la spec cita rango 01/03 a 31/03 comparado con 29/01 a 28/02 (desfase de días de calendario).
+5. Redondeo de porcentajes sin definir: No se especifica regla de redondeo (Half-up vs Bankers) en porcentajes de desglose.
+6. RF-75 y RF-76 rechazan costo_unitario nulo: La API de suministros rechaza registros sin costo, contradiciendo las Restricciones 4 y 11 de RF-77 que piden tolerar suministros sin costo.
+7. Estado 'CALCULADA' en tendencia: La API retorna 'CALCULADA' como estado de tendencia, valor no contemplado en el catálogo formal de la spec.
+8. Nombres de campos DTO vs Spec: `gasto_promedio_individuo` está tipado como Decimal nullable en el esquema, imposibilitando enviar la cadena 'NO_CALCULABLE' requerida por la spec.
+
+4. INTEGRIDAD DE ARCHIVOS Y HASHES SHA-256
+--------------------------------------------------------------------------------
+- TC-M05-G20 Script: 064297a758aefc5dd429a7e289acb836595e1ae98ed4fed13617bbfedfa08471
+- TC-M05-G25 Script: 6c58e9b4963b0aaa93b55be903117957afe6d235a2252f8ce3eefdb473127cbe
+- TC-M05-G24 Script: 03c5b78f5de799e5afb83f8ebb81702fe0248e5f349953a9183e089238e6a9ea
+- TC-M05-G19 Script: 6a4496f457d044721a2bb2b19b7e348c467e142c49c333ca1259c7f0b049a92e
+- TC-M05-G17 Script: 1aa0483d04df67e1f3e4339492cbcbd3537fd23c800e594531202931b91d4043
+- TC-M05-G16 Script: ecbc14e9eedd17ea1cf29a4ab97476055dd47b7e2bf0dc2f3ded552ae8801112
+- TC-M05-G15 Script: 8f4040b7c431305dcad8b46f59dbf7dcedb4bbc73fdfa6ed24fb2788992bf480
+- TC-M05-G14 Script: a693e2df2229eb52501079e9bc9365b39e084c52c2c87699067db2f8079b680d
+
+================================================================================
+ANEXO A: CONTENIDO DEL SCRIPT DE PRUEBA (test_tc_m05_g20.py)
+================================================================================
+# | Fecha      | Nombre                   | Que se hizo                                                           |
+# |------------|--------------------------|-----------------------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G20 RF-77: Consolidado y promedio por individuo (014 y 015)    |
+"""
+TC-M05-G20 — RF-77, POST /suministros/reportes-gastos.
+Consolidado y promedio por individuo (casos TC-M05-014 y TC-M05-015).
+
+Checkpoints:
+  - test_00_setup_linea_base:
+      Línea base previa del historial de reportes del Administrador.
+  - test_a01_consolidado_y_anulacion:
+      Activo INDIVIDUAL con 3 consumos y 2 medicamentos validados (75.000 + 25.000 = 100.000 COP)
+      y 1 consumo anulado (10.000 COP).
+      Reporte HTTP 200: total 100.000 COP, ALIMENTACION 75.000 (3 reg, 75%), MEDICACION 25.000 (2 reg, 25%).
+      El consumo anulado queda excluido (CA-1, CA-2).
+  - test_a02_filtro_categorias_incluidas:
+      Reporte filtrado con categorias_incluidas=['ALIMENTACION']: total 75.000 COP y solo dicha categoría.
+  - test_b01_lote_poblacional_promedio_y_bajas:
+      Lote POBLACIONAL P1 inicial 110, baja de 10 (actual 100), gasto 1.000.000 COP.
+      Reporte HTTP 200: gasto_promedio_individuo = 10.000 COP y nota de bajas con N=10 (CA-6, Restr. 6).
+  - test_b02_lote_poblacional_baja_total_no_calculable:
+      Lote POBLACIONAL P2 con gasto > 0 y baja total (cantidad_actual=0, estado BAJA).
+      Reporte HTTP 200: gasto_promedio_individuo None/'NO_CALCULABLE' con causa de la spec (Restr. 6).
+  - test_98_cierre_sandbox:
+      DELETE /test-control/runs/{run_id} responde HTTP 200 con 'Rollback exitoso'.
+  - test_99_inocuidad_final:
+      Verificación fuera de sandbox: historial del Admin coincide con la línea base.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import threading
+import time
+import uuid
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import pytest
+import requests
+from dotenv import dotenv_values
+
+NOMBRE_ZONA = "America/Bogota"
+ZONA_USUARIO = timezone(timedelta(hours=-5))
+TIMEOUT_S = 30
+ARCHIVO_TRAZA = "trazas_http.jsonl"
+_LOCK_TRAZA = threading.Lock()
+
+_RAIZ_REPO = Path(__file__).resolve().parents[5]
+if not (_RAIZ_REPO / ".env.test").exists():
+    _RAIZ_REPO = Path.cwd()
+_ENV_TEST = dotenv_values(_RAIZ_REPO / ".env.test") if (_RAIZ_REPO / ".env.test").exists() else {}
+
+_CONTEXTO: dict[str, Any] = {
+    "historial_base_total": 0,
+    "id_activo_ind": None,
+    "id_lote_p1": None,
+    "id_lote_p2": None,
+}
+
+_TEST_ACTUAL = "init"
+
+
+def _env(nombre: str, obligatoria: bool = True, defecto: str | None = None) -> str:
+    valor = os.environ.get(nombre) or _ENV_TEST.get(nombre) or defecto
+    if obligatoria and not valor:
+        raise AssertionError(f"PRECONDICION_NO_CUMPLIDA: falta la variable de entorno {nombre}")
+    return valor or ""
+
+
+def _secretos() -> list[str]:
+    return [
+        s for s in (
+            _env("TEST_SANDBOX_SECRET", False),
+            _env("TEST_ADMIN_PASSWORD", False),
+            _env("TEST_ADMIN_EMAIL", False),
+        ) if s
+    ]
+
+
+def _seguro(texto: str, extra: tuple[str, ...] = ()) -> str:
+    texto = (texto or "")[:600]
+    for s in [*_secretos(), *extra]:
+        if s and len(s) > 3:
+            texto = texto.replace(s, "***REDACTED***")
+    if "***REDACTED***" in texto:
+        texto = re.sub(r"***REDACTED***[a-zA-Z0-9_\-\.]+", "***REDACTED_JWT***", texto)
+    return texto
+
+
+def _sanitizar_objeto(obj: Any, extra: tuple[str, ...] = ()) -> Any:
+    if isinstance(obj, dict):
+        san = {}
+        for k, v in obj.items():
+            if k.lower() in ("contrasena", "password", "token", "authorization", "correo_electronico", "access_token"):
+                san[k] = "***REDACTED***"
+            elif isinstance(v, (dict, list)):
+                san[k] = _sanitizar_objeto(v, extra)
+            elif isinstance(v, str):
+                san[k] = _seguro(v, extra)
+            else:
+                san[k] = v
+        return san
+    elif isinstance(obj, list):
+        return [_sanitizar_objeto(x, extra) for x in obj]
+    elif isinstance(obj, str):
+        return _seguro(obj, extra)
+    return obj
+
+
+def _trazar(
+    metodo: str,
+    ruta: str,
+    resp: requests.Response | None,
+    inicio_perf: float,
+    params: Any = None,
+    req_body: Any = None,
+    token_extra: str | None = None,
+    error: str | None = None,
+    test_nombre: str | None = None,
+) -> None:
+    directorio = os.environ.get("TEST_EVIDENCE_DIR")
+    if not directorio:
+        return
+    destino = Path(directorio) / ARCHIVO_TRAZA
+    duracion_ms = round((time.perf_counter() - inicio_perf) * 1000, 2)
+    now_iso = datetime.now(ZONA_USUARIO).isoformat()
+    extra = (token_extra,) if token_extra else ()
+
+    resp_body = None
+    server_date = ""
+    status_code = None
+    error_code = None
+
+    if resp is not None:
+        status_code = resp.status_code
+        server_date = resp.headers.get("Date", "")
+        try:
+            resp_body = resp.json()
+            if isinstance(resp_body, dict):
+                error_code = resp_body.get("error_code")
+        except Exception:
+            resp_body = resp.text[:300]
+
+    registro = {
+        "timestamp_local": now_iso,
+        "server_date": server_date,
+        "duracion_ms": duracion_ms,
+        "test": test_nombre or _TEST_ACTUAL,
+        "metodo": metodo,
+        "ruta": ruta,
+        "params": _sanitizar_objeto(params, extra),
+        "status_code": status_code,
+        "error_code": error_code,
+        "error_conexion": error,
+        "request_body": _sanitizar_objeto(req_body, extra),
+        "response_body": _sanitizar_objeto(resp_body, extra),
+    }
+
+    with _LOCK_TRAZA:
+        try:
+            with open(destino, "a", encoding="utf-8") as f:
+                f.write(json.dumps(registro, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+
+
+class ErrorConexion(AssertionError):
+    def __init__(self, paso: str, ruta: str, original: requests.RequestException):
+        self.paso = paso
+        self.ruta = ruta
+        self.original = original
+        super().__init__(
+            f"ERROR_CONEXION paso={paso} ruta={ruta}: {type(original).__name__} ({original})"
+        )
+
+
+class CorridaSandboxG20:
+    """Gestiona la transacción sandbox (X-Test-Run-Id) de Administrador para TC-M05-G20."""
+
+    def __init__(self) -> None:
+        self.run_id = f"tc-m05-g20-adm-{uuid.uuid4().hex[:12]}"
+        self.base = _env("TEST_BASE_URL").rstrip("/")
+        self.secret = _env("TEST_SANDBOX_SECRET")
+        self.token: str | None = None
+        self.cerrada = False
+        self.http = requests.Session()
+        self.http.headers.update({
+            "X-Test-Run-Id": self.run_id,
+            "X-Sandbox-Secret": self.secret,
+            "X-Zona-Horaria": NOMBRE_ZONA,
+        })
+
+    def seguro(self, texto: str) -> str:
+        return _seguro(texto, (self.token,) if self.token else ())
+
+    def _enviar(
+        self,
+        metodo: str,
+        ruta: str,
+        paso: str | None = None,
+        params: Any = None,
+        json_body: Any = None,
+        **kw,
+    ) -> requests.Response:
+        assert ruta.startswith("/"), f"Ruta relativa esperada: {ruta!r}"
+        inicio = time.perf_counter()
+        token_extra = self.token
+        try:
+            resp = self.http.request(metodo, self.base + ruta, timeout=TIMEOUT_S, params=params, json=json_body, **kw)
+        except requests.RequestException as exc:
+            _trazar(metodo, ruta, None, inicio, params=params, req_body=json_body, token_extra=token_extra, error=type(exc).__name__)
+            raise ErrorConexion(paso or _TEST_ACTUAL, ruta, exc) from None
+        _trazar(metodo, ruta, resp, inicio, params=params, req_body=json_body, token_extra=token_extra)
+        return resp
+
+    def get(self, ruta: str, paso: str | None = None, params: Any = None, **kw) -> requests.Response:
+        return self._enviar("GET", ruta, paso=paso, params=params, **kw)
+
+    def post(self, ruta: str, json: Any, paso: str | None = None, params: Any = None) -> requests.Response:
+        return self._enviar("POST", ruta, paso=paso, params=params, json_body=json)
+
+    def login(self) -> None:
+        assert self.token is None, "DEF-04: solo se permite un login por run_id"
+        r = self.post(
+            "/sesiones/",
+            {"correo_electronico": _env("TEST_ADMIN_EMAIL"), "contrasena": _env("TEST_ADMIN_PASSWORD")},
+            paso="login_administrador",
+        )
+        assert r.status_code == 200, (
+            f"PRECONDICION_NO_CUMPLIDA: login Administrador HTTP {r.status_code}: {self.seguro(r.text)}"
+        )
+        token = r.json().get("token") or r.json().get("access_token")
+        assert token, "PRECONDICION_NO_CUMPLIDA: login Administrador sin token"
+        self.token = token
+        self.http.headers["Authorization"] = f"Bearer {token}"
+
+    def cerrar(self) -> requests.Response | None:
+        if self.cerrada:
+            return None
+        self.cerrada = True
+        try:
+            return self._enviar("DELETE", f"/test-control/runs/{self.run_id}", paso="teardown")
+        finally:
+            self.http.close()
+
+
+@pytest.fixture(autouse=True)
+def _marcar_test(request: pytest.FixtureRequest):
+    global _TEST_ACTUAL
+    _TEST_ACTUAL = request.node.name
+    yield
+    _TEST_ACTUAL = "post_test"
+
+
+@pytest.fixture(scope="class")
+def corrida_g20() -> CorridaSandboxG20:
+    c = CorridaSandboxG20()
+    c.login()
+    try:
+        yield c
+    finally:
+        c.cerrar()
+
+
+class TestTC_M05_G20_Consolidado_Promedio:
+    """Suite TC-M05-G20: Consolidado y promedio por individuo (RF-77, TC-M05-014 y 015)."""
+
+    def test_00_setup_linea_base(self, corrida_g20: CorridaSandboxG20):
+        """T00: Captura de línea base del historial de reportes del Administrador."""
+        c = corrida_g20
+        r_hist = c.get("/suministros/reportes-gastos/historial", paso="T00_historial_linea_base")
+        assert r_hist.status_code == 200, (
+            f"Error capturando línea base: HTTP {r_hist.status_code}: {c.seguro(r_hist.text)}"
+        )
+        datos = r_hist.json()
+        total_base = len(datos) if isinstance(datos, list) else len(datos.get("items", []))
+        _CONTEXTO["historial_base_total"] = total_base
+
+    def test_a01_consolidado_y_anulacion(self, corrida_g20: CorridaSandboxG20):
+        """A01 (TC-M05-014): Activo INDIVIDUAL con consumos, medicamentos y anulación.
+        Gasto total consolidado, subtotales por categoría, porcentajes y exclusión de anulados."""
+        c = corrida_g20
+
+        # 1. Crear activo individual (Especie 5, Infraestructura 389)
+        fecha_ciclo = "2026-08-01"
+        id_unico = f"QA-G20-IND-{uuid.uuid4().hex[:6]}"
+        payload_activo = {
+            "tipo_activo": "INDIVIDUAL",
+            "id_especie": 5,
+            "id_infraestructura": 389,
+            "identificador": id_unico,
+            "raza": "Holstein",
+            "sexo": "Hembra",
+            "fecha_inicio_ciclo": fecha_ciclo,
+            "origen_financiero": "nacimiento",
+        }
+        r_act = c.post("/activos-biologicos", payload_activo, paso="A01_crear_activo_individual")
+        assert r_act.status_code == 201, f"Fallo creando activo INDIVIDUAL: HTTP {r_act.status_code}: {c.seguro(r_act.text)}"
+        id_activo = r_act.json().get("id_activo_biologico")
+        assert id_activo is not None, "Respuesta sin id_activo_biologico"
+        _CONTEXTO["id_activo_ind"] = id_activo
+
+        # 2. Abrir fase productiva con fecha en el pasado correspondiente
+        r_fase = c.post(
+            f"/activos-biologicos/{id_activo}/fases",
+            {"id_ciclo_productiva": 5, "motivo_cambio": "Apertura fase productiva QA G20", "fecha_inicio": "2026-08-01T05:00:00Z"},
+            paso="A01_abrir_fase_individual",
+        )
+        assert r_fase.status_code in (200, 201), f"Fallo abriendo fase: HTTP {r_fase.status_code}: {c.seguro(r_fase.text)}"
+
+        # 3. Registrar 3 consumos de alimento VALIDADOS (25k + 25k + 25k = 75.000 COP)
+        consumos_datos = [
+            ("2026-08-10", "08:00:00", Decimal("25"), Decimal("1000")),  # 25.000 COP
+            ("2026-08-15", "09:00:00", Decimal("20"), Decimal("1250")),  # 25.000 COP
+            ("2026-08-20", "10:00:00", Decimal("25"), Decimal("1000")),  # 25.000 COP
+        ]
+        total_alim_esperado = Decimal("0")
+        for fecha_c, hora_c, cant, costo in consumos_datos:
+            sub = cant * costo
+            total_alim_esperado += sub
+            r_c = c.post(
+                "/suministros/consumo-alimentos",
+                {
+                    "id_activo_biologico": id_activo,
+                    "id_tipo_alimento": 1,
+                    "fecha_consumo": fecha_c,
+                    "hora_suministro": hora_c,
+                    "cantidad_alimento": float(cant),
+                    "costo_unitario": float(costo),
+                },
+                paso="A01_consumo_validado",
+            )
+            assert r_c.status_code == 201, f"Fallo consumo validado: HTTP {r_c.status_code}: {c.seguro(r_c.text)}"
+
+        # 4. Registrar 2 aplicaciones de medicamento VALIDADOS (15k + 10k = 25.000 COP)
+        meds_datos = [
+            ("2026-08-12", "08:30:00", Decimal("5"), Decimal("3000")),  # 15.000 COP
+            ("2026-08-18", "09:30:00", Decimal("5"), Decimal("2000")),  # 10.000 COP
+        ]
+        total_med_esperado = Decimal("0")
+        for fecha_m, hora_m, dosis, costo in meds_datos:
+            sub = dosis * costo
+            total_med_esperado += sub
+            r_m = c.post(
+                "/suministros/medicamentos",
+                {
+                    "id_activo_biologico": id_activo,
+                    "nombre_medicamento": "Oxitetraciclina QA",
+                    "via_administracion": "INTRAMUSCULAR",
+                    "dosis_aplicada": float(dosis),
+                    "unidad_dosis": "ml",
+                    "fecha_aplicacion": fecha_m,
+                    "hora_aplicacion": hora_m,
+                    "costo_unitario": float(costo),
+                    "periodo_retiro_dias": 0,
+                    "motivo_aplicacion": "Tratamiento sanitario preventivo QA G20",
+                    "nombre_veterinario": "Dr. QA Veterinario",
+                },
+                paso="A01_medicamento_validado",
+            )
+            assert r_m.status_code == 201, f"Fallo medicamento validado: HTTP {r_m.status_code}: {c.seguro(r_m.text)}"
+
+        # 5. Registrar 1 consumo adicional para ANULARLO (10.000 COP)
+        r_c4 = c.post(
+            "/suministros/consumo-alimentos",
+            {
+                "id_activo_biologico": id_activo,
+                "id_tipo_alimento": 1,
+                "fecha_consumo": "2026-08-25",
+                "hora_suministro": "11:00:00",
+                "cantidad_alimento": 10.0,
+                "costo_unitario": 1000.0,
+            },
+            paso="A01_consumo_para_anular",
+        )
+        assert r_c4.status_code == 201, f"Fallo creando consumo 4: HTTP {r_c4.status_code}: {c.seguro(r_c4.text)}"
+        c4_id = r_c4.json().get("id_consumo_alimento") or r_c4.json().get("id_consumo_alimeto")
+        assert c4_id is not None, "Respuesta sin id_consumo_alimento"
+
+        # 6. Anular consumo C4 (exige >= 50 caracteres según spec/RF-75)
+        justificacion_anulacion = "Anulacion por error en pesaje de racion durante prueba automatizada QA G20"
+        r_anul = c.post(
+            f"/suministros/consumo-alimentos/{c4_id}/anulacion",
+            {"justificacion_anulacion": justificacion_anulacion},
+            paso="A01_anular_consumo",
+        )
+        assert r_anul.status_code == 200, f"Fallo anulando consumo C4: HTTP {r_anul.status_code}: {c.seguro(r_anul.text)}"
+
+        # 7. Generar reporte consolidado para el mes de agosto 2026
+        payload_rep = {
+            "activo_biologico_id": id_activo,
+            "fecha_inicio_reporte": "2026-08-01",
+            "fecha_fin_reporte": "2026-08-31",
+            "tipo_periodo": "MENSUAL",
+        }
+        r_rep = c.post("/suministros/reportes-gastos", payload_rep, paso="A01_generar_reporte_consolidado")
+        assert r_rep.status_code == 200, f"Reporte respondió HTTP {r_rep.status_code}: {c.seguro(r_rep.text)}"
+        rep = r_rep.json()
+
+        # Verificaciones de totales (Aritmética Decimal calculada)
+        total_esperado = total_alim_esperado + total_med_esperado  # 75.000 + 25.000 = 100.000 COP
+        total_obtenido = Decimal(str(rep["gasto_total_acumulado"]))
+        assert total_obtenido == total_esperado, (
+            f"Gasto total acumulado incorrecto: esperado {total_esperado}, obtenido {total_obtenido}"
+        )
+
+        # Verificación de desglose por categorías
+        desglose = {d["categoria"]: d for d in rep.get("desglose_categorias", [])}
+        assert "ALIMENTACION" in desglose, "Categoría ALIMENTACION no presente en el desglose"
+        assert "MEDICACION" in desglose, "Categoría MEDICACION no presente en el desglose"
+
+        cat_alim = desglose["ALIMENTACION"]
+        assert Decimal(str(cat_alim["subtotal"])) == total_alim_esperado, (
+            f"Subtotal alimentación: esperado {total_alim_esperado}, obtenido {cat_alim['subtotal']}"
+        )
+        assert cat_alim["num_registros"] == 3, f"Num registros alimentación: esperado 3, obtenido {cat_alim['num_registros']}"
+        pct_alim = Decimal(str(cat_alim["porcentaje"]))
+        assert abs(pct_alim - Decimal("75.00")) <= Decimal("0.01"), f"Porcentaje alimentación: esperado 75%, obtenido {pct_alim}%"
+
+        cat_med = desglose["MEDICACION"]
+        assert Decimal(str(cat_med["subtotal"])) == total_med_esperado, (
+            f"Subtotal medicación: esperado {total_med_esperado}, obtenido {cat_med['subtotal']}"
+        )
+        assert cat_med["num_registros"] == 2, f"Num registros medicación: esperado 2, obtenido {cat_med['num_registros']}"
+        pct_med = Decimal(str(cat_med["porcentaje"]))
+        assert abs(pct_med - Decimal("25.00")) <= Decimal("0.01"), f"Porcentaje medicación: esperado 25%, obtenido {pct_med}%"
+
+        # Verificación de exclusión del registro ANULADO (los 10.000 COP no deben figurar)
+        assert total_obtenido == Decimal("100000.0000"), "El registro anulado sumó al total acumulado (debe excluirse)"
+
+    def test_a02_filtro_categorias_incluidas(self, corrida_g20: CorridaSandboxG20):
+        """A02 (TC-M05-014): Filtro categorias_incluidas=['ALIMENTACION'].
+        El reporte incluye solo dicha categoría y el total coincide exactamente con su subtotal."""
+        c = corrida_g20
+        id_activo = _CONTEXTO["id_activo_ind"]
+        assert id_activo is not None, "Precondición no cumplida: id_activo_ind es None"
+
+        payload_rep = {
+            "activo_biologico_id": id_activo,
+            "fecha_inicio_reporte": "2026-08-01",
+            "fecha_fin_reporte": "2026-08-31",
+            "tipo_periodo": "MENSUAL",
+            "categorias_incluidas": ["ALIMENTACION"],
+        }
+        r_rep = c.post("/suministros/reportes-gastos", payload_rep, paso="A02_filtro_categoria_alimentacion")
+        assert r_rep.status_code == 200, f"Reporte filtrado respondió HTTP {r_rep.status_code}: {c.seguro(r_rep.text)}"
+        rep = r_rep.json()
+
+        total_obtenido = Decimal(str(rep["gasto_total_acumulado"]))
+        assert total_obtenido == Decimal("75000.0000"), (
+            f"Total acumulado filtrado incorrecto: esperado 75000, obtenido {total_obtenido}"
+        )
+        desglose = rep.get("desglose_categorias", [])
+        assert len(desglose) == 1, f"Se esperaba 1 categoría en el desglose, se obtuvieron {len(desglose)}"
+        assert desglose[0]["categoria"] == "ALIMENTACION", f"Categoría incorrecta: {desglose[0]['categoria']}"
+        assert Decimal(str(desglose[0]["subtotal"])) == Decimal("75000.0000")
+        assert desglose[0]["num_registros"] == 3
+
+    def test_b01_lote_poblacional_promedio_y_bajas(self, corrida_g20: CorridaSandboxG20):
+        """B01 (TC-M05-015): Lote POBLACIONAL P1 con cantidad_inicial=110, baja de 10 (actual=100)
+        y gasto total 1.000.000 COP. Promedio = 10.000 COP y nota de bajas con N=10 (Restr. 6)."""
+        c = corrida_g20
+        fecha_ciclo = "2026-11-01"
+        fecha_hoy = datetime.now(ZONA_USUARIO).date().isoformat()
+        id_unico = f"QA-G20-LOTE1-{uuid.uuid4().hex[:6]}"
+
+        # 1. Crear lote poblacional P1
+        payload_p1 = {
+            "tipo_activo": "POBLACIONAL",
+            "id_especie": 1,
+            "id_infraestructura": 2,
+            "identificador_unico": id_unico,
+            "cantidad_inicial": 110,
+            "fecha_ingreso": fecha_ciclo,
+            "fecha_inicio_ciclo": fecha_ciclo,
+            "origen_financiero": "nacimiento",
+        }
+        r_p1 = c.post("/activos-biologicos", payload_p1, paso="B01_crear_lote_p1")
+        assert r_p1.status_code == 201, f"Fallo creando lote P1: HTTP {r_p1.status_code}: {c.seguro(r_p1.text)}"
+        id_lote1 = r_p1.json().get("id_activo_biologico")
+        _CONTEXTO["id_lote_p1"] = id_lote1
+
+        # 2. Abrir fase
+        r_fase = c.post(
+            f"/activos-biologicos/{id_lote1}/fases",
+            {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase P1 QA G20", "fecha_inicio": "2026-11-01T05:00:00Z"},
+            paso="B01_abrir_fase_p1",
+        )
+        assert r_fase.status_code in (200, 201), f"Fallo abriendo fase P1: HTTP {r_fase.status_code}: {c.seguro(r_fase.text)}"
+
+        # 3. Registrar gasto: Alimento 750.000 COP + Medicamento 250.000 COP = 1.000.000 COP
+        r_c = c.post(
+            "/suministros/consumo-alimentos",
+            {
+                "id_activo_biologico": id_lote1,
+                "id_tipo_alimento": 1,
+                "fecha_consumo": fecha_hoy,
+                "hora_suministro": "08:00:00",
+                "cantidad_alimento": 500.0,
+                "costo_unitario": 1500.0,
+            },
+            paso="B01_consumo_p1",
+        )
+        assert r_c.status_code == 201, f"Fallo consumo P1: HTTP {r_c.status_code}: {c.seguro(r_c.text)}"
+
+        r_m = c.post(
+            "/suministros/medicamentos",
+            {
+                "id_activo_biologico": id_lote1,
+                "nombre_medicamento": "Oxitetraciclina Lote QA",
+                "via_administracion": "INTRAMUSCULAR",
+                "dosis_aplicada": 50.0,
+                "unidad_dosis": "ml",
+                "fecha_aplicacion": fecha_hoy,
+                "hora_aplicacion": "08:00:00",
+                "costo_unitario": 5000.0,
+                "periodo_retiro_dias": 0,
+                "motivo_aplicacion": "Tratamiento sanitario lote P1 QA G20",
+                "nombre_veterinario": "Dr. QA Veterinario",
+            },
+            paso="B01_medicamento_p1",
+        )
+        assert r_m.status_code == 201, f"Fallo medicamento P1: HTTP {r_m.status_code}: {c.seguro(r_m.text)}"
+
+        # 4. Registrar baja de 10 individuos (fecha_baja = hoy para respetar fecha_creacion del activo)
+        r_baja = c.post(
+            f"/activos-biologicos/{id_lote1}/eventos/baja",
+            {
+                "tipo_baja": "muerte",
+                "fecha_baja": fecha_hoy,
+                "motivo_baja": "Mortalidad por adaptacion lote QA G20",
+                "cantidad_afectada": 10,
+            },
+            paso="B01_registrar_baja_10",
+        )
+        assert r_baja.status_code == 201, f"Fallo registrando baja: HTTP {r_baja.status_code}: {c.seguro(r_baja.text)}"
+
+        # 5. Generar reporte para P1
+        payload_rep = {
+            "activo_biologico_id": id_lote1,
+            "fecha_inicio_reporte": fecha_ciclo,
+            "fecha_fin_reporte": fecha_hoy,
+            "tipo_periodo": "MENSUAL",
+        }
+        r_rep = c.post("/suministros/reportes-gastos", payload_rep, paso="B01_reporte_lote_p1")
+        assert r_rep.status_code == 200, f"Reporte P1 respondió HTTP {r_rep.status_code}: {c.seguro(r_rep.text)}"
+        rep = r_rep.json()
+
+        # Validaciones de totales y promedio
+        total_obtenido = Decimal(str(rep["gasto_total_acumulado"]))
+        assert total_obtenido == Decimal("1000000.0000"), f"Total P1 esperado 1000000, obtenido {total_obtenido}"
+
+        promedio_obtenido = Decimal(str(rep["gasto_promedio_individuo"]))
+        promedio_esperado = Decimal("1000000") / Decimal("100")  # 10.000 COP
+        assert promedio_obtenido == promedio_esperado, (
+            f"Promedio por individuo incorrecto: esperado {promedio_esperado}, obtenido {promedio_obtenido}"
+        )
+
+        # Nota de bajas
+        nota_bajas = rep.get("nota_bajas") or ""
+        assert "10 bajas" in nota_bajas, f"Nota de bajas no contiene '10 bajas': {nota_bajas!r}"
+        assert "usa la cantidad actual del lote y no la cantidad promedio del período" in nota_bajas, (
+            f"Texto de nota de bajas no conforme con spec: {nota_bajas!r}"
+        )
+
+    def test_b02_lote_poblacional_baja_total_no_calculable(self, corrida_g20: CorridaSandboxG20):
+        """B02 (TC-M05-015): Lote POBLACIONAL P2 con gasto > 0 y baja total (cantidad_actual=0).
+        gasto_promedio_individuo = 'NO_CALCULABLE' (None en JSON) con causa de la spec (Restr. 6)."""
+        c = corrida_g20
+        fecha_ciclo = "2026-11-01"
+        fecha_hoy = datetime.now(ZONA_USUARIO).date().isoformat()
+        id_unico = f"QA-G20-LOTE2-{uuid.uuid4().hex[:6]}"
+
+        # 1. Crear lote poblacional P2
+        payload_p2 = {
+            "tipo_activo": "POBLACIONAL",
+            "id_especie": 1,
+            "id_infraestructura": 2,
+            "identificador_unico": id_unico,
+            "cantidad_inicial": 50,
+            "fecha_ingreso": fecha_ciclo,
+            "fecha_inicio_ciclo": fecha_ciclo,
+            "origen_financiero": "nacimiento",
+        }
+        r_p2 = c.post("/activos-biologicos", payload_p2, paso="B02_crear_lote_p2")
+        assert r_p2.status_code == 201, f"Fallo creando lote P2: HTTP {r_p2.status_code}: {c.seguro(r_p2.text)}"
+        id_lote2 = r_p2.json().get("id_activo_biologico")
+        _CONTEXTO["id_lote_p2"] = id_lote2
+
+        # 2. Abrir fase
+        r_fase = c.post(
+            f"/activos-biologicos/{id_lote2}/fases",
+            {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase P2 QA G20", "fecha_inicio": "2026-11-01T05:00:00Z"},
+            paso="B02_abrir_fase_p2",
+        )
+        assert r_fase.status_code in (200, 201), f"Fallo abriendo fase P2: HTTP {r_fase.status_code}: {c.seguro(r_fase.text)}"
+
+        # 3. Registrar gasto de alimento (50.000 COP)
+        r_c = c.post(
+            "/suministros/consumo-alimentos",
+            {
+                "id_activo_biologico": id_lote2,
+                "id_tipo_alimento": 1,
+                "fecha_consumo": fecha_hoy,
+                "hora_suministro": "08:00:00",
+                "cantidad_alimento": 50.0,
+                "costo_unitario": 1000.0,
+            },
+            paso="B02_consumo_p2",
+        )
+        assert r_c.status_code == 201, f"Fallo consumo P2: HTTP {r_c.status_code}: {c.seguro(r_c.text)}"
+
+        # 4. Registrar baja TOTAL de los 50 individuos (fecha_baja = hoy)
+        r_baja = c.post(
+            f"/activos-biologicos/{id_lote2}/eventos/baja",
+            {
+                "tipo_baja": "muerte",
+                "fecha_baja": fecha_hoy,
+                "motivo_baja": "Muerte total accidental lote QA G20",
+                "cantidad_afectada": 50,
+            },
+            paso="B02_baja_total_p2",
+        )
+        assert r_baja.status_code == 201, f"Fallo registrando baja total: HTTP {r_baja.status_code}: {c.seguro(r_baja.text)}"
+
+        # 5. Generar reporte para P2
+        payload_rep = {
+            "activo_biologico_id": id_lote2,
+            "fecha_inicio_reporte": fecha_ciclo,
+            "fecha_fin_reporte": fecha_hoy,
+            "tipo_periodo": "MENSUAL",
+        }
+        r_rep = c.post("/suministros/reportes-gastos", payload_rep, paso="B02_reporte_lote_p2")
+        assert r_rep.status_code == 200, f"Reporte P2 respondió HTTP {r_rep.status_code}: {c.seguro(r_rep.text)}"
+        rep = r_rep.json()
+
+        total_obtenido = Decimal(str(rep["gasto_total_acumulado"]))
+        assert total_obtenido == Decimal("50000.0000"), f"Total P2 esperado 50000, obtenido {total_obtenido}"
+
+        promedio_obtenido = rep.get("gasto_promedio_individuo")
+        assert promedio_obtenido == "NO_CALCULABLE", (
+            f"DEFECTO_PRODUCTO (RF-77 Restr. 6 / CA-6 / TC-M05-015): gasto_promedio_individuo debe ser 'NO_CALCULABLE' "
+            f"cuando cantidad_actual=0. Obtenido: {promedio_obtenido!r}"
+        )
+
+        causa_obtenida = rep.get("causa_no_calculable_promedio") or ""
+        causa_esperada = "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo."
+        assert causa_obtenida == causa_esperada, (
+            f"Causa no calculable no coincide con spec: esperada {causa_esperada!r}, obtenida {causa_obtenida!r}"
+        )
+
+        causa_obtenida = rep.get("causa_no_calculable_promedio") or ""
+        causa_esperada = "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo."
+        assert causa_obtenida == causa_esperada, (
+            f"Causa no calculable no coincide con spec: esperada {causa_esperada!r}, obtenida {causa_obtenida!r}"
+        )
+
+    def test_98_cierre_sandbox(self, corrida_g20: CorridaSandboxG20):
+        """T98: Cierre ordenado de la sesión sandbox y verificación de rollback atómico."""
+        c = corrida_g20
+        r_del = c.cerrar()
+        assert r_del is not None, "Error: cierre ya invocado previamente"
+        assert r_del.status_code == 200, (
+            f"DELETE /test-control/runs/{c.run_id} respondió HTTP {r_del.status_code}: {c.seguro(r_del.text)}"
+        )
+        assert "Rollback exitoso" in r_del.text, f"Mensaje de rollback no encontrado: {c.seguro(r_del.text)}"
+
+    def test_99_inocuidad_final(self):
+        """T99: Inocuidad final fuera de sandbox. Historial base coincide con final."""
+        base = _env("TEST_BASE_URL").rstrip("/")
+        s = requests.Session()
+        r_login = s.post(
+            f"{base}/sesiones/",
+            json={"correo_electronico": _env("TEST_ADMIN_EMAIL"), "contrasena": _env("TEST_ADMIN_PASSWORD")},
+            timeout=TIMEOUT_S,
+        )
+        assert r_login.status_code == 200, "Login de verificación final falló"
+        token = r_login.json().get("token") or r_login.json().get("access_token")
+        s.headers["Authorization"] = f"Bearer {token}"
+
+        r_hist = s.get(f"{base}/suministros/reportes-gastos/historial", timeout=TIMEOUT_S)
+        assert r_hist.status_code == 200, "Consulta de historial final falló"
+        datos = r_hist.json()
+        total_final = len(datos) if isinstance(datos, list) else len(datos.get("items", []))
+        total_base = _CONTEXTO["historial_base_total"]
+
+        assert total_final == total_base, (
+            f"Efectos persistidos detectados: historial inicial {total_base} != final {total_final}"
+        )
+
+
+
+================================================================================
+ANEXO B: CONTENIDO DEL RUNNER POWERSHELL (ejecutar_tc_m05_g20.ps1)
+================================================================================
+# TC-M05-G20 Runner - RF-77 Consolidado y promedio por individuo
+param(
+    [int]$Reintento = 0
+)
+
+$ErrorActionPreference = 'Stop'
+
+# Rutas relativas
+$tcDir       = $PSScriptRoot
+$repo        = (Resolve-Path -LiteralPath (Join-Path $tcDir '..\..\..\..\..')).Path
+$prueba      = Join-Path $tcDir 'test_tc_m05_g20.py'
+$envFile     = Join-Path $repo '.env.test'
+$rf76Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-76'
+$rf77Dir     = Join-Path $repo 'tests\Test_Testing\Test_Modulo5\RF-77'
+
+$g25Script   = Join-Path $rf77Dir 'TC-M05-G25\test_tc_m05_g25.py'
+$g25Runner   = Join-Path $rf77Dir 'TC-M05-G25\ejecutar_tc_m05_g25.ps1'
+$g24Script   = Join-Path $rf77Dir 'TC-M05-G24\test_tc_m05_g24.py'
+$g24Runner   = Join-Path $rf77Dir 'TC-M05-G24\ejecutar_tc_m05_g24.ps1'
+$g19Script   = Join-Path $rf76Dir 'TC-M05-G19\test_tc_m05_g19.py'
+$g19Runner   = Join-Path $rf76Dir 'TC-M05-G19\ejecutar_tc_m05_g19.ps1'
+$g17Script   = Join-Path $rf76Dir 'TC-M05-G17\test_tc_m05_g17.py'
+$g17Runner   = Join-Path $rf76Dir 'TC-M05-G17\ejecutar_tc_m05_g17.ps1'
+$g16Script   = Join-Path $rf76Dir 'TC-M05-G16\test_tc_m05_g16.py'
+$g16Runner   = Join-Path $rf76Dir 'TC-M05-G16\ejecutar_tc_m05_g16.ps1'
+$g15Script   = Join-Path $rf76Dir 'TC-M05-G15\test_tc_m05_g15.py'
+$g15Runner   = Join-Path $rf76Dir 'TC-M05-G15\ejecutar_tc_m05_g15.ps1'
+$g14Script   = Join-Path $rf76Dir 'TC-M05-G14\test_tc_m05_g14.py'
+$g14Runner   = Join-Path $rf76Dir 'TC-M05-G14\ejecutar_tc_m05_g14.ps1'
+$generadorPy = Join-Path $tcDir 'generar_artefactos_run_g20.py'
+
+if (-not (Test-Path -LiteralPath $prueba)) {
+    Write-Host "FALTA el script de prueba: $prueba" -ForegroundColor Red
+    exit 2
+}
+if (-not (Test-Path -LiteralPath $envFile)) {
+    Write-Host "FALTA .env.test en la raiz del repo ($repo)" -ForegroundColor Red
+    exit 2
+}
+
+# Carga de .env.test en el proceso
+foreach ($linea in Get-Content -LiteralPath $envFile -Encoding UTF8) {
+    $t = $linea.Trim()
+    if ($t -eq '' -or $t.StartsWith('#')) { continue }
+    $i = $t.IndexOf('=')
+    if ($i -lt 1) { continue }
+    $nombre = $t.Substring(0, $i).Trim()
+    $valor  = $t.Substring($i + 1).Trim()
+    if ($valor.Length -ge 2 -and (
+            ($valor.StartsWith('"') -and $valor.EndsWith('"')) -or
+            ($valor.StartsWith("'") -and $valor.EndsWith("'")))) {
+        $valor = $valor.Substring(1, $valor.Length - 2)
+    }
+    [Environment]::SetEnvironmentVariable($nombre, $valor, 'Process')
+}
+
+# Verificacion de variables obligatorias
+$obligatorias = @('TEST_BASE_URL', 'TEST_ADMIN_EMAIL', 'TEST_ADMIN_PASSWORD', 'TEST_SANDBOX_SECRET')
+$faltan = 0
+foreach ($n in $obligatorias) {
+    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($n, 'Process'))) {
+        Write-Host "FALTA $n" -ForegroundColor Red
+        $faltan++
+    } else {
+        Write-Host "OK $n"
+    }
+}
+if ($faltan -gt 0) {
+    Write-Host "Abortado: faltan $faltan variable(s) obligatoria(s)." -ForegroundColor Red
+    exit 3
+}
+
+# Python
+$python = Join-Path $repo '.venv\Scripts\python.exe'
+if (-not (Test-Path -LiteralPath $python)) { $python = 'python' }
+
+function Get-FileHashSha256([string]$ruta) {
+    if (-not (Test-Path -LiteralPath $ruta)) { return "NO_EXISTE" }
+    return (Get-FileHash -LiteralPath $ruta -Algorithm SHA256).Hash.ToLower()
+}
+
+$shaG20Inicio    = Get-FileHashSha256 $prueba
+$shaG25ScriptIni = Get-FileHashSha256 $g25Script
+$shaG25RunnerIni = Get-FileHashSha256 $g25Runner
+$shaG24ScriptIni = Get-FileHashSha256 $g24Script
+$shaG24RunnerIni = Get-FileHashSha256 $g24Runner
+$shaG19ScriptIni = Get-FileHashSha256 $g19Script
+$shaG19RunnerIni = Get-FileHashSha256 $g19Runner
+$shaG17ScriptIni = Get-FileHashSha256 $g17Script
+$shaG17RunnerIni = Get-FileHashSha256 $g17Runner
+$shaG16ScriptIni = Get-FileHashSha256 $g16Script
+$shaG16RunnerIni = Get-FileHashSha256 $g16Runner
+$shaG15ScriptIni = Get-FileHashSha256 $g15Script
+$shaG15RunnerIni = Get-FileHashSha256 $g15Runner
+$shaG14ScriptIni = Get-FileHashSha256 $g14Script
+$shaG14RunnerIni = Get-FileHashSha256 $g14Runner
+
+Write-Host "SHA-256 G20 Script inicio: $shaG20Inicio"
+Write-Host "SHA-256 G25 Script inicio: $shaG25ScriptIni"
+Write-Host "SHA-256 G24 Script inicio: $shaG24ScriptIni"
+Write-Host "SHA-256 G19 Script inicio: $shaG19ScriptIni"
+Write-Host "SHA-256 G17 Script inicio: $shaG17ScriptIni"
+Write-Host "SHA-256 G16 Script inicio: $shaG16ScriptIni"
+Write-Host "SHA-256 G15 Script inicio: $shaG15ScriptIni"
+Write-Host "SHA-256 G14 Script inicio: $shaG14ScriptIni"
+
+# Staging de la corrida
+$sufijo  = if ($Reintento -gt 0) { "_reintento$Reintento" } else { '' }
+$marca   = Get-Date -Format 'yyyyMMdd-HHmmss'
+$staging = Join-Path $tcDir "evidencias\run-$marca"
+New-Item -ItemType Directory -Force -Path $staging | Out-Null
+
+$env:TEST_EVIDENCE_DIR = $staging
+$env:PYTHONUTF8 = '1'
+$env:PYTHONPATH = '.'
+
+$html = Join-Path $staging "resultado_TC-M05-G20$sufijo.html"
+$xml  = Join-Path $staging "resultado_TC-M05-G20$sufijo.xml"
+$log  = Join-Path $staging 'console_execution.log'
+
+$argumentos = @(
+    '-m', 'pytest', $prueba,
+    '-p', 'no:randomly',
+    '-v',
+    '--tb=short',
+    "--html=$html", '--self-contained-html',
+    "--junitxml=$xml"
+)
+
+# Ejecucion
+$salida = @()
+$codigo = $null
+Push-Location -LiteralPath $repo
+try {
+    $ErrorActionPreference = 'Continue'
+    $salida = & $python @argumentos 2>&1 | ForEach-Object { "$_" }
+    $codigo = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = 'Stop'
+    Pop-Location
+}
+
+$salida | Out-File -FilePath $log -Encoding utf8
+$salida | ForEach-Object { Write-Host $_ }
+
+# Generacion de artefactos derivados
+Write-Host ''
+Write-Host "Generando artefactos derivados en staging..."
+$argsGen = @(
+    $generadorPy,
+    '--staging', $staging,
+    '--reintento', "$Reintento",
+    '--sha-g20-script', $shaG20Inicio,
+    '--sha-g25-script', $shaG25ScriptIni,
+    '--sha-g25-runner', $shaG25RunnerIni,
+    '--sha-g24-script', $shaG24ScriptIni,
+    '--sha-g24-runner', $shaG24RunnerIni,
+    '--sha-g19-script', $shaG19ScriptIni,
+    '--sha-g19-runner', $shaG19RunnerIni,
+    '--sha-g17-script', $shaG17ScriptIni,
+    '--sha-g17-runner', $shaG17RunnerIni,
+    '--sha-g16-script', $shaG16ScriptIni,
+    '--sha-g16-runner', $shaG16RunnerIni,
+    '--sha-g15-script', $shaG15ScriptIni,
+    '--sha-g15-runner', $shaG15RunnerIni,
+    '--sha-g14-script', $shaG14ScriptIni,
+    '--sha-g14-runner', $shaG14RunnerIni
+)
+& $python @argsGen
+
+# Verificacion final de integridad de hashes
+$shaG20Fin       = Get-FileHashSha256 $prueba
+$shaG25ScriptFin = Get-FileHashSha256 $g25Script
+$shaG25RunnerFin = Get-FileHashSha256 $g25Runner
+$shaG24ScriptFin = Get-FileHashSha256 $g24Script
+$shaG24RunnerFin = Get-FileHashSha256 $g24Runner
+$shaG19ScriptFin = Get-FileHashSha256 $g19Script
+$shaG19RunnerFin = Get-FileHashSha256 $g19Runner
+$shaG17ScriptFin = Get-FileHashSha256 $g17Script
+$shaG17RunnerFin = Get-FileHashSha256 $g17Runner
+$shaG16ScriptFin = Get-FileHashSha256 $g16Script
+$shaG16RunnerFin = Get-FileHashSha256 $g16Runner
+$shaG15ScriptFin = Get-FileHashSha256 $g15Script
+$shaG15RunnerFin = Get-FileHashSha256 $g15Runner
+$shaG14ScriptFin = Get-FileHashSha256 $g14Script
+$shaG14RunnerFin = Get-FileHashSha256 $g14Runner
+
+Write-Host "SHA-256 G20 Script fin:    $shaG20Fin"
+if ($shaG20Inicio -ne $shaG20Fin) {
+    Write-Host "ADVERTENCIA: test_tc_m05_g20.py cambio durante la ejecucion!" -ForegroundColor Red
+} else {
+    Write-Host "G20 Script integro: OK"
+}
+
+if ($shaG25ScriptIni -ne $shaG25ScriptFin -or $shaG25RunnerIni -ne $shaG25RunnerFin) {
+    Write-Host "ERROR CRITICO: Los archivos de G25 fueron modificados!" -ForegroundColor Red
+    exit 5
+}
+if ($shaG24ScriptIni -ne $shaG24ScriptFin -or $shaG24RunnerIni -ne $shaG24RunnerFin) {
+    Write-Host "ERROR CRITICO: Los archivos de G24 fueron modificados!" -ForegroundColor Red
+    exit 5
+}
+if ($shaG19ScriptIni -ne $shaG19ScriptFin -or $shaG19RunnerIni -ne $shaG19RunnerFin) {
+    Write-Host "ERROR CRITICO: Los archivos de G19 fueron modificados!" -ForegroundColor Red
+    exit 5
+}
+if ($shaG17ScriptIni -ne $shaG17ScriptFin -or $shaG17RunnerIni -ne $shaG17RunnerFin) {
+    Write-Host "ERROR CRITICO: Los archivos de G17 fueron modificados!" -ForegroundColor Red
+    exit 5
+}
+if ($shaG16ScriptIni -ne $shaG16ScriptFin -or $shaG16RunnerIni -ne $shaG16RunnerFin) {
+    Write-Host "ERROR CRITICO: Los archivos de G16 fueron modificados!" -ForegroundColor Red
+    exit 5
+}
+if ($shaG15ScriptIni -ne $shaG15ScriptFin -or $shaG15RunnerIni -ne $shaG15RunnerFin) {
+    Write-Host "ERROR CRITICO: Los archivos de G15 fueron modificados!" -ForegroundColor Red
+    exit 5
+}
+if ($shaG14ScriptIni -ne $shaG14ScriptFin -or $shaG14RunnerIni -ne $shaG14RunnerFin) {
+    Write-Host "ERROR CRITICO: Los archivos de G14 fueron modificados!" -ForegroundColor Red
+    exit 5
+}
+Write-Host "Integridad de suites previas G14-G19, G24 y G25: 100% OK"
+
+# Post-corrida de seguridad: escaneo de secretos
+$secreto = [Environment]::GetEnvironmentVariable('TEST_SANDBOX_SECRET', 'Process')
+$claveAdmin = [Environment]::GetEnvironmentVariable('TEST_ADMIN_PASSWORD', 'Process')
+$correoAdmin = [Environment]::GetEnvironmentVariable('TEST_ADMIN_EMAIL', 'Process')
+
+$patrones = New-Object System.Collections.Generic.List[string]
+foreach ($v in @($secreto, $claveAdmin, $correoAdmin)) {
+    if (-not [string]::IsNullOrEmpty($v)) { $patrones.Add($v) }
+}
+if ($secreto.Length -gt 20) { $patrones.Add($secreto.Substring($secreto.Length - 20)) }
+if ($claveAdmin.Length -gt 20) { $patrones.Add($claveAdmin.Substring($claveAdmin.Length - 20)) }
+$patrones.Add('***REDACTED***')
+
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+$artefactos = @(Get-ChildItem -LiteralPath $staging -File -Recurse)
+
+function Contar-Secretos([string]$texto) {
+    $n = 0
+    foreach ($p in $patrones) { if ($texto.Contains($p)) { $n++ } }
+    return $n
+}
+
+$quedan = 0
+foreach ($a in $artefactos) {
+    $texto = [IO.File]::ReadAllText($a.FullName, $utf8)
+    if ((Contar-Secretos $texto) -gt 0) {
+        foreach ($p in $patrones) { $texto = $texto.Replace($p, '***REDACTED***') }
+        [IO.File]::WriteAllText($a.FullName, $texto, $utf8)
+        Write-Host "Saneado: $($a.Name)" -ForegroundColor Yellow
+        $revisado = [IO.File]::ReadAllText($a.FullName, $utf8)
+        if ((Contar-Secretos $revisado) -gt 0) { $quedan++ }
+    }
+}
+$secreto = $null; $claveAdmin = $null; $correoAdmin = $null; $patrones.Clear()
+
+if ($quedan -gt 0) {
+    Write-Host 'ARTEFACTOS CON SECRETOS: NO PROMOVER' -ForegroundColor Red
+    exit 4
+}
+Write-Host 'Escaneo de secretos en staging: LIMPIO (0 secretos)'
+
+# Promocion condicionada a resultados/
+$htmlFinal = Join-Path $staging "resultado_TC-M05-G20$sufijo.html"
+$jsonFinal = Join-Path $staging "resultado_TC-M05-G20$sufijo.json"
+
+if ($quedan -eq 0 -and (Test-Path -LiteralPath $htmlFinal) -and (Test-Path -LiteralPath $jsonFinal)) {
+    Write-Host "Promoviendo reporte a resultados/..." -ForegroundColor Green
+    Copy-Item -LiteralPath $htmlFinal -Destination (Join-Path $tcDir "resultados\resultado_TC-M05-G20$sufijo.html") -Force
+    Copy-Item -LiteralPath $jsonFinal -Destination (Join-Path $tcDir "resultados\resultado_TC-M05-G20$sufijo.json") -Force
+    Write-Host "Promocion completada con exito en resultados/." -ForegroundColor Green
+    Get-ChildItem -LiteralPath (Join-Path $tcDir 'resultados') | Select-Object Name, Length, @{Name="SHA256";Expression={(Get-FileHash $_.FullName -Algorithm SHA256).Hash}} | Format-Table -AutoSize
+} else {
+    Write-Host "No se promueve a resultados/ (secretos=$quedan)." -ForegroundColor Yellow
+}
+exit $codigo
+
+
+
+================================================================================
+ANEXO C: REPORTE JUNIT XML
+================================================================================
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="7" time="7.394" timestamp="2026-11-07T20:47:30.538467-05:00" hostname="LAPTOP-TMUKKLVF"><testcase classname="tests.Test_Testing.Test_Modulo5.RF-77.TC-M05-G20.test_tc_m05_g20.TestTC_M05_G20_Consolidado_Promedio" name="test_00_setup_linea_base" time="1.653" /><testcase classname="tests.Test_Testing.Test_Modulo5.RF-77.TC-M05-G20.test_tc_m05_g20.TestTC_M05_G20_Consolidado_Promedio" name="test_a01_consolidado_y_anulacion" time="1.660" /><testcase classname="tests.Test_Testing.Test_Modulo5.RF-77.TC-M05-G20.test_tc_m05_g20.TestTC_M05_G20_Consolidado_Promedio" name="test_a02_filtro_categorias_incluidas" time="0.139" /><testcase classname="tests.Test_Testing.Test_Modulo5.RF-77.TC-M05-G20.test_tc_m05_g20.TestTC_M05_G20_Consolidado_Promedio" name="test_b01_lote_poblacional_promedio_y_bajas" time="0.933" /><testcase classname="tests.Test_Testing.Test_Modulo5.RF-77.TC-M05-G20.test_tc_m05_g20.TestTC_M05_G20_Consolidado_Promedio" name="test_b02_lote_poblacional_baja_total_no_calculable" time="0.925"><failure message="AssertionError: DEFECTO_PRODUCTO (RF-77 Restr. 6 / CA-6 / TC-M05-015): gasto_promedio_individuo debe ser 'NO_CALCULABLE' cuando cantidad_actual=0. Obtenido: None&#10;assert None == 'NO_CALCULABLE'">tests\Test_Testing\Test_Modulo5\RF-77\TC-M05-G20\test_tc_m05_g20.py:645: in test_b02_lote_poblacional_baja_total_no_calculable
+    assert promedio_obtenido == "NO_CALCULABLE", (
+E   AssertionError: DEFECTO_PRODUCTO (RF-77 Restr. 6 / CA-6 / TC-M05-015): gasto_promedio_individuo debe ser 'NO_CALCULABLE' cuando cantidad_actual=0. Obtenido: None
+E   assert None == 'NO_CALCULABLE'</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo5.RF-77.TC-M05-G20.test_tc_m05_g20.TestTC_M05_G20_Consolidado_Promedio" name="test_98_cierre_sandbox" time="0.110" /><testcase classname="tests.Test_Testing.Test_Modulo5.RF-77.TC-M05-G20.test_tc_m05_g20.TestTC_M05_G20_Consolidado_Promedio" name="test_99_inocuidad_final" time="1.447" /></testsuite></testsuites>
+
+================================================================================
+ANEXO D: TRAZAS HTTP SANITIZADAS (trazas_http.jsonl)
+================================================================================
+{"timestamp_local": "2026-11-07T20:47:32.133065-05:00", "server_date": "Sun, 08 Nov 2026 01:47:29 GMT", "duracion_ms": 1359.94, "test": "init", "metodo": "POST", "ruta": "/sesiones/", "params": null, "status_code": 200, "error_code": null, "error_conexion": null, "request_body": {"correo_electronico": "***REDACTED***", "contrasena": "***REDACTED***"}, "response_body": {"token": "***REDACTED***", "tipo": "Bearer", "expira_en": 28799, "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.", "perfil_incompleto": false}}
+{"timestamp_local": "2026-11-07T20:47:32.422090-05:00", "server_date": "Sun, 08 Nov 2026 01:47:30 GMT", "duracion_ms": 271.79, "test": "test_00_setup_linea_base", "metodo": "GET", "ruta": "/suministros/reportes-gastos/historial", "params": null, "status_code": 200, "error_code": null, "error_conexion": null, "request_body": null, "response_body": {"total": 20, "items": [{"id_reporte_gasto_acumulado": 178, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:04.493260Z"}, {"id_reporte_gasto_acumulado": 177, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.577649Z"}, {"id_reporte_gasto_acumulado": 176, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.576361Z"}, {"id_reporte_gasto_acumulado": 175, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.568132Z"}, {"id_reporte_gasto_acumulado": 174, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.555262Z"}, {"id_reporte_gasto_acumulado": 173, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.539603Z"}, {"id_reporte_gasto_acumulado": 172, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.528991Z"}, {"id_reporte_gasto_acumulado": 171, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.517394Z"}, {"id_reporte_gasto_acumulado": 170, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.504121Z"}, {"id_reporte_gasto_acumulado": 169, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.474469Z"}, {"id_reporte_gasto_acumulado": 168, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.457093Z"}, {"id_reporte_gasto_acumulado": 166, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.452346Z"}, {"id_reporte_gasto_acumulado": 163, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.436462Z"}, {"id_reporte_gasto_acumulado": 167, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.408599Z"}, {"id_reporte_gasto_acumulado": 165, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.399941Z"}, {"id_reporte_gasto_acumulado": 162, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.396447Z"}, {"id_reporte_gasto_acumulado": 164, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.380854Z"}, {"id_reporte_gasto_acumulado": 161, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.371878Z"}, {"id_reporte_gasto_acumulado": 159, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.367214Z"}, {"id_reporte_gasto_acumulado": 160, "id_activo_biologico": null, "id_infraestructura": 2, "id_especie": null, "fecha_inicio": "2026-06-01", "fecha_fin": "2026-11-01", "tipo_periodo": "SEMANAL", "gasto_total_acumulado": "10.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [], "desglose_temporal": [], "registros_sin_costo": [], "tendencia": null, "fecha_generacion": "2026-11-07T21:51:02.354163Z"}]}}
+{"timestamp_local": "2026-11-07T20:47:32.662797-05:00", "server_date": "Sun, 08 Nov 2026 01:47:30 GMT", "duracion_ms": 217.11, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/activos-biologicos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"tipo_activo": "INDIVIDUAL", "id_especie": 5, "id_infraestructura": 389, "identificador": "QA-G20-IND-8727c0", "raza": "Holstein", "sexo": "Hembra", "fecha_inicio_ciclo": "2026-08-01", "origen_financiero": "nacimiento"}, "response_body": {"id_activo_biologico": 993, "id_especie": 5, "tipo": "INDIVIDUAL", "identificador": "QA-G20-IND-8727c0", "fecha_inicio_ciclo": "2026-08-01", "detalles_procedencia": null, "origen_financiero": "nacimiento", "costo_adquisicion": null, "soporte_documental": null, "descripcion": null, "id_infraestructura": 389, "atributos_dinamicos": null, "id_estado": 1, "nombre_estado": "ACTIVO", "id_usuario": 104, "fecha_creacion": "2026-11-08T01:47:30.870195Z", "fecha_actualizacion": null, "detalle_individual": {"id_detalle": 718, "raza": "Holstein", "sexo": "Hembra", "fecha_nacimiento": null, "peso_inicial": null, "fecha_creacion": "2026-11-08T01:47:30.870195Z"}, "detalle_poblacional": null, "nombre_especie": null, "nombre_infraestructura": null, "advertencia_edad": null}}
+{"timestamp_local": "2026-11-07T20:47:32.813435-05:00", "server_date": "Sun, 08 Nov 2026 01:47:30 GMT", "duracion_ms": 149.53, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/activos-biologicos/993/fases", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_ciclo_productiva": 5, "motivo_cambio": "Apertura fase productiva QA G20", "fecha_inicio": "2026-08-01T05:00:00Z"}, "response_body": {"id_gestion_fases": 381, "id_activo_biologico": 993, "id_ciclo_productiva": 5, "id_ciclos_productivo_biologico": 12, "nombre_ciclo": "Ciclo completo mojarra 2025-A", "nombre_fase_actual": "Fase juvenil mojarra", "paso_actual": 1, "total_pasos": 2, "fecha_inicio": "2026-08-01T05:00:00Z", "fecha_finalizacion": null, "es_activa": true, "motivo_cambio": "Apertura fase productiva QA G20", "es_transicion_no_estandar": false}}
+{"timestamp_local": "2026-11-07T20:47:32.981129-05:00", "server_date": "Sun, 08 Nov 2026 01:47:30 GMT", "duracion_ms": 166.53, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/suministros/consumo-alimentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 993, "id_tipo_alimento": 1, "fecha_consumo": "2026-08-10", "hora_suministro": "08:00:00", "cantidad_alimento": 25.0, "costo_unitario": 1000.0}, "response_body": {"id_consumo_alimeto": 178, "id_activo_biologico": 993, "id_tipo_alimento": 1, "tipo_alimento": "test", "tipo_unidad": "kg", "cantidad_suministrada": "25.000", "costo_unitario": "1000.0000", "costo_total": "25000.0000", "consumo_por_individuo_kg": null, "observacion": null, "fecha_consumo": "2026-08-10", "hora_suministro": "08:00:00", "estado_registro": "VALIDADO", "id_usuario": 104, "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}}
+{"timestamp_local": "2026-11-07T20:47:33.131253-05:00", "server_date": "Sun, 08 Nov 2026 01:47:30 GMT", "duracion_ms": 148.94, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/suministros/consumo-alimentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 993, "id_tipo_alimento": 1, "fecha_consumo": "2026-08-15", "hora_suministro": "09:00:00", "cantidad_alimento": 20.0, "costo_unitario": 1250.0}, "response_body": {"id_consumo_alimeto": 179, "id_activo_biologico": 993, "id_tipo_alimento": 1, "tipo_alimento": "test", "tipo_unidad": "kg", "cantidad_suministrada": "20.000", "costo_unitario": "1250.0000", "costo_total": "25000.0000", "consumo_por_individuo_kg": null, "observacion": null, "fecha_consumo": "2026-08-15", "hora_suministro": "09:00:00", "estado_registro": "VALIDADO", "id_usuario": 104, "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}}
+{"timestamp_local": "2026-11-07T20:47:33.344590-05:00", "server_date": "Sun, 08 Nov 2026 01:47:30 GMT", "duracion_ms": 212.19, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/suministros/consumo-alimentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 993, "id_tipo_alimento": 1, "fecha_consumo": "2026-08-20", "hora_suministro": "10:00:00", "cantidad_alimento": 25.0, "costo_unitario": 1000.0}, "response_body": {"id_consumo_alimeto": 180, "id_activo_biologico": 993, "id_tipo_alimento": 1, "tipo_alimento": "test", "tipo_unidad": "kg", "cantidad_suministrada": "25.000", "costo_unitario": "1000.0000", "costo_total": "25000.0000", "consumo_por_individuo_kg": null, "observacion": null, "fecha_consumo": "2026-08-20", "hora_suministro": "10:00:00", "estado_registro": "VALIDADO", "id_usuario": 104, "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}}
+{"timestamp_local": "2026-11-07T20:47:33.497989-05:00", "server_date": "Sun, 08 Nov 2026 01:47:31 GMT", "duracion_ms": 152.2, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/suministros/medicamentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 993, "nombre_medicamento": "Oxitetraciclina QA", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 5.0, "unidad_dosis": "ml", "fecha_aplicacion": "2026-08-12", "hora_aplicacion": "08:30:00", "costo_unitario": 3000.0, "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento sanitario preventivo QA G20", "nombre_veterinario": "Dr. QA Veterinario"}, "response_body": {"medicamento": {"id_registro_medicamento": 190, "id_activo_biologico": 993, "nombre_medicamento": "Oxitetraciclina QA", "via_aplicacion": "IM", "unidad_dosis": "ml", "cantidad": "5.000", "dosis_por_individuo": null, "fecha_aplicacion": "2026-08-12", "hora_aplicacion": "08:30:00", "periodo_retiro_dias": 0, "fecha_fin_retiro": null, "costo_unitario_medicamento": "3000.0000", "costo_total_medicamento": "15000.0000", "motivo_aplicacion": "Tratamiento sanitario preventivo QA G20", "id_evento_sanitario": null, "nombre_veterinario": "Dr. QA Veterinario", "observaciones": null, "id_usuario": 104, "id_usuario_veterinario": null, "estado_registro": "VALIDADO", "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}, "fecha_fin_retiro_vigente": null, "tratamientos_activos": 0, "mensaje": "El medicamento fue registrado correctamente. No aplica período de retiro."}}
+{"timestamp_local": "2026-11-07T20:47:33.665632-05:00", "server_date": "Sun, 08 Nov 2026 01:47:31 GMT", "duracion_ms": 166.21, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/suministros/medicamentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 993, "nombre_medicamento": "Oxitetraciclina QA", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 5.0, "unidad_dosis": "ml", "fecha_aplicacion": "2026-08-18", "hora_aplicacion": "09:30:00", "costo_unitario": 2000.0, "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento sanitario preventivo QA G20", "nombre_veterinario": "Dr. QA Veterinario"}, "response_body": {"medicamento": {"id_registro_medicamento": 191, "id_activo_biologico": 993, "nombre_medicamento": "Oxitetraciclina QA", "via_aplicacion": "IM", "unidad_dosis": "ml", "cantidad": "5.000", "dosis_por_individuo": null, "fecha_aplicacion": "2026-08-18", "hora_aplicacion": "09:30:00", "periodo_retiro_dias": 0, "fecha_fin_retiro": null, "costo_unitario_medicamento": "2000.0000", "costo_total_medicamento": "10000.0000", "motivo_aplicacion": "Tratamiento sanitario preventivo QA G20", "id_evento_sanitario": null, "nombre_veterinario": "Dr. QA Veterinario", "observaciones": null, "id_usuario": 104, "id_usuario_veterinario": null, "estado_registro": "VALIDADO", "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}, "fecha_fin_retiro_vigente": null, "tratamientos_activos": 0, "mensaje": "El medicamento fue registrado correctamente. No aplica período de retiro."}}
+{"timestamp_local": "2026-11-07T20:47:33.803726-05:00", "server_date": "Sun, 08 Nov 2026 01:47:31 GMT", "duracion_ms": 136.82, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/suministros/consumo-alimentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 993, "id_tipo_alimento": 1, "fecha_consumo": "2026-08-25", "hora_suministro": "11:00:00", "cantidad_alimento": 10.0, "costo_unitario": 1000.0}, "response_body": {"id_consumo_alimeto": 181, "id_activo_biologico": 993, "id_tipo_alimento": 1, "tipo_alimento": "test", "tipo_unidad": "kg", "cantidad_suministrada": "10.000", "costo_unitario": "1000.0000", "costo_total": "10000.0000", "consumo_por_individuo_kg": null, "observacion": null, "fecha_consumo": "2026-08-25", "hora_suministro": "11:00:00", "estado_registro": "VALIDADO", "id_usuario": 104, "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}}
+{"timestamp_local": "2026-11-07T20:47:33.961034-05:00", "server_date": "Sun, 08 Nov 2026 01:47:31 GMT", "duracion_ms": 156.24, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/suministros/consumo-alimentos/181/anulacion", "params": null, "status_code": 200, "error_code": null, "error_conexion": null, "request_body": {"justificacion_anulacion": "Anulacion por error en pesaje de racion durante prueba automatizada QA G20"}, "response_body": {"id_consumo_alimeto": 181, "id_activo_biologico": 993, "id_tipo_alimento": 1, "tipo_alimento": "test", "tipo_unidad": "kg", "cantidad_suministrada": "10.000", "costo_unitario": "1000.0000", "costo_total": "10000.0000", "consumo_por_individuo_kg": null, "observacion": null, "fecha_consumo": "2026-08-25", "hora_suministro": "11:00:00", "estado_registro": "ANULADO", "id_usuario": 104, "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": "Anulacion por error en pesaje de racion durante prueba automatizada QA G20", "fecha_hora_anulacion": "2026-11-08T01:47:32.233371Z"}}
+{"timestamp_local": "2026-11-07T20:47:34.099218-05:00", "server_date": "Sun, 08 Nov 2026 01:47:31 GMT", "duracion_ms": 137.12, "test": "test_a01_consolidado_y_anulacion", "metodo": "POST", "ruta": "/suministros/reportes-gastos", "params": null, "status_code": 200, "error_code": null, "error_conexion": null, "request_body": {"activo_biologico_id": 993, "fecha_inicio_reporte": "2026-08-01", "fecha_fin_reporte": "2026-08-31", "tipo_periodo": "MENSUAL"}, "response_body": {"id_reporte_gasto_acumulado": 213, "id_activo_biologico": 993, "id_infraestructura": null, "id_especie": null, "fecha_inicio": "2026-08-01", "fecha_fin": "2026-08-31", "tipo_periodo": "MENSUAL", "gasto_total_acumulado": "100000.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [{"categoria": "ALIMENTACION", "subtotal": "75000.0000", "num_registros": 3, "porcentaje": "75.00"}, {"categoria": "MEDICACION", "subtotal": "25000.0000", "num_registros": 2, "porcentaje": "25.00"}], "desglose_temporal": [{"etiqueta": "2026-08", "fecha_inicio": "2026-08-10", "fecha_fin": "2026-08-20", "monto": "100000.0000"}], "registros_sin_costo": [], "tendencia": {"gasto_periodo_actual": "100000.0000", "gasto_periodo_anterior": "0", "variacion_porcentual": null, "estado": "SIN_BASE_COMPARATIVA", "nota": "No existen gastos registrados en el período anterior equivalente. No es posible calcular variación porcentual."}, "fecha_generacion": "2026-11-08T01:47:30.143904Z"}}
+{"timestamp_local": "2026-11-07T20:47:34.240223-05:00", "server_date": "Sun, 08 Nov 2026 01:47:31 GMT", "duracion_ms": 133.52, "test": "test_a02_filtro_categorias_incluidas", "metodo": "POST", "ruta": "/suministros/reportes-gastos", "params": null, "status_code": 200, "error_code": null, "error_conexion": null, "request_body": {"activo_biologico_id": 993, "fecha_inicio_reporte": "2026-08-01", "fecha_fin_reporte": "2026-08-31", "tipo_periodo": "MENSUAL", "categorias_incluidas": ["ALIMENTACION"]}, "response_body": {"id_reporte_gasto_acumulado": 214, "id_activo_biologico": 993, "id_infraestructura": null, "id_especie": null, "fecha_inicio": "2026-08-01", "fecha_fin": "2026-08-31", "tipo_periodo": "MENSUAL", "gasto_total_acumulado": "75000.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": null, "advertencia": null, "archivo": null, "desglose_categorias": [{"categoria": "ALIMENTACION", "subtotal": "75000.0000", "num_registros": 3, "porcentaje": "100"}], "desglose_temporal": [{"etiqueta": "2026-08", "fecha_inicio": "2026-08-10", "fecha_fin": "2026-08-20", "monto": "75000.0000"}], "registros_sin_costo": [], "tendencia": {"gasto_periodo_actual": "75000.0000", "gasto_periodo_anterior": "0", "variacion_porcentual": null, "estado": "SIN_BASE_COMPARATIVA", "nota": "No existen gastos registrados en el período anterior equivalente. No es posible calcular variación porcentual."}, "fecha_generacion": "2026-11-08T01:47:30.143904Z"}}
+{"timestamp_local": "2026-11-07T20:47:34.415046-05:00", "server_date": "Sun, 08 Nov 2026 01:47:32 GMT", "duracion_ms": 168.13, "test": "test_b01_lote_poblacional_promedio_y_bajas", "metodo": "POST", "ruta": "/activos-biologicos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"tipo_activo": "POBLACIONAL", "id_especie": 1, "id_infraestructura": 2, "identificador_unico": "QA-G20-LOTE1-c3f353", "cantidad_inicial": 110, "fecha_ingreso": "2026-11-01", "fecha_inicio_ciclo": "2026-11-01", "origen_financiero": "nacimiento"}, "response_body": {"id_activo_biologico": 994, "id_especie": 1, "tipo": "POBLACIONAL", "identificador": null, "fecha_inicio_ciclo": "2026-11-01", "detalles_procedencia": null, "origen_financiero": "nacimiento", "costo_adquisicion": null, "soporte_documental": null, "descripcion": null, "id_infraestructura": 2, "atributos_dinamicos": null, "id_estado": 1, "nombre_estado": "ACTIVO", "id_usuario": 104, "fecha_creacion": "2026-11-08T01:47:32.676975Z", "fecha_actualizacion": null, "detalle_individual": null, "detalle_poblacional": {"id_detalle": 212, "cantidad_inicial": 110, "cantidad_actual": 110, "peso_promedio_inicial": null, "peso_promedio": null, "biomasa_total": null, "densidad": "0.0611"}, "nombre_especie": null, "nombre_infraestructura": null, "advertencia_edad": null}}
+{"timestamp_local": "2026-11-07T20:47:34.553503-05:00", "server_date": "Sun, 08 Nov 2026 01:47:32 GMT", "duracion_ms": 137.12, "test": "test_b01_lote_poblacional_promedio_y_bajas", "metodo": "POST", "ruta": "/activos-biologicos/994/fases", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase P1 QA G20", "fecha_inicio": "2026-11-01T05:00:00Z"}, "response_body": {"id_gestion_fases": 382, "id_activo_biologico": 994, "id_ciclo_productiva": 1, "id_ciclos_productivo_biologico": 1, "nombre_ciclo": "Ciclo completo tilapia 2025-A", "nombre_fase_actual": "Fase larval tilapia", "paso_actual": 1, "total_pasos": 3, "fecha_inicio": "2026-11-01T05:00:00Z", "fecha_finalizacion": null, "es_activa": true, "motivo_cambio": "Apertura fase P1 QA G20", "es_transicion_no_estandar": false}}
+{"timestamp_local": "2026-11-07T20:47:34.696186-05:00", "server_date": "Sun, 08 Nov 2026 01:47:32 GMT", "duracion_ms": 141.35, "test": "test_b01_lote_poblacional_promedio_y_bajas", "metodo": "POST", "ruta": "/suministros/consumo-alimentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 994, "id_tipo_alimento": 1, "fecha_consumo": "2026-11-07", "hora_suministro": "08:00:00", "cantidad_alimento": 500.0, "costo_unitario": 1500.0}, "response_body": {"id_consumo_alimeto": 182, "id_activo_biologico": 994, "id_tipo_alimento": 1, "tipo_alimento": "test", "tipo_unidad": "kg", "cantidad_suministrada": "500.000", "costo_unitario": "1500.0000", "costo_total": "750000.0000", "consumo_por_individuo_kg": "4.5455", "observacion": null, "fecha_consumo": "2026-11-07", "hora_suministro": "08:00:00", "estado_registro": "VALIDADO", "id_usuario": 104, "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}}
+{"timestamp_local": "2026-11-07T20:47:34.839969-05:00", "server_date": "Sun, 08 Nov 2026 01:47:32 GMT", "duracion_ms": 142.56, "test": "test_b01_lote_poblacional_promedio_y_bajas", "metodo": "POST", "ruta": "/suministros/medicamentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 994, "nombre_medicamento": "Oxitetraciclina Lote QA", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 50.0, "unidad_dosis": "ml", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:00:00", "costo_unitario": 5000.0, "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento sanitario lote P1 QA G20", "nombre_veterinario": "Dr. QA Veterinario"}, "response_body": {"medicamento": {"id_registro_medicamento": 192, "id_activo_biologico": 994, "nombre_medicamento": "Oxitetraciclina Lote QA", "via_aplicacion": "IM", "unidad_dosis": "ml", "cantidad": "50.000", "dosis_por_individuo": "0.4545", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:00:00", "periodo_retiro_dias": 0, "fecha_fin_retiro": null, "costo_unitario_medicamento": "5000.0000", "costo_total_medicamento": "250000.0000", "motivo_aplicacion": "Tratamiento sanitario lote P1 QA G20", "id_evento_sanitario": null, "nombre_veterinario": "Dr. QA Veterinario", "observaciones": null, "id_usuario": 104, "id_usuario_veterinario": null, "estado_registro": "VALIDADO", "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}, "fecha_fin_retiro_vigente": null, "tratamientos_activos": 0, "mensaje": "El medicamento fue registrado correctamente. No aplica período de retiro."}}
+{"timestamp_local": "2026-11-07T20:47:35.036632-05:00", "server_date": "Sun, 08 Nov 2026 01:47:32 GMT", "duracion_ms": 195.61, "test": "test_b01_lote_poblacional_promedio_y_bajas", "metodo": "POST", "ruta": "/activos-biologicos/994/eventos/baja", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"tipo_baja": "muerte", "fecha_baja": "2026-11-07", "motivo_baja": "Mortalidad por adaptacion lote QA G20", "cantidad_afectada": 10}, "response_body": {"id_eventos": 686, "id_activo_biologico": 994, "fecha": "2026-11-08T01:47:33.262294Z", "descripcion": null, "id_usuario": 104, "crecimiento": null, "baja": {"cantidad_afectada": 10, "tipo": "muerte", "motivo_baja": "Mortalidad por adaptacion lote QA G20"}, "sanitario": null, "productivo": null, "reproductivo": null, "ingreso": null}}
+{"timestamp_local": "2026-11-07T20:47:35.174089-05:00", "server_date": "Sun, 08 Nov 2026 01:47:32 GMT", "duracion_ms": 135.9, "test": "test_b01_lote_poblacional_promedio_y_bajas", "metodo": "POST", "ruta": "/suministros/reportes-gastos", "params": null, "status_code": 200, "error_code": null, "error_conexion": null, "request_body": {"activo_biologico_id": 994, "fecha_inicio_reporte": "2026-11-01", "fecha_fin_reporte": "2026-11-07", "tipo_periodo": "MENSUAL"}, "response_body": {"id_reporte_gasto_acumulado": 215, "id_activo_biologico": 994, "id_infraestructura": null, "id_especie": null, "fecha_inicio": "2026-11-01", "fecha_fin": "2026-11-07", "tipo_periodo": "MENSUAL", "gasto_total_acumulado": "1000000.0000", "gasto_promedio_individuo": "10000.0000", "causa_no_calculable_promedio": null, "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": "El lote registró 10 bajas durante el período consultado. El gasto promedio por individuo usa la cantidad actual del lote y no la cantidad promedio del período.", "advertencia": null, "archivo": null, "desglose_categorias": [{"categoria": "ALIMENTACION", "subtotal": "750000.0000", "num_registros": 1, "porcentaje": "75.00"}, {"categoria": "MEDICACION", "subtotal": "250000.0000", "num_registros": 1, "porcentaje": "25.00"}], "desglose_temporal": [{"etiqueta": "2026-11", "fecha_inicio": "2026-11-07", "fecha_fin": "2026-11-07", "monto": "1000000.0000"}], "registros_sin_costo": [], "tendencia": {"gasto_periodo_actual": "1000000.0000", "gasto_periodo_anterior": "0", "variacion_porcentual": null, "estado": "SIN_BASE_COMPARATIVA", "nota": "No existen gastos registrados en el período anterior equivalente. No es posible calcular variación porcentual."}, "fecha_generacion": "2026-11-08T01:47:30.143904Z"}}
+{"timestamp_local": "2026-11-07T20:47:35.341233-05:00", "server_date": "Sun, 08 Nov 2026 01:47:32 GMT", "duracion_ms": 159.05, "test": "test_b02_lote_poblacional_baja_total_no_calculable", "metodo": "POST", "ruta": "/activos-biologicos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"tipo_activo": "POBLACIONAL", "id_especie": 1, "id_infraestructura": 2, "identificador_unico": "QA-G20-LOTE2-85e227", "cantidad_inicial": 50, "fecha_ingreso": "2026-11-01", "fecha_inicio_ciclo": "2026-11-01", "origen_financiero": "nacimiento"}, "response_body": {"id_activo_biologico": 995, "id_especie": 1, "tipo": "POBLACIONAL", "identificador": null, "fecha_inicio_ciclo": "2026-11-01", "detalles_procedencia": null, "origen_financiero": "nacimiento", "costo_adquisicion": null, "soporte_documental": null, "descripcion": null, "id_infraestructura": 2, "atributos_dinamicos": null, "id_estado": 1, "nombre_estado": "ACTIVO", "id_usuario": 104, "fecha_creacion": "2026-11-08T01:47:33.599738Z", "fecha_actualizacion": null, "detalle_individual": null, "detalle_poblacional": {"id_detalle": 213, "cantidad_inicial": 50, "cantidad_actual": 50, "peso_promedio_inicial": null, "peso_promedio": null, "biomasa_total": null, "densidad": "0.0278"}, "nombre_especie": null, "nombre_infraestructura": null, "advertencia_edad": null}}
+{"timestamp_local": "2026-11-07T20:47:35.501362-05:00", "server_date": "Sun, 08 Nov 2026 01:47:33 GMT", "duracion_ms": 159.03, "test": "test_b02_lote_poblacional_baja_total_no_calculable", "metodo": "POST", "ruta": "/activos-biologicos/995/fases", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase P2 QA G20", "fecha_inicio": "2026-11-01T05:00:00Z"}, "response_body": {"id_gestion_fases": 383, "id_activo_biologico": 995, "id_ciclo_productiva": 1, "id_ciclos_productivo_biologico": 1, "nombre_ciclo": "Ciclo completo tilapia 2025-A", "nombre_fase_actual": "Fase larval tilapia", "paso_actual": 1, "total_pasos": 3, "fecha_inicio": "2026-11-01T05:00:00Z", "fecha_finalizacion": null, "es_activa": true, "motivo_cambio": "Apertura fase P2 QA G20", "es_transicion_no_estandar": false}}
+{"timestamp_local": "2026-11-07T20:47:35.655810-05:00", "server_date": "Sun, 08 Nov 2026 01:47:33 GMT", "duracion_ms": 153.21, "test": "test_b02_lote_poblacional_baja_total_no_calculable", "metodo": "POST", "ruta": "/suministros/consumo-alimentos", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"id_activo_biologico": 995, "id_tipo_alimento": 1, "fecha_consumo": "2026-11-07", "hora_suministro": "08:00:00", "cantidad_alimento": 50.0, "costo_unitario": 1000.0}, "response_body": {"id_consumo_alimeto": 183, "id_activo_biologico": 995, "id_tipo_alimento": 1, "tipo_alimento": "test", "tipo_unidad": "kg", "cantidad_suministrada": "50.000", "costo_unitario": "1000.0000", "costo_total": "50000.0000", "consumo_por_individuo_kg": "1.0000", "observacion": null, "fecha_consumo": "2026-11-07", "hora_suministro": "08:00:00", "estado_registro": "VALIDADO", "id_usuario": 104, "fecha_registro": "2026-11-08T01:47:30.143904Z", "justificacion_anulacion": null, "fecha_hora_anulacion": null}}
+{"timestamp_local": "2026-11-07T20:47:35.846441-05:00", "server_date": "Sun, 08 Nov 2026 01:47:33 GMT", "duracion_ms": 189.45, "test": "test_b02_lote_poblacional_baja_total_no_calculable", "metodo": "POST", "ruta": "/activos-biologicos/995/eventos/baja", "params": null, "status_code": 201, "error_code": null, "error_conexion": null, "request_body": {"tipo_baja": "muerte", "fecha_baja": "2026-11-07", "motivo_baja": "Muerte total accidental lote QA G20", "cantidad_afectada": 50}, "response_body": {"id_eventos": 687, "id_activo_biologico": 995, "fecha": "2026-11-08T01:47:34.069174Z", "descripcion": null, "id_usuario": 104, "crecimiento": null, "baja": {"cantidad_afectada": 50, "tipo": "muerte", "motivo_baja": "Muerte total accidental lote QA G20"}, "sanitario": null, "productivo": null, "reproductivo": null, "ingreso": null}}
+{"timestamp_local": "2026-11-07T20:47:36.100731-05:00", "server_date": "Sun, 08 Nov 2026 01:47:33 GMT", "duracion_ms": 253.23, "test": "test_b02_lote_poblacional_baja_total_no_calculable", "metodo": "POST", "ruta": "/suministros/reportes-gastos", "params": null, "status_code": 200, "error_code": null, "error_conexion": null, "request_body": {"activo_biologico_id": 995, "fecha_inicio_reporte": "2026-11-01", "fecha_fin_reporte": "2026-11-07", "tipo_periodo": "MENSUAL"}, "response_body": {"id_reporte_gasto_acumulado": 216, "id_activo_biologico": 995, "id_infraestructura": null, "id_especie": null, "fecha_inicio": "2026-11-01", "fecha_fin": "2026-11-07", "tipo_periodo": "MENSUAL", "gasto_total_acumulado": "50000.0000", "gasto_promedio_individuo": null, "causa_no_calculable_promedio": "La cantidad actual del lote es cero. No es posible calcular el promedio por individuo.", "sin_datos": false, "estado": "GENERADO", "mensaje": null, "nota_bajas": "El lote registró 50 bajas durante el período consultado. El gasto promedio por individuo usa la cantidad actual del lote y no la cantidad promedio del período.", "advertencia": null, "archivo": null, "desglose_categorias": [{"categoria": "ALIMENTACION", "subtotal": "50000.0000", "num_registros": 1, "porcentaje": "100"}], "desglose_temporal": [{"etiqueta": "2026-11", "fecha_inicio": "2026-11-07", "fecha_fin": "2026-11-07", "monto": "50000.0000"}], "registros_sin_costo": [], "tendencia": {"gasto_periodo_actual": "50000.0000", "gasto_periodo_anterior": "0", "variacion_porcentual": null, "estado": "SIN_BASE_COMPARATIVA", "nota": "No existen gastos registrados en el período anterior equivalente. No es posible calcular variación porcentual."}, "fecha_generacion": "2026-11-08T01:47:30.143904Z"}}
+{"timestamp_local": "2026-11-07T20:47:36.479854-05:00", "server_date": "Sun, 08 Nov 2026 01:47:34 GMT", "duracion_ms": 104.9, "test": "test_98_cierre_sandbox", "metodo": "DELETE", "ruta": "/test-control/runs/tc-m05-g20-adm-f20e8f54cd7c", "params": null, "status_code": 200, "error_code": null, "error_conexion": null, "request_body": null, "response_body": {"status": "Rollback exitoso"}}
+
+================================================================================
+FIN DEL INFORME TC-M05-G20
+================================================================================

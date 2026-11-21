@@ -1,0 +1,2117 @@
+{
+  "grupo": "G051",
+  "run_id": "RUN-G051-V2-20261101-025552",
+  "version": 2,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G051-V2-R3-20261101",
+  "intento": 6,
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M04-121": {
+      "estado": "APROBADO",
+      "motivo": "2 solicitudes cumplen el oráculo"
+    },
+    "TC-M04-122": {
+      "estado": "APROBADO",
+      "motivo": "3 solicitudes cumplen el oráculo"
+    },
+    "TC-M04-123": {
+      "estado": "APROBADO",
+      "motivo": "3 solicitudes cumplen el oráculo"
+    },
+    "TC-M04-124": {
+      "estado": "APROBADO",
+      "motivo": "3 solicitudes cumplen el oráculo"
+    },
+    "TC-M04-125": {
+      "estado": "APROBADO",
+      "motivo": "4 solicitudes cumplen el oráculo"
+    },
+    "TC-M04-126": {
+      "estado": "APROBADO",
+      "motivo": "6 solicitudes cumplen el oráculo"
+    },
+    "TC-M04-127": {
+      "estado": "APROBADO",
+      "motivo": "3 solicitudes cumplen el oráculo"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-121",
+      "fuente": "API",
+      "id": "API-121-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "2 solicitudes cumplen el oráculo",
+      "evidencia": "newman/newman-G051.json"
+    },
+    {
+      "caso": "TC-M04-122",
+      "fuente": "API",
+      "id": "API-122-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "3 solicitudes cumplen el oráculo",
+      "evidencia": "newman/newman-G051.json"
+    },
+    {
+      "caso": "TC-M04-123",
+      "fuente": "API",
+      "id": "API-123-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "3 solicitudes cumplen el oráculo",
+      "evidencia": "newman/newman-G051.json"
+    },
+    {
+      "caso": "TC-M04-124",
+      "fuente": "API",
+      "id": "API-124-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "3 solicitudes cumplen el oráculo",
+      "evidencia": "newman/newman-G051.json"
+    },
+    {
+      "caso": "TC-M04-125",
+      "fuente": "API",
+      "id": "API-125-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "4 solicitudes cumplen el oráculo",
+      "evidencia": "newman/newman-G051.json"
+    },
+    {
+      "caso": "TC-M04-126",
+      "fuente": "API",
+      "id": "API-126-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "6 solicitudes cumplen el oráculo",
+      "evidencia": "newman/newman-G051.json"
+    },
+    {
+      "caso": "TC-M04-127",
+      "fuente": "API",
+      "id": "API-127-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "3 solicitudes cumplen el oráculo",
+      "evidencia": "newman/newman-G051.json"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G051.json",
+    "newman/newman-G051.html",
+    "TC-M04-G051_reevaluacion_V2.md",
+    "resultado.json"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?tipo_modelo=MODELO_ESPECIES_GRANDES&limit=100&offset=0",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/141",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/142",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/143",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/144",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?tipo_modelo=MODELO_ESPECIES_GRANDES&limit=100&offset=0",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G051-V2-20261101-025552",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    }
+  ],
+  "datos": {
+    "variable_existente": 16,
+    "variable_inexistente": 17,
+    "hash_artefacto": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+    "fecha_cliente_ahora": "2026-11-01T02:55:56.457Z",
+    "fecha_servidor": "Sun, 01 Nov 2026 02:55:57 GMT",
+    "procesos": [
+      "7388d1e0-7bb6-4740-ae62-5adfde510874",
+      "d0e73b2c-ba55-4fa0-a43f-32a7aa80c987",
+      "6c0131d8-aacb-4a98-86b1-e25cf093eb5f",
+      "b1ade691-6ce8-49d1-9125-e2b73c44d61c",
+      "b3585582-dd21-4d09-b80d-43dd7c868ff2",
+      "481fe584-888c-4b63-9662-8e359878309f",
+      "e0d8f59a-b5b7-41a1-99c0-748571cfbd24",
+      "8a850800-a7a9-4c8a-918c-520af3143ee0",
+      "6db6e4cb-d50d-490c-8685-bc54824f1bda",
+      "6d035936-3f92-45f9-802f-2b95a59774ce",
+      "d4d12d4a-d02a-40fd-b728-09bad3a74e15",
+      "26f81952-9b96-4ae3-9dfc-248e795e9feb",
+      "d751f840-c726-428b-b938-6df44e44951b",
+      "e5ee0362-6736-4180-b726-32f83d823794",
+      "374b4971-eacd-40d2-95e6-56b8a15ef9bd",
+      "21ff3c30-73ac-4a2f-9c83-e18195ee48f7",
+      "942d98d6-5b2d-4351-9d1b-752329aa17c6",
+      "ef7cafc9-52ae-4d5b-84ec-d8b1e065debe",
+      "5d640834-8eb3-4129-8937-2177c962d4b9",
+      "d6b5bba9-c366-482b-b9d2-9d74ab9909c7",
+      "a231d2d9-1507-4fc6-8d50-330ee5761f34",
+      "63dcdfa4-df3d-4b79-9624-e6111120a164",
+      "b938f8dc-e413-427e-a8ea-2c6421ec1be3"
+    ]
+  },
+  "solicitudes": [
+    {
+      "escenario": {
+        "caso": "TC-M04-121",
+        "dato": "variables existentes / ayer",
+        "aceptado": true,
+        "omitir": [],
+        "id_proceso_rf71": "7388d1e0-7bb6-4740-ae62-5adfde510874",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 0,
+        "http": 201,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 141,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758",
+          "id_proceso_rf71": "7388d1e0-7bb6-4740-ae62-5adfde510874",
+          "version_referencia": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T02:55:56.457000Z",
+          "fecha_registro": "2026-11-01T02:55:56.969010Z",
+          "fecha_despliegue": null
+        },
+        "duracion_ms": 549,
+        "duracion_origen": "newman_responseTime",
+        "error": null,
+        "fechaServidor": "Sun, 01 Nov 2026 02:55:59 GMT"
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 141,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758",
+          "id_proceso_rf71": "7388d1e0-7bb6-4740-ae62-5adfde510874",
+          "version_referencia": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T02:55:56.457000Z",
+          "fecha_registro": "2026-11-01T02:55:56.969010Z",
+          "fecha_despliegue": null
+        },
+        "error": null,
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:59 GMT"
+      },
+      "conciliacion": null,
+      "aparece_en_listado_final": true
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-121",
+        "dato": "variable inexistente",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "d0e73b2c-ba55-4fa0-a43f-32a7aa80c987",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16,
+          17
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 1,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "VARIABLE_I3P1_NO_ENCONTRADA",
+          "message": "Las siguientes variables no existen en el catálogo I3P-1: [17].",
+          "fields": [
+            {
+              "field": "compatibilidad_variables",
+              "message": "Las siguientes variables no existen en el catálogo I3P-1: [17]."
+            }
+          ],
+          "timestamp": "2026-11-01T02:55:59.868206+00:00"
+        },
+        "duracion_ms": 210,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "VARIABLE_I3P1_NO_ENCONTRADA",
+          "mensaje": "Las siguientes variables no existen en el catálogo I3P-1: [17].",
+          "campos": [
+            {
+              "campo": "compatibilidad_variables",
+              "mensaje": "Las siguientes variables no existen en el catálogo I3P-1: [17]."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:55:59 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-122",
+        "dato": "ahora menos 10 s",
+        "aceptado": true,
+        "omitir": [],
+        "id_proceso_rf71": "6c0131d8-aacb-4a98-86b1-e25cf093eb5f",
+        "fecha_entrenamiento": "2026-11-01T02:55:46.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 2,
+        "http": 201,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 142,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758",
+          "id_proceso_rf71": "6c0131d8-aacb-4a98-86b1-e25cf093eb5f",
+          "version_referencia": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-11-01T02:55:46.457000Z",
+          "fecha_registro": "2026-11-01T02:55:56.969010Z",
+          "fecha_despliegue": null
+        },
+        "duracion_ms": 355,
+        "duracion_origen": "newman_responseTime",
+        "error": null,
+        "fechaServidor": "Sun, 01 Nov 2026 02:55:59 GMT"
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 142,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758",
+          "id_proceso_rf71": "6c0131d8-aacb-4a98-86b1-e25cf093eb5f",
+          "version_referencia": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-11-01T02:55:46.457000Z",
+          "fecha_registro": "2026-11-01T02:55:56.969010Z",
+          "fecha_despliegue": null
+        },
+        "error": null,
+        "fechaServidor": "Sun, 01 Nov 2026 02:57:00 GMT"
+      },
+      "conciliacion": null,
+      "aparece_en_listado_final": true
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-122",
+        "dato": "mañana",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "b1ade691-6ce8-49d1-9125-e2b73c44d61c",
+        "fecha_entrenamiento": "2026-11-02T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 3,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "FECHA_ENTRENAMIENTO_FUTURA",
+          "message": "La fecha_entrenamiento no puede ser una fecha futura.",
+          "fields": [
+            {
+              "field": "fecha_entrenamiento",
+              "message": "La fecha_entrenamiento no puede ser una fecha futura."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:00.788286+00:00"
+        },
+        "duracion_ms": 478,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "FECHA_ENTRENAMIENTO_FUTURA",
+          "mensaje": "La fecha_entrenamiento no puede ser una fecha futura.",
+          "campos": [
+            {
+              "campo": "fecha_entrenamiento",
+              "mensaje": "La fecha_entrenamiento no puede ser una fecha futura."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:00 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-123",
+        "dato": "tipo inexistente",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "b3585582-dd21-4d09-b80d-43dd7c868ff2",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_QA_INEXISTENTE",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 4,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "TIPO_MODELO_INVALIDO",
+          "message": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO'].",
+          "fields": [
+            {
+              "field": "tipo_modelo",
+              "message": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO']."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:01.393688+00:00"
+        },
+        "duracion_ms": 523,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "TIPO_MODELO_INVALIDO",
+          "mensaje": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO'].",
+          "campos": [
+            {
+              "campo": "tipo_modelo",
+              "mensaje": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO']."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:01 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-123",
+        "dato": "tipo vacío",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "481fe584-888c-4b63-9662-8e359878309f",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 5,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "TIPO_MODELO_INVALIDO",
+          "message": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO'].",
+          "fields": [
+            {
+              "field": "tipo_modelo",
+              "message": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO']."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:02.006447+00:00"
+        },
+        "duracion_ms": 544,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "TIPO_MODELO_INVALIDO",
+          "mensaje": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO'].",
+          "campos": [
+            {
+              "campo": "tipo_modelo",
+              "mensaje": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO']."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:01 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-123",
+        "dato": "tipo eliminado RFC-009",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "e0d8f59a-b5b7-41a1-99c0-748571cfbd24",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_PEQUEÑAS",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 6,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "TIPO_MODELO_INVALIDO",
+          "message": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO'].",
+          "fields": [
+            {
+              "field": "tipo_modelo",
+              "message": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO']."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:02.617143+00:00"
+        },
+        "duracion_ms": 516,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "TIPO_MODELO_INVALIDO",
+          "mensaje": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO'].",
+          "campos": [
+            {
+              "campo": "tipo_modelo",
+              "mensaje": "tipo_modelo es obligatorio y debe ser uno de: ['MODELO_ACUICULTURA', 'MODELO_AVES', 'MODELO_ESPECIES_GRANDES', 'MODELO_ESPECIES_MEDIANAS', 'MODELO_PORCINOS', 'MODELO_RIESGO_CONTAGIO']."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:02 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-124",
+        "dato": "sin f1_score_global",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "8a850800-a7a9-4c8a-918c-520af3143ee0",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 7,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "METRICAS_INCOMPLETAS",
+          "message": "Los metadatos del modelo son inválidos o incompletos: faltan ['f1_score_global'].",
+          "fields": [
+            {
+              "field": "metricas_validacion",
+              "message": "Los metadatos del modelo son inválidos o incompletos: faltan ['f1_score_global']."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:03.177640+00:00"
+        },
+        "duracion_ms": 473,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "METRICAS_INCOMPLETAS",
+          "mensaje": "Los metadatos del modelo son inválidos o incompletos: faltan ['f1_score_global'].",
+          "campos": [
+            {
+              "campo": "metricas_validacion",
+              "mensaje": "Los metadatos del modelo son inválidos o incompletos: faltan ['f1_score_global']."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:02 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-124",
+        "dato": "sin recall_clase_riesgo_alto",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "6db6e4cb-d50d-490c-8685-bc54824f1bda",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 8,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "METRICAS_INCOMPLETAS",
+          "message": "Los metadatos del modelo son inválidos o incompletos: faltan ['recall_clase_riesgo_alto'].",
+          "fields": [
+            {
+              "field": "metricas_validacion",
+              "message": "Los metadatos del modelo son inválidos o incompletos: faltan ['recall_clase_riesgo_alto']."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:03.745466+00:00"
+        },
+        "duracion_ms": 419,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "METRICAS_INCOMPLETAS",
+          "mensaje": "Los metadatos del modelo son inválidos o incompletos: faltan ['recall_clase_riesgo_alto'].",
+          "campos": [
+            {
+              "campo": "metricas_validacion",
+              "mensaje": "Los metadatos del modelo son inválidos o incompletos: faltan ['recall_clase_riesgo_alto']."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:03 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-124",
+        "dato": "sin matriz_confusion",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "6d035936-3f92-45f9-802f-2b95a59774ce",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          }
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 9,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "METRICAS_INCOMPLETAS",
+          "message": "Los metadatos del modelo son inválidos o incompletos: faltan ['matriz_confusion'].",
+          "fields": [
+            {
+              "field": "metricas_validacion",
+              "message": "Los metadatos del modelo son inválidos o incompletos: faltan ['matriz_confusion']."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:04.048566+00:00"
+        },
+        "duracion_ms": 212,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "METRICAS_INCOMPLETAS",
+          "mensaje": "Los metadatos del modelo son inválidos o incompletos: faltan ['matriz_confusion'].",
+          "campos": [
+            {
+              "campo": "metricas_validacion",
+              "mensaje": "Los metadatos del modelo son inválidos o incompletos: faltan ['matriz_confusion']."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:03 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-125",
+        "dato": "f1=0.0",
+        "aceptado": true,
+        "omitir": [],
+        "id_proceso_rf71": "d4d12d4a-d02a-40fd-b728-09bad3a74e15",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 10,
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 143,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "RECHAZADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758",
+          "id_proceso_rf71": "d4d12d4a-d02a-40fd-b728-09bad3a74e15",
+          "version_referencia": null,
+          "f1_score": "0.0000",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": "f1_score_global=0 < umbral requerido 0.80",
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T02:55:56.457000Z",
+          "fecha_registro": "2026-11-01T02:55:56.969010Z",
+          "fecha_despliegue": null
+        },
+        "duracion_ms": 51376,
+        "duracion_origen": "newman_responseTime",
+        "error": null,
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:04 GMT"
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 143,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "RECHAZADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758",
+          "id_proceso_rf71": "d4d12d4a-d02a-40fd-b728-09bad3a74e15",
+          "version_referencia": null,
+          "f1_score": "0.0000",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": "f1_score_global=0 < umbral requerido 0.80",
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T02:55:56.457000Z",
+          "fecha_registro": "2026-11-01T02:55:56.969010Z",
+          "fecha_despliegue": null
+        },
+        "error": null,
+        "fechaServidor": "Sun, 01 Nov 2026 02:57:00 GMT"
+      },
+      "conciliacion": null,
+      "aparece_en_listado_final": true
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-125",
+        "dato": "f1=1.0",
+        "aceptado": true,
+        "omitir": [],
+        "id_proceso_rf71": "26f81952-9b96-4ae3-9dfc-248e795e9feb",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 1,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 11,
+        "http": 201,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 144,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758",
+          "id_proceso_rf71": "26f81952-9b96-4ae3-9dfc-248e795e9feb",
+          "version_referencia": null,
+          "f1_score": "1.0000",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T02:55:56.457000Z",
+          "fecha_registro": "2026-11-01T02:55:56.969010Z",
+          "fecha_despliegue": null
+        },
+        "duracion_ms": 560,
+        "duracion_origen": "newman_responseTime",
+        "error": null,
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:55 GMT"
+      },
+      "get": {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 144,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758",
+          "id_proceso_rf71": "26f81952-9b96-4ae3-9dfc-248e795e9feb",
+          "version_referencia": null,
+          "f1_score": "1.0000",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T02:55:56.457000Z",
+          "fecha_registro": "2026-11-01T02:55:56.969010Z",
+          "fecha_despliegue": null
+        },
+        "error": null,
+        "fechaServidor": "Sun, 01 Nov 2026 02:57:00 GMT"
+      },
+      "conciliacion": null,
+      "aparece_en_listado_final": true
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-125",
+        "dato": "f1=-0.01",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "d751f840-c726-428b-b938-6df44e44951b",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": -0.01,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 12,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "METRICA_FUERA_DE_RANGO",
+          "message": "El campo f1_score_global=-0.01 debe estar en el rango [0.0, 1.0].",
+          "fields": [
+            {
+              "field": "metricas_validacion",
+              "message": "El campo f1_score_global=-0.01 debe estar en el rango [0.0, 1.0]."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:56.555791+00:00"
+        },
+        "duracion_ms": 559,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "METRICA_FUERA_DE_RANGO",
+          "mensaje": "El campo f1_score_global=-0.01 debe estar en el rango [0.0, 1.0].",
+          "campos": [
+            {
+              "campo": "metricas_validacion",
+              "mensaje": "El campo f1_score_global=-0.01 debe estar en el rango [0.0, 1.0]."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:55 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-125",
+        "dato": "f1=1.01",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "e5ee0362-6736-4180-b726-32f83d823794",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 1.01,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 13,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "METRICA_FUERA_DE_RANGO",
+          "message": "El campo f1_score_global=1.01 debe estar en el rango [0.0, 1.0].",
+          "fields": [
+            {
+              "field": "metricas_validacion",
+              "message": "El campo f1_score_global=1.01 debe estar en el rango [0.0, 1.0]."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:57.293255+00:00"
+        },
+        "duracion_ms": 576,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "METRICA_FUERA_DE_RANGO",
+          "mensaje": "El campo f1_score_global=1.01 debe estar en el rango [0.0, 1.0].",
+          "campos": [
+            {
+              "campo": "metricas_validacion",
+              "mensaje": "El campo f1_score_global=1.01 debe estar en el rango [0.0, 1.0]."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:56 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-126",
+        "dato": "hash_artefacto_sha256: 63 caracteres",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "374b4971-eacd-40d2-95e6-56b8a15ef9bd",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 14,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "HASH_SHA256_INVALIDO",
+          "message": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "fields": [
+            {
+              "field": "hash_artefacto_sha256",
+              "message": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:57.700363+00:00"
+        },
+        "duracion_ms": 206,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "HASH_SHA256_INVALIDO",
+          "mensaje": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "campos": [
+            {
+              "campo": "hash_artefacto_sha256",
+              "mensaje": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:56 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-126",
+        "dato": "hash_artefacto_sha256: 65 caracteres",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "21ff3c30-73ac-4a2f-9c83-e18195ee48f7",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 15,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "HASH_SHA256_INVALIDO",
+          "message": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "fields": [
+            {
+              "field": "hash_artefacto_sha256",
+              "message": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:57.979683+00:00"
+        },
+        "duracion_ms": 204,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "HASH_SHA256_INVALIDO",
+          "mensaje": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "campos": [
+            {
+              "campo": "hash_artefacto_sha256",
+              "mensaje": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:56 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-126",
+        "dato": "hash_artefacto_sha256: 64 no hexadecimal",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "942d98d6-5b2d-4351-9d1b-752329aa17c6",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag",
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 16,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "HASH_SHA256_INVALIDO",
+          "message": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "fields": [
+            {
+              "field": "hash_artefacto_sha256",
+              "message": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:58.262185+00:00"
+        },
+        "duracion_ms": 205,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "HASH_SHA256_INVALIDO",
+          "mensaje": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "campos": [
+            {
+              "campo": "hash_artefacto_sha256",
+              "mensaje": "hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:57 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-126",
+        "dato": "dataset_entrenamiento_hash: 63 caracteres",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "ef7cafc9-52ae-4d5b-84ec-d8b1e065debe",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "post": {
+        "iteracion": 17,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "HASH_SHA256_INVALIDO",
+          "message": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "fields": [
+            {
+              "field": "dataset_entrenamiento_hash",
+              "message": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:58.551995+00:00"
+        },
+        "duracion_ms": 215,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "HASH_SHA256_INVALIDO",
+          "mensaje": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "campos": [
+            {
+              "campo": "dataset_entrenamiento_hash",
+              "mensaje": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:57 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-126",
+        "dato": "dataset_entrenamiento_hash: 65 caracteres",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "5d640834-8eb3-4129-8937-2177c962d4b9",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "post": {
+        "iteracion": 18,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "HASH_SHA256_INVALIDO",
+          "message": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "fields": [
+            {
+              "field": "dataset_entrenamiento_hash",
+              "message": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:58.828015+00:00"
+        },
+        "duracion_ms": 203,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "HASH_SHA256_INVALIDO",
+          "mensaje": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "campos": [
+            {
+              "campo": "dataset_entrenamiento_hash",
+              "mensaje": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:57 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-126",
+        "dato": "dataset_entrenamiento_hash: 64 no hexadecimal",
+        "aceptado": false,
+        "omitir": [],
+        "id_proceso_rf71": "d6b5bba9-c366-482b-b9d2-9d74ab9909c7",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag"
+      },
+      "post": {
+        "iteracion": 19,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "HASH_SHA256_INVALIDO",
+          "message": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "fields": [
+            {
+              "field": "dataset_entrenamiento_hash",
+              "message": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:59.114398+00:00"
+        },
+        "duracion_ms": 207,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "HASH_SHA256_INVALIDO",
+          "mensaje": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales.",
+          "campos": [
+            {
+              "campo": "dataset_entrenamiento_hash",
+              "mensaje": "dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:58 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-127",
+        "dato": "sin hash_artefacto_sha256",
+        "aceptado": false,
+        "omitir": [
+          "hash_artefacto_sha256"
+        ],
+        "id_proceso_rf71": "a231d2d9-1507-4fc6-8d50-330ee5761f34",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": null,
+        "dataset_entrenamiento_hash": "dc84db6796d889ddfee0676650cdf910cb85c45b384d1f6fc558c7cf54425758"
+      },
+      "post": {
+        "iteracion": 20,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "hash_artefacto_sha256",
+              "message": "Este campo es obligatorio."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:59.412181+00:00"
+        },
+        "duracion_ms": 209,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "VAL_ENTRADA",
+          "mensaje": "Errores de validacion en la solicitud",
+          "campos": [
+            {
+              "campo": "hash_artefacto_sha256",
+              "mensaje": "Este campo es obligatorio."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:58 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-127",
+        "dato": "sin dataset_entrenamiento_hash",
+        "aceptado": false,
+        "omitir": [
+          "dataset_entrenamiento_hash"
+        ],
+        "id_proceso_rf71": "63dcdfa4-df3d-4b79-9624-e6111120a164",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "dataset_entrenamiento_hash": null
+      },
+      "post": {
+        "iteracion": 21,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "dataset_entrenamiento_hash",
+              "message": "Este campo es obligatorio."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:59.710320+00:00"
+        },
+        "duracion_ms": 212,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "VAL_ENTRADA",
+          "mensaje": "Errores de validacion en la solicitud",
+          "campos": [
+            {
+              "campo": "dataset_entrenamiento_hash",
+              "mensaje": "Este campo es obligatorio."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:58 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    },
+    {
+      "escenario": {
+        "caso": "TC-M04-127",
+        "dato": "sin ambos hashes",
+        "aceptado": false,
+        "omitir": [
+          "hash_artefacto_sha256",
+          "dataset_entrenamiento_hash"
+        ],
+        "id_proceso_rf71": "b938f8dc-e413-427e-a8ea-2c6421ec1be3",
+        "fecha_entrenamiento": "2026-10-31T02:55:56.457Z",
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "metricas_validacion": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        },
+        "compatibilidad_variables": [
+          16
+        ],
+        "hash_artefacto_sha256": null,
+        "dataset_entrenamiento_hash": null
+      },
+      "post": {
+        "iteracion": 22,
+        "http": 422,
+        "eco": true,
+        "cuerpo": {
+          "error_code": "VAL_ENTRADA",
+          "message": "Errores de validacion en la solicitud",
+          "fields": [
+            {
+              "field": "hash_artefacto_sha256",
+              "message": "Este campo es obligatorio."
+            },
+            {
+              "field": "dataset_entrenamiento_hash",
+              "message": "Este campo es obligatorio."
+            }
+          ],
+          "timestamp": "2026-11-01T02:56:59.988111+00:00"
+        },
+        "duracion_ms": 207,
+        "duracion_origen": "newman_responseTime",
+        "error": {
+          "codigo": "VAL_ENTRADA",
+          "mensaje": "Errores de validacion en la solicitud",
+          "campos": [
+            {
+              "campo": "hash_artefacto_sha256",
+              "mensaje": "Este campo es obligatorio."
+            },
+            {
+              "campo": "dataset_entrenamiento_hash",
+              "mensaje": "Este campo es obligatorio."
+            }
+          ]
+        },
+        "fechaServidor": "Sun, 01 Nov 2026 02:56:58 GMT"
+      },
+      "get": null,
+      "conciliacion": null,
+      "aparece_en_listado_final": false
+    }
+  ],
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "observaciones_tecnicas": [],
+  "conteo": {
+    "inicial": 1,
+    "final": 5,
+    "delta": 4,
+    "aceptados": 4,
+    "conciliados": 0,
+    "rechazados_con_id": 0
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Sandbox confirmó cierre; no hay consulta posterior de BD"
+    }
+  }
+}

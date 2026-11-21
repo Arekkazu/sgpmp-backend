@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>TC-M06-G109</title>
+<style>body{font-family:system-ui,sans-serif;margin:2rem}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:.4rem .7rem;text-align:left}pre{white-space:pre-wrap;background:#fafafa;padding:.8rem}</style></head><body>
+<h1>Módulo 6 — RF-89 — TC-M06-G109</h1>
+<p>Alertas previas al vencimiento (TC-M06-34). Generado: 2026-11-14T01:07:08.451280+00:00. Sandbox: G109-7516a57721ce, rollback: no aplica (sin sandbox: los datos quedan en TEST).</p>
+<table><tr><th>Subcaso</th><th>Estado</th><th>Motivo</th></tr><tr><td>TC-M06-34 precio a 30 días registrado</td><td>APROBADO</td><td>Precio 744 (MERCADO_ACTIVO), vence 2026-12-14: estado ACTIVO al registrarlo.</td></tr><tr><td>TC-M06-34 precio a 15 días registrado</td><td>APROBADO</td><td>Precio 745 (UPRA), vence 2026-11-29: estado ACTIVO al registrarlo.</td></tr><tr><td>TC-M06-34 precio a 7 días registrado</td><td>APROBADO</td><td>Precio 746 (ESTIMADA), vence 2026-11-21: estado ACTIVO al registrarlo.</td></tr><tr><td>TC-M06-34 aviso a 30 días</td><td>RECHAZADO</td><td>Día 1 (2026-11-14T01:07 UTC): 0 aviso(s) al Contador por el precio que vence el 2026-12-14; se esperaba 1.</td></tr><tr><td>TC-M06-34 aviso a 15 días</td><td>RECHAZADO</td><td>Día 1 (2026-11-14T01:07 UTC): 0 aviso(s) al Contador por el precio que vence el 2026-11-29; se esperaba 1.</td></tr><tr><td>TC-M06-34 aviso a 7 días</td><td>RECHAZADO</td><td>Día 1 (2026-11-14T01:07 UTC): 0 aviso(s) al Contador por el precio que vence el 2026-11-21; se esperaba 1.</td></tr><tr><td>TC-M06-34 sin duplicados</td><td>BLOQUEADO</td><td>Pendiente de la verificación del día 2 (la corrida del día siguiente no debe repetir ningún aviso).</td></tr></table>
+<h2>Detalle</h2><pre>{
+  &quot;siembra&quot;: {
+    &quot;sembrado_en&quot;: &quot;2026-11-13T03:36:30.923760+00:00&quot;,
+    &quot;id_especie&quot;: 84,
+    &quot;vigencia&quot;: &quot;2026-11-12&quot;,
+    &quot;primera_corrida_utc&quot;: &quot;2026-11-14&quot;,
+    &quot;precios&quot;: [
+      {
+        &quot;id&quot;: 744,
+        &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+        &quot;dias&quot;: 30,
+        &quot;vence&quot;: &quot;2026-12-14&quot;,
+        &quot;estado&quot;: &quot;ACTIVO&quot;
+      },
+      {
+        &quot;id&quot;: 745,
+        &quot;fuente&quot;: &quot;UPRA&quot;,
+        &quot;dias&quot;: 15,
+        &quot;vence&quot;: &quot;2026-11-29&quot;,
+        &quot;estado&quot;: &quot;ACTIVO&quot;
+      },
+      {
+        &quot;id&quot;: 746,
+        &quot;fuente&quot;: &quot;ESTIMADA&quot;,
+        &quot;dias&quot;: 7,
+        &quot;vence&quot;: &quot;2026-11-21&quot;,
+        &quot;estado&quot;: &quot;ACTIVO&quot;
+      }
+    ],
+    &quot;verificaciones&quot;: [
+      {
+        &quot;dia&quot;: 1,
+        &quot;en&quot;: &quot;2026-11-14T01:07:08.449444+00:00&quot;,
+        &quot;avisos_por_vencimiento&quot;: {
+          &quot;2026-12-14&quot;: 0,
+          &quot;2026-11-29&quot;: 0,
+          &quot;2026-11-21&quot;: 0
+        }
+      }
+    ]
+  }
+}</pre>
+</body></html>

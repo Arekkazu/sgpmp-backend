@@ -1,0 +1,18 @@
+{
+  "grupo": "G41",
+  "version": 2,
+  "intento": 8,
+  "run_id": "RUN-G41-V2-20261112-201637",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G41-V2-R4-20261112",
+  "casos": [
+    "TC-M06-019"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M06-019"
+    ],
+    "motivo": "Reintento técnico de V2 (intento 4 de V2) de TC-M06-G41, caso 019. El intento anterior (RUN-G41-V2-20261112-180221, AUT-G41-V2-R3-20261112 consumida) fue oficial pero quedó reclasificado TECNICO por el responsable QA (ERROR_QA de preparación): 019 RECHAZADO solo por medicion_1572 porque el RUN solo cambió el precio de la especie 422 y el 1572 (especie 423, a VR desde el 2026-11-10) quedó sin variación; con variación cero el producto no crea medición (medidor.py:108-127). Ese intento acreditó el aviso de cierre 12870 (INC-M06-G41-01) y el resto de criterios. ORD-G41-018 (ronda 4 aprobada) crea un precio nuevo por cada especie VR para que todos los activos VR tengan variación, como en V1, y comprueba el rollback de todos los precios. Oráculos de la matriz (csv:384) sin cambios. SHA-256: g41.mjs 4355d12ba946e48943976827a3cb7b87170c374e92d36ba2bae229f49d1b8b31; lib/g41_core.mjs 216d4c475bf8e49290128a980085847603164cd3b6c9618907aca6caf501211b; colección 79b18ce89b560eddc8e1441f2ed28045a5f9774da1743c952afdf6af11f4a94b; contrato 98045dbbd369419b8de09a4304f06f953f78775c2cdaf84b78f33e09540d7677. 64/64 y Pydantic (Codex); ensayo Windows pendiente al redactar."
+  },
+  "version_anterior": null
+}

@@ -1,0 +1,29 @@
+{
+    "tc":  "TC-M04-G085",
+    "summary":  {
+                    "total":  23,
+                    "ok":  22,
+                    "falla":  1,
+                    "veredicto":  "RECHAZADO"
+                },
+    "checkpoints":  [
+                        {
+                            "paso":  "NW-01: Autenticaci??n Admin",
+                            "esperado":  "Status 200 con token JWT",
+                            "obtenido":  "OK",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "02.01: Consulta historial diagn??stico",
+                            "esperado":  "Status 200 con lista de inferencias",
+                            "obtenido":  "OK",
+                            "estado":  "OK"
+                        },
+                        {
+                            "paso":  "NW-Teardown: Rollback transaccional",
+                            "esperado":  "Status 200 con Rollback exitoso",
+                            "obtenido":  "OK",
+                            "estado":  "OK"
+                        }
+                    ]
+}

@@ -1,0 +1,84 @@
+{
+  "info": {
+    "name": "TC-M09-G134 - Reintento 2 (2026-10-09, TEST) - DESBLOQUEADO: la camara se asocia en RF-21, no en RF-22",
+    "description": "Hallazgo que desbloquea este TC: el backend AHORA tiene un tipo de dispositivo CAMARA_VISION (id_tipo_dispositivo=5, categoria=CAMARA) con atributos propios (resolucion, fps, area_cobertura_m2) en RegistrarDispositivoIotDTO (RF-21). Una camara NO se asocia a un area via RF-22 (POST /sensores/{id}/asociar) como un sensor -- se asocia DIRECTAMENTE al area en el momento de registrarse (su id_infraestructura de RF-21 ES la asociacion). Confirmado en vivo: intentar registrar un sensor escalar sobre un dispositivo CAMARA responde 422 CAMARA_SIN_SENSORES con el mensaje explicito 'se asocia directamente al area productiva donde esta instalada'. El bloqueo original (AsociarSensorAreaDTO no tiene campo de camara) sigue siendo cierto, pero ya no aplica: no hace falta ese campo porque RF-22 nunca interviene para una camara.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('login 200', function () { pm.response.to.have.status(200); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "if (r && r.token) { pm.collectionVariables.set('token', r.token); } else { postman.setNextRequest(null); }"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}
+      }
+    },
+    {
+      "name": "Setup - Registrar camara con atributos validos (RF-21)",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial_camara', 'QA-G134R2-cam-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "console.log(pm.response.text());",
+          "pm.test('camara registrada (HTTP 201)', function () { pm.response.to.have.status(201); });",
+          "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+          "if (r) { pm.collectionVariables.set('id_camara', r.id_dispositivo_iot); } else { postman.setNextRequest(null); }"
+        ]}}
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial_camara}}\",\n  \"descripcion\": \"QA camara G134 reintento2\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"1920x1080\",\n  \"fps\": 30,\n  \"area_cobertura_m2\": 25.5\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Caso 1 - La camara YA quedo asociada al area desde el registro (sin paso RF-22)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('GET camara (HTTP 200)', function () { pm.response.to.have.status(200); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('id_infraestructura de la camara coincide con la pedida al registrar (= su asociacion)', function () { pm.expect(r.id_infraestructura).to.equal(parseInt(pm.collectionVariables.get('id_infraestructura'), 10)); });",
+        "pm.test('resolucion/fps/area_cobertura_m2 persistidos correctamente', function () {",
+        "  pm.expect(r.resolucion).to.equal('1920x1080');",
+        "  pm.expect(r.fps).to.equal(30);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_camara}}", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_camara}}"]}
+      }
+    },
+    {
+      "name": "Caso 2 - Confirmado: una camara NO admite sensores escalares (RF-22 no aplica)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado con CAMARA_SIN_SENSORES (HTTP 422)', function () { pm.response.to.have.status(422); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('error_code correcto', function () { pm.expect(r && r.error_code).to.equal('CAMARA_SIN_SENSORES'); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"QA sensor invalido sobre camara\",\n  \"categoria\": \"TEMPERATURA\"\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_camara}}/sensores", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_camara}}", "sensores"]}
+      }
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "admin_correo", "value": "admin@pecuaria.co"},
+    {"key": "admin_contrasena", "value": "Test1234!"},
+    {"key": "token", "value": ""},
+    {"key": "id_infraestructura", "value": "277"},
+    {"key": "id_tipo_camara", "value": "5"},
+    {"key": "serial_camara", "value": ""},
+    {"key": "id_camara", "value": ""}
+  ]
+}

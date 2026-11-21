@@ -1,10 +1,16 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M04-139/140/138 RF-64: versión del catálogo, nombre normalizado y búsqueda |
+# | 2026-10-25 | Arekkazu | USAB-M04 M4-02 RF-64: nombre y unidad de variables y nombre de la especie (read-model) |
+# | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64 (motor IA) |
+# | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-14 RF-64: editar e inactivar solo tocan las variables que cambian |
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.patologia_m04 import PatologiaM04
@@ -13,6 +19,7 @@ from src.prediction.domain.repositories.patologia_m04_repository import Patologi
 from src.prediction.infrastructure.models.patologia_m04_model import PatologiaM04Model
 from src.prediction.infrastructure.models.patologia_variable_model import PatologiaVariableModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.errors import InfrastructureError
 
 
 class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
@@ -50,15 +57,26 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
     # ------------------------------------------------------------------
     def obtener_por_id(self, id_patologia: int, *, bloquear: bool = False) -> Optional[PatologiaM04]:
         orm = self._db.get(PatologiaM04Model, id_patologia, with_for_update=bloquear, populate_existing=bloquear)
-        return self._a_entidad(orm) if orm else None
+        return self._con_nombres([self._a_entidad(orm)])[0] if orm else None
 
     def obtener_por_nombre(self, nombre: str) -> Optional[PatologiaM04]:
         orm = (
             self._db.query(PatologiaM04Model)
-            .filter(func.lower(func.trim(PatologiaM04Model.nombre)) == nombre.strip().lower())
+            # Espacios, tabs y saltos repetidos cuentan como uno (INC-M04-140-G003).
+            .filter(func.lower(func.regexp_replace(func.trim(PatologiaM04Model.nombre), r'\s+', ' ', 'g'))
+                    == " ".join(nombre.split()).lower())
             .first()
         )
         return self._a_entidad(orm) if orm else None
+
+    def id_base_por_codigo_rf64(self, codigo: int) -> Optional[int]:
+        return self._db.execute(
+            select(PatologiaM04Model.id_patologia)
+            .where(PatologiaM04Model.es_base.is_(True))
+            .order_by(PatologiaM04Model.id_patologia)
+            .offset(codigo)
+            .limit(1)
+        ).scalar()
 
     def obtener_por_combinacion_variables(
         self, ids_variables: list[int], especie_aplicable: str, excluir_id: Optional[int] = None
@@ -81,19 +99,47 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
         especie_aplicable: Optional[str] = None,
         solo_activas: Optional[bool] = None,
         solo_base: Optional[bool] = None,
+        nombre: Optional[str] = None,
     ) -> list[PatologiaM04]:
         q = self._db.query(PatologiaM04Model)
+        if nombre and nombre.strip():
+            patron = "%" + nombre.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+            q = q.filter(PatologiaM04Model.nombre.ilike(patron, escape="\\"))
         if especie_aplicable is not None:
             q = q.filter(PatologiaM04Model.especie_aplicable == especie_aplicable)
         if solo_activas is not None:
             q = q.filter(PatologiaM04Model.es_activo == solo_activas)
         if solo_base is not None:
             q = q.filter(PatologiaM04Model.es_base == solo_base)
-        return [self._a_entidad(orm) for orm in q.order_by(PatologiaM04Model.id_patologia).all()]
+        return self._con_nombres([self._a_entidad(orm) for orm in q.order_by(PatologiaM04Model.id_patologia).all()])
+
+    def _con_nombres(self, patologias: list[PatologiaM04]) -> list[PatologiaM04]:
+        """M4-02: nombre y unidad de cada variable (I3P-1) y nombre de la especie, una consulta por tabla."""
+        ids_variables = list({v.id_variable_ambiental for p in patologias for v in p.variables})
+        ids_especies = list({int(p.especie_aplicable) for p in patologias if p.especie_aplicable.isdigit()})
+        variables = {f[0]: (f[1], f[2]) for f in self._db.execute(text(
+            "SELECT id_variable_ambiental, nombre, unidad FROM modulo9.variables_ambientales "
+            "WHERE id_variable_ambiental = ANY(:ids)"), {"ids": ids_variables}).all()} if ids_variables else {}
+        especies = dict(self._db.execute(text(
+            "SELECT id_especie, nombre FROM modulo9.especies WHERE id_especie = ANY(:ids)"
+        ), {"ids": ids_especies}).all()) if ids_especies else {}
+        for p in patologias:
+            if p.especie_aplicable.isdigit():
+                p.nombre_especie = especies.get(int(p.especie_aplicable))
+            for v in p.variables:
+                v.nombre, v.unidad = variables.get(v.id_variable_ambiental, (None, None))
+        return patologias
 
     # ------------------------------------------------------------------
     # Escrituras
     # ------------------------------------------------------------------
+    def siguiente_version_catalogo(self) -> int:
+        # El lock dura hasta el commit: dos cambios simultáneos no comparten versión.
+        self._db.execute(text("SELECT pg_advisory_xact_lock(hashtext('modulo9.patologias.version_catalogo'))"))
+        return self._db.execute(
+            select(func.coalesce(func.max(PatologiaM04Model.version_catalogo), 0) + 1)
+        ).scalar_one()
+
     def guardar(self, entidad: PatologiaM04) -> PatologiaM04:
         try:
             orm = PatologiaM04Model(
@@ -130,11 +176,18 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
             orm.es_activo = entidad.es_activo
             orm.version_catalogo = entidad.version_catalogo
             orm.fecha_actualizacion = datetime.now(timezone.utc)
-            # delete-then-insert para la colección de variables
-            for hijo in list(orm.variables):
-                self._db.delete(hijo)
-            self._db.flush()
+            # QA-M04 ronda 2 CU01 H-14: solo se tocan las variables que cambian.
+            # Antes se borraban y reinsertaban todas: bajo RLS el DELETE no borraba
+            # nada y el INSERT chocaba con uq_patologia_variable, incluso al inactivar.
+            nuevas = {v.id_variable_ambiental for v in entidad.variables}
+            existentes = {h.id_variable_ambiental for h in orm.variables}
+            sobran = [h.id_patologia_variable for h in orm.variables if h.id_variable_ambiental not in nuevas]
+            borradas = self._db.execute(
+                delete(PatologiaVariableModel).where(PatologiaVariableModel.id_patologia_variable.in_(sobran))
+            ).rowcount if sobran else 0
             for v in entidad.variables:
+                if v.id_variable_ambiental in existentes:
+                    continue
                 self._db.add(
                     PatologiaVariableModel(
                         id_patologia=orm.id_patologia,
@@ -145,6 +198,12 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
                 )
             self._db.flush()
             self._db.refresh(orm)
-            return self._a_entidad(orm)
         except Exception as exc:
             raise_from_db_error(exc)
+        if borradas != len(sobran):
+            # Un DELETE que RLS no permite no falla: no borra nada.
+            raise InfrastructureError(
+                code="VARIABLES_PATOLOGIA_NO_ACTUALIZADAS",
+                message="La base de datos no permitió quitar variables de la patología.",
+            )
+        return self._a_entidad(orm)

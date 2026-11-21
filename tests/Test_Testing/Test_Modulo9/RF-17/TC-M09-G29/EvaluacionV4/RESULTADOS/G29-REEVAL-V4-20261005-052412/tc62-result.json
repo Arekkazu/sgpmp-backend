@@ -1,0 +1,104 @@
+{
+  "grupo": "TC-M09-G29",
+  "caso": "TC-M09-62",
+  "nombre": "Verificar propagacion de configuracion hacia Nodo Edge",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "tipo": "REEVALUACION V4",
+  "runId": "G29-REEVAL-V4-20261005-052412",
+  "ambienteDecisorio": "DEV",
+  "veredicto": "RECHAZADO",
+  "ejecutado": false,
+  "naturaleza": "No es una ejecucion simulada. El gate de ejecutabilidad (seccion 16 del paquete) detuvo la escritura oficial antes de emitirla, por lo que no existe operacion funcional registrada.",
+  "escriturasFuncionales": 0,
+  "escriturasSql": 0,
+  "publicacionesMqtt": 0,
+  "cambiosDeInfraestructura": 0,
+
+  "gateEjecutabilidad": {
+    "A_devDisponible": true,
+    "B_actorPuedeEjecutarRf17": true,
+    "C_fixtureFuncionalValido": true,
+    "D_nodoEdgeValido": true,
+    "E_rf17IntentaPropagacionReal": false,
+    "F_evidenciaDeRecepcionODeAplicacionIdentificable": false,
+    "G_verificacionPosteriorRazonable": false,
+    "aprobado": false
+  },
+
+  "cadenaExigidaPorElCaso": [
+    {"paso": "1. Configuracion RF-17 valida", "verificable": true, "observado": "POST /configuracion/umbrales y PATCH /configuracion/umbrales/{id} existen, el actor tiene permiso y el fixture es valido."},
+    {"paso": "2. Persistencia central", "verificable": true, "observado": "Los 10 umbrales de DEV estan persistidos; RF-17 hace commit del umbral antes de intentar propagarlo."},
+    {"paso": "3. Intento real de propagacion", "verificable": false, "observado": "El unico implementador de EdgeSincronizacionPort es EdgeSincronizacionStubAdapter, que retorna PENDIENTE sin contactar ningun transporte."},
+    {"paso": "4. Salida hacia MQTT/Edge", "verificable": false, "observado": "Ningun archivo de src/ relaciona umbrales con MQTT salvo el puerto y su stub. El router de umbrales no inyecta MqttHttpAdapter."},
+    {"paso": "5. Recepcion por Gateway/Edge", "verificable": false, "observado": "La firma del puerto no admite dispositivo, gateway ni nodo destino, de modo que el Edge no es direccionable desde RF-17."},
+    {"paso": "6. Aplicacion/almacenamiento en campo", "verificable": false, "observado": "Sin publicacion no hay nada que el Raspberry pueda almacenar por la via de RF-17."},
+    {"paso": "7. ACK o confirmacion equivalente", "verificable": false, "observado": "No existe mecanica de ACK ni timeout para umbrales en el codigo desplegado."},
+    {"paso": "8. Estado final sincronizado observable", "verificable": false, "observado": "estado_sincronizacion solo puede alcanzar PENDIENTE por esta via: 10/10 umbrales en PENDIENTE, 0 con fecha_ultima_sincronizacion."}
+  ],
+
+  "oraculoDeCodigo": {
+    "ramaInspeccionada": "origin/dev",
+    "headCoincideConOriginDevEnSrcConfiguration": true,
+    "notaCoincidencia": "git diff --stat HEAD origin/dev -- src/configuration/ devuelve vacio: el codigo revisado es el que esta desplegado en DEV.",
+    "inyeccionEnUmbralRouter": [
+      "src/configuration/infrastructure/routers/umbral_router.py:73:  edge_port=EdgeSincronizacionStubAdapter()  (POST)",
+      "src/configuration/infrastructure/routers/umbral_router.py:154: edge_port=EdgeSincronizacionStubAdapter()  (PATCH)"
+    ],
+    "firmaDelPuerto": "propagar_umbral(id_especie: int, id_variable_ambiental: int, payload: dict) -> ResultadoEnvioMqtt",
+    "archivosDeSrcQueMezclanUmbralYMqtt": [
+      "src/configuration/domain/repositories/edge_sincronizacion_port.py",
+      "src/configuration/infrastructure/adapters/edge_sincronizacion_stub_adapter.py"
+    ],
+    "stubSigueExistiendo": true,
+    "stubEsElAdaptadorInyectado": true,
+    "existeAdaptadorRealDelPuerto": false,
+    "existeTopicDeUmbrales": false,
+    "existeAckDeUmbrales": false,
+    "existeTimeoutDeUmbrales": false
+  },
+
+  "oraculoDeRuntime": {
+    "umbralesConsultados": 10,
+    "estadosDeSincronizacionObservados": ["PENDIENTE"],
+    "conFechaUltimaSincronizacion": 0,
+    "conMotivoFalloSincronizacion": 0,
+    "algunUmbralSincronizadoAlgunaVez": false,
+    "interpretacion": "Ningun umbral de DEV ha alcanzado nunca estado APLICADA ni registrado fecha de sincronizacion. El comportamiento desplegado coincide exactamente con el stub revisado en codigo."
+  },
+
+  "delimitacionRf17VsRf23": {
+    "rutaConPropagacionRealObservable": "POST /configuracion/dispositivos-iot/{id}/configurar (RF-23)",
+    "adaptadorDeEsaRuta": "MqttHttpAdapter (broker real, POST /v1/commands con {origen, serial, ...})",
+    "evidenciaObservadaEnElNodoSeleccionado": {
+      "nodo": "ESP32PRUEBA2 (id_dispositivo_iot 41)",
+      "configuracionesRemotasTotales": 9,
+      "ejemploAplicada": {
+        "id_configuracion_remota": 77,
+        "frecuencia_captura": 119,
+        "intervalo_transmision": 240,
+        "estado": "APLICADA",
+        "id_usuario": 50,
+        "fecha_creacion": "2026-10-05T05:11:31.447184Z",
+        "fecha_aplicacion": "2026-10-05T05:11:32.350490Z"
+      },
+      "campos": ["frecuencia_captura", "intervalo_transmision"],
+      "contieneDatosDeUmbral": false
+    },
+    "conclusion": "La propagacion que si llega al Raspberry y recibe confirmacion pertenece a RF-23 y transporta frecuencia de captura e intervalo de transmision, no valores de umbral ni niveles de alerta. Usarla como evidencia de TC-M09-62 sustituiria RF-17 por RF-23, lo que la seccion 14 del paquete prohibe expresamente."
+  },
+
+  "evidenciaExternaRequerida": [
+    "Confirmacion de AIoT sobre si existe (o no) un contrato de publicacion de umbrales hacia el Edge: destino, topic, formato de payload, mecanica de ACK y timeout.",
+    "Si el equipo considera que la propagacion de umbrales ya funciona, indicar la operacion exacta del producto que la dispara, para poder reevaluarla.",
+    "Ventana coordinada de indisponibilidad controlada del Nodo Edge para poder ejecutar TC-M09-63."
+  ],
+
+  "secretos": {
+    "contrasenaPersistida": false,
+    "jwtPersistido": false,
+    "cookiesPersistidas": false,
+    "credencialesMqttPersistidas": false,
+    "nota": "La contrasena se tomo de la variable de entorno DEV_ADMIN_PASSWORD y no se escribio en ningun artefacto. De la credencial MQTT del gateway solo se registraron los indicadores habilitada/conectada."
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "tc": "TC-M09-G14-v2.0",
+  "ambiente": "TEST",
+  "fecha": "2026-10-07T05:52:10.997Z",
+  "checkpoints": [
+    {
+      "paso": "NW-01",
+      "estado": "OK",
+      "esperado": "HTTP 200 OK con token JWT administrativo emitido",
+      "obtenido": "HTTP 200 recibido con token JWT emitido"
+    },
+    {
+      "paso": "NW-02",
+      "estado": "OK",
+      "esperado": "HTTP 200 OK en health (NW-02a) y catálogo verificado con 7 nombres libres asignados (NW-02b)",
+      "obtenido": "HTTP 200 recibido; backend activo y 7 nombres libres seleccionados en preflight"
+    },
+    {
+      "paso": "NW-03",
+      "estado": "OK",
+      "esperado": "HTTP 400 VAL_ENTRADA por unidad_medida vacía",
+      "obtenido": "HTTP 400 VAL_ENTRADA recibido; campo unidad_medida validado"
+    },
+    {
+      "paso": "NW-04",
+      "estado": "OK",
+      "esperado": "HTTP 400 VAL_ENTRADA por tipo_medicion no perteneciente al catálogo",
+      "obtenido": "HTTP 400 VAL_ENTRADA recibido; tipo_medicion validado"
+    },
+    {
+      "paso": "NW-05",
+      "estado": "OK",
+      "esperado": "HTTP 422 UNIDAD_MEDIDA_INCOHERENTE por combinación PESO con litros",
+      "obtenido": "HTTP 422 UNIDAD_MEDIDA_INCOHERENTE recibido; regla de negocio validada"
+    },
+    {
+      "paso": "NW-06",
+      "estado": "OK",
+      "esperado": "HTTP 400 VAL_ENTRADA por aplica_a_tipo_activo no perteneciente al enum",
+      "obtenido": "HTTP 400 VAL_ENTRADA recibido; aplica_a_tipo_activo validado"
+    },
+    {
+      "paso": "NW-07",
+      "estado": "OK",
+      "esperado": "HTTP 400 VAL_ENTRADA por nombre menor a 3 caracteres",
+      "obtenido": "HTTP 400 VAL_ENTRADA recibido; límite inferior validado"
+    },
+    {
+      "paso": "NW-08",
+      "estado": "OK",
+      "esperado": "HTTP 400 VAL_ENTRADA por nombre mayor a 60 caracteres",
+      "obtenido": "HTTP 400 VAL_ENTRADA recibido; límite superior validado"
+    },
+    {
+      "paso": "NW-09",
+      "estado": "OK",
+      "esperado": "HTTP 201 Created para nombre en límite inferior (3 caracteres)",
+      "obtenido": "HTTP 201 recibido; métrica de 3 caracteres creada"
+    },
+    {
+      "paso": "NW-10",
+      "estado": "OK",
+      "esperado": "HTTP 201 Created para nombre en límite superior (60 caracteres)",
+      "obtenido": "HTTP 201 recibido; métrica de 60 caracteres creada"
+    },
+    {
+      "paso": "NW-11",
+      "estado": "OK",
+      "esperado": "HTTP 400 VAL_ENTRADA por nombre vacío (0 caracteres)",
+      "obtenido": "HTTP 400 VAL_ENTRADA recibido; campo obligatorio validado"
+    },
+    {
+      "paso": "NW-12",
+      "estado": "OK",
+      "esperado": "HTTP 201 Created para métrica base de prueba de duplicado",
+      "obtenido": "HTTP 201 recibido; métrica base creada"
+    },
+    {
+      "paso": "NW-13",
+      "estado": "OK",
+      "esperado": "HTTP 409 METRICA_DUPLICADA al intentar registrar nombre existente con diferente casing",
+      "obtenido": "HTTP 409 METRICA_DUPLICADA recibido; unicidad case-insensitive confirmada"
+    },
+    {
+      "paso": "NW-14",
+      "estado": "OK",
+      "esperado": "HTTP 201 Created para combinación coherente PESO / kg",
+      "obtenido": "HTTP 201 recibido; métrica creada exitosamente"
+    },
+    {
+      "paso": "NW-15",
+      "estado": "OK",
+      "esperado": "HTTP 201 Created para combinación coherente VOLUMEN / ml",
+      "obtenido": "HTTP 201 recibido; métrica creada exitosamente"
+    },
+    {
+      "paso": "NW-16",
+      "estado": "OK",
+      "esperado": "HTTP 201 Created para combinación coherente LONGITUD / cm",
+      "obtenido": "HTTP 201 recibido; métrica creada exitosamente"
+    },
+    {
+      "paso": "NW-17",
+      "estado": "OK",
+      "esperado": "HTTP 201 Created para combinación coherente CONTEO / unidades",
+      "obtenido": "HTTP 201 recibido; métrica creada exitosamente"
+    },
+    {
+      "paso": "NW-18",
+      "estado": "OK",
+      "esperado": "HTTP 200 OK y es_activo=false en los 7 PATCH de desactivación (NW-18a a NW-18g)",
+      "obtenido": "Las 7 métricas creadas fueron desactivadas exitosamente (HTTP 200)"
+    },
+    {
+      "paso": "NW-19",
+      "estado": "OK",
+      "esperado": "0 secretos expuestos en resultados/ y evidencias/",
+      "obtenido": "Auditoría de seguridad limpia: 0 tokens JWT ni credenciales expuestas"
+    },
+    {
+      "paso": "NW-20",
+      "estado": "OK",
+      "esperado": "Las 7 métricas en es_activo=false y registros CREATE/DEACTIVATE auditados en ventana cerrada con id_usuario=104",
+      "obtenido": "Integridad en BD y auditorías en ventana cerrada confirmadas"
+    }
+  ],
+  "checkpoints_no_contabilizados": []
+}

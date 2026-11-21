@@ -1,0 +1,57 @@
+{
+  "revision": "TC-M09-175-rev3",
+  "caso": "TC-M09-175",
+  "grupo": "TC-M09-G91",
+  "rf": "RF-27",
+  "cu": "CU-06",
+  "fecha_utc": "2026-10-09T22:45:47Z",
+  "rama": "laura",
+  "commit": "c5ac9b6f",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "resultado": "BLOQUEADO",
+  "no_sobrescribe": ["rev1", "rev2", "G91-173-174-rev1"],
+  "ejecuto_escenario_default": false,
+  "afirmaciones_default": {
+    "theme_mode": 1,
+    "fuente": "defecto",
+    "id_tema_visual": null,
+    "validadas": false
+  },
+  "openapi_test": {
+    "/configuracion/personalizacion/tema": ["get", "patch"],
+    "/configuracion/personalizacion/tema/global": ["get", "patch"],
+    "delete_presente": false
+  },
+  "probes_sin_token": [
+    {"method": "GET", "path": "/configuracion/personalizacion/tema", "status": 503, "error_code": "BD_NO_DISPONIBLE"},
+    {"method": "GET", "path": "/configuracion/personalizacion/tema/global", "status": 503, "error_code": "BD_NO_DISPONIBLE"},
+    {"method": "DELETE", "path": "/configuracion/personalizacion/tema", "status": 405, "allow": "GET"},
+    {"method": "DELETE", "path": "/configuracion/personalizacion/tema/global", "status": 405, "allow": "GET"}
+  ],
+  "login_autenticado": [
+    {"correo": "admin@pecuaria.co", "status": 503, "error_code": "BD_NO_DISPONIBLE"},
+    {"correo": "contador@pecuaria.co", "status": 503, "error_code": "BD_NO_DISPONIBLE"},
+    {"correo": "cm09175.qa@sgpmp-test.com", "status": 503, "error_code": "BD_NO_DISPONIBLE"}
+  ],
+  "jwt_obtenido": false,
+  "patch_ejecutado": false,
+  "delete_autenticado_ejecutado": false,
+  "dml_ejecutado": false,
+  "ultima_evidencia_viva_global": {
+    "fuente": "TC-M09-175-rev1",
+    "fecha_utc": "2026-09-26T03:58:33Z",
+    "usuario_120_get_tema": {"theme_mode": 1, "fuente": "global", "id_tema_visual": 1},
+    "admin_get_global": {
+      "id_tema_visual": 1,
+      "id_usuario": 1,
+      "theme_mode": 1,
+      "es_global": true,
+      "fecha_actualizacion": "2026-09-25T06:50:47.856604Z"
+    }
+  },
+  "alternativa_segura_encontrada": false,
+  "dba_requerido": true,
+  "g91_cierre": false,
+  "credenciales_en_reporte": false
+}

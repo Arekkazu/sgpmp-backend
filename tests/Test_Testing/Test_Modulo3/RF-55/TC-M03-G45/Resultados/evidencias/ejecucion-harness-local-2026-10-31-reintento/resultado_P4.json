@@ -1,0 +1,99 @@
+{
+  "id": "P4",
+  "entrada": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor": 30.0,
+      "unidad": "C"
+    },
+    {
+      "variable": "oxigeno_disuelto",
+      "valor": true,
+      "unidad": "mg/L"
+    }
+  ],
+  "validacion": [
+    {
+      "variable": "oxigeno_disuelto",
+      "valor": true,
+      "es_finito": false,
+      "invalida": true,
+      "motivo": "valor no numérico o no finito: True"
+    }
+  ],
+  "lecturas_es_finito": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor_repr": "30.0",
+      "es_finito": true
+    },
+    {
+      "variable": "oxigeno_disuelto",
+      "valor_repr": "True",
+      "es_finito": false
+    }
+  ],
+  "historial": [
+    {
+      "clasificacion": "LECTURA_INVALIDA",
+      "severidad": null,
+      "ruta": "LOCAL",
+      "estado": "LOCAL",
+      "variables": [
+        {
+          "tipo_variable": "oxigeno_disuelto",
+          "valor": "True",
+          "unidad": "mg/L"
+        }
+      ],
+      "detalle": {
+        "motivo": "valor no numérico o no finito: True"
+      }
+    },
+    {
+      "clasificacion": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "ruta": "DIRECTA",
+      "estado": "PENDIENTE",
+      "variables": [
+        {
+          "tipo_variable": "temperatura_ambiente",
+          "valor": 30.0,
+          "unidad": "C"
+        }
+      ],
+      "detalle": {
+        "nivel_umbral": "critico",
+        "id_umbral_ambiental": 7
+      }
+    }
+  ],
+  "eventos": [
+    {
+      "clasificacion_rf55": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "regla_aplicada": "UMBRAL_AMBIENTAL",
+      "variable": null
+    },
+    {
+      "clasificacion_rf55": "DESVIACION_SIMPLE",
+      "severidad": "CRITICO",
+      "regla_aplicada": "UMBRAL_AMBIENTAL",
+      "variable": null
+    }
+  ],
+  "telemetria": [
+    {
+      "variable": "temperatura_ambiente",
+      "valor_crudo": 30.0
+    }
+  ],
+  "warnings_rf55": [
+    "Lectura de QA-G45-HARNESS descartada para RF-55 (oxigeno_disuelto): valor no numérico o no finito: True"
+  ],
+  "paths": {
+    "tmp": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P4",
+    "historial": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P4\\historial.db",
+    "buffer": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P4\\buffer.db"
+  }
+}

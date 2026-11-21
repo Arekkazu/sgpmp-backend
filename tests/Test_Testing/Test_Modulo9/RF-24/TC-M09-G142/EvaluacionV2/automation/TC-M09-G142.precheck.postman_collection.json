@@ -1,0 +1,490 @@
+{
+  "info": {
+    "name": "TC-M09-G142 — PRECHECK de solo lectura",
+    "description": "Precheck previo al RUN oficial: comprueba OpenAPI, rutas M02/M03/M09 VISION y auditoria, autenticacion, permisos M02 del actor y el fixture potencial. No escribe nada: ningun POST funcional, ningun artefacto persistente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "PRECHECK 01 · OpenAPI de TEST",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/openapi.json",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "openapi.json"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · openapi.json disponible (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const paths = b.paths || {};",
+              "const req = [[\"/activos-biologicos\", \"post\", \"M02 alta de activo\"], [\"/activos-biologicos/{id_activo}/cierre\", \"post\", \"M02 cierre de ciclo\"], [\"/activos-biologicos/{id_activo}/fases\", \"post\", \"M02 fases (setup del cierre)\"], [\"/iot/telemetria/vision\", \"post\", \"M03 observaciones VISION\"], [\"/configuracion/calibraciones-vision\", \"post\", \"M09 VISION calculo\"], [\"/configuracion/calibraciones-vision\", \"get\", \"M09 VISION historial\"], [\"/configuracion/calibraciones-vision/linea-base\", \"get\", \"M09 VISION linea base\"], [\"/auditoria/\", \"get\", \"RF-10 auditoria\"]];",
+              "const faltan = [];",
+              "req.forEach(function (r) { if (!paths[r[0]] || !paths[r[0]][r[1]]) faltan.push(r[1].toUpperCase() + ' ' + r[0]); });",
+              "pm.environment.set('rutas_ausentes', JSON.stringify(faltan));",
+              "pm.test('PRECHECK · estan las rutas M02, M03, M09 VISION y auditoria',",
+              "  () => pm.expect(faltan, 'rutas ausentes').to.eql([]));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 02 · Autenticacion del Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{admin_correo}}\", \"contrasena\": \"{{admin_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · el Administrador autentica (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('admin_session', b.token || '');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 03 · Permisos M02 del Administrador",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/me/permisos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/me/permisos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · permisos consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const items = b.items || b.permisos || b || [];",
+              "const m02 = (Array.isArray(items) ? items : []).filter(p => p.id_recurso === 29).map(p => p.id_accion);",
+              "pm.environment.set('acciones_m02', JSON.stringify(m02.sort()));",
+              "pm.test('PRECHECK · puede crear activos (recurso 29, accion 1)', () => pm.expect(m02).to.include(1));",
+              "pm.test('PRECHECK · puede cerrar ciclo (recurso 29, accion 4)', () => pm.expect(m02).to.include(4));",
+              "pm.test('PRECHECK · puede gestionar fases (recurso 29, accion 5)', () => pm.expect(m02).to.include(5));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 04 · Fincas en el alcance del Administrador",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/fincas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · fincas consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const activas = (b.items || []).filter(f => f.es_activo);",
+              "pm.test('PRECHECK · el Administrador tiene al menos una finca activa',",
+              "  () => pm.expect(activas.length).to.be.above(0));",
+              "pm.environment.set('finca_id', String((activas.find(f => f.id_finca === 163) || activas[0]).id_finca));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 05 · Catalogo de tipos de area",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-area",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/tipos-area"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · tipos de area consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test('PRECHECK · hay al menos un tipo de area activo',",
+              "  () => pm.expect((b.items || []).filter(t => t.es_activo).length).to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 06 · Areas de la finca y ruta M09 de infraestructuras",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{finca_id}}&solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/infraestructuras?finca_id={{finca_id}}&solo_activas=true"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · areas consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const poblacionales = (b.items || []).filter(a => a.especie_id && ['MODELO_AVES','MODELO_PORCINOS','MODELO_ACUICULTURA'].indexOf(String(a.tipo_modelo_asignado)) >= 0);",
+              "pm.environment.set('area_muestra', poblacionales.length ? String(poblacionales[0].id_infraestructura) : '');",
+              "pm.test('PRECHECK · hay al menos un area POBLACIONAL en la finca (fixture potencial)',",
+              "  () => pm.expect(poblacionales.length).to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 07 · Historial VISION de un area de muestra",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{area_muestra}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{area_muestra}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('PRECHECK · historial VISION consultable (200)', () => pm.expect(pm.response.code).to.eql(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 08 · Linea base VISION de un area de muestra",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{area_muestra}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{area_muestra}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('PRECHECK · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 09 · Especie AVES apta para el alta de lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/especies"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · especies consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "// El alta de un lote calcula su densidad inicial: la especie necesita",
+              "// densidad_maxima_por_especie configurada en M09 o el POST M02 responde 422.",
+              "const aptas = (b.items || []).filter(e => e.es_activo",
+              "  && String(e.tipo_modelo) === 'MODELO_AVES'",
+              "  && e.densidad_maxima_por_especie && Number(e.densidad_maxima_por_especie) > 0);",
+              "pm.environment.set('especies_aptas', JSON.stringify(aptas.map(e => e.id_especie)));",
+              "// La especie que se reporta debe ser la MISMA que impone la compuerta del runner, o el",
+              "// precheck informa de una especie distinta de la que usara el RUN (en la ejecucion 2",
+              "// decia 82, con 0 ciclos, mientras el RUN corria con la 78: confuso y sin motivo).",
+              "const cualificada = String(pm.environment.get('especie_cualificada') || '').trim();",
+              "const elegida = cualificada",
+              "  ? (aptas.find(e => String(e.id_especie) === cualificada) || aptas[0])",
+              "  : aptas[0];",
+              "pm.environment.set('especie_id', elegida ? String(elegida.id_especie) : '');",
+              "if (cualificada) {",
+              "  pm.test('PRECHECK · la especie cualificada por la compuerta esta entre las aptas',",
+              "    () => pm.expect(aptas.map(e => String(e.id_especie)), 'especies aptas')",
+              "      .to.include(cualificada));",
+              "}",
+              "pm.test('PRECHECK · hay una especie AVES activa con densidad maxima (fixture potencial)',",
+              "  () => pm.expect(aptas.length, 'especies AVES con densidad').to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 09b · Ciclos de la especie (precondicion del cierre, informativo)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/ciclos?id_especie={{especie_id}}&solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/ciclos?id_especie={{especie_id}}&solo_activas=true"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRECHECK · ciclos consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const n = (b.items || []).length;",
+              "pm.environment.set('ciclos_de_la_especie', String(n));",
+              "// Informativo a proposito: la falta de ciclo solo afecta la precondicion del",
+              "// cierre M02 (fase activa) y no debe bloquear el RUN del grupo. Queda registrada",
+              "// y el RUN oficial la documenta donde corresponde.",
+              "console.log('PRECHECK · ciclos de la especie ' + pm.environment.get('especie_id') + ': ' + n",
+              "  + (n === 0 ? ' — AVISO: el cierre M02 exige fase activa, que exige ciclo productivo' : ''));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRECHECK 10 · Auditoria RF-10",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento=30&fecha_desde={{auditoria_desde}}&pagina=1&tamano=5",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/?tipo_evento=30&fecha_desde={{auditoria_desde}}&pagina=1&tamano=5"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('auditoria_desde', new Date(Date.now() - 3600000).toISOString().slice(0, 19));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('PRECHECK · auditoria consultable (200 o 206)', () => pm.expect([200, 206]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

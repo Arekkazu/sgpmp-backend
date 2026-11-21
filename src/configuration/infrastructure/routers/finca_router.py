@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-04 | Arekkazu | RF-19 v1.1: GET/PUT del titular tributario de la finca (M06 cierra por titular) |
 """Router FastAPI para la gestión de fincas (`/configuracion/fincas`).
 
 RF-19 — CU04 y alcance de RF-25:
@@ -7,6 +10,7 @@ RF-19 — CU04 y alcance de RF-25:
   D) PATCH /configuracion/fincas/{id}    — Editar (Admin; 412 concurrencia)
   E) PATCH /configuracion/fincas/{id}/desactivar — Desactivar (Admin; FA-04)
   F) PATCH /configuracion/fincas/{id}/reactivar  — Reactivar (Admin)
+  G) GET/PUT /configuracion/fincas/{id}/titular  — Titular tributario (RF-19 v1.1)
 
 RBAC: id_recurso=9 (fincas).
   Admin: C=1, R=2, U=3, D=4
@@ -20,6 +24,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.fincas.consultar_fincas_use_case import ConsultarFincasUseCase
+from src.configuration.application.use_cases.fincas.asignar_titular_finca_use_case import AsignarTitularFincaUseCase
 from src.configuration.application.use_cases.fincas.desactivar_finca_use_case import DesactivarFincaUseCase
 from src.configuration.application.use_cases.fincas.editar_finca_use_case import EditarFincaUseCase
 from src.configuration.application.use_cases.fincas.reactivar_finca_use_case import ReactivarFincaUseCase
@@ -29,7 +34,11 @@ from src.configuration.infrastructure.dto.editar_finca_dto import EditarFincaDTO
 from src.configuration.infrastructure.dto.registrar_finca_dto import RegistrarFincaDTO
 from src.configuration.infrastructure.repositories.auditoria_finca_repository import SqlAlchemyAuditoriaFincaRepository
 from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
+from src.configuration.domain.value_objects.titular_tributario import TitularTributario
 from src.configuration.infrastructure.repositories.nombre_usuario_lookup import nombres_usuarios
+from src.configuration.infrastructure.repositories.titular_finca_repository import SqlAlchemyTitularFincaRepository
+from src.shared.base_dto import BaseDTO
+from src.shared.errors import NotFoundError
 from src.configuration.infrastructure.schema.finca_schema import FincaResponse, ListaFincasResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
@@ -241,3 +250,40 @@ def reactivar_finca(
     )
     finca = use_case.execute(id_finca, usuario_actual)
     return _respuesta(db, finca)
+
+
+
+class TitularFincaDTO(BaseDTO):
+    """Los cuatro campos juntos; ``null`` en ``tipo_id_tributaria`` quita el titular (RF-19 v1.1)."""
+
+    tipo_id_tributaria: Optional[str] = None
+    numero_id_tributaria: Optional[str] = None
+    dv: Optional[str] = None
+    razon_social: Optional[str] = None
+
+
+@router.get("/{id_finca}/titular", dependencies=[Depends(require_permission(_RECURSO, 2))],
+            responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+            summary="Titular tributario de la finca (RF-19 v1.1)")
+def obtener_titular(id_finca: int, db: Session = Depends(get_db)) -> dict:
+    """**Acceso:** `fincas` · Leer."""
+    titular = SqlAlchemyTitularFincaRepository(db).obtener(id_finca)
+    if titular is None:
+        raise NotFoundError(code="FINCA_NO_ENCONTRADA", message="La finca no existe.")
+    return titular
+
+
+@router.put("/{id_finca}/titular", dependencies=[Depends(require_permission(_RECURSO, 3))],
+            responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse},
+                       404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+            summary="Asignar o quitar el titular tributario de la finca (RF-19 v1.1)")
+def asignar_titular(id_finca: int, dto: TitularFincaDTO, db: Session = Depends(get_db),
+                    usuario_actual: UsuarioActual = Depends(get_current_user)) -> dict:
+    """La entidad que lleva la contabilidad de la finca. Es obligatorio para que sus hechos entren a un
+    cierre contable de M06 (RF-87); el dígito de verificación del NIT se valida con el algoritmo de la DIAN.
+
+    **Acceso:** `fincas` · Actualizar.
+    """
+    titular = None if not dto.tipo_id_tributaria else TitularTributario(
+        dto.tipo_id_tributaria, dto.numero_id_tributaria or "", dto.razon_social or "", dto.dv)
+    return AsignarTitularFincaUseCase(db, SqlAlchemyTitularFincaRepository(db)).execute(id_finca, titular)

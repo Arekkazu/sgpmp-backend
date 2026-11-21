@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Comparación — TC-M06-G100</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem auto; max-width: 980px; line-height: 1.5; color: #1c1c1c; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    a { color: #0b4f8a; }
+  </style>
+</head>
+<body>
+  <p>SGPMP · Módulo 6 · RF-88 · TC-M06-G100</p>
+  <h1>Comparación de evaluaciones</h1>
+  <p>La primera evaluación es la del 2026-11-08. La última es la confirmación del 2026-11-10 sobre el activo aislado 1574.</p>
+  <table>
+    <tr><th>Punto</th><th>Primera evaluación</th><th>Última evaluación</th></tr>
+    <tr><td>Identificador</td><td>TC-M06-G100. El issue #973 lo llama TC-M06-G72.</td><td>TC-M06-G100.</td></tr>
+    <tr><td>Estado</td><td>BLOQUEADO. Clasificación NO-ES-ERROR.</td><td>APROBADO.</td></tr>
+    <tr><td>Activo</td><td>10. El Contador recibió 403 en la consulta biológica y 404 en la financiera. El 948 estaba en BAJA, pero ya tenía reconocimiento.</td><td>1574, QA-M06O-BAJA-01, finca 467, NIT 900000003.</td></tr>
+    <tr><td>POST</td><td>No se envió. El Contador no veía el activo y el Administrador no puede confirmar.</td><td>HTTP 422 <code>ACTIVO_NO_VALORABLE</code>.</td></tr>
+    <tr><td>Persistencia</td><td>No hubo escritura.</td><td>El activo sigue en BAJA, con 0 reconocimientos, 0 líneas y 0 eventos de auditoría.</td></tr>
+  </table>
+  <h2>Qué cambió</h2>
+  <p>El bloqueo anterior era de visibilidad y permisos, no un defecto del rechazo. El activo 10 está en una finca no vinculada al Contador. El escenario aislado vincula la finca 467 al Contador y deja el activo 1574 en BAJA, sin reconocimiento. Con esa lectura financiera en 200, la confirmación llegó a la regla de baja y fue rechazada sin persistir información.</p>
+  <p><a href="primera_evaluacion/resultado_ejecucion_TC-M06-G100.html">Primera evaluación</a> · <a href="ultima_evaluacion_aprobada/resultado_ultima_evaluacion.html">Última evaluación</a></p>
+</body>
+</html>

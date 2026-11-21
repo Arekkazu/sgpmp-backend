@@ -1,0 +1,42 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>newman-G067-POST-205-4</title><h1>newman-G067-POST-205-4</h1><pre>{
+  &quot;herramienta&quot;: &quot;Newman&quot;,
+  &quot;version&quot;: &quot;6.2.2&quot;,
+  &quot;caso&quot;: &quot;TC-M04-205&quot;,
+  &quot;metodo&quot;: &quot;POST&quot;,
+  &quot;ruta&quot;: &quot;/prediccion/retroalimentacion&quot;,
+  &quot;http&quot;: 201,
+  &quot;eco&quot;: true,
+  &quot;duracion_ms&quot;: 156,
+  &quot;solicitudes&quot;: 1,
+  &quot;aserciones&quot;: [
+    {
+      &quot;nombre&quot;: &quot;Código explícito por subcaso&quot;,
+      &quot;aprobada&quot;: false,
+      &quot;error&quot;: &quot;expected [ 422 ] to include 201&quot;
+    },
+    {
+      &quot;nombre&quot;: &quot;Eco de X-Test-Run-Id&quot;,
+      &quot;aprobada&quot;: true,
+      &quot;error&quot;: null
+    }
+  ],
+  &quot;respuesta&quot;: {
+    &quot;id_retroalimentacion&quot;: &quot;3461bc57-7c0d-4dac-8e1e-b2316cd21870&quot;,
+    &quot;id_resultado_inferencia&quot;: &quot;511a6d66-a862-4822-bf47-2634333531b3&quot;,
+    &quot;estado_retroalimentacion&quot;: &quot;CORRECTO&quot;,
+    &quot;diagnosticos_reales&quot;: [
+      8
+    ],
+    &quot;error_code&quot;: null,
+    &quot;field&quot;: null,
+    &quot;mensaje&quot;: &quot;&quot;,
+    &quot;detalle_campo&quot;: &quot;&quot;
+  },
+  &quot;fallos&quot;: [
+    {
+      &quot;tipo&quot;: &quot;AssertionError&quot;,
+      &quot;mensaje&quot;: &quot;expected [ 422 ] to include 201&quot;
+    }
+  ],
+  &quot;error&quot;: null
+}</pre></html>

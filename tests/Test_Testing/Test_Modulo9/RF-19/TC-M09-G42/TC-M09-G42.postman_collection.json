@@ -1,0 +1,459 @@
+{
+  "info": {
+    "name": "RF-19 - TC-M09-G42 Valores limite de tamano, latitud y longitud de finca",
+    "description": "Automatiza TC-M09-86 (tamano_h > 0), TC-M09-87 (latitud entre -90 y 90) y TC-M09-88 (longitud entre -180 y 180) en POST /configuracion/fincas: valores en el limite exacto se aceptan, valores justo fuera del limite se rechazan, y cero/negativo en tamano_h se rechaza.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Respuesta contiene token', function () {",
+              "    pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "});",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-86a - Rechaza tamano_h en cero",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo de error de validacion de entrada', function () {",
+              "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+              "});",
+              "pm.test('Senala el campo tamano_h', function () {",
+              "    pm.expect(json.fields.some(f => (f.field || '').includes('tamano_h'))).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-86b - Rechaza tamano_h negativo",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo de error de validacion de entrada', function () {",
+              "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"-5\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-86c - Acepta tamano_h positivo minimo (0.01)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('tamano_h almacenado tal cual', function () {",
+              "    pm.expect(parseFloat(json.tamano_h)).to.eql(0.01);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"0.01\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-87a - Acepta latitud en el limite exacto (-90)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('latitud -90 almacenada tal cual', function () {",
+              "    pm.expect(parseFloat(json.ubicacion.latitud)).to.eql(-90);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"-90\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-87b - Acepta latitud en el limite exacto (90)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('latitud 90 almacenada tal cual', function () {",
+              "    pm.expect(parseFloat(json.ubicacion.latitud)).to.eql(90);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"90\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-87c - Rechaza latitud justo fuera del limite inferior (-90.5)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo de error de validacion de entrada', function () {",
+              "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+              "});",
+              "pm.test('Senala el campo latitud', function () {",
+              "    pm.expect(json.fields.some(f => (f.field || '').includes('latitud'))).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"-90.5\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-87d - Rechaza latitud justo fuera del limite superior (90.5)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo de error de validacion de entrada', function () {",
+              "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"90.5\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-88a - Acepta longitud en el limite exacto (-180)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('longitud -180 almacenada tal cual', function () {",
+              "    pm.expect(parseFloat(json.ubicacion.longitud)).to.eql(-180);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-180\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-88b - Acepta longitud en el limite exacto (180)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('longitud 180 almacenada tal cual', function () {",
+              "    pm.expect(parseFloat(json.ubicacion.longitud)).to.eql(180);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"180\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-88c - Rechaza longitud justo fuera del limite inferior (-180.5)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo de error de validacion de entrada', function () {",
+              "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+              "});",
+              "pm.test('Senala el campo longitud', function () {",
+              "    pm.expect(json.fields.some(f => (f.field || '').includes('longitud'))).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-180.5\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-88d - Rechaza longitud justo fuera del limite superior (180.5)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["const letras = 'abcdefghijklmnopqrstuvwxyz'; let suf = ''; for (let i = 0; i < 10; i++) suf += letras.charAt(Math.floor(Math.random() * letras.length)); pm.variables.set('sufijo', suf);"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo de error de validacion de entrada', function () {",
+              "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Limite {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"180.5\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    }
+  ]
+}

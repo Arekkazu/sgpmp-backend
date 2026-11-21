@@ -1,0 +1,26 @@
+{
+  "grupo": "G87",
+  "version": 2,
+  "intento": 11,
+  "run_id": "RUN-G87-V2-20261030-150450",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G87-V2-R4-20261030",
+  "casos": [
+    "TC-M03-168",
+    "TC-M03-177",
+    "TC-M03-178"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M03-168",
+      "TC-M03-177",
+      "TC-M03-178"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reintento técnico de la V2 (intento 11). Intento 10 RUN-G87-V2-20261030-144701 (TÉCNICO): 168 APROBADO, API de 177 y 178 aprobada, rollback verificado; UI bloqueada en PRE-UI-01 porque el frontend de TEST se sirve bajo /sigab-test/ y g87.cy.js exigía '/dashboard' sin prefijo (login UI y portada correctos según la captura). ORD-G87-048: prefijo derivado de baseUrl; ensayo en memoria 27/27 y ensayo UI local 11/11 en el Windows del responsable QA. SHA-256 g87.mjs d4c61b5f77201fe580d1c7d47ec3e875792ad2629fdae02bf353ae41b6651af7; g87.cy.js 4f8e0dc48e9f9abed9f793a8ffc68655e8210d3d7de6bf1dc374786de0ec7414; g87.cypress.config.cjs 030b9af054c804b4586348f2c0d434e2a0e4c42299019435e953ff859e7abc9f; lib/g87_cierre.mjs 992c2dbde8910a6c40820fe96b80d1a38f622db14b2b4a74093634b69f6275ce.",
+    "incumplimientos_previos": "V1 oficial RUN-G87-V1-20261023-145303: 177 RECHAZADO (REF-G87-01) y 178 RECHAZADO (REF-G87-02); 168 APROBADO.",
+    "correcciones_informadas": "Backend PR #793 (origin/test 15a6042f, commit c8c584fe) y frontend PR #453 (origin/test 0e92f570, commit dcbbb573), issue #678.",
+    "resultado_esperado": "168, 177 y 178 APROBADO en API y UI; REF-G87-01 y REF-G87-02 CORREGIDAS si se cumple. La UI se juzga con el frontend realmente servido en TEST, con capturas en el RUN."
+  },
+  "version_anterior": 1
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M06-G102</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 2rem; line-height: 1.45; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: .45rem .6rem; vertical-align: top; text-align: left; }
+    th { background: #f3f3f3; }
+    .b { font-weight: 700; }
+    pre { white-space: pre-wrap; background: #fafafa; padding: .8rem; }
+  </style>
+</head>
+<body>
+  <h1>Módulo 6 — RF-89 — TC-M06-G102</h1>
+  <p>Registro de precios según las fuentes permitidas y la evidencia documental. Fecha: 2026-11-08T07:28:55.555517+00:00. Ambiente: https://api.inmero.co/api-sgpmp-test.</p>
+  <h2>Resumen</h2>
+  <table>
+    <tr><th>Aprobados</th><td>3</td></tr>
+    <tr><th>Rechazados</th><td>0</td></tr>
+    <tr><th>Bloqueados</th><td>3</td></tr>
+    <tr><th>Porcentaje</th><td class="b">50 %</td></tr>
+    <tr><th>Precios antes</th><td>11</td></tr>
+    <tr><th>Precios después</th><td>11</td></tr>
+    <tr><th>Registros nuevos</th><td>[]</td></tr>
+  </table>
+  <h2>Contrato</h2>
+  <pre>{
+  &quot;http&quot;: 200,
+  &quot;encontrado&quot;: true,
+  &quot;get&quot;: true,
+  &quot;post&quot;: true,
+  &quot;post_status&quot;: &quot;Successful Response&quot;,
+  &quot;esquema&quot;: &quot;#/components/schemas/PrecioDTO&quot;,
+  &quot;permiso_resumen&quot;: &quot;Registrar un precio de mercado de referencia (append-only)&quot;
+}</pre>
+  <h2>Subcasos</h2>
+  <table>
+    <tr><th>Subcaso</th><th>POST</th><th>HTTP</th><th>Estado</th><th>Motivo</th></tr>
+    <tr><td>TC-M06-16</td><td>no</td><td></td><td class='b'>BLOQUEADO</td><td>No se envió el POST. El precio quedaría vigente para toda la especie en el catálogo compartido, se confirmaría en base de datos y podría cambiar simulaciones y valoraciones, incluido el activo 951 del TC-M06-G101. No hay un catálogo aislado ni autorización para registrarlo.</td></tr><tr><td>TC-M06-17</td><td>no</td><td></td><td class='b'>BLOQUEADO</td><td>No se envió el POST. El precio quedaría vigente para toda la especie en el catálogo compartido, se confirmaría en base de datos y podría cambiar simulaciones y valoraciones, incluido el activo 951 del TC-M06-G101. No hay un catálogo aislado ni autorización para registrarlo.</td></tr><tr><td>TC-M06-18</td><td>no</td><td></td><td class='b'>BLOQUEADO</td><td>No se envió el POST. El precio quedaría vigente para toda la especie en el catálogo compartido, se confirmaría en base de datos y podría cambiar simulaciones y valoraciones, incluido el activo 951 del TC-M06-G101. No hay un catálogo aislado ni autorización para registrarlo.</td></tr><tr><td>TC-M06-19</td><td>sí</td><td>400, 400</td><td class='b'>APROBADO</td><td>El backend rechazó la solicitud y el listado de precios quedó igual.</td></tr><tr><td>TC-M06-20</td><td>sí</td><td>400, 400, 400</td><td class='b'>APROBADO</td><td>El backend rechazó la solicitud y el listado de precios quedó igual.</td></tr><tr><td>TC-M06-21</td><td>sí</td><td>400</td><td class='b'>APROBADO</td><td>El backend rechazó la solicitud y el listado de precios quedó igual.</td></tr>
+  </table>
+  <h2>Precios aplicados antes</h2>
+  <pre>[
+  {
+    &quot;id&quot;: 18,
+    &quot;id_especie&quot;: 39,
+    &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+    &quot;precio_unitario&quot;: &quot;9600.00&quot;,
+    &quot;estado&quot;: &quot;ACTIVO&quot;,
+    &quot;fecha_vigencia&quot;: &quot;2026-11-07&quot;,
+    &quot;evidencia_presente&quot;: true
+  },
+  {
+    &quot;id&quot;: 16,
+    &quot;id_especie&quot;: 421,
+    &quot;fuente&quot;: &quot;UPRA&quot;,
+    &quot;precio_unitario&quot;: &quot;14500.00&quot;,
+    &quot;estado&quot;: &quot;ACTIVO&quot;,
+    &quot;fecha_vigencia&quot;: &quot;2026-11-01&quot;,
+    &quot;evidencia_presente&quot;: true
+  },
+  {
+    &quot;id&quot;: 5,
+    &quot;id_especie&quot;: 1,
+    &quot;fuente&quot;: &quot;MERCADO_ACTIVO&quot;,
+    &quot;precio_unitario&quot;: &quot;1.00&quot;,
+    &quot;estado&quot;: &quot;ACTIVO&quot;,
+    &quot;fecha_vigencia&quot;: &quot;2026-05-10&quot;,
+    &quot;evidencia_presente&quot;: true
+  }
+]</pre>
+  <h2>Hallazgos</h2>
+  <ul><li>QUESTION-M06-G102-01: el caso pide evidencia documental adjunta. El contrato implementado guarda un texto evidencia_documental de 1 a 500 caracteres, no un archivo.</li><li>QUESTION-M06-G102-02: ESTIMADA exige, además de la evidencia, una justificacion_estimacion de al menos 50 caracteres. El subcaso 18 no contempla ese campo.</li><li>El catálogo de precios es global por especie. Un precio ACTIVO nuevo se confirma, puede avisar a los contadores y cambia el precio aplicado de las valoraciones de esa especie.</li></ul>
+</body>
+</html>

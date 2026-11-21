@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M03-G177 - Consulta Básica y Detalle Auditoría IoT (RF-63)" tests="13" time="7.812">
+  <testsuite name="00-Setup-Autenticacion / 00-Login-ADMIN" id="76591a35-3a32-47cb-9a5f-f817697851f5" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.855">
+    <testcase name="Status 200 - Login exitoso de ADMIN" time="0.855" classname="00SetupAutenticacion00LoginAdmin"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-336-Listado-Sin-Filtros / 08-TC-M03-336-Listar-Auditoria-Sin-Filtros" id="44795290-4ee6-4f8f-8a42-96379d415c15" timestamp="2026-10-30T12:55:13.883Z" tests="5" failures="0" errors="0" time="0.617">
+    <testcase name="Status 200 - Listado de auditoría obtenido" time="0.617" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+    <testcase name="Estructura de paginación conforme a contrato" time="0.617" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+    <testcase name="Campos base RF-10 y extensión IoT presentes en todos los items" time="0.617" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+    <testcase name="Orden DESC por fecha_hora" time="0.617" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+    <testcase name="id_usuario nulo en eventos automáticos" time="0.617" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-336-Listado-Sin-Filtros / 09-TC-M03-336-Paginacion-Personalizada" id="7ef65944-bf2b-49df-95b9-af92382a041a" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.418">
+    <testcase name="Status 200 - Paginación personalizada respetada" time="0.418" classname="03TcM03336ListadoSinFiltros09TcM03336PaginacionPersonalizada"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-336-Listado-Sin-Filtros / 10-TC-M03-336-Paginacion-Max-Permitida" id="2e6ee58e-6c9d-443a-bd7b-63af440863b6" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.698">
+    <testcase name="Status 200 - Paginación máxima por_pagina=200 aceptada" time="0.698" classname="03TcM03336ListadoSinFiltros10TcM03336PaginacionMaxPermitida"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-336-Listado-Sin-Filtros / 11-TC-M03-336-Paginacion-Excedida-Rechazada" id="18840f90-b5f6-4c8e-b5a6-cf2b4e8f4fca" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.121">
+    <testcase name="Status 400 - por_pagina > 200 rechazado con codigo de validacion" time="0.121" classname="03TcM03336ListadoSinFiltros11TcM03336PaginacionExcedidaRechazada"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-337-Detalle-Por-Id / 12-TC-M03-337-Detalle-Evento-Existente" id="bd5c4c39-67bd-4233-bb33-d75279fce0fb" timestamp="2026-10-30T12:55:13.883Z" tests="6" failures="0" errors="0" time="0.118">
+    <testcase name="Status 200 - Detalle de evento obtenido" time="0.118" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="ID de evento coincide con el solicitado" time="0.118" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="Estructura completa de evento (base + extensión)" time="0.118" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="accion_detallada es objeto/dict JSON o null estructurado" time="0.118" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="Invariante de seguridad: componente_origen NO expuesto en detalle" time="0.118" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="hash_integridad es SHA-256 hex de 64 caracteres" time="0.118" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-337-Detalle-Por-Id / 13-TC-M03-337-Verificar-Integridad-Bitacora-Backend" id="22f788a0-54a2-4c1b-8112-4deb4fb6a1ed" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.251">
+    <testcase name="Status 200 - Verificación de integridad SHA-256 exitosa en backend" time="0.251" classname="04TcM03337DetallePorId13TcM03337VerificarIntegridadBitacoraBackend"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-337-Detalle-Por-Id / 14-TC-M03-337-UUID-Inexistente-Responde-404" id="c27fdc86-2e15-4564-bd80-5495ab3f04ef" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.130">
+    <testcase name="Status 404 - UUID inexistente responde Not Found" time="0.130" classname="04TcM03337DetallePorId14TcM03337UuidInexistenteResponde404"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-337-Detalle-Por-Id / 15-TC-M03-337-UUID-Malformado-Responde-400" id="9aa0fd9f-770c-4270-a1ed-b85b794a1688" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.115">
+    <testcase name="Status 400 - UUID malformado responde Bad Request" time="0.115" classname="04TcM03337DetallePorId15TcM03337UuidMalformadoResponde400"/>
+  </testsuite>
+  <testsuite name="05-Verificacion-Integridad-Casos-Borde / 20-Verificar-Integridad-Sin-Fechas" id="4a9b9b3b-ac14-47e7-9a1c-6dced33280e6" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.127">
+    <testcase name="20 - Sin fechas: rechazo HTTP 400 VAL_ENTRADA" time="0.127" classname="05VerificacionIntegridadCasosBorde20VerificarIntegridadSinFechas"/>
+  </testsuite>
+  <testsuite name="05-Verificacion-Integridad-Casos-Borde / 21-Verificar-Integridad-Rango-Invertido" id="ac472e40-08ad-4cc4-8c3a-066958824313" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.117">
+    <testcase name="21 - Rango invertido: 400 RANGO_FECHAS_INVALIDO" time="0.117" classname="05VerificacionIntegridadCasosBorde21VerificarIntegridadRangoInvertido"/>
+  </testsuite>
+  <testsuite name="05-Verificacion-Integridad-Casos-Borde / 22-Verificar-Integridad-Rango-Excedido" id="41b97484-8a9d-4bce-971f-f03b5fecbb82" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="4.144">
+    <testcase name="22 - Ventana >50k: 422 RANGO_VERIFICACION_EXCEDIDO" time="4.144" classname="05VerificacionIntegridadCasosBorde22VerificarIntegridadRangoExcedido"/>
+  </testsuite>
+  <testsuite name="99-Teardown-Rollback / 99-Teardown-Rollback-Sandbox" id="589d1445-1d65-4847-a6b2-7584b7052f68" timestamp="2026-10-30T12:55:13.883Z" tests="1" failures="0" errors="0" time="0.101">
+    <testcase name="Status 200 - Rollback exitoso" time="0.101" classname="99TeardownRollback99TeardownRollbackSandbox"/>
+  </testsuite>
+</testsuites>

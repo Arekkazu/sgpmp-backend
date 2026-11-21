@@ -1,0 +1,955 @@
+{
+  "info": {
+    "name": "TC-M07-G006 · RF-95 · Auditoría y trazabilidad",
+    "description": "Casos TC-95-017, 018 y 019. Genera una consulta exitosa y seis rechazos con X-Request-Id conocido y luego los busca en la auditoría (pantalla Integración → Auditoría).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "",
+          "const cv = pm.collectionVariables;",
+          "const pad = (n) => String(n).padStart(2, '0');",
+          "const ymd = (d) => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());",
+          "if (!cv.get('run_id')) cv.set('run_id', pm.variables.replaceIn('{{$guid}}'));",
+          "if (!cv.get('run_id_b')) cv.set('run_id_b', pm.variables.replaceIn('{{$guid}}'));",
+          "const hoy = new Date();",
+          "cv.set('ayer', ymd(new Date(hoy.getTime() - 86400000)));",
+          "cv.set('manana', ymd(new Date(hoy.getTime() + 86400000)));",
+          "cv.set('fecha_venc', ymd(new Date(hoy.getTime() + 30 * 86400000)));",
+          "// Pausa entre llamadas que cuentan para el límite por minuto (RF-101 5.9): token y consulta AAEF con Authorization.",
+          "const ruta = pm.request.url.getPath();",
+          "const nombre = pm.info.requestName || '';",
+          "const cuenta = /\\/integraciones\\/agrofusion\\/token$/.test(ruta) || (/\\/integracion\\/aaef\\/productores\\//.test(ruta) && pm.request.headers.has('Authorization'));",
+          "if (cuenta && nombre.indexOf('[libre]') < 0) {",
+          "  const gap = Number(cv.get('pausa_ms') || 12500);",
+          "  const espera = Number(cv.get('ultimo_limitado') || 0) + gap - Date.now();",
+          "  if (espera > 0) { const fin = Date.now() + espera; while (Date.now() < fin) {} }",
+          "  cv.set('ultimo_limitado', String(Date.now()));",
+          "}",
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "nit",
+      "value": "901444215"
+    },
+    {
+      "key": "nit_fi",
+      "value": "901444224"
+    },
+    {
+      "key": "nit_noex",
+      "value": "901444233"
+    },
+    {
+      "key": "version_activa",
+      "value": "3.0"
+    },
+    {
+      "key": "version_inactiva",
+      "value": "1.0"
+    },
+    {
+      "key": "ejecutar_ttl",
+      "value": "false"
+    },
+    {
+      "key": "pausa_ms",
+      "value": "12500"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.rol@gmail.com"
+    },
+    {
+      "key": "correo_contador",
+      "value": "contador@gmail.com"
+    },
+    {
+      "key": "correo_parcial",
+      "value": "qa.m07.parcial@pecuaria.co"
+    },
+    {
+      "key": "correo_sinpermiso",
+      "value": "qa.m07.sinpermiso@pecuaria.co"
+    },
+    {
+      "key": "correo_desechable",
+      "value": "qa.m07.desechable@pecuaria.co"
+    },
+    {
+      "key": "correo_fincainactiva",
+      "value": "qa.m07.fincainactiva@pecuaria.co"
+    },
+    {
+      "key": "cid_aaef",
+      "value": "qa-m07-aaef"
+    },
+    {
+      "key": "cid_m2m",
+      "value": "qa-m07-m2m"
+    },
+    {
+      "key": "cid_ip",
+      "value": "qa-m07-ip"
+    },
+    {
+      "key": "cid_vencido",
+      "value": "qa-m07-vencido"
+    },
+    {
+      "key": "cid_susp",
+      "value": "qa-m07-susp"
+    },
+    {
+      "key": "cid_rev",
+      "value": "qa-m07-rev"
+    },
+    {
+      "key": "id_susp",
+      "value": "10"
+    },
+    {
+      "key": "id_rev",
+      "value": "11"
+    }
+  ],
+  "item": [
+    {
+      "name": "Preparación",
+      "item": [
+        {
+          "name": "generar los X-Request-Id de la prueba",
+          "description": "",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('id_a', pm.variables.replaceIn('{{$guid}}'));pm.collectionVariables.set('id_b', pm.variables.replaceIn('{{$guid}}'));pm.collectionVariables.set('id_c', pm.variables.replaceIn('{{$guid}}'));pm.collectionVariables.set('id_d', pm.variables.replaceIn('{{$guid}}'));pm.collectionVariables.set('id_e', pm.variables.replaceIn('{{$guid}}'));pm.collectionVariables.set('id_f', pm.variables.replaceIn('{{$guid}}'));pm.collectionVariables.set('id_g', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP en [200]', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/docs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "docs"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Token de canal cid_aaef para correo_contador",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token y expires_in', () => { pm.expect(J.access_token).to.be.a('string'); pm.expect(J.expires_in).to.be.a('number'); });",
+                  "pm.collectionVariables.set('tok_c', J.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_aaef}}\", \"client_secret\": \"{{secret_aaef}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Token de canal cid_m2m para correo_contador",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token y expires_in', () => { pm.expect(J.access_token).to.be.a('string'); pm.expect(J.expires_in).to.be.a('number'); });",
+                  "pm.collectionVariables.set('tok_m', J.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_m2m}}\", \"client_secret\": \"{{secret_m2m}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión web (correo_contador)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae token', () => pm.expect(J.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('tok_web_c', J.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"{{correo_contador}}\", \"contrasena\": \"{{contrasena_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "resolver la versión ACTIVA y una INACTIVA del contrato (cambian con las pruebas de RF-98)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const l = Array.isArray(J) ? J : (Object.values(J).find(v => Array.isArray(v)) || []);",
+                  "const act = l.find(x => x.estado === 'ACTIVO');",
+                  "pm.test('hay una versión ACTIVA', () => pm.expect(act).to.exist);",
+                  "pm.collectionVariables.set('version_activa', act ? act.contrato_version : '3.0');",
+                  "const ina = l.filter(x => x.estado === 'INACTIVO').map(x => x.contrato_version);",
+                  "pm.collectionVariables.set('version_inactiva', ina.indexOf('1.0') >= 0 ? '1.0' : (ina[0] || '1.0'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_web_c}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/contratos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "contratos"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Solicitudes que luego se buscan en la auditoría",
+      "item": [
+        {
+          "name": "a · consulta válida → 200",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('sha_a', pm.response.headers.get('X-Content-SHA256'));",
+                  "pm.collectionVariables.set('exch_a', J.metadata && J.metadata.ExchangeId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_c}}"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{id_a}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "b · parámetros inválidos → 400",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{id_b}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026/10/01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026/10/01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "c · sin token → 401",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{id_c}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "d · cliente sin canal → 403",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_m}}"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{id_d}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "e · NIT inexistente → 404",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_c}}"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{id_e}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit_noex}}?desde=2026-10-01&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit_noex}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "f · rango no alineado → 422",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_c}}"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{id_f}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-02&hasta=2026-10-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-02"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "g · credencial en la URL → 400",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{id_g}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/aaef/productores/{{nit}}?desde=2026-10-01&hasta=2026-10-31&client_secret=x",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "{{nit}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "x"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-95-017 y TC-95-018 · Eventos en la auditoría",
+      "item": [
+        {
+          "name": "Iniciar sesión web (correo_admin)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae token', () => pm.expect(J.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('tok_admin', J.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"{{correo_admin}}\", \"contrasena\": \"{{contrasena_admin}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "consultar la auditoría del día",
+          "description": "Si hubiera más de 100 eventos del día de otros equipos, los de esta prueba podrían quedar en otra página.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const filas = J.items || [];",
+                  "pm.test('la página trae eventos', () => pm.expect(filas.length).to.be.above(0));",
+                  "{ const e = filas.filter(x => x.id_solicitud === pm.collectionVariables.get('id_a')); pm.test('solicitud a: exactamente un evento (RNF-95.4)', () => pm.expect(e.length).to.eql(1)); pm.test('solicitud a: código HTTP 200 y resultado PAQUETE_AAEF_CONSULTADO', () => { pm.expect(e[0].codigo_http).to.eql(200); pm.expect(e[0].codigo_resultado).to.eql('OK'); }); }",
+                  "{ const e = filas.filter(x => x.id_solicitud === pm.collectionVariables.get('id_b')); pm.test('solicitud b: exactamente un evento (RNF-95.4)', () => pm.expect(e.length).to.eql(1)); pm.test('solicitud b: código HTTP 400 y resultado PARAMETROS_INVALIDOS', () => { pm.expect(e[0].codigo_http).to.eql(400); pm.expect(e[0].codigo_resultado).to.eql('PARAMETROS_INVALIDOS'); }); }",
+                  "{ const e = filas.filter(x => x.id_solicitud === pm.collectionVariables.get('id_c')); pm.test('solicitud c: exactamente un evento (RNF-95.4)', () => pm.expect(e.length).to.eql(1)); pm.test('solicitud c: código HTTP 401 y resultado NO_AUTENTICADO', () => { pm.expect(e[0].codigo_http).to.eql(401); pm.expect(e[0].codigo_resultado).to.eql('NO_AUTENTICADO'); }); }",
+                  "{ const e = filas.filter(x => x.id_solicitud === pm.collectionVariables.get('id_d')); pm.test('solicitud d: exactamente un evento (RNF-95.4)', () => pm.expect(e.length).to.eql(1)); pm.test('solicitud d: código HTTP 403 y resultado CLIENTE_NO_AUTORIZADO', () => { pm.expect(e[0].codigo_http).to.eql(403); pm.expect(e[0].codigo_resultado).to.eql('CLIENTE_NO_AUTORIZADO'); }); }",
+                  "{ const e = filas.filter(x => x.id_solicitud === pm.collectionVariables.get('id_e')); pm.test('solicitud e: exactamente un evento (RNF-95.4)', () => pm.expect(e.length).to.eql(1)); pm.test('solicitud e: código HTTP 404 y resultado TITULAR_NO_ENCONTRADO', () => { pm.expect(e[0].codigo_http).to.eql(404); pm.expect(e[0].codigo_resultado).to.eql('TITULAR_NO_ENCONTRADO'); }); }",
+                  "{ const e = filas.filter(x => x.id_solicitud === pm.collectionVariables.get('id_f')); pm.test('solicitud f: exactamente un evento (RNF-95.4)', () => pm.expect(e.length).to.eql(1)); pm.test('solicitud f: código HTTP 422 y resultado RANGO_NO_ALINEADO', () => { pm.expect(e[0].codigo_http).to.eql(422); pm.expect(e[0].codigo_resultado).to.eql('RANGO_NO_ALINEADO'); }); }",
+                  "{ const e = filas.filter(x => x.id_solicitud === pm.collectionVariables.get('id_g')); pm.test('solicitud g: exactamente un evento (RNF-95.4)', () => pm.expect(e.length).to.eql(1)); pm.test('solicitud g: código HTTP 400 y resultado CREDENCIALES_EN_URL', () => { pm.expect(e[0].codigo_http).to.eql(400); pm.expect(e[0].codigo_resultado).to.eql('CREDENCIALES_EN_URL'); }); }",
+                  "{ const e = filas.find(x => x.id_solicitud === pm.collectionVariables.get('id_a')) || {};",
+                  " pm.test('consulta exitosa: tipo, NIT, rango, versión, hash, cliente y usuario', () => {",
+                  "  pm.expect(e.tipo_evento).to.eql('PAQUETE_AAEF_CONSULTADO'); pm.expect(String(e.numero_id_tributaria)).to.eql(pm.collectionVariables.get('nit'));",
+                  "  pm.expect(e.version_contrato).to.eql(pm.collectionVariables.get('version_activa')); pm.expect(e.hash_contenido).to.eql(pm.collectionVariables.get('sha_a'));",
+                  "  pm.expect(String(e.id_cliente_externo)).to.eql('6'); pm.expect((e.correo_usuario || '').toLowerCase()).to.eql(pm.collectionVariables.get('correo_contador'));",
+                  "  pm.expect(e.latencia_ms).to.be.a('number'); pm.expect(e.id_intercambio).to.eql(pm.collectionVariables.get('exch_a')); });",
+                  " pm.test('los eventos de rechazo traen código de resultado distinto de OK', () => pm.expect(filas.filter(x => ['b','c','d','e','f','g'].some(k => x.id_solicitud === pm.collectionVariables.get('id_' + k))).every(x => x.codigo_resultado !== 'OK')).to.be.true); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/auditoria?desde={{ayer}}&hasta={{manana}}&tamano=100&pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{ayer}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{manana}}"
+                },
+                {
+                  "key": "tamano",
+                  "value": "100"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-95-019 · Ni tokens ni secretos en la auditoría",
+      "item": [
+        {
+          "name": "exportar la auditoría del día en JSON",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const txt = pm.response.text();",
+                  "pm.test('sin JWT en ninguna columna', () => pm.expect(txt).to.not.match(/eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\./));",
+                  "['tok_c', 'tok_m', 'tok_web_c', 'tok_admin', 'secret_aaef', 'secret_m2m', 'secret_susp', 'contrasena_admin', 'contrasena_contador'].forEach(v => { const val = pm.variables.get(v) || pm.collectionVariables.get(v); if (val && val.length > 6) pm.test('no aparece ' + v, () => pm.expect(txt.indexOf(val)).to.eql(-1)); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/auditoria/exportar?formato=json&desde={{ayer}}&hasta={{manana}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "auditoria",
+                "exportar"
+              ],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "json"
+                },
+                {
+                  "key": "desde",
+                  "value": "{{ayer}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{manana}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

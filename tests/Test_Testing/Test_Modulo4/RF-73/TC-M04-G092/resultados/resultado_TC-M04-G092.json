@@ -1,0 +1,43 @@
+{
+  "tc": "TC-M04-G092",
+  "rf": "RF-73",
+  "summary": {
+    "total": 4,
+    "ok": 1,
+    "falla": 2,
+    "skipped": 1,
+    "veredicto": "RECHAZADO",
+    "veredicto_operacional": "BLOQUEADO_POR_DISEÑO"
+  },
+  "checkpoints": [
+    {
+      "paso": "test_tc_m04_285_trazabilidad_intra_m04",
+      "esperado": "RF-73: Cadena intra-M04 con >= 3 eventos bajo el mismo correlacion_id",
+      "obtenido": "AssertionError: RF-66 no implementado: 0 cadenas con >= 3 eventos en TEST. Ver INC-M04-151-G081. assert 0 > 0  +  where 0 = len([])",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "test_tc_m04_286_cadena_causal_id_referencia",
+      "esperado": "RF-73: Reconstrucción de cadena causal completa mediante id_referencia",
+      "obtenido": "AssertionError: Cadena causal no disponible: productores no implementados. Ver INC-M04-151-G081. assert 0 > 0  +  where 0 = len([])",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "test_tc_m04_287_correlacion_transversal_multisistema",
+      "esperado": "RF-73: Correlación transversal multisistema M03+M04+M06 (OBS-M04-G092-01)",
+      "obtenido": "OBS-M04-G092-01: M03/M06 no emiten correlacion_id. Requiere alineacion de esquema. NO es defecto del fix #785.",
+      "estado": "SKIPPED"
+    },
+    {
+      "paso": "test_tc_m04_288_filtro_correlacion_id_contrato",
+      "esperado": "RF-73/PR #785: Contrato de filtro correlacion_id (200 con UUID, 200 vacío, 422 ErrorResponse)",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    }
+  ],
+  "observaciones": [
+    "TC-M04-285 y TC-M04-286 bloqueados por no implementación de RF-66 (INC-M04-151-G081).",
+    "TC-M04-287 omitido por OBS-M04-G092-01 (M03 y M06 no emiten correlacion_id).",
+    "TC-M04-288 aprobado certificando fix de PR #785 del filtro correlacion_id."
+  ]
+}

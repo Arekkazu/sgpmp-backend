@@ -1,0 +1,150 @@
+<#
+.SYNOPSIS
+    Runner PowerShell para TC-M03-G169 (Estados heredados de RF-53 en RF-62).
+.DESCRIPTION
+    Ejecuta la colección Newman de TC-M03-G169 bajo Sandbox transaccional.
+    Subcasos: TC-321 (FUERA_DE_RANGO -> índice 0, NO_APTO), TC-322 (ERROR_CALIBRACION + anomalías).
+.PARAMETER BaseUrl
+    URL base de la API. Por defecto https://www.api.inmero.co/api-sgpmp-test.
+.EXAMPLE
+    .\ejecutar_tc_m03_g169.ps1
+#>
+[CmdletBinding()]
+param (
+    [Alias("Sufijo")]
+    [string]$Suffix = "_reintento2",
+    [string]$BaseUrl = "https://www.api.inmero.co/api-sgpmp-test"
+)
+
+$ErrorActionPreference = "Stop"
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Cargar .env.test si existe
+$envTestPath = Join-Path $scriptDir "..\..\..\..\..\.env.test"
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+}
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = ".env.test"
+}
+
+if (Test-Path $envTestPath) {
+    Get-Content $envTestPath | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
+            $parts = $line.Split("=", 2)
+            $k = $parts[0].Trim()
+            $v = $parts[1].Trim()
+            if (-not [System.Environment]::GetEnvironmentVariable($k)) {
+                [System.Environment]::SetEnvironmentVariable($k, $v, "Process")
+            }
+        }
+    }
+}
+
+$sandboxSecret  = [System.Environment]::GetEnvironmentVariable("TEST_SANDBOX_SECRET")
+$adminPassword  = [System.Environment]::GetEnvironmentVariable("TEST_ADMIN_PASSWORD")
+$brokerToken    = [System.Environment]::GetEnvironmentVariable("BROKER_TOKEN")
+if (-not $brokerToken) {
+    $brokerToken = [System.Environment]::GetEnvironmentVariable("BROKER_SERVICE_TOKEN")
+}
+
+if (-not $sandboxSecret) {
+    Write-Error "TEST_SANDBOX_SECRET no configurada. Abortando."
+}
+if (-not $adminPassword) {
+    Write-Error "TEST_ADMIN_PASSWORD no configurada. Abortando."
+}
+if (-not $brokerToken) {
+    Write-Error "BROKER_TOKEN (o BROKER_SERVICE_TOKEN) no configurada. Abortando."
+}
+
+$collectionPath = Join-Path $scriptDir "test_tc_m03_g169.json"
+if (-not (Test-Path $collectionPath)) {
+    Write-Error "Colección no encontrada: $collectionPath. Ejecutá 'node build_collection.cjs' primero."
+}
+
+$runId = "test-g169-" + [System.Guid]::NewGuid().ToString().Substring(0, 8)
+
+$resultadosDir = Join-Path $scriptDir "resultados"
+$evidenciasDir = Join-Path $scriptDir "evidencias"
+if (-not (Test-Path $resultadosDir)) { New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null }
+if (-not (Test-Path $evidenciasDir)) { New-Item -ItemType Directory -Path $evidenciasDir -Force | Out-Null }
+
+$runDate = Get-Date -Format "yyyyMMdd"
+$runEvidenciasDir = Join-Path $evidenciasDir "run-$runDate"
+if (-not (Test-Path $runEvidenciasDir)) {
+    New-Item -ItemType Directory -Path $runEvidenciasDir -Force | Out-Null
+}
+$sufijoNormalizado = ""
+if ($Suffix) {
+    if ($Suffix.StartsWith("_")) {
+        $sufijoNormalizado = $Suffix
+    } else {
+        $sufijoNormalizado = "_$Suffix"
+    }
+}
+
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G169$sufijoNormalizado.html"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G169$sufijoNormalizado.json"
+$consoleLog = Join-Path $runEvidenciasDir "console_run.log"
+
+$tituloCorrida = if ($sufijoNormalizado) { " ($($sufijoNormalizado.TrimStart('_')))" } else { " (V1)" }
+
+Write-Host "==========================================================" -ForegroundColor Cyan
+Write-Host "TC-M03-G169 - Estados heredados de RF-53$tituloCorrida" -ForegroundColor Cyan
+Write-Host "BaseUrl:    $BaseUrl"
+Write-Host "Run ID:     $runId"
+Write-Host "Coleccion:  $collectionPath"
+Write-Host "Reporte:    $reportHtml"
+Write-Host "Reporte JSON: $reportJson"
+Write-Host "==========================================================" -ForegroundColor Cyan
+
+$newmanArgs = @(
+    "run", $collectionPath,
+    "--timeout-request", "45000",
+    "--env-var", "baseUrl=$BaseUrl",
+    "--env-var", "run_id=$runId",
+    "--env-var", "sandbox_secret=$sandboxSecret",
+    "--env-var", "admin_password=$adminPassword",
+    "--env-var", "broker_token=$brokerToken",
+    "-r", "cli,htmlextra,json",
+    "--reporter-htmlextra-export", $reportHtml,
+    "--reporter-json-export", $reportJson,
+    "--reporter-htmlextra-title", "TC-M03-G169 - Estados heredados de RF-53$tituloCorrida",
+    "--reporter-htmlextra-omitRequestBodies",
+    "--reporter-htmlextra-omitHeaders"
+)
+
+$exitCode = 0
+try {
+    & npx -y newman @newmanArgs 2>&1 | Tee-Object -FilePath $consoleLog
+    $exitCode = $LASTEXITCODE
+} catch {
+    Write-Warning "Fallo durante la ejecucion de Newman: $_"
+    $exitCode = 1
+} finally {
+    Write-Host "`nVerificando cierre de sandbox..." -ForegroundColor Cyan
+    try {
+        $delUri = "$BaseUrl/test-control/runs/$runId"
+        $delHeaders = @{ "X-Sandbox-Secret" = $sandboxSecret }
+        $delResp = Invoke-RestMethod -Method DELETE -Uri $delUri -Headers $delHeaders -ErrorAction SilentlyContinue
+        Write-Host "Sandbox cerrado via runner: $($delResp | ConvertTo-Json -Compress)" -ForegroundColor Green
+    } catch {
+        Write-Host "Sandbox ya habia sido cerrado por la coleccion." -ForegroundColor Gray
+    }
+}
+
+Write-Host "`nConsolidando resultados en formato normativo (checkpoints)..." -ForegroundColor Cyan
+$consolidarScript = Join-Path $scriptDir "consolidar-resultados.cjs"
+if (Test-Path $consolidarScript) {
+    & node $consolidarScript --input $reportJson --output $reportJson --corrida $sufijoNormalizado
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Fallo durante la consolidacion de resultados."
+        $exitCode = 1
+    }
+} else {
+    Write-Warning "Script consolidador no encontrado: $consolidarScript"
+}
+
+exit $exitCode

@@ -1,0 +1,42 @@
+{
+  "grupo": "TC-M09-G131",
+  "casos": [
+    "TC-M09-258",
+    "TC-M09-259",
+    "TC-M09-260"
+  ],
+  "runId": "run-20261009-234932",
+  "nota": "Artefactos finales de la SEGUNDA EVALUACION. Los ejecutables viven unicamente en EvaluacionV2/; no se duplica automation dentro de RESULTADOS.",
+  "newmanHtmlPersistentes": 1,
+  "automationDentroDeResultados": "NO",
+  "artefactos": [
+    {
+      "archivo": "run-g131-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/automation/run-g131-v2.cjs",
+      "funcion": "Runner unico de la reevaluacion, con los modos precheck (Newman de solo lectura, sin HTML ni archivos), run (RUN funcional oficial con los 4 POST y el unico HTML) y close (oraculo por variante, verificacion final de solo lectura y consolidacion de evidencia). No obtiene ni inyecta tokens y no ejecuta PATCH, PUT ni DELETE.",
+      "sha256": "8d9fa29de5201d0ed590169f53fc686e5713c2cbf8b208842a19b46820a45464",
+      "bytes": 53648
+    },
+    {
+      "archivo": "TC-M09-G131.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/TC-M09-G131.postman_collection.json",
+      "funcion": "Coleccion de EvaluacionV2. Despliega las CUATRO variantes como items propios y es duena de su sesion (login dentro de Newman, token en session_value), porque la original inyectaba el token desde el runner. Conserva los cuatro casos, sus bodies, sus valores, sus URLs, el criterio de rechazo 4xx y las verificaciones de no persistencia por total e IDs de historial PRE/POST, con PRE propio por variante y STOP_ALL si alguna persistiera.",
+      "sha256": "6913761bf15ba3b1397f6ef1a8bda11a44132d2de2afe857cff282caae6b55d4",
+      "bytes": 47280
+    },
+    {
+      "archivo": "TC-M09-G131.postman_collection.json (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/TC-M09-G131.postman_collection.json",
+      "funcion": "Coleccion de la primera evaluacion: un unico item generico parametrizado por el runner, con el token inyectado desde fuera. Reutilizada como fuente del criterio 4xx y de las URLs, en solo lectura; no fue modificada.",
+      "sha256": "b3b1dc7fd5348dceb5b136da3bbf2623e56e932d8139d6a6b0bd8939227940ce",
+      "bytes": 1060
+    },
+    {
+      "archivo": "run-newman.cjs (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/run-newman.cjs",
+      "funcion": "Runner de la primera evaluacion. Fuente de los cuatro bodies, valores y del orden de las variantes. NO se utiliza en esta reevaluacion: se registra por trazabilidad del baseline.",
+      "sha256": "795adb95d102358ff9333f7a257eed99bd0b8547abb9b5494caffe487137cb02",
+      "bytes": 20739
+    }
+  ]
+}

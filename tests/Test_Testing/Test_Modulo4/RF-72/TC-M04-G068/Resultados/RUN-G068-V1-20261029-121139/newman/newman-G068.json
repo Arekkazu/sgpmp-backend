@@ -1,0 +1,179 @@
+{
+  "herramienta": "Newman",
+  "version": "6.2.2",
+  "solicitudes": [
+    {
+      "caso": "TC-M04-210",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 404,
+      "eco": true,
+      "duracion_ms": 524,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "error_code": "RESULTADO_INFERENCIA_NO_ENCONTRADO",
+        "mensaje": "El resultado de inferencia no existe o no está disponible.",
+        "detalle_campo": ""
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-210",
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-211",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 422,
+      "eco": true,
+      "duracion_ms": 155,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "id_resultado_inferencia": null,
+        "error_code": "ACTIVO_BIOLOGICO_INCONSISTENTE",
+        "mensaje": "El activo biológico no corresponde al resultado de inferencia indicado.",
+        "detalle_campo": "El activo biológico no corresponde al resultado de inferencia indicado."
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-211",
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/885/eventos/baja",
+      "http": 201,
+      "eco": true,
+      "duracion_ms": 225,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": null,
+        "fase": null,
+        "error_code": null
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-BAJA-VET",
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 158,
+      "respuesta": {
+        "id_activo_biologico": 885,
+        "id_estado": 6,
+        "fase": null,
+        "error_code": null
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-ESTADO-BAJA",
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 167,
+      "respuesta": {
+        "id_activo_biologico": null,
+        "id_estado": null,
+        "fase": null,
+        "error_code": null
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-BITACORA-BAJA",
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-245",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "duracion_ms": 161,
+      "respuesta": {
+        "id_retroalimentacion": "21d91e24-a72d-4d62-a9ab-c870c2ec21ea",
+        "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+        "error_code": null,
+        "mensaje": "",
+        "detalle_campo": ""
+      },
+      "herramienta": "Newman",
+      "nombre": "G068-245",
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "aprobada": true,
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "aprobada": true,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "fallos": []
+}

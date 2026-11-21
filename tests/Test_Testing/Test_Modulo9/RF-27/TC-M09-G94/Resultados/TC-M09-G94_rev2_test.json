@@ -1,0 +1,131 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 2,
+    "passes": 1,
+    "pending": 0,
+    "failures": 1,
+    "start": "2026-09-25T06:58:25.580Z",
+    "end": "2026-09-25T06:58:53.246Z",
+    "duration": 27666,
+    "testsRegistered": 2,
+    "passPercent": 50,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "a467adf5-44c5-4dda-8413-90c26a8e9938",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_rev2_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_rev2_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "4261cafd-822e-4785-80f9-6a92d9287021",
+          "title": "TC-M09-G94 rev2 TEST - Contraste y variante automatica",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-178 - Verificar contraste minimo WCAG 4.5:1",
+              "fullTitle": "TC-M09-G94 rev2 TEST - Contraste y variante automatica TC-M09-178 - Verificar contraste minimo WCAG 4.5:1",
+              "timedOut": null,
+              "duration": 24905,
+              "state": "failed",
+              "speed": null,
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "context": null,
+              "code": "const {\n  correo,\n  contrasena\n} = credenciales();\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/refresh\\/?$/\n}).as('refreshSesion');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('login');\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/interfaz\\/contexto\\/?$/\n}, req => {\n  req.continue(res => {\n    contextoBrowser.push({\n      status: res.statusCode,\n      hasAuth: Boolean(req.headers.authorization)\n    });\n  });\n}).as('getContexto');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"]').should('be.visible').clear().type(correo);\ncy.get('input[type=\"password\"]').should('be.visible').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@login').then(interception => {\n  loginHttp = interception.response && interception.response.statusCode;\n  expect(loginHttp, 'login HTTP (un intento)').to.eq(200);\n  token = interception.response.body && interception.response.body.token;\n  expect(token, 'token de sesion').to.be.a('string').and.not.empty;\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.url().should('not.include', '/login');\ncy.screenshot('G94-rev2-178-dashboard');\ncy.document().then(doc => {\n  const dataTheme = doc.documentElement.getAttribute('data-theme') || 'light';\n  cy.wrap(dataTheme).as('dataTheme178');\n});\ncy.window().then(win => {\n  const pick = sel => win.document.querySelector(sel);\n  const cs = el => el ? win.getComputedStyle(el) : null;\n  const sample = (name, el) => {\n    if (!el) return {\n      name,\n      presente: false\n    };\n    const s = cs(el);\n    return {\n      name,\n      presente: true,\n      selector: el.tagName + (el.className ? `.${String(el.className).split(' ')[0]}` : ''),\n      color: s.color,\n      backgroundColor: s.backgroundColor,\n      fontSize: s.fontSize,\n      fontWeight: s.fontWeight,\n      ratio: ratioWcag(s.color, s.backgroundColor)\n    };\n  };\n  const html = win.document.documentElement;\n  const body = win.document.body;\n  const header = pick('header, [role=\"banner\"], nav');\n  const mainEl = pick('ion-content, main, [class*=\"content\"]');\n  const h1 = pick('h1, h2');\n  const p = pick('p, [class*=\"muted\"], small');\n  const input = pick('input, textarea');\n  const btn = pick('button');\n  const link = pick('a[href]');\n  const card = pick('[class*=\"card\"], article, section');\n  const htmlCs = cs(html);\n  const bodyCs = cs(body);\n  const brand = htmlCs.getPropertyValue(CSS_MARCA).trim();\n  const ratios = [sample('html', html), sample('body', body), sample('header_nav', header), sample('main', mainEl), sample('heading', h1), sample('parrafo_o_muted', p), sample('input', input), sample('button', btn), sample('enlace', link), sample('card', card)];\n  const snap = {\n    dataTheme: html.getAttribute('data-theme'),\n    htmlBg: htmlCs.backgroundColor,\n    htmlColor: htmlCs.color,\n    bodyBg: bodyCs.backgroundColor,\n    bodyColor: bodyCs.color,\n    brand500: brand || null,\n    ratioHtml: ratioWcag(htmlCs.color, htmlCs.backgroundColor),\n    ratioBody: ratioWcag(bodyCs.color, bodyCs.backgroundColor),\n    componentes: ratios\n  };\n  cy.writeFile(`${EVIDENCIA}/G94-rev2-178-ratios-css.json`, snap);\n});\ncy.injectAxe();\ncy.checkA11y(null, {\n  runOnly: ['color-contrast'],\n  skipFailures: true\n}, violations => {\n  const axeResumen = {\n    fuente: 'axe-core color-contrast sobre dashboard renderizado',\n    cantidad_violations: violations.length,\n    violations: violations.map(v => ({\n      id: v.id,\n      impact: v.impact,\n      description: v.description,\n      help: v.help,\n      helpUrl: v.helpUrl,\n      nodos: extraerContrasteAxe(v.nodes)\n    }))\n  };\n  cy.writeFile(`${EVIDENCIA}/G94-rev2-178-axe.json`, axeResumen);\n  const aplicables = [];\n  violations.forEach(v => {\n    extraerContrasteAxe(v.nodes).forEach(n => {\n      const expected = n.expectedContrastRatio || 4.5;\n      const ratio = n.contrastRatio;\n      if (ratio != null && expected >= 4.5 && ratio < 4.5) {\n        aplicables.push(n);\n      }\n    });\n  });\n  cy.writeFile(`${EVIDENCIA}/G94-rev2-178-axe-aplicables.json`, {\n    n: aplicables.length,\n    nodos: aplicables\n  });\n  expect(aplicables, 'violaciones color-contrast texto normal ratio<4.5').to.have.length(0);\n});\napiGet('/configuracion/personalizacion/tema').then(temaRes => {\n  expect(temaRes.status, 'GET tema resuelto').to.eq(200);\n  apiGet('/configuracion/interfaz/contexto').then(res => {\n    cy.writeFile(`${EVIDENCIA}/G94-rev2-178-contexto.json`, {\n      http: res.status,\n      id_finca: res.body && res.body.id_finca,\n      identidad_primary: res.body && res.body.identidad_visual && res.body.identidad_visual.primary_color,\n      accesibilidad: res.body && res.body.accesibilidad,\n      tema: temaRes.body,\n      contexto_browser: contextoBrowser\n    });\n    expect(res.status, 'GET /configuracion/interfaz/contexto (Bearer login UI)').to.eq(200);\n    cy.get('@dataTheme178').then(dataTheme => {\n      cy.writeFile(`${EVIDENCIA}/G94-rev2-178-tema-ui.json`, {\n        data_theme: dataTheme,\n        theme_mode: temaRes.body.theme_mode,\n        fuente: temaRes.body.fuente,\n        id_tema_visual: temaRes.body.id_tema_visual,\n        nota: 'Caso historico evaluaba un solo tema (el activo). Admin TEST: theme_mode=1 Claro.'\n      });\n    });\n  });\n});",
+              "err": {
+                "message": "AssertionError: Timed out retrying after 20000ms: `cy.readFile(\"../../../../../node_modules/axe-core/axe.min.js\")` failed because the file does not exist at the following path:\n\n`C:\\Users\\node_modules\\axe-core\\axe.min.js`\n\nhttps://on.cypress.io/readfile",
+                "estack": "AssertionError: Timed out retrying after 20000ms: `cy.readFile(\"../../../../../node_modules/axe-core/axe.min.js\")` failed because the file does not exist at the following path:\n\n`C:\\Users\\node_modules\\axe-core\\axe.min.js`\n\nhttps://on.cypress.io/readfile\n    at Context.injectAxe (webpack:///../../../../../node_modules/cypress-axe/dist/index.js:20:0)\n    at wrapped (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:141663:43)",
+                "diff": null
+              },
+              "uuid": "c0a53817-71c0-4156-b7a9-192344d8b494",
+              "parentUUID": "4261cafd-822e-4785-80f9-6a92d9287021",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "TC-M09-179 - Variante automatica ante contraste insuficiente",
+              "fullTitle": "TC-M09-G94 rev2 TEST - Contraste y variante automatica TC-M09-179 - Variante automatica ante contraste insuficiente",
+              "timedOut": null,
+              "duration": 2219,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "expect(token, 'reutiliza el login de 178 (un intento)').to.be.a('string').and.not.empty;\napiGet('/configuracion/interfaz/contexto').then(ctxRes => {\n  expect(ctxRes.status, 'GET contexto 179').to.eq(200);\n  cy.writeFile(`${EVIDENCIA}/G94-rev2-179-contexto-activo.json`, {\n    id_finca_contexto: ctxRes.body && ctxRes.body.id_finca,\n    tiene_identidad: Boolean(ctxRes.body && ctxRes.body.identidad_visual),\n    nota: 'La finca activa del admin puede no tener identidad; 179 usa GET/PATCH identidad finca 4 (dato real TEST).'\n  });\n});\napiGet(`/configuracion/identidad-visual/${FINCA_IDENTIDAD}`).then(idRes => {\n  expect(idRes.status, 'GET identidad baseline finca 4').to.eq(200);\n  expect(idRes.body, 'identidad baseline').to.be.an('object');\n  baseline179 = {\n    id_finca: idRes.body.id_finca,\n    id_identidad_visual: idRes.body.id_identidad_visual,\n    primary_color: idRes.body.primary_color,\n    secondary_color: idRes.body.secondary_color,\n    org_display_name: idRes.body.org_display_name,\n    version: idRes.body.version,\n    accesibilidad: idRes.body.accesibilidad\n  };\n  restaurar179 = true;\n  cy.writeFile(`${EVIDENCIA}/G94-rev2-179-baseline.json`, {\n    id_finca: baseline179.id_finca,\n    primary_color: baseline179.primary_color,\n    secondary_color: baseline179.secondary_color,\n    org_display_name: baseline179.org_display_name,\n    version: baseline179.version,\n    accesibilidad: baseline179.accesibilidad\n  });\n  cy.request({\n    method: 'PATCH',\n    url: `${TEST_API}/configuracion/identidad-visual/${baseline179.id_finca}`,\n    headers: {\n      Authorization: `Bearer ${token}`\n    },\n    form: true,\n    body: {\n      primary_color: COLOR_BAJO,\n      secondary_color: baseline179.secondary_color,\n      org_display_name: baseline179.org_display_name,\n      version: baseline179.version\n    },\n    failOnStatusCode: false\n  }).then(patchRes => {\n    expect(patchRes.status, 'PATCH color de prueba HTTP').to.be.oneOf([200, 201]);\n    const acc = patchRes.body && patchRes.body.accesibilidad;\n    const claro = acc && acc.primary_color && acc.primary_color.claro;\n    expect(claro, 'accesibilidad.primary_color.claro tras PATCH').to.exist;\n    expect(String(patchRes.body.primary_color).toUpperCase(), 'almacenado #FFFFFF').to.eq(COLOR_BAJO);\n    expect(claro.cumple_aa, 'cumple_aa claro').to.eq(false);\n    expect(claro.ratio, 'ratio < 4.5').to.be.lessThan(4.5);\n    expect(claro.color_ajustado, 'color_ajustado').to.be.a('string').and.not.empty;\n    expect(String(claro.color_ajustado).toUpperCase(), 'ajustado distinto de blanco').to.not.eq(COLOR_BAJO);\n    expect(claro.aviso, 'aviso API').to.be.a('string').and.not.empty;\n    cy.visit(`${TEST_FRONT}/dashboard`);\n    cy.url().should('not.include', '/login');\n    cy.document().then(doc => {\n      const cssPrimario = doc.documentElement.style.getPropertyValue(CSS_MARCA).trim() || doc.defaultView.getComputedStyle(doc.documentElement).getPropertyValue(CSS_MARCA).trim();\n      const aplicado = (cssPrimario || '').replace(/\\s/g, '').toUpperCase();\n      const ajustado = String(claro.color_ajustado).toUpperCase();\n      cy.writeFile(`${EVIDENCIA}/G94-rev2-179-resultado.json`, {\n        via: 'PATCH /configuracion/identidad-visual/4 (no CSS del producto)',\n        color_enviado: COLOR_BAJO,\n        color_almacenado: patchRes.body.primary_color,\n        tema_evaluado: 'claro',\n        ratio: claro.ratio,\n        fondo: claro.fondo,\n        cumple_aa: claro.cumple_aa,\n        color_ajustado: claro.color_ajustado,\n        aviso: claro.aviso,\n        css_brand_500: cssPrimario || null,\n        css_aplica_ajustado: aplicado === ajustado,\n        css_sigue_blanco: aplicado === COLOR_BAJO\n      });\n    });\n  });\n});",
+              "err": {},
+              "uuid": "55d76d9c-56bd-47ce-b4ef-28488c7e3570",
+              "parentUUID": "4261cafd-822e-4785-80f9-6a92d9287021",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "55d76d9c-56bd-47ce-b4ef-28488c7e3570"
+          ],
+          "failures": [
+            "c0a53817-71c0-4156-b7a9-192344d8b494"
+          ],
+          "pending": [],
+          "skipped": [],
+          "duration": 27124,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G94_rev2_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\Resultados",
+        "reportFilename": "TC-M09-G94_rev2_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

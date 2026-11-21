@@ -1,0 +1,126 @@
+{
+ "ejecutado": "2026-11-02T23:38:00",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "finca": 3,
+ "creados": {
+  "infra": 17,
+  "infra_extra": null,
+  "lotes": [
+   22,
+   23
+  ]
+ },
+ "pasos": [
+  {
+   "id": "P1",
+   "descripcion": "Crear area de 3.05 m2 con Pollo de engorde (densidad 10.0)",
+   "esperado": "201, capacidad_maxima=30",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=30 id=17"
+  },
+  {
+   "id": "P2",
+   "descripcion": "Un lote de 31 pollos en area vacia (uno sobre el limite)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-POLLO-CAP-233754' superaría su capacidad efectiva (3"
+  },
+  {
+   "id": "P3",
+   "descripcion": "Lote de 29 pollos (un animal bajo el limite)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=22"
+  },
+  {
+   "id": "P4",
+   "descripcion": "Segundo lote de 1 pollo (total 30: limite exacto)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=23"
+  },
+  {
+   "id": "P5",
+   "descripcion": "Tercer lote de 1 pollo (total 31)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-POLLO-CAP-233754' superaría su capacidad efectiva (3"
+  },
+  {
+   "id": "P6",
+   "descripcion": "Leer area: capacidad_maxima",
+   "esperado": "30",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=30"
+  },
+  {
+   "id": "P7",
+   "descripcion": "Reducir superficie a 3.0 m2 con 30 pollos (capacidad 30)",
+   "esperado": "200 (limite)",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=30"
+  },
+  {
+   "id": "P8",
+   "descripcion": "Reducir superficie a 2.99 m2 (capacidad 29) con 30 pollos",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-POLLO-CAP-233754' superaría su capacidad efectiva (2"
+  },
+  {
+   "id": "P9",
+   "descripcion": "La superficie no cambio tras el rechazo",
+   "esperado": "3.00",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "superficie=3.00"
+  },
+  {
+   "id": "P10",
+   "descripcion": "Area con Pollo de engorde + Bovino (AVES + ESPECIES_GRANDES)",
+   "esperado": "422 GRUPOS_MANEJO_INCOMPATIBLES",
+   "status": 422,
+   "error_code": "GRUPOS_MANEJO_INCOMPATIBLES",
+   "resultado": "PASA",
+   "detalle": "Grupos de manejo incompatibles: el área 'QA-FLUJO-POLLO-MIX-233754' aloja especies del grupo 'AVES' "
+  },
+  {
+   "id": "L-lote-22",
+   "descripcion": "Limpieza: baja del lote completo",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "L-lote-23",
+   "descripcion": "Limpieza: baja del lote completo",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "L-infra-17",
+   "descripcion": "Limpieza: desactivar area",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  }
+ ]
+}

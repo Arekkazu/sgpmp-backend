@@ -1,0 +1,4772 @@
+{
+  "grupo": "TC-M03-G88",
+  "rf": "RF-58",
+  "version": 1,
+  "intento": 15,
+  "run_id": "RUN-G88-V1-20261030-202846",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G88-V1-R16-20261030",
+  "ambiente": "TEST",
+  "inicio": "2026-10-30T20:28:47.048Z",
+  "fin": "2026-10-30T20:30:23.150Z",
+  "estado": "CONCLUIDA",
+  "commit": "NO VERIFICADO",
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2; una ejecución; JSON y HTML reales",
+    "cypress": "Cypress 14.5.4; Chrome headless 156.0.8078.74; 5 pruebas"
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "COMP-AREAS",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "COMP-GATEWAY",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "COMP-UMBRALES",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "ALTA-M09",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "UMBRAL-INICIAL",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"valor_min\":\"10.00\",\"valor_max\":\"20.00\",\"estado_sincronizacion\":\"PENDIENTE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "BARRERA-alta",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "EDICION-M09",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "UMBRAL-FINAL",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"valor_min\":\"20.00\",\"valor_max\":\"30.00\",\"estado_sincronizacion\":\"PENDIENTE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "tipo": "PRE",
+      "id": "BARRERA-edicion",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "id": "HIST-inicial",
+      "tipo": "APOYO",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; error_code=ausente; lectura=118482",
+      "motivo": "Lectura identificada en historial.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "id": "HIST-final",
+      "tipo": "APOYO",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; error_code=ausente; lectura=118482",
+      "motivo": "Lectura identificada en historial.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "id": "API-266-01",
+      "tipo": "ASSERT",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; valor=15.0000; semáforo=VERDE; lectura=118482; barrera=true",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-266",
+      "id": "API-266-02",
+      "tipo": "ASSERT",
+      "fuente": "API",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; valor=15.0000; semáforo=VERDE; misma_lectura=true; barrera=true",
+      "motivo": "HTTP 200; valor=15.0000; semáforo=VERDE; misma_lectura=true; barrera=true",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "id": "API-169-01",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; sensor presente=true",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "PRE",
+      "id": "PRE-169-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "PRE",
+      "id": "PRE-169-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"15.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "ASSERT",
+      "id": "API-169-02",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"15.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "PRE",
+      "id": "PRE-169-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "PRE",
+      "id": "PRE-169-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"22.5000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "ASSERT",
+      "id": "API-169-03",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"22.5000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "PRE",
+      "id": "PRE-169-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "PRE",
+      "id": "PRE-169-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"30.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-169",
+      "tipo": "ASSERT",
+      "id": "API-169-04",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"30.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "id": "API-170-01",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; sensor presente=true",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "PRE",
+      "id": "PRE-170-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "PRE",
+      "id": "PRE-170-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"30.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "ASSERT",
+      "id": "API-170-02",
+      "fuente": "API",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; entrada=13.65; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 13.65 +/- 0.0001",
+      "motivo": "HTTP 200; entrada=13.65; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 13.65 +/- 0.0001",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "PRE",
+      "id": "PRE-170-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "PRE",
+      "id": "PRE-170-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"30.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "ASSERT",
+      "id": "API-170-03",
+      "fuente": "API",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; entrada=14.85; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 14.85 +/- 0.0001",
+      "motivo": "HTTP 200; entrada=14.85; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 14.85 +/- 0.0001",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "PRE",
+      "id": "PRE-170-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "PRE",
+      "id": "PRE-170-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"30.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "ASSERT",
+      "id": "API-170-04",
+      "fuente": "API",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; entrada=30.15; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 30.15 +/- 0.0001",
+      "motivo": "HTTP 200; entrada=30.15; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 30.15 +/- 0.0001",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "PRE",
+      "id": "PRE-170-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "PRE",
+      "id": "PRE-170-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"30.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-170",
+      "tipo": "ASSERT",
+      "id": "API-170-05",
+      "fuente": "API",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; entrada=31.35; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 31.35 +/- 0.0001",
+      "motivo": "HTTP 200; entrada=31.35; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 31.35 +/- 0.0001",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-171",
+      "id": "API-171-01",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; sensor presente=true",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-171",
+      "tipo": "PRE",
+      "id": "PRE-171-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-171",
+      "tipo": "PRE",
+      "id": "PRE-171-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"30.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-171",
+      "tipo": "ASSERT",
+      "id": "API-171-02",
+      "fuente": "API",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; entrada=13.35; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 13.35 +/- 0.0001",
+      "motivo": "HTTP 200; entrada=13.35; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 13.35 +/- 0.0001",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-171",
+      "tipo": "PRE",
+      "id": "PRE-171-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-171",
+      "tipo": "PRE",
+      "id": "PRE-171-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"30.0000\",\"estado_semaforo\":\"VERDE\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-171",
+      "tipo": "ASSERT",
+      "id": "API-171-03",
+      "fuente": "API",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; entrada=31.65; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 31.65 +/- 0.0001",
+      "motivo": "HTTP 200; entrada=31.65; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 31.65 +/- 0.0001",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-172",
+      "id": "API-172-A",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; 4 umbrales; campos umbral=es_activo,estado_sincronizacion,fecha_actualizacion,fecha_ultima_sincronizacion,id_especie,id_umbral_ambiental,id_variable_ambiental,motivo_fallo_sincronizacion,niveles,unidad_medida,valor_max,valor_min; campos niveles=limite_inferior,limite_superior,nivel / limite_inferior,limite_superior,nivel / limite_inferior,limite_superior,nivel; ausencia T=true",
+      "motivo": "HTTP 200; 4 umbrales; campos umbral=es_activo,estado_sincronizacion,fecha_actualizacion,fecha_ultima_sincronizacion,id_especie,id_umbral_ambiental,id_variable_ambiental,motivo_fallo_sincronizacion,niveles,unidad_medida,valor_max,valor_min; campos niveles=limite_inferior,limite_superior,nivel / limite_inferior,limite_superior,nivel / limite_inferior,limite_superior,nivel; ausencia T=true",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-180",
+      "id": "API-180-01",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "HTTP 200; sensor presente=true",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-180",
+      "id": "API-180-03",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "estado_semaforo=GRIS; etiqueta=Sin umbral configurado",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-180",
+      "tipo": "PRE",
+      "id": "PRE-180-INGESTA",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 201; {}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-180",
+      "tipo": "PRE",
+      "id": "PRE-180-DASHBOARD",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"5.0000\",\"estado_semaforo\":\"GRIS\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-180",
+      "tipo": "ASSERT",
+      "id": "API-180-02",
+      "fuente": "API",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "HTTP 200; {\"ultimo_valor\":\"5.0000\",\"estado_semaforo\":\"GRIS\"}",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "newman/newman-TC-M03-G88.json"
+    },
+    {
+      "caso": "TC-M03-180",
+      "id": "API-180-04",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "Bitácora E7 nueva=0; aviso previo=2026-10-30T19:25:34.419419Z, sensor 737, variable NH3, administradores_avisados=15; deduplicación de 24 h impidió observar un aviso nuevo en este RUN; HTTP 200; espera 15096 ms; correo SMTP irreversible, entrega no verificable por API.",
+      "motivo": "Comprobación conforme.",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M03-172",
+      "id": "UI-172",
+      "fuente": "UI",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "naturaleza": "PRODUCTO",
+      "observado": "Formulario sin control T/tolerancia; captura real."
+    },
+    {
+      "caso": "TC-M03-180",
+      "tipo": "PRE",
+      "id": "PRE-UI-01",
+      "fuente": "UI",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "passed"
+    },
+    {
+      "caso": "TC-M03-180",
+      "tipo": "ASSERT",
+      "id": "UI-180-01",
+      "fuente": "UI",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "tarjeta del sensor NH3 visible; captura cypress/g88.cy.js/TC-M03-180_productor_sensor_sin_umbral.png"
+    },
+    {
+      "caso": "TC-M03-180",
+      "tipo": "ASSERT",
+      "id": "UI-180-02",
+      "fuente": "UI",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "tarjeta del sensor NH3: valor 5 ppm visible; captura cypress/g88.cy.js/TC-M03-180_productor_sensor_sin_umbral.png"
+    },
+    {
+      "caso": "TC-M03-180",
+      "tipo": "ASSERT",
+      "id": "UI-180-03",
+      "fuente": "UI",
+      "estado": "APROBADO",
+      "naturaleza": null,
+      "observado": "etiqueta \"Sin umbral configurado\" y píldora GRIS visibles; captura cypress/g88.cy.js/TC-M03-180_productor_sensor_sin_umbral.png"
+    }
+  ],
+  "comprobaciones_tecnicas": [
+    {
+      "id": "DBA-01-01",
+      "estado": "APROBADO",
+      "observado": "Login Administrador HTTP 200; /usuarios/me HTTP 200; rol e identidad=true",
+      "naturaleza": "DBA-01",
+      "veredicto_rf58": false
+    },
+    {
+      "id": "DBA-01-02",
+      "estado": "APROBADO",
+      "observado": "Dos logins Productor HTTP 200/200; /usuarios/me HTTP 200/200; identidad sin herencia=true",
+      "naturaleza": "DBA-01",
+      "veredicto_rf58": false
+    },
+    {
+      "id": "DBA-01-03",
+      "estado": "APROBADO",
+      "observado": "Login Administrador HTTP 200; /usuarios/me HTTP 200; rol e identidad=true",
+      "naturaleza": "DBA-01",
+      "veredicto_rf58": false
+    },
+    {
+      "id": "DBA-01-04",
+      "estado": "APROBADO",
+      "observado": "Segundo login Administrador HTTP 200; /usuarios/me HTTP 200; rol e identidad=true",
+      "naturaleza": "DBA-01",
+      "veredicto_rf58": false
+    },
+    {
+      "id": "DBA-01-05",
+      "estado": "APROBADO",
+      "observado": "DELETE 573 ms; HTTP 200; timeout en RUN=false",
+      "naturaleza": "DBA-01",
+      "veredicto_rf58": false
+    }
+  ],
+  "cuentas": [
+    {
+      "etapa": "ADMIN_INICIAL",
+      "rol_esperado": "admin",
+      "http": 200,
+      "rol_correcto": true,
+      "identidad_correcta": true,
+      "finca_184_asignada": false
+    },
+    {
+      "etapa": "ADMIN_A_PRODUCTOR",
+      "rol_esperado": "prod",
+      "http": 200,
+      "rol_correcto": true,
+      "identidad_correcta": true,
+      "finca_184_asignada": true
+    },
+    {
+      "etapa": "PRODUCTOR_A_ADMIN",
+      "rol_esperado": "admin",
+      "http": 200,
+      "rol_correcto": true,
+      "identidad_correcta": true,
+      "finca_184_asignada": false
+    },
+    {
+      "etapa": "ADMIN_REPETIDO",
+      "rol_esperado": "admin",
+      "http": 200,
+      "rol_correcto": true,
+      "identidad_correcta": true,
+      "finca_184_asignada": false
+    },
+    {
+      "etapa": "PRODUCTOR_VIGENTE",
+      "rol_esperado": "prod",
+      "http": 200,
+      "rol_correcto": true,
+      "identidad_correcta": true,
+      "finca_184_asignada": true
+    }
+  ],
+  "casos": {
+    "TC-M03-169": {
+      "estado": "APROBADO",
+      "veredicto_funcional": "APROBADO",
+      "estado_tecnico": "OK",
+      "motivo": "Todas las comprobaciones obligatorias aprobadas.",
+      "justificacion_veredicto": "Todas las comprobaciones obligatorias aprobadas.",
+      "evidencia_veredicto": [
+        "API-169-01",
+        "API-169-02",
+        "API-169-03",
+        "API-169-04",
+        "newman/newman-TC-M03-G88.json"
+      ],
+      "faltantes": [],
+      "incidencias_automatizacion": [],
+      "hallazgos_producto": [
+        {
+          "caso": "TC-M03-169",
+          "entrada": "169a",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118472: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        },
+        {
+          "caso": "TC-M03-169",
+          "entrada": "169b",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118473: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        },
+        {
+          "caso": "TC-M03-169",
+          "entrada": "169c",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118474: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        }
+      ]
+    },
+    "TC-M03-170": {
+      "estado": "RECHAZADO",
+      "veredicto_funcional": "RECHAZADO",
+      "estado_tecnico": "OK",
+      "motivo": "Discrepancia funcional comprobada.",
+      "justificacion_veredicto": "Discrepancia funcional comprobada.",
+      "evidencia_veredicto": [
+        "API-170-01",
+        "API-170-02",
+        "API-170-03",
+        "API-170-04",
+        "API-170-05",
+        "newman/newman-TC-M03-G88.json"
+      ],
+      "faltantes": [],
+      "incidencias_automatizacion": [],
+      "hallazgos_producto": [
+        {
+          "caso": "TC-M03-170",
+          "entrada": "170a",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118475: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        },
+        {
+          "caso": "TC-M03-170",
+          "entrada": "170b",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118476: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        },
+        {
+          "caso": "TC-M03-170",
+          "entrada": "170c",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118477: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        },
+        {
+          "caso": "TC-M03-170",
+          "entrada": "170d",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118478: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        }
+      ]
+    },
+    "TC-M03-171": {
+      "estado": "RECHAZADO",
+      "veredicto_funcional": "RECHAZADO",
+      "estado_tecnico": "OK",
+      "motivo": "Discrepancia funcional comprobada.",
+      "justificacion_veredicto": "Discrepancia funcional comprobada.",
+      "evidencia_veredicto": [
+        "API-171-01",
+        "API-171-02",
+        "API-171-03",
+        "newman/newman-TC-M03-G88.json"
+      ],
+      "faltantes": [],
+      "incidencias_automatizacion": [],
+      "hallazgos_producto": [
+        {
+          "caso": "TC-M03-171",
+          "entrada": "171a",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118479: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        },
+        {
+          "caso": "TC-M03-171",
+          "entrada": "171b",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118480: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+        }
+      ]
+    },
+    "TC-M03-172": {
+      "estado": "RECHAZADO",
+      "veredicto_funcional": "RECHAZADO",
+      "estado_tecnico": "OK",
+      "motivo": "Ausencia de T acreditada por API y UI en TEST.",
+      "justificacion_veredicto": "Ausencia de T acreditada por API y UI en TEST.",
+      "evidencia_veredicto": [
+        "API-172-A",
+        "UI-172",
+        "newman/newman-TC-M03-G88.json",
+        "cypress/g88.cy.js/TC-M03-172 — T configurable en M09 -- [TC-M03-172][ASSERT][UI-172] El formulario de umbral permite configurar T (failed).png",
+        "cypress/g88.cy.js/TC-M03-172_formulario_umbral_sin_guardar.png"
+      ],
+      "faltantes": [],
+      "incidencias_automatizacion": [],
+      "hallazgos_producto": []
+    },
+    "TC-M03-180": {
+      "estado": "APROBADO",
+      "veredicto_funcional": "APROBADO",
+      "estado_tecnico": "OK",
+      "motivo": "Todas las comprobaciones obligatorias aprobadas.",
+      "justificacion_veredicto": "Todas las comprobaciones obligatorias aprobadas.",
+      "evidencia_veredicto": [
+        "API-180-01",
+        "API-180-03",
+        "API-180-02",
+        "API-180-04",
+        "UI-180-01",
+        "UI-180-02",
+        "UI-180-03",
+        "newman/newman-TC-M03-G88.json",
+        "cypress/g88.cy.js/TC-M03-180_productor_sensor_sin_umbral.png",
+        "cypress/g88.cy.js/TC-M03-180_vista_monitoreo.png"
+      ],
+      "faltantes": [],
+      "incidencias_automatizacion": [],
+      "hallazgos_producto": [
+        {
+          "caso": "TC-M03-180",
+          "tipo": "HALLAZGO_PRODUCTO",
+          "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+          "evidencia": "GET /iot/vinculaciones",
+          "observado": "Lectura 118481: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+          "certeza": "PROBABLE",
+          "nota": "Posible defecto sujeto a RF-61-A; no condiciona el veredicto RF-58."
+        }
+      ]
+    },
+    "TC-M03-266": {
+      "estado": "RECHAZADO",
+      "veredicto_funcional": "RECHAZADO",
+      "estado_tecnico": "OK",
+      "motivo": "Misma lectura sigue VERDE tras PATCH M09.",
+      "justificacion_veredicto": "Misma lectura sigue VERDE tras PATCH M09.",
+      "evidencia_veredicto": [
+        "API-266-01",
+        "API-266-02",
+        "newman/newman-TC-M03-G88.json"
+      ],
+      "faltantes": [],
+      "incidencias_automatizacion": [],
+      "hallazgos_producto": []
+    }
+  },
+  "bloqueos": {
+    "TC-M03-169": [],
+    "TC-M03-170": [],
+    "TC-M03-171": [],
+    "TC-M03-172": [],
+    "TC-M03-180": [],
+    "TC-M03-266": []
+  },
+  "evidencias": [
+    "resultado.json",
+    "newman/newman-TC-M03-G88.html",
+    "newman/newman-TC-M03-G88.json",
+    "cypress/UI-172.json",
+    "cypress/UI-172.log",
+    "cypress/UI-172-excepciones.json",
+    "cypress/UI-172-login-error.json",
+    "cypress/UI-172-operaciones.json",
+    "cypress/UI-172-solicitudes.json",
+    "cypress/g88.cy.js/TC-M03-172 — T configurable en M09 -- [TC-M03-172][ASSERT][UI-172] El formulario de umbral permite configurar T (failed).png",
+    "cypress/g88.cy.js/TC-M03-172_formulario_umbral_sin_guardar.png",
+    "cypress/UI-180.json",
+    "cypress/UI-180.log",
+    "cypress/UI-180-login-error.json",
+    "cypress/UI-180-solicitudes.json",
+    "cypress/g88.cy.js/TC-M03-180_productor_sensor_sin_umbral.png",
+    "cypress/g88.cy.js/TC-M03-180_vista_monitoreo.png"
+  ],
+  "incidencias": [
+    {
+      "caso": "TC-M03-170",
+      "comprobacion": "API-170-02",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia API API-170-02; E1: PRE aprobadas; E2: observado HTTP 200; entrada=13.65; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango; aserción=expected 30 to be close to 13.65 +/- 0.0001; E3: newman/newman-TC-M03-G88.json, cypress/g88.cy.js/TC-M03-172 — T configurable en M09 -- [TC-M03-172][ASSERT][UI-172] El formulario de umbral permite configurar T (failed).png. Derivación inicial; causa raíz no determinada. El mismo patrón FUERA_DE_RANGO y dashboard 30 VERDE afecta 170 y 171; se registra una incidencia conjunta.",
+      "escalamiento": null,
+      "severidad": "ALTA",
+      "justificacion_severidad": "ALTA: seis lecturas de advertencia o condición crítica aceptadas no aparecen como estado AMARILLO/ROJO; el dashboard conserva 30 VERDE y puede ocultar el riesgo operativo.",
+      "certeza": "CONFIRMADA",
+      "causa_raiz": "NO DETERMINADA",
+      "casos": [
+        "TC-M03-170",
+        "TC-M03-171"
+      ],
+      "comprobaciones": [
+        "API-170-02",
+        "API-170-03",
+        "API-170-04",
+        "API-170-05",
+        "API-171-02",
+        "API-171-03"
+      ]
+    },
+    {
+      "caso": "TC-M03-172",
+      "comprobacion": "API-172-A",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia API API-172-A; E1: GET y UI concordantes; E2: observado HTTP 200; 4 umbrales; campos umbral=es_activo,estado_sincronizacion,fecha_actualizacion,fecha_ultima_sincronizacion,id_especie,id_umbral_ambiental,id_variable_ambiental,motivo_fallo_sincronizacion,niveles,unidad_medida,valor_max,valor_min; campos niveles=limite_inferior,limite_superior,nivel / limite_inferior,limite_superior,nivel / limite_inferior,limite_superior,nivel; ausencia T=true; E3: resultado.json, cypress/g88.cy.js/TC-M03-172 — T configurable en M09 -- [TC-M03-172][ASSERT][UI-172] El formulario de umbral permite configurar T (failed).png. Derivación inicial; causa raíz no determinada.",
+      "escalamiento": null,
+      "severidad": "MEDIA",
+      "justificacion_severidad": "2 comprobación(es) funcional(es) discrepante(s) en TC-M03-172; primera API-172-A, observado HTTP 200; 4 umbrales; campos umbral=es_activo,estado_sincronizacion,fecha_actualizacion,fecha_ultima_sincronizacion,id_especie,id_umbral_ambiental,id_variable_ambiental,motivo_fallo_sincronizacion,niveles,unidad_medida,valor_max,valor_min; campos niveles=limite_inferior,limite_superior,nivel / limite_inferior,limite_superior,nivel / limite_inferior,limite_superior,nivel; ausencia T=true. Falta la configurabilidad T exigida; la T por defecto sigue operativa, impacto parcial.",
+      "certeza": "CONFIRMADA",
+      "causa_raiz": "NO DETERMINADA"
+    },
+    {
+      "caso": "TC-M03-266",
+      "comprobacion": "API-266-02",
+      "equipo": "Desarrollo",
+      "fundamento": "Primera discrepancia API API-266-02; E1: semilla API y lectura inicial acreditadas; E2: observado HTTP 200; valor=15.0000; semáforo=VERDE; misma_lectura=true; barrera=true; E3: newman/newman-TC-M03-G88.json, GET dashboard inicial en Newman y resultado.json, cypress/g88.cy.js/TC-M03-172 — T configurable en M09 -- [TC-M03-172][ASSERT][UI-172] El formulario de umbral permite configurar T (failed).png. Derivación inicial; causa raíz no determinada.",
+      "escalamiento": null,
+      "severidad": "ALTA",
+      "justificacion_severidad": "1 comprobación(es) funcional(es) discrepante(s) en TC-M03-266; primera API-266-02, observado HTTP 200; valor=15.0000; semáforo=VERDE; misma_lectura=true; barrera=true. Bloquea el recálculo dinámico exigido.",
+      "certeza": "CONFIRMADA",
+      "causa_raiz": "NO DETERMINADA"
+    }
+  ],
+  "incidencias_automatizacion": [],
+  "hallazgos_producto": [
+    {
+      "caso": "TC-M03-169",
+      "entrada": "169a",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118472: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-169",
+      "entrada": "169b",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118473: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-169",
+      "entrada": "169c",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118474: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-170",
+      "entrada": "170a",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118475: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-170",
+      "entrada": "170b",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118476: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-170",
+      "entrada": "170c",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118477: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-170",
+      "entrada": "170d",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118478: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-171",
+      "entrada": "171a",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118479: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-171",
+      "entrada": "171b",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118480: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto al requisito RF-61-A; no condiciona el veredicto RF-58."
+    },
+    {
+      "caso": "TC-M03-180",
+      "tipo": "HALLAZGO_PRODUCTO",
+      "descripcion": "Lectura sin vinculación RF-61-A pese a activo único vinculable",
+      "evidencia": "GET /iot/vinculaciones",
+      "observado": "Lectura 118481: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349.",
+      "certeza": "PROBABLE",
+      "nota": "Posible defecto sujeto a RF-61-A; no condiciona el veredicto RF-58."
+    }
+  ],
+  "oficial": true,
+  "motivo_no_oficial": null,
+  "clasificacion_prevista": "OFICIAL",
+  "problemas_tecnicos": [],
+  "cierre": {
+    "cierre_http": 200,
+    "rollback": {
+      "verificado": true,
+      "asociaciones": [
+        {
+          "caso": "TC-M03-169",
+          "ruta": "/configuracion/sensores/552/asociaciones",
+          "http": 200,
+          "coincide": true
+        }
+      ],
+      "dashboard": [
+        {
+          "caso": "TC-M03-169",
+          "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+          "http": 200,
+          "coincide": true
+        }
+      ],
+      "umbrales": [
+        {
+          "caso": "TC-M03-169",
+          "ruta": "/configuracion/umbrales?id_especie=126",
+          "http": 200,
+          "coincide": true
+        },
+        {
+          "caso": "TC-M03-266",
+          "ruta": "/configuracion/umbrales?id_especie=220",
+          "http": 200,
+          "coincide": true
+        }
+      ],
+      "umbral_run_266": {
+        "id": 135,
+        "ruta": "/configuracion/umbrales?id_especie=220",
+        "http": 200,
+        "completo": true,
+        "ausente": true,
+        "estado": "REVERTIDO_VERIFICADO"
+      },
+      "umbral_qa_91": {
+        "ruta": "/configuracion/umbrales?id_especie=220",
+        "http": 200,
+        "completo": true,
+        "ausente": true,
+        "estado": "REVERTIDO_VERIFICADO"
+      },
+      "historial": [
+        {
+          "caso": "TC-M03-266",
+          "ruta": "/iot/monitoreo/historial?sensor_id=738&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-169",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-169",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-169",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-170",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-170",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-170",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-170",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-171",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-171",
+          "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        },
+        {
+          "caso": "TC-M03-180",
+          "ruta": "/iot/monitoreo/historial?sensor_id=737&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+          "http": 200,
+          "completo": true,
+          "ausente": true
+        }
+      ],
+      "conclusion": "ROLLBACK_CONFIRMADO"
+    },
+    "errores": [],
+    "run": {
+      "cierre_http": 200
+    }
+  },
+  "cypress": {
+    "total_pruebas": 5,
+    "casos": {
+      "TC-M03-172": {
+        "estado": "EJECUTADO_CON_COMPROBACIONES",
+        "total_pruebas": 1,
+        "fallidas": 1
+      },
+      "TC-M03-180": {
+        "estado": "EJECUTADO_CON_COMPROBACIONES",
+        "total_pruebas": 4,
+        "fallidas": 0
+      }
+    }
+  },
+  "bitacora": [
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/G88-V1-20261030-202846-NO-EXISTE",
+      "en_run": false,
+      "latencia_ms": 861,
+      "status": 404,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": true,
+      "latencia_ms": 695,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "latencia_ms": 154,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": true,
+      "latencia_ms": 396,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "latencia_ms": 157,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": true,
+      "latencia_ms": 412,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "latencia_ms": 157,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": true,
+      "latencia_ms": 419,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "latencia_ms": 156,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": true,
+      "latencia_ms": 410,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": true,
+      "latencia_ms": 181,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/504",
+      "en_run": true,
+      "latencia_ms": 172,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 158,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 154,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357",
+      "en_run": true,
+      "latencia_ms": 158,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": true,
+      "latencia_ms": 154,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357/sensores",
+      "en_run": true,
+      "latencia_ms": 159,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": true,
+      "latencia_ms": 146,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": true,
+      "latencia_ms": 143,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357",
+      "en_run": true,
+      "latencia_ms": 155,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357/sensores",
+      "en_run": true,
+      "latencia_ms": 149,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": true,
+      "latencia_ms": 149,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": true,
+      "latencia_ms": 155,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": true,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 146,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357",
+      "en_run": true,
+      "latencia_ms": 162,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": true,
+      "latencia_ms": 143,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357/sensores",
+      "en_run": true,
+      "latencia_ms": 155,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": true,
+      "latencia_ms": 146,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": true,
+      "latencia_ms": 148,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": true,
+      "latencia_ms": 148,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 146,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357",
+      "en_run": true,
+      "latencia_ms": 155,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/349",
+      "en_run": true,
+      "latencia_ms": 161,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/357/sensores",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/737/calibraciones",
+      "en_run": true,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": true,
+      "latencia_ms": 147,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 581,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 149,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 151,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "en_run": true,
+      "latencia_ms": 151,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": true,
+      "latencia_ms": 148,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 640,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 167,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": true,
+      "latencia_ms": 171,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "sustitucion_datos": "Umbral M09 existente",
+      "min": 15,
+      "max": 30,
+      "T": 1.5,
+      "calibracion": "valor_objetivo = entrada * ganancia + offset",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "20.00",
+          "limite_superior": "30.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "19.00",
+          "limite_superior": "20.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "15.00",
+          "limite_superior": "19.00"
+        }
+      ],
+      "alertas_activas_antes": [],
+      "entradas": [
+        {
+          "clave": "169a",
+          "valor": 15,
+          "esperado": "VERDE",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 15
+        },
+        {
+          "clave": "169b",
+          "valor": 22.5,
+          "esperado": "VERDE",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 22.5
+        },
+        {
+          "clave": "169c",
+          "valor": 30,
+          "esperado": "VERDE",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 30
+        }
+      ]
+    },
+    {
+      "caso": "TC-M03-169",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos",
+      "en_run": true,
+      "latencia_ms": 165,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "precomprobacion_activo": "UNICO_VINCULABLE",
+      "area_id": 349,
+      "activo_id": 884
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": true,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 621,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 148,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": true,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "sustitucion_datos": "Umbral M09 existente",
+      "min": 15,
+      "max": 30,
+      "T": 1.5,
+      "calibracion": "valor_objetivo = entrada * ganancia + offset",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "20.00",
+          "limite_superior": "30.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "19.00",
+          "limite_superior": "20.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "15.00",
+          "limite_superior": "19.00"
+        }
+      ],
+      "alertas_activas_antes": [],
+      "entradas": [
+        {
+          "clave": "170a",
+          "valor": 13.65,
+          "esperado": "AMARILLO",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 13.65
+        },
+        {
+          "clave": "170b",
+          "valor": 14.85,
+          "esperado": "AMARILLO",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 14.85
+        },
+        {
+          "clave": "170c",
+          "valor": 30.15,
+          "esperado": "AMARILLO",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 30.15
+        },
+        {
+          "clave": "170d",
+          "valor": 31.35,
+          "esperado": "AMARILLO",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 31.35
+        }
+      ]
+    },
+    {
+      "caso": "TC-M03-170",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos",
+      "en_run": true,
+      "latencia_ms": 164,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "precomprobacion_activo": "UNICO_VINCULABLE",
+      "area_id": 349,
+      "activo_id": 884
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": true,
+      "latencia_ms": 149,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 574,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": true,
+      "latencia_ms": 149,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/calibraciones",
+      "en_run": true,
+      "latencia_ms": 142,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "sustitucion_datos": "Umbral M09 existente",
+      "min": 15,
+      "max": 30,
+      "T": 1.5,
+      "calibracion": "valor_objetivo = entrada * ganancia + offset",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "20.00",
+          "limite_superior": "30.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "19.00",
+          "limite_superior": "20.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "15.00",
+          "limite_superior": "19.00"
+        }
+      ],
+      "alertas_activas_antes": [],
+      "entradas": [
+        {
+          "clave": "171a",
+          "valor": 13.35,
+          "esperado": "ROJO",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 13.35
+        },
+        {
+          "clave": "171b",
+          "valor": 31.65,
+          "esperado": "ROJO",
+          "preparable": true,
+          "motivo": null,
+          "valor_enviado": 31.65
+        }
+      ]
+    },
+    {
+      "caso": "TC-M03-171",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "precomprobacion_activo": "UNICO_VINCULABLE",
+      "area_id": 349,
+      "activo_id": 884
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 151,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos",
+      "en_run": true,
+      "latencia_ms": 164,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "pre_ingesta_umbrales_activos_nh3": 0,
+      "especie_id": 126,
+      "variable_id": 11
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/especies",
+      "en_run": true,
+      "latencia_ms": 363,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras/504",
+      "en_run": true,
+      "latencia_ms": 154,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/activos-biologicos",
+      "en_run": true,
+      "latencia_ms": 156,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot",
+      "en_run": true,
+      "latencia_ms": 2317,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/520",
+      "en_run": true,
+      "latencia_ms": 158,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/dispositivos-iot/520/sensores",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/738/asociaciones",
+      "en_run": true,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/738/calibraciones",
+      "en_run": true,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "en_run": true,
+      "latencia_ms": 144,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/rangos-calibracion",
+      "en_run": true,
+      "latencia_ms": 154,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 144,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": true,
+      "latencia_ms": 163,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": true,
+      "latencia_ms": 549,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 148,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/alertas",
+      "en_run": true,
+      "latencia_ms": 146,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "etapa": "COMPUERTA_PUBLICA",
+      "especie_id": 220,
+      "area_id": 504,
+      "dispositivo_id": 520,
+      "gateways": 0,
+      "umbrales": 0,
+      "resultado": "ACREDITADA_EN_RUN"
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": true,
+      "latencia_ms": 142,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "etapa": "NEWMAN_UNICO",
+      "invocaciones": 1,
+      "solicitudes": 35,
+      "casos": [
+        "TC-M03-169",
+        "TC-M03-170",
+        "TC-M03-171",
+        "TC-M03-172",
+        "TC-M03-180",
+        "TC-M03-266"
+      ],
+      "json": 1,
+      "html": 1
+    },
+    {
+      "caso": "TC-M03-266",
+      "etapa": "ALTA_M09",
+      "umbral_id": 135,
+      "estado": "PENDIENTE",
+      "estado_sincronizacion": "PENDIENTE",
+      "gateways_count": 0,
+      "gateway_observado": false,
+      "barrera_segura": true,
+      "eventos": 1
+    },
+    {
+      "caso": "TC-M03-266",
+      "etapa": "EDICION_M09",
+      "umbral_id": 135,
+      "estado": "PENDIENTE",
+      "estado_sincronizacion": "PENDIENTE",
+      "gateways_count": 0,
+      "gateway_observado": false,
+      "barrera_segura": true,
+      "eventos": 1
+    },
+    {
+      "caso": "TC-M03-169",
+      "comprobacion": "API-169-02",
+      "timestamp_captura_enviado": "2026-10-30T20:26:01.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-169",
+      "id_telemetria": 118472,
+      "dashboard_lectura_del_run": true,
+      "timestamp_captura": "2026-10-30T20:26:01.801Z",
+      "valor": 15
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "entrada": "169a",
+      "id_telemetria": 118472,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118472: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-169",
+      "comprobacion": "API-169-03",
+      "timestamp_captura_enviado": "2026-10-30T20:26:06.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-169",
+      "id_telemetria": 118473,
+      "dashboard_lectura_del_run": true,
+      "timestamp_captura": "2026-10-30T20:26:06.801Z",
+      "valor": 22.5
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 144,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "entrada": "169b",
+      "id_telemetria": 118473,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118473: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-169",
+      "comprobacion": "API-169-04",
+      "timestamp_captura_enviado": "2026-10-30T20:26:11.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-169",
+      "id_telemetria": 118474,
+      "dashboard_lectura_del_run": true,
+      "timestamp_captura": "2026-10-30T20:26:11.801Z",
+      "valor": 30
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-169",
+      "entrada": "169c",
+      "id_telemetria": 118474,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118474: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-170",
+      "comprobacion": "API-170-02",
+      "timestamp_captura_enviado": "2026-10-30T20:26:16.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-170",
+      "id_telemetria": 118475,
+      "dashboard_lectura_del_run": false,
+      "timestamp_captura": "2026-10-30T20:26:16.801Z",
+      "valor": 13.65
+    },
+    {
+      "caso": "TC-M03-170",
+      "id_telemetria": 118475,
+      "nota": "La falta de correspondencia exacta del dashboard es evidencia contextual; evaluar el estado observado contra el oráculo."
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 146,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "entrada": "170a",
+      "id_telemetria": 118475,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118475: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-170",
+      "indice": 0,
+      "estado_calidad": "FUERA_DE_RANGO",
+      "nota": "REF-G87-01: discrepancia observable frente al oráculo; conservar lectura anterior y semáforo observado."
+    },
+    {
+      "caso": "TC-M03-170",
+      "comprobacion": "API-170-03",
+      "timestamp_captura_enviado": "2026-10-30T20:26:21.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-170",
+      "id_telemetria": 118476,
+      "dashboard_lectura_del_run": false,
+      "timestamp_captura": "2026-10-30T20:26:21.801Z",
+      "valor": 14.85
+    },
+    {
+      "caso": "TC-M03-170",
+      "id_telemetria": 118476,
+      "nota": "La falta de correspondencia exacta del dashboard es evidencia contextual; evaluar el estado observado contra el oráculo."
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 144,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "entrada": "170b",
+      "id_telemetria": 118476,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118476: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-170",
+      "indice": 1,
+      "estado_calidad": "FUERA_DE_RANGO",
+      "nota": "REF-G87-01: discrepancia observable frente al oráculo; conservar lectura anterior y semáforo observado."
+    },
+    {
+      "caso": "TC-M03-170",
+      "comprobacion": "API-170-04",
+      "timestamp_captura_enviado": "2026-10-30T20:26:26.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-170",
+      "id_telemetria": 118477,
+      "dashboard_lectura_del_run": false,
+      "timestamp_captura": "2026-10-30T20:26:26.801Z",
+      "valor": 30.15
+    },
+    {
+      "caso": "TC-M03-170",
+      "id_telemetria": 118477,
+      "nota": "La falta de correspondencia exacta del dashboard es evidencia contextual; evaluar el estado observado contra el oráculo."
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 152,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "entrada": "170c",
+      "id_telemetria": 118477,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118477: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-170",
+      "indice": 2,
+      "estado_calidad": "FUERA_DE_RANGO",
+      "nota": "REF-G87-01: discrepancia observable frente al oráculo; conservar lectura anterior y semáforo observado."
+    },
+    {
+      "caso": "TC-M03-170",
+      "comprobacion": "API-170-05",
+      "timestamp_captura_enviado": "2026-10-30T20:26:31.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-170",
+      "id_telemetria": 118478,
+      "dashboard_lectura_del_run": false,
+      "timestamp_captura": "2026-10-30T20:26:31.801Z",
+      "valor": 31.35
+    },
+    {
+      "caso": "TC-M03-170",
+      "id_telemetria": 118478,
+      "nota": "La falta de correspondencia exacta del dashboard es evidencia contextual; evaluar el estado observado contra el oráculo."
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-170",
+      "entrada": "170d",
+      "id_telemetria": 118478,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118478: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-170",
+      "indice": 3,
+      "estado_calidad": "FUERA_DE_RANGO",
+      "nota": "REF-G87-01: discrepancia observable frente al oráculo; conservar lectura anterior y semáforo observado."
+    },
+    {
+      "caso": "TC-M03-171",
+      "comprobacion": "API-171-02",
+      "timestamp_captura_enviado": "2026-10-30T20:26:36.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-171",
+      "id_telemetria": 118479,
+      "dashboard_lectura_del_run": false,
+      "timestamp_captura": "2026-10-30T20:26:36.801Z",
+      "valor": 13.35
+    },
+    {
+      "caso": "TC-M03-171",
+      "id_telemetria": 118479,
+      "nota": "La falta de correspondencia exacta del dashboard es evidencia contextual; evaluar el estado observado contra el oráculo."
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 147,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "entrada": "171a",
+      "id_telemetria": 118479,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118479: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-171",
+      "indice": 0,
+      "estado_calidad": "FUERA_DE_RANGO",
+      "nota": "REF-G87-01: discrepancia observable frente al oráculo; conservar lectura anterior y semáforo observado."
+    },
+    {
+      "caso": "TC-M03-171",
+      "comprobacion": "API-171-03",
+      "timestamp_captura_enviado": "2026-10-30T20:26:41.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-171",
+      "id_telemetria": 118480,
+      "dashboard_lectura_del_run": false,
+      "timestamp_captura": "2026-10-30T20:26:41.801Z",
+      "valor": 31.65
+    },
+    {
+      "caso": "TC-M03-171",
+      "id_telemetria": 118480,
+      "nota": "La falta de correspondencia exacta del dashboard es evidencia contextual; evaluar el estado observado contra el oráculo."
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 159,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-171",
+      "entrada": "171b",
+      "id_telemetria": 118480,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "fuente": "GET /iot/vinculaciones",
+      "motivo": "Lectura 118480: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-171",
+      "indice": 1,
+      "estado_calidad": "FUERA_DE_RANGO",
+      "nota": "REF-G87-01: discrepancia observable frente al oráculo; conservar lectura anterior y semáforo observado."
+    },
+    {
+      "caso": "TC-M03-180",
+      "comprobacion": "API-180-02",
+      "timestamp_captura_enviado": "2026-10-30T20:26:46.801Z",
+      "ancla_temporal": "2026-10-30T20:26:56.801Z",
+      "inicio_run": "2026-10-30T20:28:56.801Z"
+    },
+    {
+      "caso": "TC-M03-180",
+      "id_telemetria": 118481,
+      "dashboard_lectura_del_run": true,
+      "timestamp_captura": "2026-10-30T20:26:46.801Z",
+      "valor": 5
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/vinculaciones",
+      "en_run": true,
+      "latencia_ms": 152,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "id_telemetria": 118481,
+      "vinculo_884": "NO_CONCLUYENTE",
+      "motivo": "Lectura 118481: estado=SIN_VINCULACION, activo=ausente, área=ausente, registros=0; esperado VINCULADA a 884 en 349."
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 154,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 147,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 160,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 155,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 151,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 151,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 160,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 167,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 148,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-266",
+      "metodo": "GET",
+      "ruta": "/iot/auditoria",
+      "en_run": true,
+      "latencia_ms": 153,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/737/asociaciones",
+      "en_run": true,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": true
+    },
+    {
+      "caso": "TC-M03-180",
+      "etapa": "DIAGNOSTICO_ASOCIACION_NO_BLOQUEANTE",
+      "ruta": "/configuracion/sensores/737/asociaciones",
+      "latencia_ms": 145,
+      "http": 200,
+      "asociacion_522_vigente": true
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/G88-V1-20261030-202846",
+      "en_run": false,
+      "latencia_ms": 573,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "en_run": false,
+      "latencia_ms": 675,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "en_run": false,
+      "latencia_ms": 136,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard",
+      "en_run": false,
+      "latencia_ms": 569,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": false,
+      "latencia_ms": 141,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": false,
+      "latencia_ms": 146,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": false,
+      "latencia_ms": 134,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/configuracion/umbrales",
+      "en_run": false,
+      "latencia_ms": 143,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 151,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 155,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 145,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 162,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 149,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 157,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 150,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 157,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 144,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 672,
+      "status": 200,
+      "eco_run": null
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial",
+      "en_run": false,
+      "latencia_ms": 141,
+      "status": 200,
+      "eco_run": null
+    }
+  ],
+  "respuestas": [
+    {
+      "caso": "TC-M03-169",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "cuerpo": {
+        "total": 16,
+        "items": [
+          {
+            "id_variable_ambiental": 16,
+            "nombre": "[REDACTADO]",
+            "unidad": "m/s²",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 11,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 4,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "10"
+          },
+          {
+            "id_variable_ambiental": 8,
+            "nombre": "[REDACTADO]",
+            "unidad": "µS/cm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5000"
+          },
+          {
+            "id_variable_ambiental": 12,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100000"
+          },
+          {
+            "id_variable_ambiental": 14,
+            "nombre": "[REDACTADO]",
+            "unidad": "bpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 15,
+            "nombre": "[REDACTADO]",
+            "unidad": "rpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 10,
+            "nombre": "[REDACTADO]",
+            "unidad": "%",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 5,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5"
+          },
+          {
+            "id_variable_ambiental": 3,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "20"
+          },
+          {
+            "id_variable_ambiental": 2,
+            "nombre": "[REDACTADO]",
+            "unidad": "pH",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "14"
+          },
+          {
+            "id_variable_ambiental": 6,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppt",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 9,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "-50",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 13,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "30",
+            "valor_fisico_max": "50"
+          },
+          {
+            "id_variable_ambiental": 1,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 7,
+            "nombre": "[REDACTADO]",
+            "unidad": "NTU",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-169",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_infraestructura": 349,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-170",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "cuerpo": {
+        "total": 16,
+        "items": [
+          {
+            "id_variable_ambiental": 16,
+            "nombre": "[REDACTADO]",
+            "unidad": "m/s²",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 11,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 4,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "10"
+          },
+          {
+            "id_variable_ambiental": 8,
+            "nombre": "[REDACTADO]",
+            "unidad": "µS/cm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5000"
+          },
+          {
+            "id_variable_ambiental": 12,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100000"
+          },
+          {
+            "id_variable_ambiental": 14,
+            "nombre": "[REDACTADO]",
+            "unidad": "bpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 15,
+            "nombre": "[REDACTADO]",
+            "unidad": "rpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 10,
+            "nombre": "[REDACTADO]",
+            "unidad": "%",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 5,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5"
+          },
+          {
+            "id_variable_ambiental": 3,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "20"
+          },
+          {
+            "id_variable_ambiental": 2,
+            "nombre": "[REDACTADO]",
+            "unidad": "pH",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "14"
+          },
+          {
+            "id_variable_ambiental": 6,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppt",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 9,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "-50",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 13,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "30",
+            "valor_fisico_max": "50"
+          },
+          {
+            "id_variable_ambiental": 1,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 7,
+            "nombre": "[REDACTADO]",
+            "unidad": "NTU",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-170",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_infraestructura": 349,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-171",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "cuerpo": {
+        "total": 16,
+        "items": [
+          {
+            "id_variable_ambiental": 16,
+            "nombre": "[REDACTADO]",
+            "unidad": "m/s²",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 11,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 4,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "10"
+          },
+          {
+            "id_variable_ambiental": 8,
+            "nombre": "[REDACTADO]",
+            "unidad": "µS/cm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5000"
+          },
+          {
+            "id_variable_ambiental": 12,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100000"
+          },
+          {
+            "id_variable_ambiental": 14,
+            "nombre": "[REDACTADO]",
+            "unidad": "bpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 15,
+            "nombre": "[REDACTADO]",
+            "unidad": "rpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 10,
+            "nombre": "[REDACTADO]",
+            "unidad": "%",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 5,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5"
+          },
+          {
+            "id_variable_ambiental": 3,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "20"
+          },
+          {
+            "id_variable_ambiental": 2,
+            "nombre": "[REDACTADO]",
+            "unidad": "pH",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "14"
+          },
+          {
+            "id_variable_ambiental": 6,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppt",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 9,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "-50",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 13,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "30",
+            "valor_fisico_max": "50"
+          },
+          {
+            "id_variable_ambiental": 1,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 7,
+            "nombre": "[REDACTADO]",
+            "unidad": "NTU",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-171",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_infraestructura": 349,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-180",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "cuerpo": {
+        "total": 16,
+        "items": [
+          {
+            "id_variable_ambiental": 16,
+            "nombre": "[REDACTADO]",
+            "unidad": "m/s²",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 11,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 4,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "10"
+          },
+          {
+            "id_variable_ambiental": 8,
+            "nombre": "[REDACTADO]",
+            "unidad": "µS/cm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5000"
+          },
+          {
+            "id_variable_ambiental": 12,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100000"
+          },
+          {
+            "id_variable_ambiental": 14,
+            "nombre": "[REDACTADO]",
+            "unidad": "bpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 15,
+            "nombre": "[REDACTADO]",
+            "unidad": "rpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 10,
+            "nombre": "[REDACTADO]",
+            "unidad": "%",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 5,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5"
+          },
+          {
+            "id_variable_ambiental": 3,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "20"
+          },
+          {
+            "id_variable_ambiental": 2,
+            "nombre": "[REDACTADO]",
+            "unidad": "pH",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "14"
+          },
+          {
+            "id_variable_ambiental": 6,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppt",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 9,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "-50",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 13,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "30",
+            "valor_fisico_max": "50"
+          },
+          {
+            "id_variable_ambiental": 1,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 7,
+            "nombre": "[REDACTADO]",
+            "unidad": "NTU",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-180",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "cuerpo": {
+        "sensores": []
+      }
+    },
+    {
+      "caso": "TC-M03-169",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_infraestructura": 349,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-169",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "cuerpo": {
+        "sensores": []
+      }
+    },
+    {
+      "caso": "TC-M03-169",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "cuerpo": {
+        "total": 16,
+        "items": [
+          {
+            "id_variable_ambiental": 16,
+            "nombre": "[REDACTADO]",
+            "unidad": "m/s²",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 11,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 4,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "10"
+          },
+          {
+            "id_variable_ambiental": 8,
+            "nombre": "[REDACTADO]",
+            "unidad": "µS/cm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5000"
+          },
+          {
+            "id_variable_ambiental": 12,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100000"
+          },
+          {
+            "id_variable_ambiental": 14,
+            "nombre": "[REDACTADO]",
+            "unidad": "bpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 15,
+            "nombre": "[REDACTADO]",
+            "unidad": "rpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 10,
+            "nombre": "[REDACTADO]",
+            "unidad": "%",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 5,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5"
+          },
+          {
+            "id_variable_ambiental": 3,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "20"
+          },
+          {
+            "id_variable_ambiental": 2,
+            "nombre": "[REDACTADO]",
+            "unidad": "pH",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "14"
+          },
+          {
+            "id_variable_ambiental": 6,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppt",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 9,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "-50",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 13,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "30",
+            "valor_fisico_max": "50"
+          },
+          {
+            "id_variable_ambiental": 1,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 7,
+            "nombre": "[REDACTADO]",
+            "unidad": "NTU",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-170",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_infraestructura": 349,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-170",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "cuerpo": {
+        "sensores": []
+      }
+    },
+    {
+      "caso": "TC-M03-170",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "cuerpo": {
+        "total": 16,
+        "items": [
+          {
+            "id_variable_ambiental": 16,
+            "nombre": "[REDACTADO]",
+            "unidad": "m/s²",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 11,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 4,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "10"
+          },
+          {
+            "id_variable_ambiental": 8,
+            "nombre": "[REDACTADO]",
+            "unidad": "µS/cm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5000"
+          },
+          {
+            "id_variable_ambiental": 12,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100000"
+          },
+          {
+            "id_variable_ambiental": 14,
+            "nombre": "[REDACTADO]",
+            "unidad": "bpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 15,
+            "nombre": "[REDACTADO]",
+            "unidad": "rpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 10,
+            "nombre": "[REDACTADO]",
+            "unidad": "%",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 5,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5"
+          },
+          {
+            "id_variable_ambiental": 3,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "20"
+          },
+          {
+            "id_variable_ambiental": 2,
+            "nombre": "[REDACTADO]",
+            "unidad": "pH",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "14"
+          },
+          {
+            "id_variable_ambiental": 6,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppt",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 9,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "-50",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 13,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "30",
+            "valor_fisico_max": "50"
+          },
+          {
+            "id_variable_ambiental": 1,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 7,
+            "nombre": "[REDACTADO]",
+            "unidad": "NTU",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-171",
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_infraestructura": 349,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-171",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "cuerpo": {
+        "sensores": []
+      }
+    },
+    {
+      "caso": "TC-M03-171",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "cuerpo": {
+        "total": 16,
+        "items": [
+          {
+            "id_variable_ambiental": 16,
+            "nombre": "[REDACTADO]",
+            "unidad": "m/s²",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 11,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 4,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "10"
+          },
+          {
+            "id_variable_ambiental": 8,
+            "nombre": "[REDACTADO]",
+            "unidad": "µS/cm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5000"
+          },
+          {
+            "id_variable_ambiental": 12,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100000"
+          },
+          {
+            "id_variable_ambiental": 14,
+            "nombre": "[REDACTADO]",
+            "unidad": "bpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 15,
+            "nombre": "[REDACTADO]",
+            "unidad": "rpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 10,
+            "nombre": "[REDACTADO]",
+            "unidad": "%",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 5,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5"
+          },
+          {
+            "id_variable_ambiental": 3,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "20"
+          },
+          {
+            "id_variable_ambiental": 2,
+            "nombre": "[REDACTADO]",
+            "unidad": "pH",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "14"
+          },
+          {
+            "id_variable_ambiental": 6,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppt",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 9,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "-50",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 13,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "30",
+            "valor_fisico_max": "50"
+          },
+          {
+            "id_variable_ambiental": 1,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 7,
+            "nombre": "[REDACTADO]",
+            "unidad": "NTU",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/configuracion/dispositivos-iot/520/sensores",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores": 738,
+            "categoria": "TEMPERATURA",
+            "es_activo": true
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/configuracion/sensores/738/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 523,
+            "id_sensor": 738,
+            "id_infraestructura": 504,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "cuerpo": {
+        "total": 16,
+        "items": [
+          {
+            "id_variable_ambiental": 16,
+            "nombre": "[REDACTADO]",
+            "unidad": "m/s²",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 11,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 4,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "10"
+          },
+          {
+            "id_variable_ambiental": 8,
+            "nombre": "[REDACTADO]",
+            "unidad": "µS/cm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5000"
+          },
+          {
+            "id_variable_ambiental": 12,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100000"
+          },
+          {
+            "id_variable_ambiental": 14,
+            "nombre": "[REDACTADO]",
+            "unidad": "bpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          },
+          {
+            "id_variable_ambiental": 15,
+            "nombre": "[REDACTADO]",
+            "unidad": "rpm",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "200"
+          },
+          {
+            "id_variable_ambiental": 10,
+            "nombre": "[REDACTADO]",
+            "unidad": "%",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 5,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "5"
+          },
+          {
+            "id_variable_ambiental": 3,
+            "nombre": "[REDACTADO]",
+            "unidad": "mg/L",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "20"
+          },
+          {
+            "id_variable_ambiental": 2,
+            "nombre": "[REDACTADO]",
+            "unidad": "pH",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "14"
+          },
+          {
+            "id_variable_ambiental": 6,
+            "nombre": "[REDACTADO]",
+            "unidad": "ppt",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 9,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "-50",
+            "valor_fisico_max": "100"
+          },
+          {
+            "id_variable_ambiental": 13,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "30",
+            "valor_fisico_max": "50"
+          },
+          {
+            "id_variable_ambiental": 1,
+            "nombre": "[REDACTADO]",
+            "unidad": "°C",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "45"
+          },
+          {
+            "id_variable_ambiental": 7,
+            "nombre": "[REDACTADO]",
+            "unidad": "NTU",
+            "valor_fisico_min": "0",
+            "valor_fisico_max": "500"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/configuracion/sensores/rangos-calibracion",
+      "http": 200,
+      "cuerpo": {
+        "total": 7,
+        "items": [
+          {
+            "categoria": "AMONIACO",
+            "valor_min": 0,
+            "valor_max": 10
+          },
+          {
+            "categoria": "HUMEDAD",
+            "valor_min": 0,
+            "valor_max": 100
+          },
+          {
+            "categoria": "LUMINOSIDAD",
+            "valor_min": 0,
+            "valor_max": 100000
+          },
+          {
+            "categoria": "OXIGENO",
+            "valor_min": 0,
+            "valor_max": 20
+          },
+          {
+            "categoria": "PH",
+            "valor_min": 0,
+            "valor_max": 14
+          },
+          {
+            "categoria": "SALINIDAD",
+            "valor_min": 0,
+            "valor_max": 45
+          },
+          {
+            "categoria": "TEMPERATURA",
+            "valor_min": 0,
+            "valor_max": 45
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/monitoreo/historial?sensor_id=738&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=504&por_pagina=50",
+      "http": 200,
+      "cuerpo": {
+        "sensores": []
+      }
+    },
+    {
+      "caso": "TC-M03-169",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "id_telemetria_run": 118472,
+      "cuerpo": {
+        "sensores": [
+          {
+            "id_sensor": 552,
+            "id_dispositivo_iot": 357,
+            "id_infraestructura": 349,
+            "tipo_variable": "[REDACTADO]",
+            "categoria_variable": "AMBIENTAL",
+            "ultimo_valor": "15.0000",
+            "ultima_unidad": "°C",
+            "ultimo_timestamp_captura": "2026-10-30T20:26:01.801000Z",
+            "estado_semaforo": "VERDE",
+            "estado_calidad": "LECTURA_VALIDA",
+            "estado_desviacion": null,
+            "estado_conectividad": "DESCONOCIDO",
+            "dato_desactualizado": false,
+            "id_alerta": null,
+            "severidad_alerta": null,
+            "etiqueta_estado": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118472",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118473",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118474",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-170",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "id_telemetria_run": 118475,
+      "cuerpo": {
+        "sensores": [
+          {
+            "id_sensor": 552,
+            "id_dispositivo_iot": 357,
+            "id_infraestructura": 349,
+            "tipo_variable": "[REDACTADO]",
+            "categoria_variable": "AMBIENTAL",
+            "ultimo_valor": "30.0000",
+            "ultima_unidad": "°C",
+            "ultimo_timestamp_captura": "2026-10-30T20:26:11.801000Z",
+            "estado_semaforo": "VERDE",
+            "estado_calidad": "FUERA_DE_RANGO",
+            "estado_desviacion": null,
+            "estado_conectividad": "DESCONOCIDO",
+            "dato_desactualizado": false,
+            "id_alerta": null,
+            "severidad_alerta": null,
+            "etiqueta_estado": "Lectura fuera de rango"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118475",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118476",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118477",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118478",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-171",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "id_telemetria_run": 118479,
+      "cuerpo": {
+        "sensores": [
+          {
+            "id_sensor": 552,
+            "id_dispositivo_iot": 357,
+            "id_infraestructura": 349,
+            "tipo_variable": "[REDACTADO]",
+            "categoria_variable": "AMBIENTAL",
+            "ultimo_valor": "30.0000",
+            "ultima_unidad": "°C",
+            "ultimo_timestamp_captura": "2026-10-30T20:26:11.801000Z",
+            "estado_semaforo": "VERDE",
+            "estado_calidad": "FUERA_DE_RANGO",
+            "estado_desviacion": null,
+            "estado_conectividad": "DESCONOCIDO",
+            "dato_desactualizado": false,
+            "id_alerta": null,
+            "severidad_alerta": null,
+            "etiqueta_estado": "Lectura fuera de rango"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118479",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118480",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-180",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "id_telemetria_run": 118481,
+      "cuerpo": {
+        "sensores": [
+          {
+            "id_sensor": 737,
+            "id_dispositivo_iot": 357,
+            "id_infraestructura": 349,
+            "tipo_variable": "Amoniaco (NH3)",
+            "categoria_variable": "AMBIENTAL",
+            "ultimo_valor": "5.0000",
+            "ultima_unidad": "ppm",
+            "ultimo_timestamp_captura": "2026-10-30T20:26:46.801000Z",
+            "estado_semaforo": "GRIS",
+            "estado_calidad": "LECTURA_VALIDA",
+            "estado_desviacion": null,
+            "estado_conectividad": "DESCONOCIDO",
+            "dato_desactualizado": false,
+            "id_alerta": null,
+            "severidad_alerta": null,
+            "etiqueta_estado": "Sin umbral configurado"
+          }
+        ]
+      }
+    },
+    {
+      "caso": "TC-M03-266",
+      "ruta": "/iot/vinculaciones?id_telemetria=118481",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 50,
+        "items": []
+      }
+    },
+    {
+      "caso": "TC-M03-180",
+      "ruta": "/configuracion/sensores/737/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 522,
+            "id_sensor": 737,
+            "id_infraestructura": 349,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/configuracion/sensores/552/asociaciones",
+      "http": 200,
+      "cuerpo": {
+        "total": 1,
+        "items": [
+          {
+            "id_sensores_area_asociada": 519,
+            "id_sensor": 552,
+            "id_infraestructura": 349,
+            "tiene_estado": true,
+            "fecha_finalizacion": null
+          }
+        ]
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+      "http": 200,
+      "cuerpo": {
+        "sensores": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=738&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=552&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    },
+    {
+      "caso": null,
+      "ruta": "/iot/monitoreo/historial?sensor_id=737&fecha_inicio=2026-10-27&fecha_fin=2026-10-30",
+      "http": 200,
+      "cuerpo": {
+        "total": 0,
+        "pagina": 1,
+        "por_pagina": 100,
+        "items": []
+      }
+    }
+  ],
+  "alertas_activas_observadas": [
+    {
+      "caso": "TC-M03-169",
+      "sensor_id": 552,
+      "entrada": 0,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-169",
+      "sensor_id": 552,
+      "entrada": 1,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-169",
+      "sensor_id": 552,
+      "entrada": 2,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-170",
+      "sensor_id": 552,
+      "entrada": 0,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-170",
+      "sensor_id": 552,
+      "entrada": 1,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-170",
+      "sensor_id": 552,
+      "entrada": 2,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-170",
+      "sensor_id": 552,
+      "entrada": 3,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-171",
+      "sensor_id": 552,
+      "entrada": 0,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-171",
+      "sensor_id": 552,
+      "entrada": 1,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    },
+    {
+      "caso": "TC-M03-180",
+      "sensor_id": 737,
+      "entrada": 0,
+      "id_alerta": null,
+      "severidad_alerta": null,
+      "alertas_activas": []
+    }
+  ],
+  "plan_temporal": {
+    "inicio_run": "2026-10-30T20:28:56.801Z",
+    "ancla": "2026-10-30T20:26:56.801Z",
+    "margen_reloj_segundos": 120,
+    "paso_ingesta_segundos": 5,
+    "por_ingesta": {
+      "TC-M03-169:0": "2026-10-30T20:26:01.801Z",
+      "TC-M03-169:1": "2026-10-30T20:26:06.801Z",
+      "TC-M03-169:2": "2026-10-30T20:26:11.801Z",
+      "TC-M03-170:0": "2026-10-30T20:26:16.801Z",
+      "TC-M03-170:1": "2026-10-30T20:26:21.801Z",
+      "TC-M03-170:2": "2026-10-30T20:26:26.801Z",
+      "TC-M03-170:3": "2026-10-30T20:26:31.801Z",
+      "TC-M03-171:0": "2026-10-30T20:26:36.801Z",
+      "TC-M03-171:1": "2026-10-30T20:26:41.801Z",
+      "TC-M03-180:0": "2026-10-30T20:26:46.801Z",
+      "TC-M03-266:0": "2026-10-30T20:26:51.801Z"
+    }
+  },
+  "umbral_run_266": {
+    "alta_intentada": true,
+    "id": 135,
+    "especie_id": 220
+  },
+  "parada_seguridad": null,
+  "timeout_en_run": false,
+  "acceso_administrador": [
+    {
+      "ruta": "/configuracion/infraestructuras/349",
+      "http": 200,
+      "datos_esperados": true
+    },
+    {
+      "ruta": "/configuracion/infraestructuras/504",
+      "http": 200,
+      "datos_esperados": true
+    },
+    {
+      "ruta": "/configuracion/umbrales?id_especie=126",
+      "http": 200,
+      "datos_esperados": true
+    },
+    {
+      "ruta": "/configuracion/umbrales?id_especie=220",
+      "http": 200,
+      "datos_esperados": true
+    }
+  ],
+  "efectos_irreversibles": [
+    "Posible correo SMTP E7 a administradores activos al consultar dashboard; DELETE del RUN no lo revierte. Entrega no acreditada.",
+    "M09 POST/PATCH intentan sincronización Edge tras commit; solo la compuerta pública y auditoría pueden acreditar que no hubo publicación. DELETE del RUN no revierte MQTT."
+  ],
+  "aviso180_baseline": {
+    "http": 200,
+    "items": [
+      {
+        "id_evento": "0852316a-2201-4ddd-9295-d148e4937040",
+        "fecha_hora": "2026-10-30T19:25:34.419419Z",
+        "administradores_avisados": 15
+      }
+    ]
+  },
+  "datos_rollback": {
+    "escrituras_intentadas": true,
+    "anteriores": [
+      {
+        "caso": "TC-M03-169",
+        "ruta_asociaciones": "/configuracion/sensores/552/asociaciones",
+        "asociaciones_sha256": "cc821d4fbe62c86a71ac82a40099bdf16afadf67ea9726768f79d6a3da66a772",
+        "ruta_dashboard": "/iot/monitoreo/dashboard?id_infraestructura=349&por_pagina=50",
+        "dashboard_sha256": "9938872f1aea25450013d81231ac51cd5c9252b5193f5005246c769e72800345",
+        "ruta_umbral": "/configuracion/umbrales?id_especie=126",
+        "umbral_sha256": "2e2e803ae9431295f3334af6421b5e95e0e300aa4e248bdcbdefcfbb5b1a2b90"
+      },
+      {
+        "caso": "TC-M03-266",
+        "ruta_umbral": "/configuracion/umbrales?id_especie=220",
+        "umbral_sha256": "090d4dcc718619f581456b828b8575597846f214734feef5fa97c7c77f14949a"
+      }
+    ],
+    "lecturas": [
+      {
+        "caso": "TC-M03-266",
+        "sensor_id": 738,
+        "id_telemetria": 118482,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-169",
+        "sensor_id": 552,
+        "id_telemetria": 118472,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-169",
+        "sensor_id": 552,
+        "id_telemetria": 118473,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-169",
+        "sensor_id": 552,
+        "id_telemetria": 118474,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-170",
+        "sensor_id": 552,
+        "id_telemetria": 118475,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-170",
+        "sensor_id": 552,
+        "id_telemetria": 118476,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-170",
+        "sensor_id": 552,
+        "id_telemetria": 118477,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-170",
+        "sensor_id": 552,
+        "id_telemetria": 118478,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-171",
+        "sensor_id": 552,
+        "id_telemetria": 118479,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-171",
+        "sensor_id": 552,
+        "id_telemetria": 118480,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      },
+      {
+        "caso": "TC-M03-180",
+        "sensor_id": 737,
+        "id_telemetria": 118481,
+        "fecha_inicio": "2026-10-27",
+        "fecha_fin": "2026-10-30"
+      }
+    ]
+  },
+  "datos": {
+    "ids_telemetria": [
+      118482,
+      118472,
+      118473,
+      118474,
+      118475,
+      118476,
+      118477,
+      118478,
+      118479,
+      118480,
+      118481
+    ]
+  },
+  "escrituras_intentadas": true,
+  "newman_casos": [
+    "TC-M03-169",
+    "TC-M03-170",
+    "TC-M03-171",
+    "TC-M03-172",
+    "TC-M03-180",
+    "TC-M03-266"
+  ],
+  "resultado266": "RECHAZADO",
+  "analisis": "La primera discrepancia se documenta por caso; causa raíz pendiente de investigación con E1-E3/UI.",
+  "accion": "Atender las incidencias con su primer equipo y evidencia indicada."
+}

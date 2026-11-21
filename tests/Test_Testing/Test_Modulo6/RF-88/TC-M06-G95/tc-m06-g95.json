@@ -1,0 +1,192 @@
+{
+  "info": {
+    "name": "TC-M06-G95 — RF-88 valoración por COSTO",
+    "description": "Reconstrucción del caso TC-M06-G95 (RF-88) sobre la rama laura. Cuatro escenarios: reconocimiento inicial por COSTO delegado en RF-82, activación autónoma sin precio vigente, excepción sin justificación y excepción con justificación. En esta rama no hay router, caso de uso ni DTO que ejecuten esas operaciones. La colección hace un único GET público a /openapi.json para inventariar el contrato desplegado. No autentica, no envía cuerpo de negocio, no usa el frontend /sigab-test y no llama a /test-control porque no crea datos. Un escenario solo puede quedar APROBADO si una operación real se ejecutó y cumplió el RF. BLOQUEADO permanece en el denominador: aprobación = (APROBADOS / 4) * 100. La ausencia de una ruta no se cuenta como aprobación.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "TC-M06-01_estado",
+      "value": "BLOQUEADO"
+    },
+    {
+      "key": "TC-M06-01_operacion_ejecutada",
+      "value": "false"
+    },
+    {
+      "key": "TC-M06-02_estado",
+      "value": "BLOQUEADO"
+    },
+    {
+      "key": "TC-M06-02_operacion_ejecutada",
+      "value": "false"
+    },
+    {
+      "key": "TC-M06-03_estado",
+      "value": "BLOQUEADO"
+    },
+    {
+      "key": "TC-M06-03_operacion_ejecutada",
+      "value": "false"
+    },
+    {
+      "key": "TC-M06-04_estado",
+      "value": "BLOQUEADO"
+    },
+    {
+      "key": "TC-M06-04_operacion_ejecutada",
+      "value": "false"
+    },
+    {
+      "key": "porcentaje_aprobacion",
+      "value": "0"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M06-G95 — inventario del contrato y clasificación",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Única solicitud HTTP del caso. Lee el OpenAPI público del backend de pruebas. No es la operación de reconocimiento ni la excepción de COSTO. No envía X-Test-Run-Id ni X-Sandbox-Secret porque no hay escritura que aislar.",
+        "url": {
+          "raw": "{{base_url}}/openapi.json",
+          "host": ["{{base_url}}"],
+          "path": ["openapi.json"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const base = String(pm.collectionVariables.get('base_url') || '');",
+              "const ids = ['TC-M06-01', 'TC-M06-02', 'TC-M06-03', 'TC-M06-04'];",
+              "",
+              "function registrar(id, estado, operacionEjecutada, detalle) {",
+              "  if (estado === 'APROBADO' && operacionEjecutada !== true) {",
+              "    estado = 'BLOQUEADO';",
+              "    detalle = 'No se promueve a APROBADO sin operacion real ejecutada. ' + detalle;",
+              "  }",
+              "  if (estado === 'RECHAZADO' && operacionEjecutada !== true) {",
+              "    estado = 'BLOQUEADO';",
+              "    detalle = 'No se clasifica RECHAZADO si la operacion real no se ejecuto. ' + detalle;",
+              "  }",
+              "  pm.collectionVariables.set(id + '_estado', estado);",
+              "  pm.collectionVariables.set(id + '_operacion_ejecutada', operacionEjecutada === true ? 'true' : 'false');",
+              "  pm.collectionVariables.set(id + '_detalle', detalle);",
+              "  return estado;",
+              "}",
+              "",
+              "pm.test('La base apunta al backend de pruebas', function () {",
+              "  pm.expect(base, 'base_url').to.eql('https://api.inmero.co/api-sgpmp-test');",
+              "  pm.expect(base, 'no usar el frontend').to.not.include('/sigab-test');",
+              "});",
+              "",
+              "let paths = {};",
+              "let schemas = {};",
+              "let contratoLegible = false;",
+              "if (pm.response.code === 200) {",
+              "  try {",
+              "    const api = pm.response.json();",
+              "    paths = api.paths || {};",
+              "    schemas = ((api.components || {}).schemas) || {};",
+              "    contratoLegible = Object.keys(paths).length > 0;",
+              "  } catch (error) {",
+              "    contratoLegible = false;",
+              "  }",
+              "}",
+              "",
+              "const operaciones = [];",
+              "Object.entries(paths).forEach(function (entrada) {",
+              "  const ruta = entrada[0];",
+              "  const ops = entrada[1] || {};",
+              "  const rutaMin = String(ruta).toLowerCase();",
+              "  if (rutaMin.indexOf('/suministros/nic41') === 0) { return; }",
+              "  const candidata = /reconocim|valoraciones?-por-costo|valoracion-por-costo|sin-mercado|metodo-valoracion|indicador-valoracion/.test(rutaMin);",
+              "  if (!candidata) { return; }",
+              "  Object.keys(ops).forEach(function (metodo) {",
+              "    if (['get', 'post', 'put', 'patch', 'delete'].indexOf(metodo) >= 0) {",
+              "      operaciones.push(metodo.toUpperCase() + ' ' + ruta);",
+              "    }",
+              "  });",
+              "});",
+              "const dtoReconocimiento = Object.keys(schemas).filter(function (nombre) {",
+              "  return /reconocim/i.test(nombre);",
+              "});",
+              "const dtoExcepcionCosto = Object.keys(schemas).filter(function (nombre) {",
+              "  return /valoracionporcosto|activacioncosto|excepcioncosto|marcadorsinmercado/i.test(nombre);",
+              "});",
+              "pm.collectionVariables.set('operaciones_candidatas', JSON.stringify(operaciones));",
+              "pm.collectionVariables.set('dto_reconocimiento', JSON.stringify(dtoReconocimiento));",
+              "pm.collectionVariables.set('dto_excepcion_costo', JSON.stringify(dtoExcepcionCosto));",
+              "",
+              "pm.test('Inventario OpenAPI leido; este resultado no aprueba escenarios', function () {",
+              "  pm.expect(pm.response.code, 'GET /openapi.json').to.eql(200);",
+              "  pm.expect(contratoLegible, 'el contrato trae rutas').to.eql(true);",
+              "});",
+              "",
+              "function motivo(id, faltante) {",
+              "  if (!contratoLegible) {",
+              "    return id + ': no se pudo leer el contrato del backend. No se invoca ninguna operacion de negocio. ' + faltante;",
+              "  }",
+              "  if (operaciones.length > 0 || dtoExcepcionCosto.length > 0 || dtoReconocimiento.length > 0) {",
+              "    return id + ': el contrato desplegado muestra candidatos (' + operaciones.join(', ') + '; DTO reconocimiento ' + dtoReconocimiento.join(', ') + '; DTO costo ' + dtoExcepcionCosto.join(', ') + ') pero esta rama no tiene caso de uso ni DTO verificado para ejecutarlos. No se inventa el cuerpo. ' + faltante;",
+              "  }",
+              "  return id + ': ' + faltante;",
+              "}",
+              "",
+              "const motivos = {",
+              "  'TC-M06-01': motivo('TC-M06-01', 'No existe flujo HTTP de reconocimiento inicial. src/financial_valuation solo recibe la provision del RF-79 y main.py no registra un router de reconocimientos. La tabla modulo6.reconocimientos_iniciales y el indicador VALORACION_POR_COSTO estan en el esquema SQL, no en una operacion invocable.'),",
+              "  'TC-M06-02': motivo('TC-M06-02', 'No existe operacion para activar COSTO sin precio vigente. El enum AUTONOMO_CONTADOR y la tabla valoraciones_por_costos estan en SQL. Ningun caso de uso escribe el evento ACTIVO_MARCADO_SIN_MERCADO. Consultar OpenAPI no demuestra que la activacion se haya ejecutado.'),",
+              "  'TC-M06-03': motivo('TC-M06-03', 'No existe operacion de excepcion para aplicar COSTO cuando hay precio vigente. No hay DTO de esa excepcion en src. La columna valoraciones_por_costos.justificacion es nullable y su obligatoriedad quedo descrita para una capa de negocio que no esta implementada. No se reutiliza la justificacion de calculos_valor_razonable ni la de deterorios_activos.'),",
+              "  'TC-M06-04': motivo('TC-M06-04', 'No existe operacion que reciba la justificacion de la excepcion a COSTO. Sin contrato verificado no se envia un cuerpo ni se interpreta una respuesta como cumplimiento del RF-88.')",
+              "};",
+              "",
+              "ids.forEach(function (id) {",
+              "  registrar(id, 'BLOQUEADO', false, motivos[id]);",
+              "});",
+              "",
+              "ids.forEach(function (id) {",
+              "  pm.test(id + ' no queda APROBADO sin operacion real', function () {",
+              "    const estado = pm.collectionVariables.get(id + '_estado');",
+              "    const operacion = pm.collectionVariables.get(id + '_operacion_ejecutada');",
+              "    const detalle = pm.collectionVariables.get(id + '_detalle');",
+              "    console.log(id + ': ' + estado + ' | operacion=' + operacion + ' | ' + detalle);",
+              "    if (estado !== 'APROBADO' || operacion !== 'true') {",
+              "      throw new Error(estado + ' — ' + detalle);",
+              "    }",
+              "  });",
+              "});",
+              "",
+              "pm.test('Porcentaje global (APROBADOS / 4) * 100', function () {",
+              "  const aprobados = ids.filter(function (id) {",
+              "    return pm.collectionVariables.get(id + '_estado') === 'APROBADO' && pm.collectionVariables.get(id + '_operacion_ejecutada') === 'true';",
+              "  }).length;",
+              "  const porcentaje = (aprobados / 4) * 100;",
+              "  pm.collectionVariables.set('porcentaje_aprobacion', String(porcentaje));",
+              "  const resumen = ids.map(function (id) {",
+              "    return id + '=' + pm.collectionVariables.get(id + '_estado');",
+              "  }).join(', ');",
+              "  console.log('Aprobacion global: ' + porcentaje + '% (' + aprobados + '/4). ' + resumen);",
+              "  if (porcentaje !== 100) {",
+              "    throw new Error('Aprobacion ' + porcentaje + '% (' + aprobados + '/4). ' + resumen + '. BLOQUEADO permanece en el denominador y no equivale a APROBADO ni a RECHAZADO.');",
+              "  }",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

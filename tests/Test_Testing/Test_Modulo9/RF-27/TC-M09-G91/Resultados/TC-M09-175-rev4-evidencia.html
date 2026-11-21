@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>TC-M09-175 rev4 detencion segura</title></head>
+<body>
+  <h1>TC-M09-175 rev4 — detención segura</h1>
+  <p><strong>Resultado funcional: BLOQUEADO</strong></p>
+  <p><strong>Restauración BD: NO APLICA</strong> (no se retiró el global)</p>
+  <p>Fecha UTC: 2026-10-09T23:07:39Z — laura @ c5ac9b6f</p>
+  <p>La coordinación anunciada por Alex no se usó como autorización de DBA. No DELETE. No DML. No PATCH.</p>
+  <h2>PostgreSQL TEST</h2>
+  <ul>
+    <li>/openapi.json HTTP 200</li>
+    <li>GET tema/global sin token: 503 BD_NO_DISPONIBLE (2026-10-09T23:07:41.911897+00:00)</li>
+    <li>POST /sesiones/ admin: 503 BD_NO_DISPONIBLE (2026-10-09T23:07:43.309580+00:00)</li>
+  </ul>
+  <h2>Autorización</h2>
+  <p>Samuel/DBA: no verificable en repo ni herramientas. anotaciones/lote_qa_2026_10_06.md no existe.</p>
+  <p>Detalle: <code>TC-M09-175-rev4.txt</code></p>
+</body>
+</html>

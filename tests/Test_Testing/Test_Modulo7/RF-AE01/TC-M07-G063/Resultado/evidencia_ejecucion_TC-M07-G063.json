@@ -1,0 +1,99 @@
+{
+  "caso": "TC-M07-G063",
+  "requisito": "RF-AE01 / RF-AE02",
+  "responsable": "Maria Jose",
+  "fecha_ejecucion_utc": "2026-11-19T20:47:17.770998+00:00",
+  "entorno": "TEST y local",
+  "base_url": "https://api.inmero.co/api-sgpmp-test",
+  "estado_final": "APROBADO",
+  "alertas": [],
+  "escenarios": [
+    {
+      "id": "G5.1",
+      "nombre": "Una consulta exitosa y una fallida quedan en la auditoria",
+      "prioridad": "Alta",
+      "esperado": "Cada solicitud deja su registro con usuario, titular, rango, version, hash y resultado; la fallida, con su resultado de error",
+      "estado": "APROBADO",
+      "obtenido": "consulta exitosa HTTP 200 (esperado 200); consulta fallida HTTP 422 (esperado 422): OK; consulta exitosa registrada; campos faltantes=ninguno: OK; el registro coincide con la respuesta: NIT 901444215, rango 2026-09-01 a 2026-10-31, version 3.0 (cabecera 3.0), hash igual a X-Content-SHA256: OK; codigo_http 200 / resultado OK / integridad INTEGRO: OK; consulta fallida registrada; campos faltantes=ninguno: OK; resultado de error: codigo_http 422 (esperado 422), codigo_resultado RANGO_NO_ALINEADO (esperado RANGO_NO_ALINEADO), severidad WARNING, integridad INTEGRO: OK; pytest: 2/2 comprobaciones pasan",
+      "pasos": []
+    },
+    {
+      "id": "G5.2",
+      "nombre": "Caida de la auditoria durante la consulta",
+      "prioridad": "Media",
+      "esperado": "La consulta responde 200 con normalidad; la falta del registro no bloquea el servicio y queda a la vista",
+      "estado": "APROBADO",
+      "obtenido": "pytest: 2/2 comprobaciones pasan",
+      "pasos": []
+    },
+    {
+      "id": "G5.3",
+      "nombre": "Ciclo de vida del Anexo en la auditoria",
+      "prioridad": "Alta",
+      "esperado": "Creacion, validacion automatica, aprobacion interna, evidencia y aprobacion quedan con usuario y fecha; la evidencia queda asociada a la version del Anexo",
+      "estado": "APROBADO",
+      "obtenido": "ANEXO_REGISTRADO (creacion): usuario 137, fecha 2026-11-19T20:47:13.236189+00:00, version_anexo 9.63: OK; ANEXO_EN_REVISION (validacion automatica y aprobacion interna): usuario 141, fecha 2026-11-19T20:47:13.550580+00:00, version_anexo 9.63: OK; ANEXO_APROBADO (evidencia y aprobacion): usuario 137, fecha 2026-11-19T20:47:14.256614+00:00, version_anexo 9.63: OK; pytest: 4/4 comprobaciones pasan",
+      "pasos": []
+    }
+  ],
+  "peticiones": [
+    {
+      "paso": "Emitir token de canal",
+      "http": 200,
+      "utc": "2026-11-19T20:47:08.005969+00:00"
+    },
+    {
+      "paso": "G5.1 consulta exitosa",
+      "http": 200,
+      "x_request_id": "b61e1c73-fc04-46f5-b6d6-aceb1feeb0e8",
+      "utc": "2026-11-19T20:47:08.682374+00:00"
+    },
+    {
+      "paso": "G5.1 consulta fallida (rango no alineado)",
+      "http": 422,
+      "x_request_id": "d0254a8d-1597-4d2c-8062-d55c27a70987",
+      "utc": "2026-11-19T20:47:08.682661+00:00"
+    },
+    {
+      "paso": "Comprobar el eco del run",
+      "http": 200,
+      "eco": true,
+      "utc": "2026-11-19T20:47:12.649153+00:00"
+    },
+    {
+      "paso": "G5.3 registrar el Anexo (Contador)",
+      "http": 403,
+      "eco": true,
+      "utc": "2026-11-19T20:47:12.965300+00:00"
+    },
+    {
+      "paso": "G5.3 registrar el Anexo (Administrador)",
+      "http": 201,
+      "eco": true,
+      "utc": "2026-11-19T20:47:13.304073+00:00"
+    },
+    {
+      "paso": "G5.3 pasar a revision (Contador)",
+      "http": 200,
+      "eco": true,
+      "utc": "2026-11-19T20:47:13.694579+00:00"
+    },
+    {
+      "paso": "G5.3 aprobar con evidencia (Contador)",
+      "http": 403,
+      "eco": true,
+      "utc": "2026-11-19T20:47:14.014036+00:00"
+    },
+    {
+      "paso": "G5.3 aprobar con evidencia (Administrador)",
+      "http": 200,
+      "eco": true,
+      "utc": "2026-11-19T20:47:14.324614+00:00"
+    },
+    {
+      "paso": "Cerrar el run (rollback)",
+      "http": 200,
+      "utc": "2026-11-19T20:47:15.567162+00:00"
+    }
+  ]
+}

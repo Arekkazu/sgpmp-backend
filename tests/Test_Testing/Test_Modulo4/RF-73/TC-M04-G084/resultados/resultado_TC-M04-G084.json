@@ -1,0 +1,53 @@
+{
+  "tc": "TC-M04-G084",
+  "summary": {
+    "total": 7,
+    "ok": 3,
+    "falla": 4,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "01.01 Login admin",
+      "esperado": "HTTP 200 + JWT emitido",
+      "obtenido": "HTTP 200 + JWT",
+      "estado": "OK"
+    },
+    {
+      "paso": "02.01 Preflight GET /prediccion/auditoria",
+      "esperado": "HTTP 200 con bitacora consultable",
+      "obtenido": "HTTP 200",
+      "estado": "OK"
+    },
+    {
+      "paso": "03.01 Subcaso TC-M04-259 REENTRENAMIENTO_INICIADO",
+      "esperado": "Al menos 1 evento REENTRENAMIENTO_INICIADO emitido por RF-71 tras trigger MANUAL",
+      "obtenido": "0 eventos. RF-71 no implementado en backend (confirmado empiricamente y por inspeccion de codigo)",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "04.01 Subcaso TC-M04-260 REENTRENAMIENTO_COMPLETADO",
+      "esperado": "Pipeline RF-71 ejecutado emite evento REENTRENAMIENTO_COMPLETADO con metricas f1_score_global, recall_clase_riesgo_alto, roc_auc_score",
+      "obtenido": "Pipeline RF-71 inexistente en backend. 2 eventos presentes en bitacora son semilla estatica externa (origen_registro=DIRECTO, id_sistema=cron-reentrenamiento), no emision real",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "05.01 Subcaso TC-M04-261 DEGRADACION_DETECTADA",
+      "esperado": "Scheduler RF-72 detecta f1=0.78<0.80 y emite DEGRADACION_DETECTADA con severidad CRITICAL",
+      "obtenido": "Scheduler RF-72 inexistente en backend. 2 eventos presentes son semilla estatica externa. Ademas no existe modelo ACTIVO con f1<0.80 en TEST (count_activos_bajo_umbral=0), por lo que la precondicion del subcaso 3 tampoco se cumple",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "06.01 Precondicion subcaso 3: modelo ACTIVO con f1<0.80",
+      "esperado": "Al menos 1 modelo en estado ACTIVO con f1_score_global < 0.80 para activar el trigger de degradacion",
+      "obtenido": "0 modelos ACTIVO con f1<0.80. Modelo v44 (ACTIVO) tiene f1=0.87; modelo v57 (META) tiene f1=null",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "07.01 Teardown sandbox",
+      "esperado": "HTTP 200 rollback exitoso",
+      "obtenido": "HTTP 200 Rollback exitoso",
+      "estado": "OK"
+    }
+  ]
+}

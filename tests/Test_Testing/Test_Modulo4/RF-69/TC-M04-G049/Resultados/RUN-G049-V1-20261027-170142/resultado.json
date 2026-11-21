@@ -1,0 +1,463 @@
+{
+  "grupo": "G049",
+  "run_id": "RUN-G049-V1-20261027-170142",
+  "version": 1,
+  "operacion": "evaluar",
+  "autorizacion": "AUT-G049-V1-20261027",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M04-114": {
+      "estado": "APROBADO",
+      "motivo": "VERSION_REGISTRADA y VERSION_APROBADA de sistema con fuente id_proceso_rf71 (RF-69 Fase 6)",
+      "observacion": "payload_evento de VERSION_REGISTRADA refleja APROBADO; es una foto del estado final, no la transición. El historial de transiciones no se expone por API pública."
+    },
+    "TC-M04-115": {
+      "estado": "RECHAZADO",
+      "motivo": "Identificadores observados: [58,59,60]; se exigen UUID distintos"
+    },
+    "TC-M04-116": {
+      "estado": "APROBADO",
+      "motivo": "Salida 1 completa e igual a la enviada"
+    },
+    "TC-M04-117": {
+      "estado": "APROBADO",
+      "motivo": "V3 refiere V2 y V1 se registró sin referencia"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-114",
+      "fuente": "API",
+      "id": "API-114-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "VERSION_REGISTRADA y VERSION_APROBADA de sistema con fuente id_proceso_rf71 (RF-69 Fase 6)",
+      "evidencia": "resultado.json",
+      "observado": {
+        "eventos": [
+          {
+            "tipo_evento": "HISTORIAL_CONSULTADO",
+            "tipo_actor": "USUARIO",
+            "id_usuario": 104,
+            "id_sistema": null,
+            "id_referencia": "58"
+          },
+          {
+            "tipo_evento": "VERSION_APROBADA",
+            "tipo_actor": "SISTEMA",
+            "id_usuario": null,
+            "id_sistema": "257bb6c0-ca88-4a05-bed7-42aa2ca5248b",
+            "id_referencia": "58",
+            "estado": "APROBADO"
+          },
+          {
+            "tipo_evento": "VERSION_REGISTRADA",
+            "tipo_actor": "SISTEMA",
+            "id_usuario": null,
+            "id_sistema": "257bb6c0-ca88-4a05-bed7-42aa2ca5248b",
+            "id_referencia": "58",
+            "estado": "APROBADO"
+          }
+        ]
+      },
+      "observacion": "payload_evento de VERSION_REGISTRADA refleja APROBADO; es una foto del estado final, no la transición. El historial de transiciones no se expone por API pública."
+    },
+    {
+      "caso": "TC-M04-115",
+      "fuente": "API",
+      "id": "API-115-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "Identificadores observados: [58,59,60]; se exigen UUID distintos",
+      "evidencia": "newman/newman-G049.json",
+      "observado": [
+        58,
+        59,
+        60
+      ]
+    },
+    {
+      "caso": "TC-M04-116",
+      "fuente": "API",
+      "id": "API-116-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Salida 1 completa e igual a la enviada",
+      "evidencia": "resultado.json",
+      "observado": {
+        "id_version": 58,
+        "f1_score_global": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_global": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "estado": "APROBADO",
+        "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+        "hash_artefacto_modelo": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+        "fecha_entrenamiento": "2026-10-26T17:01:45.674000Z",
+        "timestamp_registro": "2026-10-27T17:01:46.029224Z",
+        "id_proceso_rf71": "257bb6c0-ca88-4a05-bed7-42aa2ca5248b",
+        "notas_validacion": null
+      },
+      "observacion": "Formato de id_version evaluado en TC-M04-115 (INC-M04-G049-115)"
+    },
+    {
+      "caso": "TC-M04-117",
+      "fuente": "API",
+      "id": "API-117-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "V3 refiere V2 y V1 se registró sin referencia",
+      "evidencia": "resultado.json",
+      "observado": {
+        "v1_sin_referencia": true,
+        "v2_id": 59,
+        "v3_referencia": 59
+      }
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G049.json",
+    "newman/newman-G049.html",
+    "TC-M04-G049_resultado.md",
+    "resultado.json"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G049-V1-20261027-170142",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    }
+  ],
+  "datos": {
+    "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+    "hash_artefacto_sha256": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+    "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+    "metricas_validacion": {
+      "f1_score_global": 0.91,
+      "recall_clase_riesgo_alto": 0.93,
+      "precision_global": 0.92,
+      "accuracy": 0.94,
+      "roc_auc_score": 0.95,
+      "recall_por_clase": {
+        "riesgo_alto": 0.93,
+        "riesgo_bajo": 0.92
+      },
+      "matriz_confusion": [
+        [
+          9,
+          1
+        ],
+        [
+          1,
+          9
+        ]
+      ]
+    },
+    "fecha_entrenamiento": "2026-10-26T17:01:45.674Z",
+    "compatibilidad_variables": [
+      16
+    ],
+    "procesos": [
+      "257bb6c0-ca88-4a05-bed7-42aa2ca5248b",
+      "abb772f2-99ac-4435-afc0-9dd01869a6a1",
+      "a7564c85-2ab7-426c-9d25-4acb0c883f41"
+    ]
+  },
+  "respuestas": {
+    "posts": [
+      {
+        "http": 201,
+        "eco": true,
+        "id": 58,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 59,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 60,
+        "estado": "APROBADO",
+        "error": null
+      }
+    ],
+    "gets": [
+      {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 58,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+          "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+          "id_proceso_rf71": "257bb6c0-ca88-4a05-bed7-42aa2ca5248b",
+          "version_referencia": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-26T17:01:45.674000Z",
+          "fecha_registro": "2026-10-27T17:01:46.029224Z",
+          "fecha_despliegue": null
+        }
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 59,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+          "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+          "id_proceso_rf71": "abb772f2-99ac-4435-afc0-9dd01869a6a1",
+          "version_referencia": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-26T17:01:45.674000Z",
+          "fecha_registro": "2026-10-27T17:01:46.029224Z",
+          "fecha_despliegue": null
+        }
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 60,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+          "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+          "id_proceso_rf71": "a7564c85-2ab7-426c-9d25-4acb0c883f41",
+          "version_referencia": 59,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-26T17:01:45.674000Z",
+          "fecha_registro": "2026-10-27T17:01:46.029224Z",
+          "fecha_despliegue": null
+        }
+      }
+    ],
+    "auditoria": {
+      "http": 200,
+      "eco": true,
+      "total": 3,
+      "items": [
+        {
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "tipo_actor": "USUARIO",
+          "id_usuario": 104,
+          "id_sistema": null,
+          "id_referencia": "58"
+        },
+        {
+          "tipo_evento": "VERSION_APROBADA",
+          "tipo_actor": "SISTEMA",
+          "id_usuario": null,
+          "id_sistema": "257bb6c0-ca88-4a05-bed7-42aa2ca5248b",
+          "id_referencia": "58",
+          "estado": "APROBADO"
+        },
+        {
+          "tipo_evento": "VERSION_REGISTRADA",
+          "tipo_actor": "SISTEMA",
+          "id_usuario": null,
+          "id_sistema": "257bb6c0-ca88-4a05-bed7-42aa2ca5248b",
+          "id_referencia": "58",
+          "estado": "APROBADO"
+        }
+      ]
+    }
+  },
+  "incidencias": [
+    {
+      "id": "INC-M04-G049-115",
+      "caso": "TC-M04-115",
+      "titulo": "El identificador de versión de modelo es un entero secuencial y no un UUID",
+      "equipo": "Desarrollo",
+      "derivacion": "La primera discrepancia comprobada está en la respuesta del API público; se deriva a Desarrollo sin atribuir causa raíz.",
+      "severidad": "MEDIA",
+      "sustento_severidad": "El registro, la unicidad local y las consultas funcionan; la desviación del contrato afecta trazabilidad e interoperabilidad: identificadores secuenciales predecibles y enumerables, no únicos fuera de la base de datos. No bloquea el flujo.",
+      "certeza": "CONFIRMADA",
+      "requisito": [
+        "RF-69 línea 1794: “identificado de forma única mediante un id_version (UUID)”",
+        "Salida 1, línea 2207: “id_version (UUID)”",
+        "Entradas, línea 1965: “version_referencia | UUID (opcional)”"
+      ],
+      "precondiciones": "RUN autorizado, clave interna RF-71 válida, artefacto ONNX válido, metadatos completos y tipo MODELO_ESPECIES_GRANDES.",
+      "pasos": [
+        "Enviar tres POST /prediccion/modelos multipart con X-RF71-Internal-Key y procesos RF-71 distintos.",
+        "Registrar los tres identificadores devueltos y usar el segundo como version_referencia del tercero.",
+        "Consultar GET /prediccion/modelos/{id} para la primera y la tercera versión; contrastar id y version_referencia."
+      ],
+      "esperado": "Tres UUID distintos para id_version; version_referencia de V3 es el UUID de V2.",
+      "obtenido": "POST HTTP 201: id_version_modelo 58; HTTP 201: id_version_modelo 59; HTTP 201: id_version_modelo 60; GET /prediccion/modelos/58 HTTP 200 devuelve id_version_modelo 58; V3 version_referencia 59 (number).",
+      "evidencia": [
+        "newman/newman-G049.json",
+        "resultado.json",
+        "RUN-G049-V1-20261027-170142"
+      ],
+      "analisis": "El DTO y el schema tipan el identificador como entero (registrar_version_modelo_dto.py:48; version_modelo_schema.py:14,26). Clave autoincremental probable; causa raíz no confirmada.",
+      "impacto": "Los consumidores que esperan UUID en version_referencia, correlación con RF-71/RF-73 y distribución RF-70 pueden recibir enteros; los identificadores expuestos son enumerables.",
+      "cierre": "Exponer id_version y version_referencia como UUID en respuesta, ruta GET y entrada; reevaluar TC-M04-115 en V2 autorizada."
+    }
+  ],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Transacción externa del sandbox cerrada; artefactos en disco y posible respaldo local fuera de alcance"
+    }
+  },
+  "revision_qa": {
+    "fecha": "2026-10-27",
+    "realizada_por": "orquestador QA",
+    "autorizada_por": "responsable QA",
+    "motivo": "La auditoria TEST acredita VERSION_REGISTRADA y VERSION_APROBADA de sistema con origen id_proceso_rf71; el payload de VERSION_REGISTRADA es una foto del estado final.",
+    "cambios": [
+      "TC-M04-114 RECHAZADO→APROBADO",
+      "INC-M04-G049-114 retirada",
+      "INC-M04-G049-115 reescrita"
+    ]
+  }
+}

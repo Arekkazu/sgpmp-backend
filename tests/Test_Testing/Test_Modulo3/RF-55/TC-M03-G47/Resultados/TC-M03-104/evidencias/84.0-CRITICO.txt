@@ -1,0 +1,24 @@
+inicio=2026-10-25T16:17:27.859479-05:00
+fin=2026-10-25T16:17:29.026314-05:00
+duracion_s=1.167
+exit_code=0
+comando=C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe -m pytest --noconftest -p no:cacheprovider -v -rs --tb=short --junitxml=tests\Test_Testing\Test_Modulo3\RF-55\TC-M03-G47\Resultados\TC-M03-104\evidencias\84.0-CRITICO.xml --html=tests\Test_Testing\Test_Modulo3\RF-55\TC-M03-G47\Resultados\TC-M03-104\evidencias\84.0-CRITICO.html --self-contained-html tests/Test_Testing/Test_Modulo3/RF-55/TC-M03-G47/test_tc_m03_g47.py::test_tc_m03_104_cortes_thi_en_edge[84.0-CRITICO]
+PYTHONPATH=C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend
+nota=Corrida individual 2026-10-25. skip_sin_motor_edge; sin MQTT, PostgreSQL ni POST.
+
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe
+metadata: {'Python': '3.13.7', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1', 'timeout': '2.4.0'}}
+rootdir: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1, timeout-2.4.0
+collecting ... collected 1 item
+
+tests/Test_Testing/Test_Modulo3/RF-55/TC-M03-G47/test_tc_m03_g47.py::test_tc_m03_104_cortes_thi_en_edge[84.0-CRITICO] SKIPPED [100%]
+
+- generated xml file: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo3\RF-55\TC-M03-G47\Resultados\TC-M03-104\evidencias\84.0-CRITICO.xml -
+- Generated html report: file:///C:/Users/ll529/OneDrive/Documentos/integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo3/RF-55/TC-M03-G47/Resultados/TC-M03-104/evidencias/84.0-CRITICO.html -
+=========================== short test summary info ===========================
+SKIPPED [1] tests\\Test_Testing\\Test_Modulo3\\rf55_preparacion.py:62: BLOQUEADO TC-M03-104: no hay motor/simulador Edge en src/ ni tests/. RecibirEventoEdgeDTO exige clasificacion_rf55 ya calculada. No se usa POST /iot/eventos-edge como clasificador. Objetivo de matriz pendiente: referencia matriz: THI=84.0 \u2192 CRITICO (NORMAL<72; LEVE 72-78; MODERADO 78-84; CRITICO\u226584).
+============================= 1 skipped in 0.08s ==============================
+

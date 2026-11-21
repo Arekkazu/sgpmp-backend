@@ -1,0 +1,679 @@
+{
+  "info": {
+    "name": "TC-M07-G042 · RF-101 · Registro de clientes y credenciales correctas",
+    "description": "Casos TC-101-001, 002 y 003. Los registros se hacen dentro de un run del sandbox y se revierten al final.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "",
+          "const cv = pm.collectionVariables;",
+          "const pad = (n) => String(n).padStart(2, '0');",
+          "const ymd = (d) => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());",
+          "if (!cv.get('run_id')) cv.set('run_id', pm.variables.replaceIn('{{$guid}}'));",
+          "if (!cv.get('run_id_b')) cv.set('run_id_b', pm.variables.replaceIn('{{$guid}}'));",
+          "const hoy = new Date();",
+          "cv.set('ayer', ymd(new Date(hoy.getTime() - 86400000)));",
+          "cv.set('manana', ymd(new Date(hoy.getTime() + 86400000)));",
+          "cv.set('fecha_venc', ymd(new Date(hoy.getTime() + 30 * 86400000)));",
+          "// Pausa entre llamadas que cuentan para el límite por minuto (RF-101 5.9): token y consulta AAEF con Authorization.",
+          "const ruta = pm.request.url.getPath();",
+          "const nombre = pm.info.requestName || '';",
+          "const cuenta = /\\/integraciones\\/agrofusion\\/token$/.test(ruta) || (/\\/integracion\\/aaef\\/productores\\//.test(ruta) && pm.request.headers.has('Authorization'));",
+          "if (cuenta && nombre.indexOf('[libre]') < 0) {",
+          "  const gap = Number(cv.get('pausa_ms') || 12500);",
+          "  const espera = Number(cv.get('ultimo_limitado') || 0) + gap - Date.now();",
+          "  if (espera > 0) { const fin = Date.now() + espera; while (Date.now() < fin) {} }",
+          "  cv.set('ultimo_limitado', String(Date.now()));",
+          "}",
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "nit",
+      "value": "901444215"
+    },
+    {
+      "key": "nit_fi",
+      "value": "901444224"
+    },
+    {
+      "key": "nit_noex",
+      "value": "901444233"
+    },
+    {
+      "key": "version_activa",
+      "value": "3.0"
+    },
+    {
+      "key": "version_inactiva",
+      "value": "1.0"
+    },
+    {
+      "key": "ejecutar_ttl",
+      "value": "false"
+    },
+    {
+      "key": "pausa_ms",
+      "value": "12500"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.rol@gmail.com"
+    },
+    {
+      "key": "correo_contador",
+      "value": "contador@gmail.com"
+    },
+    {
+      "key": "correo_parcial",
+      "value": "qa.m07.parcial@pecuaria.co"
+    },
+    {
+      "key": "correo_sinpermiso",
+      "value": "qa.m07.sinpermiso@pecuaria.co"
+    },
+    {
+      "key": "correo_desechable",
+      "value": "qa.m07.desechable@pecuaria.co"
+    },
+    {
+      "key": "correo_fincainactiva",
+      "value": "qa.m07.fincainactiva@pecuaria.co"
+    },
+    {
+      "key": "cid_aaef",
+      "value": "qa-m07-aaef"
+    },
+    {
+      "key": "cid_m2m",
+      "value": "qa-m07-m2m"
+    },
+    {
+      "key": "cid_ip",
+      "value": "qa-m07-ip"
+    },
+    {
+      "key": "cid_vencido",
+      "value": "qa-m07-vencido"
+    },
+    {
+      "key": "cid_susp",
+      "value": "qa-m07-susp"
+    },
+    {
+      "key": "cid_rev",
+      "value": "qa-m07-rev"
+    },
+    {
+      "key": "id_susp",
+      "value": "10"
+    },
+    {
+      "key": "id_rev",
+      "value": "11"
+    }
+  ],
+  "item": [
+    {
+      "name": "Preparación",
+      "item": [
+        {
+          "name": "Iniciar sesión web (correo_admin)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae token', () => pm.expect(J.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('tok_admin', J.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"{{correo_admin}}\", \"contrasena\": \"{{contrasena_admin}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-101-001 · Registro con secreto generado (CA-1)",
+      "item": [
+        {
+          "name": "registrar QA_M07_REG",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('el secreto tiene al menos 43 caracteres (≥ 256 bits)', () => pm.expect(J.client_secret.length).to.be.at.least(43));",
+                  "pm.test('avisa que no se vuelve a mostrar', () => pm.expect(J.aviso).to.match(/no se vuelve a mostrar/i));",
+                  "pm.test('estado ACTIVO', () => pm.expect(J.estado).to.eql('ACTIVO'));",
+                  "pm.collectionVariables.set('id_reg', String(J.id_cliente_externo));",
+                  "pm.collectionVariables.set('secret_reg', J.client_secret);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"codigo\": \"QA_M07_REG\", \"nombre\": \"QA M07 Registro\", \"identificador_publico\": \"qa-m07-reg\", \"fecha_vencimiento\": \"{{fecha_venc}}\", \"canales\": [{\"canal\": \"CONSULTA_AAEF\", \"limite_por_minuto\": 60}], \"ttl_token_canal_minutos\": 15}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "listar clientes: no aparece el secreto ni el hash",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('sin secretos en el listado', () => { const t = pm.response.text(); pm.expect(t).to.not.match(/client_secret|hash_secreto|\\$2[aby]\\$/); pm.expect(t.indexOf(pm.collectionVariables.get('secret_reg'))).to.eql(-1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "en BD solo existe el hash bcrypt",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('hay un hash y empieza por $2 (bcrypt)', () => { pm.expect(J.data.length).to.be.above(0); pm.expect(J.data[0].hash_secreto).to.match(/^\\$2[aby]\\$/); });",
+                  "pm.test('el hash no es el secreto en claro', () => pm.expect(J.data[0].hash_secreto).to.not.eql(pm.collectionVariables.get('secret_reg')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT hash_secreto FROM modulo7.identificadores_apis WHERE id_cliente_externo = {{id_reg}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-101-002 · Registro con secreto propio (5.11)",
+      "item": [
+        {
+          "name": "registrar QA_M07_MIG con secreto de 32 caracteres",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('id_mig', String(J.id_cliente_externo));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/clientes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "clientes"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"codigo\": \"QA_M07_MIG\", \"nombre\": \"QA M07 Migracion\", \"identificador_publico\": \"qa-m07-mig\", \"fecha_vencimiento\": \"{{fecha_venc}}\", \"canales\": [{\"canal\": \"IDENTIDAD_M2M\", \"limite_por_minuto\": 60}], \"ttl_token_canal_minutos\": 15, \"client_secret\": \"QaM07MigSecretoPropio-2026-abcd!\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "el secreto propio sirve para pedir token",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token', () => pm.expect(J.access_token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"qa-m07-mig\", \"client_secret\": \"QaM07MigSecretoPropio-2026-abcd!\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "auditoría: CLIENTE_REGISTRADO sin el secreto",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('hay un evento CLIENTE_REGISTRADO', () => pm.expect((J.items || []).length).to.be.above(0));",
+                  "pm.test('el evento no contiene el secreto', () => pm.expect(JSON.stringify(J).indexOf(\"QaM07MigSecretoPropio-2026-abcd!\")).to.eql(-1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integracion/auditoria?tipo_evento=CLIENTE_REGISTRADO&id_cliente_externo={{id_mig}}&desde={{ayer}}&hasta={{manana}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integracion",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "CLIENTE_REGISTRADO"
+                },
+                {
+                  "key": "id_cliente_externo",
+                  "value": "{{id_mig}}"
+                },
+                {
+                  "key": "desde",
+                  "value": "{{ayer}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{manana}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-101-003 · Credenciales correctas (CA-2)",
+      "item": [
+        {
+          "name": "Token de canal cid_aaef para correo_contador",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token y expires_in', () => { pm.expect(J.access_token).to.be.a('string'); pm.expect(J.expires_in).to.be.a('number'); });",
+                  "pm.collectionVariables.set('tok_c', J.access_token);",
+                  "pm.test('expires_in = 300 s (TTL de 5 min)', () => pm.expect(J.expires_in).to.eql(300));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Test-Run-Id",
+                "value": "{{run_id}}"
+              },
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/integraciones/agrofusion/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integraciones",
+                "agrofusion",
+                "token"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_id\": \"{{cid_aaef}}\", \"client_secret\": \"{{secret_aaef}}\", \"email\": \"{{correo_contador}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cierre",
+      "item": [
+        {
+          "name": "Cerrar el run del sandbox (rollback)",
+          "description": "",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const J = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('rollback exitoso', () => pm.expect(JSON.stringify(J)).to.include('Rollback'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

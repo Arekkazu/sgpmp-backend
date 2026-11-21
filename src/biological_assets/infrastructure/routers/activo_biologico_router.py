@@ -1,3 +1,15 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-48/61: inyecta integracion transaccional de traslado |
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-22 | Arekkazu         | M05 RF-38: cierre con efectos de suministros  |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-03 | Arekkazu | QA-M02 RF-49: asociaciones del activo con nombre del sensor y serial del dispositivo |
+# | 2026-11-10 | Arekkazu | #394 RF-36: la ficha del lote devuelve el estado de su densidad |
+# | 2026-11-10 | Arekkazu | #393 RF-36: el listado trae el estado de densidad de cada lote |
+# | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -61,6 +73,9 @@ from src.biological_assets.infrastructure.adapters.dispositivo_iot_estado_m03_ad
 from src.biological_assets.infrastructure.adapters.especie_m09_adapter import EspecieM09Adapter
 from src.biological_assets.infrastructure.adapters.infraestructura_m09_adapter import InfraestructuraM09Adapter
 from src.biological_assets.infrastructure.adapters.parametros_especie_m09_adapter import ParametrosEspecieM09Adapter
+from src.biological_assets.infrastructure.adapters.cierre_ciclo_suministros_m05_adapter import (
+    CierreCicloSuministrosM05Adapter,
+)
 from src.biological_assets.infrastructure.adapters.recalibracion_vision_m09_adapter import RecalibracionVisionM09Adapter
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
@@ -101,6 +116,7 @@ from src.biological_assets.infrastructure.repositories.evento_activo_repository 
 from src.biological_assets.application.use_cases.gestion.consultar_historial_use_case import ConsultarHistorialUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_ficha_integral_use_case import ConsultarFichaIntegralUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_transferencia_use_case import RegistrarTransferenciaUseCase
+from src.telemetry.infrastructure.adapters.vinculacion_traslado_m03_adapter import VinculacionTrasladoM03Adapter
 from src.biological_assets.infrastructure.dto.consultar_historial_dto import ConsultarHistorialDTO
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
@@ -163,6 +179,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     EventoReproductivoResponse,
     EventoSanitarioResponse,
     FichaIntegralResponse,
+    EstadoDensidadLoteResponse,
     FichaLoteResponse,
     GestionFaseResponse,
     HistorialActivoResponse,
@@ -194,12 +211,15 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
+from src.biological_assets.domain.repositories.infraestructura_consulta_port import LimiteEtapa
+from src.biological_assets.domain.services.densidad_lote import evaluar_densidad
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
 from src.shared.rbac import tiene_permiso, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
@@ -394,6 +414,7 @@ def _activo_to_response(
         fecha_actualizacion=activo.fecha_actualizacion,
         detalle_individual=di,
         detalle_poblacional=dp,
+        advertencia_edad=activo.advertencia_edad,
     )
 
 
@@ -451,6 +472,10 @@ def registrar_activo(
     identificador único (409), origen financiero y atributos dinámicos de la
     especie (ver `GET /activos-biologicos/parametros-especie`). En lotes valida la
     densidad contra el máximo de la especie.
+
+    `fecha_nacimiento` es opcional (RFC-014) y no puede ser futura. Si la edad del
+    activo alcanza o supera la esperanza de vida de la especie, responde 201 igual,
+    con `advertencia_edad` (nunca rechaza por la edad).
     """
     use_case = RegistrarActivoBiologicoUseCase(
         db=db,
@@ -486,6 +511,7 @@ def listar_activos(
     id_especie: int | None = Query(default=None, ge=1),
     id_estado: int | None = Query(default=None, ge=1),
     id_infraestructura: int | None = Query(default=None, ge=1),
+    id_finca: int | None = Query(default=None, ge=1, description='Solo los activos de esta finca.'),
     pagina: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -501,6 +527,7 @@ def listar_activos(
             id_especie=id_especie,
             id_estado=id_estado,
             id_infraestructura=id_infraestructura,
+            id_finca=id_finca,
             pagina=pagina,
             page_size=page_size,
         )
@@ -529,6 +556,7 @@ def listar_activos(
         for a in registros
     ]
     _completar_nombres_catalogo(db, respuestas)
+    _completar_estado_densidad(db, respuestas)
     return ActivosPaginadosResponse(
         total_registros=total,
         pagina_actual=pagina,
@@ -539,24 +567,60 @@ def listar_activos(
 
 
 def _completar_nombres_catalogo(db: Session, activos: list[ActivoBiologicoResponse]) -> None:
-    """M2-04: nombres de especie e infraestructura de la página, en una consulta."""
+    """M2-04: nombres de especie, infraestructura y finca de la página, en dos consultas."""
     if not activos:
         return
-    filas = db.execute(
+    especies = dict(db.execute(
+        text('SELECT id_especie, nombre FROM modulo9.especies WHERE id_especie = ANY(:esp)'),
+        {'esp': list({a.id_especie for a in activos})},
+    ).fetchall())
+    areas = {f.id_infraestructura: f for f in db.execute(
         text(
-            'SELECT \'E\' AS tipo, id_especie AS id, nombre FROM modulo9.especies WHERE id_especie = ANY(:esp) '
-            'UNION ALL '
-            'SELECT \'I\', id_infraestructura, nombre FROM modulo9.infraestructuras WHERE id_infraestructura = ANY(:inf)'
+            'SELECT i.id_infraestructura, i.nombre, f.id_finca, f.nombre AS finca FROM modulo9.infraestructuras i '
+            'JOIN modulo9.fincas f ON f.id_finca = i.id_finca WHERE i.id_infraestructura = ANY(:inf)'
         ),
-        {
-            'esp': list({a.id_especie for a in activos}),
-            'inf': list({a.id_infraestructura for a in activos if a.id_infraestructura}),
-        },
-    ).fetchall()
-    nombres = {(f.tipo, f.id): f.nombre for f in filas}
+        {'inf': list({a.id_infraestructura for a in activos if a.id_infraestructura})},
+    ).fetchall()}
     for a in activos:
-        a.nombre_especie = nombres.get(('E', a.id_especie))
-        a.nombre_infraestructura = nombres.get(('I', a.id_infraestructura))
+        a.nombre_especie = especies.get(a.id_especie)
+        area = areas.get(a.id_infraestructura)
+        if area is not None:
+            a.nombre_infraestructura, a.id_finca, a.nombre_finca = area.nombre, area.id_finca, area.finca
+
+
+_SQL_DENSIDAD_LOTES = text("""
+    SELECT ab.id_activo_biologico, i.superficie,
+           (SELECT min(e.densidad_maxima_por_especie) FROM modulo9.infraestructuras_especies ie
+              JOIN modulo9.especies e ON e.id_especie = ie.id_especie
+             WHERE ie.id_infraestructura = i.id_infraestructura
+            HAVING count(*) = count(e.densidad_maxima_por_especie)) AS densidad_area,
+           cb.nombre AS etapa, cb.densidad_maxima, cb.biomasa_maxima, cb.aviso_preventivo_pct
+    FROM modulo2.activos_biologicos ab
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+    LEFT JOIN LATERAL (
+        SELECT gf.id_ciclos_productivo_biologico FROM modulo2.gestiones_fases gf
+        WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa
+        ORDER BY gf.fecha_inicio DESC LIMIT 1) fase ON true
+    LEFT JOIN modulo9.ciclos_productivos_biologicos cpb
+           ON cpb.id_ciclos_productivo_biologico = fase.id_ciclos_productivo_biologico
+    LEFT JOIN modulo9.ciclos_biologicos cb ON cb.id_ciclo_biologico = cpb.id_ciclo_biologico
+    WHERE ab.id_activo_biologico = ANY(:ids)
+""")
+
+
+def _completar_estado_densidad(db: Session, activos: list[ActivoBiologicoResponse]) -> None:
+    """#393: estado de densidad de los lotes de la página en una consulta, con la regla de la ficha (RF-36):
+    el máximo más estricto entre la etapa y las especies del área (RFC-012)."""
+    lotes = {a.id_activo_biologico: a for a in activos if a.tipo == 'POBLACIONAL' and a.detalle_poblacional}
+    if not lotes:
+        return
+    for f in db.execute(_SQL_DENSIDAD_LOTES, {'ids': list(lotes)}):
+        a = lotes[f.id_activo_biologico]
+        etapa = (LimiteEtapa(f.etapa, f.densidad_maxima, f.biomasa_maxima, f.aviso_preventivo_pct)
+                 if f.etapa is not None else None)
+        a.estado_densidad = EstadoDensidadLoteResponse.model_validate(evaluar_densidad(
+            cantidad=a.detalle_poblacional.cantidad_actual, superficie=f.superficie, densidad_especie=f.densidad_area,
+            limite_etapa=etapa, biomasa_total=a.detalle_poblacional.biomasa_total))
 
 
 def _auditoria_to_response(e: EventoAuditoria) -> EventoAuditoriaResponse:
@@ -959,7 +1023,7 @@ def consultar_asociacion(
         'ACTIVA',
         description="'ACTIVA' devuelve la asociación vigente. 'HISTORIAL' devuelve todos los períodos.",
     ),
-    fecha_referencia: Optional[datetime] = Query(
+    fecha_referencia: Optional[FechaHoraUtc] = Query(
         default=None,
         description=(
             'Consulta cuál era la asociación vigente en una fecha pasada (CA-3, útil para RF-61). '
@@ -991,7 +1055,10 @@ def consultar_asociacion(
         tipo_consulta=resultado.tipo_consulta,
         id_activo_biologico=resultado.id_activo_biologico,
         asociacion_activa=(
-            _historial_to_response(resultado.asociacion_activa) if resultado.asociacion_activa else None
+            _historial_to_response(resultado.asociacion_activa).model_copy(
+                update={'capacidad_maxima': resultado.capacidad_maxima}
+            )
+            if resultado.asociacion_activa else None
         ),
         historial=(
             [_historial_to_response(h) for h in resultado.historial]
@@ -1026,6 +1093,8 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
             cantidad_afectada=b.cantidad_afectada,
             tipo=b.tipo,
             motivo_baja=b.detalles,
+            valor_venta=b.valor_venta,
+            referencia_venta=b.referencia_venta,
         )
 
     ingreso = None
@@ -1407,6 +1476,7 @@ def cerrar_ciclo(
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
         recalibracion_vision=RecalibracionVisionM09Adapter(background_tasks),
+        suministros=CierreCicloSuministrosM05Adapter(db),
     )
     historico = use_case.execute(id_activo, dto, usuario_actual)
     return CierreActivoResponse(
@@ -1816,6 +1886,7 @@ def consultar_ficha_lote(
             for r in ficha.historial
         ],
         total_registros_historial=ficha.total_registros_historial,
+        estado_densidad=EstadoDensidadLoteResponse.model_validate(ficha.estado_densidad) if ficha.estado_densidad else None,
     )
 
 
@@ -1889,6 +1960,7 @@ def registrar_transferencia(
         infra_port=InfraestructuraM09Adapter(db),
         parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        vinculacion_traslado_port=VinculacionTrasladoM03Adapter(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
     return TransferenciaResponse(
@@ -1907,6 +1979,21 @@ def registrar_transferencia(
 
 
 # ── CU11 RF-49 — Asociar sensor IoT al activo biológico ──────────────────────
+
+def _nombres_sensores(db: Session, ids: set[int]) -> dict[int, tuple[str, str]]:
+    """Lectura simple: nombre del sensor y serial de su dispositivo, para no mostrar ids."""
+    if not ids:
+        return {}
+    filas = db.execute(
+        text(
+            'SELECT s.id_sensores, s.nombre, d.serial FROM modulo9.sensores s '
+            'JOIN modulo9.dispositivos_iot d ON d.id_dispositivo_iot = s.id_dispositivo_iot '
+            'WHERE s.id_sensores = ANY(:ids)'
+        ),
+        {'ids': list(ids)},
+    ).all()
+    return {f[0]: (f[1], f[2]) for f in filas}
+
 
 @router.get(
     '/{id_activo}/sensores',
@@ -1946,6 +2033,7 @@ def consultar_asociaciones_sensor(
         id_activo, tipo_consulta, usuario_actual,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
+    nombres = _nombres_sensores(db, {a.sensor_id for a in asociaciones})
     return ConsultaAsociacionesSensorResponse(
         id_activo_biologico=id_activo_resultado,
         tipo_consulta=tipo_resultado,
@@ -1963,6 +2051,8 @@ def consultar_asociaciones_sensor(
                 estado_asociacion=a.estado_asociacion,
                 motivo=a.motivo,
                 advertencia=None,
+                nombre_sensor=nombres.get(a.sensor_id, (None, None))[0],
+                serial_dispositivo=nombres.get(a.sensor_id, (None, None))[1],
             )
             for a in asociaciones
         ],

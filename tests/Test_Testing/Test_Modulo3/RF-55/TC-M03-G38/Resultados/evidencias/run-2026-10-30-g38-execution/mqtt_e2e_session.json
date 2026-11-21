@@ -1,0 +1,135 @@
+{
+  "connect_rc": 0,
+  "subacks": [
+    {
+      "mid": 1,
+      "granted": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ]
+    },
+    {
+      "mid": 2,
+      "granted": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "ts": "2026-10-30T21:48:13.075370+00:00",
+      "kind": "connect",
+      "rc": 0,
+      "reason": "Success"
+    },
+    {
+      "ts": "2026-10-30T21:48:13.077043+00:00",
+      "kind": "subscribe_sent",
+      "topic": "sgpmp/RASPBERRY3B-TEST/#",
+      "mid": 1
+    },
+    {
+      "ts": "2026-10-30T21:48:13.077134+00:00",
+      "kind": "subscribe_sent",
+      "topic": "sgpmp/QA-M03-272-A-088894/#",
+      "mid": 2
+    },
+    {
+      "ts": "2026-10-30T21:48:13.095158+00:00",
+      "kind": "suback",
+      "mid": 1,
+      "granted": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ]
+    },
+    {
+      "ts": "2026-10-30T21:48:13.149068+00:00",
+      "kind": "suback",
+      "mid": 2,
+      "granted": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ]
+    },
+    {
+      "ts": "2026-10-30T21:48:45.104363+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-30T21:48:43.973095+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-30T21:51:15.118165+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-30T21:51:13.990508+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-30T21:52:58.121518+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-30T21:52:56.954733+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-30T21:53:09.233588+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/command",
+      "tipo": "",
+      "payload": "{\"id_comando\": \"a1725d6e5d0a4f1891f0a061da2a2da2\", \"emitido_en\": \"2026-10-30T21:53:08.339185+00:00\", \"tipo_comando\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version\": \"2026-10-07T00:00:00+00:00\", \"variable\": \"Humedad Relativa\", \"unidad\": \"%\", \"valor_min\": 0.0, \"valor_max\": 0.0, \"niveles\": [{\"nivel\": \"normal\", \"limite_inferior\": 0.0, \"limite_superior\": 0.0}, {\"nivel\": \"precaucion\", \"limite_inferior\": 0.0, \"limite_superior\": 0.0}, {\"nivel\": \"critico\", \"limite_inferior\": 0.0, \"limite_superior\": 0.0}]}"
+    },
+    {
+      "ts": "2026-10-30T21:53:09.252345+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/status",
+      "tipo": "ACK_UMBRAL",
+      "payload": "{\"tipo_mensaje\": \"ACK_UMBRAL\", \"resultado\": \"ERROR\", \"id_comando\": \"a1725d6e5d0a4f1891f0a061da2a2da2\", \"motivo\": \"valor_min y valor_max deben ser n\\u00fameros con valor_min < valor_max\", \"event_id\": \"73a8cf3e-49ed-4d4c-beef-e164ab543fd6\"}"
+    },
+    {
+      "ts": "2026-10-30T21:53:45.162336+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-30T21:53:43.996462+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-30T21:53:50.723623+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/command",
+      "tipo": "",
+      "payload": "{\"id_comando\": \"2ef6cd393a3a4dbf9f39c58c463f51ba\", \"emitido_en\": \"2026-10-30T21:53:49.937284+00:00\", \"tipo_comando\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version\": \"2026-10-07T00:00:00+00:00\", \"variable\": \"Humedad Relativa\", \"unidad\": \"%\", \"valor_min\": 40.0, \"valor_max\": 98.0, \"niveles\": [{\"nivel\": \"normal\", \"limite_inferior\": 40.0, \"limite_superior\": 70.0}, {\"nivel\": \"precaucion\", \"limite_inferior\": 70.0, \"limite_superior\": 70.0}, {\"nivel\": \"critico\", \"limite_inferior\": 70.0, \"limite_superior\": 98.0}]}"
+    },
+    {
+      "ts": "2026-10-30T21:53:50.784108+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/status",
+      "tipo": "ACK_UMBRAL",
+      "payload": "{\"tipo_mensaje\": \"ACK_UMBRAL\", \"resultado\": \"ERROR\", \"id_comando\": \"2ef6cd393a3a4dbf9f39c58c463f51ba\", \"motivo\": \"la banda precaucion debe tener ancho mayor que 0 (70\\u201370)\", \"event_id\": \"68e2a60f-f913-4f17-9e2d-854b50c6d262\"}"
+    },
+    {
+      "ts": "2026-10-30T21:54:33.603314+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/command",
+      "tipo": "",
+      "payload": "{\"id_comando\": \"523e5cea5c0a4b618d44beb21c378523\", \"emitido_en\": \"2026-10-30T21:54:32.815294+00:00\", \"tipo_comando\": \"UMBRAL_AMBIENTAL\", \"id_umbral_ambiental\": 65, \"version\": \"2026-10-07T00:00:00+00:00\", \"variable\": \"Humedad Relativa\", \"unidad\": \"%\", \"valor_min\": 40.0, \"valor_max\": 98.0, \"niveles\": [{\"nivel\": \"normal\", \"limite_inferior\": 40.0, \"limite_superior\": 98.0}]}"
+    },
+    {
+      "ts": "2026-10-30T21:54:33.900664+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/status",
+      "tipo": "ACK_UMBRAL",
+      "payload": "{\"tipo_mensaje\": \"ACK_UMBRAL\", \"resultado\": \"ERROR\", \"id_comando\": \"523e5cea5c0a4b618d44beb21c378523\", \"motivo\": \"niveles debe traer normal, precaucion y critico, una vez cada uno\", \"event_id\": \"2374832a-5f85-4fb0-8546-c6c4d9085e61\"}"
+    }
+  ]
+}

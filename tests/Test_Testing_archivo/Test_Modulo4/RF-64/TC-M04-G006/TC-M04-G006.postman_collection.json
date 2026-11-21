@@ -1,0 +1,517 @@
+{
+  "info": {
+    "name": "RF-64 - TC-M04-G006 Reglas de baja de patologías según el estado del modelo asociado",
+    "description": "Automatiza TC-M04-013/029/030/031 (RF-64; CU-M04-01 E3/E7, FA-08, FA-11 y CA-9). 013, 029 y 030 necesitan una patología 'en uso' por modelos en estados concretos (PRODUCCIÓN/VALIDACIÓN, DESARROLLO/EN_ENTRENAMIENTO, ARCHIVADO/BORRADOR); su carpeta solo verifica, sin modificar nada, si esa precondición existe en TEST, y falla con la razón cuando no es alcanzable. Hoy no lo es: las versiones de modelo no declaran las patologías que cubren, sus estados reales son APROBADO/RECHAZADO/ACTIVO/DEPRECADO, el registro de modelos es solo interno (X-RF71-Internal-Key) y el chequeo 'en uso por modelo' del backend es un stub que siempre responde que no. No se intenta desactivar una patología base (029): la desactivación no bloquea las base y no hay endpoint para reactivarlas, así que se alteraría el TEST compartido de forma permanente. 031 (ejecutable): desactiva una patología propia y documenta version_catalogo antes/después; la segunda aserción exige el incremento (CA-9), a confirmar con Desarrollo si la Restricción 10 aplica a cambios de estado. Nota del código: desactivar() solo cambia es_activo, no la versión.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login",
+      "description": "",
+      "item": [
+        {
+          "name": "Login (rol veterinario; por defecto Administrador)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_vet', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-013 Bloqueo por modelos en PRODUCCIÓN/VALIDACIÓN (precondición)",
+      "description": "",
+      "item": [
+        {
+          "name": "TC-M04-013 - Precondición: patología en uso por un modelo en PRODUCCIÓN/VALIDACIÓN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Modelos responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const estados = ['PRODUCCION', 'PRODUCCIÓN', 'VALIDACION', 'VALIDACIÓN', 'ACTIVO'];",
+                  "const campos = ['patologias', 'patologias_cubiertas', 'id_patologias', 'ids_patologias'];",
+                  "const estadosReales = [...new Set(items.map(m => m.estado_version))];",
+                  "console.log('TC-M04-013 estados de modelo existentes:', JSON.stringify(estadosReales));",
+                  "pm.test('TC-M04-013: existe un modelo en ' + estados.join('/') + ' vinculado a una patología', function () {",
+                  "  const candidato = items.find(m => estados.includes(m.estado_version) && campos.some(c => (m[c] || []).length));",
+                  "  pm.expect(candidato, 'Precondición no alcanzable: no hay modelos en ' + estados.join('/') +",
+                  "    ' (estados reales: ' + estadosReales.join(', ') + ') o los modelos no declaran sus patologías').to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/modelos?limit=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "modelos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-029 Bloqueo de baja de patología base con modelo entrenado (precondición)",
+      "description": "",
+      "item": [
+        {
+          "name": "TC-M04-029 - Precondición: patología base referenciada por un modelo entrenado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Modelos responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const estados = ['DESARROLLO', 'EN_ENTRENAMIENTO', 'APROBADO', 'ACTIVO', 'PRODUCCION', 'VALIDACION'];",
+                  "const campos = ['patologias', 'patologias_cubiertas', 'id_patologias', 'ids_patologias'];",
+                  "const estadosReales = [...new Set(items.map(m => m.estado_version))];",
+                  "console.log('TC-M04-029 estados de modelo existentes:', JSON.stringify(estadosReales));",
+                  "pm.test('TC-M04-029: existe un modelo en ' + estados.join('/') + ' vinculado a una patología', function () {",
+                  "  const candidato = items.find(m => estados.includes(m.estado_version) && campos.some(c => (m[c] || []).length));",
+                  "  pm.expect(candidato, 'Precondición no alcanzable: no hay modelos en ' + estados.join('/') +",
+                  "    ' (estados reales: ' + estadosReales.join(', ') + ') o los modelos no declaran sus patologías').to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/modelos?limit=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "modelos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M04-030 Baja con advertencia si solo hay modelos ARCHIVADO/BORRADOR (precondición)",
+      "description": "",
+      "item": [
+        {
+          "name": "TC-M04-030 - Precondición: patología referenciada solo por modelos ARCHIVADO/BORRADOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Modelos responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const estados = ['ARCHIVADO', 'BORRADOR', 'DEPRECADO'];",
+                  "const campos = ['patologias', 'patologias_cubiertas', 'id_patologias', 'ids_patologias'];",
+                  "const estadosReales = [...new Set(items.map(m => m.estado_version))];",
+                  "console.log('TC-M04-030 estados de modelo existentes:', JSON.stringify(estadosReales));",
+                  "pm.test('TC-M04-030: existe un modelo en ' + estados.join('/') + ' vinculado a una patología', function () {",
+                  "  const candidato = items.find(m => estados.includes(m.estado_version) && campos.some(c => (m[c] || []).length));",
+                  "  pm.expect(candidato, 'Precondición no alcanzable: no hay modelos en ' + estados.join('/') +",
+                  "    ' (estados reales: ' + estadosReales.join(', ') + ') o los modelos no declaran sus patologías').to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/modelos?limit=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "modelos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. TC-M04-031 Versionado en la desactivación",
+      "description": "",
+      "item": [
+        {
+          "name": "TC-M04-031 - Registrar especie propia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bovino Baja Patologia {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G006\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-031 - Registrar patología no base",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Patología creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_patologia', pm.response.json().id_patologia);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Baja Versionada {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 14],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-031 - version_catalogo antes de desactivar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Detalle responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('version_antes', String(pm.response.json().version_catalogo));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-031 - Desactivar la patología",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-031: desactivación aceptada (200)', function () { pm.response.to.have.status(200); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-031: patología INACTIVA', function () { pm.expect(j.es_activo).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}/desactivar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}",
+                "desactivar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-031 - version_catalogo después de desactivar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Detalle responde 200', function () { pm.response.to.have.status(200); });",
+                  "const antes = Number(pm.collectionVariables.get('version_antes'));",
+                  "const despues = pm.response.json().version_catalogo;",
+                  "console.log('TC-M04-031 version_catalogo: antes ' + antes + ', después ' + despues);",
+                  "pm.test('TC-M04-031: se documenta el versionado en la desactivación (antes ' + antes + ', después ' + despues + ')', function () {",
+                  "  pm.expect(despues).to.be.oneOf([antes, antes + 1]);",
+                  "});",
+                  "pm.test('TC-M04-031 (CA-9): la desactivación incrementa version_catalogo', function () {",
+                  "  pm.expect(despues).to.eql(antes + 1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_patologia",
+      "value": ""
+    },
+    {
+      "key": "version_antes",
+      "value": ""
+    }
+  ]
+}

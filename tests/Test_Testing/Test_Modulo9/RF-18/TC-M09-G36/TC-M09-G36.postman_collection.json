@@ -1,0 +1,187 @@
+{
+  "info": {
+    "name": "TC-M09-G36 - Restriccion de rol para configurar parametros operativos",
+    "description": "Automatiza TC-M09-78: solo el rol Administrador puede modificar los parametros operativos (frecuencia/heartbeat) de un dispositivo IoT. Se prueba primero con un usuario sin permiso (esperado 403) y luego con el Administrador (esperado 202). Dispositivo usado: id=3 (limpio, una sola configuracion APLICADA previa).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "id_dispositivo",
+      "value": "3"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_no_autorizado",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0a. Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test('Respuesta contiene token', function () {",
+              "    pm.expect(jsonData).to.have.property('token');",
+              "    pm.expect(jsonData.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (jsonData.token) {",
+              "    pm.collectionVariables.set('token_admin', jsonData.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      }
+    },
+    {
+      "name": "0b. Login usuario NO autorizado (Gestor de Granja)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test('Respuesta contiene token', function () {",
+              "    pm.expect(jsonData).to.have.property('token');",
+              "    pm.expect(jsonData.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (jsonData.token) {",
+              "    pm.collectionVariables.set('token_no_autorizado', jsonData.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"gestor.granja.test@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      }
+    },
+    {
+      "name": "1. TC-M09-78 - Intento con usuario NO autorizado (esperado 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 403 (prohibido para rol no autorizado)', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test('Respuesta incluye codigo de error', function () {",
+              "    pm.expect(jsonData).to.have.property('error_code');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_no_autorizado}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 15,\n  \"intervalo_transmision\": 150\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar"]
+        }
+      }
+    },
+    {
+      "name": "2. TC-M09-78 - Intento con Administrador (esperado 202)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 202 (permitido para Administrador)', function () {",
+              "    pm.response.to.have.status(202);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test('Estado devuelto es PENDIENTE', function () {",
+              "    pm.expect(jsonData.estado).to.eql('PENDIENTE');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 15,\n  \"intervalo_transmision\": 150\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar"]
+        }
+      }
+    }
+  ]
+}

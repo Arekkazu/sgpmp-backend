@@ -1,0 +1,311 @@
+{
+  "runId": "G29-REEVAL-V5-20261007-214956",
+  "caso": "TC-M09-G29",
+  "version": "V5",
+  "proposito": "Correccion de fixture indicada por AIoT (solo lectura)",
+  "fixtureIndicadoPorAiot": {
+    "nodo": {
+      "serial": "TEST-AMBIENTAL",
+      "idInterfaz": 139
+    },
+    "gateway": {
+      "serial": "SERBY-TAX-FIRMWARE",
+      "idInterfaz": 138
+    },
+    "area": "QA-G36-Infra-1789010064",
+    "finca": "Finca Prueba QA femjscac"
+  },
+  "escriturasFuncionales": 0,
+  "inicio": "2026-10-08T03:18:18.638557+00:00",
+  "ambientes": {
+    "DEV": {
+      "ambiente": "DEV",
+      "base": "https://api.inmero.co/back-sigab-dev",
+      "timestamp": "2026-10-08T03:18:18.638575+00:00",
+      "actor": {
+        "correo": "admin.dev@gmail.com",
+        "tokenPersistido": false
+      },
+      "alcance": {
+        "permisosRecurso9_fincas": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "esGlobalSinFiltroDeFinca": true
+      },
+      "totalDispositivosVisibles": 44,
+      "nodo": {
+        "buscado": {
+          "serial": "TEST-AMBIENTAL",
+          "idInterfaz": 139
+        },
+        "encontrado": false,
+        "detalle": null,
+        "tipo": null
+      },
+      "gateway": {
+        "buscado": {
+          "serial": "SERBY-TAX-FIRMWARE",
+          "idInterfaz": 138
+        },
+        "encontrado": false,
+        "detalle": null,
+        "tipo": null
+      },
+      "accesoDirectoPorId": {
+        "139": {
+          "http": 404,
+          "serial": null,
+          "error_code": "DISPOSITIVO_NO_ENCONTRADO"
+        },
+        "138": {
+          "http": 404,
+          "serial": null,
+          "error_code": "DISPOSITIVO_NO_ENCONTRADO"
+        }
+      },
+      "conclusion": "El fixture indicado por AIoT no existe en DEV."
+    },
+    "TEST": {
+      "ambiente": "TEST",
+      "base": "https://api.inmero.co/back-sigab-test",
+      "timestamp": "2026-10-08T03:18:20.966755+00:00",
+      "actor": {
+        "correo": "administador.dev@gmail.com",
+        "tokenPersistido": false
+      },
+      "alcance": {
+        "permisosRecurso9_fincas": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "esGlobalSinFiltroDeFinca": true
+      },
+      "totalDispositivosVisibles": 189,
+      "nodo": {
+        "buscado": {
+          "serial": "TEST-AMBIENTAL",
+          "idInterfaz": 139
+        },
+        "encontrado": true,
+        "detalle": {
+          "id_dispositivo_iot": 139,
+          "serial": "TEST-AMBIENTAL",
+          "descripcion": "ESTO ES UN DISPOSITIVO DE PRUEBA",
+          "id_infraestructura": 22,
+          "id_tipo_dispositivo": 3,
+          "es_activo": true,
+          "fecha_creacion": "2026-10-05T23:02:11.892231Z",
+          "id_dispositivo_gateway": 138,
+          "resolucion": null,
+          "fps": null,
+          "area_cobertura_m2": null
+        },
+        "tipo": "SENSOR_AMBIENTAL"
+      },
+      "gateway": {
+        "buscado": {
+          "serial": "SERBY-TAX-FIRMWARE",
+          "idInterfaz": 138
+        },
+        "encontrado": true,
+        "detalle": {
+          "id_dispositivo_iot": 138,
+          "serial": "SERBY-TAX-FIRMWARE",
+          "descripcion": "GATEAWYFIRMWARE",
+          "id_infraestructura": 22,
+          "id_tipo_dispositivo": 4,
+          "es_activo": true,
+          "fecha_creacion": "2026-10-05T22:25:36.807695Z",
+          "id_dispositivo_gateway": null,
+          "resolucion": null,
+          "fps": null,
+          "area_cobertura_m2": null
+        },
+        "tipo": "GATEWAY_EDGE"
+      },
+      "accesoDirectoPorId": {
+        "139": {
+          "http": 200,
+          "serial": "TEST-AMBIENTAL",
+          "error_code": null
+        },
+        "138": {
+          "http": 200,
+          "serial": "SERBY-TAX-FIRMWARE",
+          "error_code": null
+        }
+      },
+      "nodoAsociadoAlGateway": true,
+      "area": {
+        "id_infraestructura": 22,
+        "nombre_infraestructura": "QA-G36-Infra-1789010064",
+        "tipo_area": "Estanque",
+        "superficie": "500.00",
+        "id_finca": 44,
+        "descripcion_infraestructura": "Infraestructura de prueba QA TC-M02-G36",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "especie_id": null,
+        "tipo_modelo_asignado": null
+      },
+      "finca": {
+        "id_finca": 44,
+        "nombre": "Finca Prueba QA femjscac",
+        "es_activo": true
+      },
+      "coincideConLoIndicadoPorAiot": {
+        "area": true,
+        "finca": true
+      },
+      "conectividadGateway": {
+        "es_activo_administrativo": true,
+        "credencialMqtt": {
+          "emitida": true,
+          "habilitada": true,
+          "conectada": true,
+          "usuario": "SERBY-TAX-FIRMWARE",
+          "seriales": [
+            "SERBY-TAX-FIRMWARE",
+            "TEST-AMBIENTAL"
+          ]
+        },
+        "estadoOperativo": {
+          "id_estado_dispositivo_iot": 5,
+          "id_dispositivo_iot": 138,
+          "estado_actual": "ACTIVO",
+          "fecha_ultimo_contacto": "2026-10-08T03:14:26.489906Z",
+          "id_ultimo_heartbeat": 105,
+          "tiempo_sin_contacto": 0,
+          "causa_primaria": null,
+          "causas_secundarias": null,
+          "fecha_ultima_actualizacion": "2026-10-08T03:14:26.489906Z"
+        },
+        "conectada": true,
+        "clasificacion": "EDGE_ONLINE"
+      },
+      "especiesDelArea": {
+        "porCampoEspecieIdDelArea": null,
+        "porActivosVivos": [
+          4
+        ],
+        "activosVivos": [
+          {
+            "id": 236,
+            "id_especie": 4,
+            "estado": "ACTIVO"
+          },
+          {
+            "id": 235,
+            "id_especie": 4,
+            "estado": "ACTIVO"
+          }
+        ]
+      },
+      "resolucionRf17PorEspecie": {
+        "41": {
+          "nombre": "Ave Qa Je",
+          "gatewaysRf17": [
+            "DISPOSITIVO-CAMARONERA-10"
+          ],
+          "conectividad": {
+            "DISPOSITIVO-CAMARONERA-10": false
+          },
+          "incluyeGatewayDeAiot": false,
+          "soloGatewaysConectados": false,
+          "vereditoEsperadoRf17": "PENDIENTE + HTTP 500"
+        },
+        "4": {
+          "nombre": "Cachama Blanca",
+          "gatewaysRf17": [
+            "DISPOSITIVO-CAMARONERA-10",
+            "PRUEBA2",
+            "RASPBERRY3BPRUEBA",
+            "SERBY-TAX-FIRMWARE",
+            "TC-M09-G59-1791163477491",
+            "TC-M09-G59-RESUELTO-1791163477491"
+          ],
+          "conectividad": {
+            "DISPOSITIVO-CAMARONERA-10": false,
+            "PRUEBA2": false,
+            "RASPBERRY3BPRUEBA": false,
+            "SERBY-TAX-FIRMWARE": true,
+            "TC-M09-G59-1791163477491": false,
+            "TC-M09-G59-RESUELTO-1791163477491": false
+          },
+          "incluyeGatewayDeAiot": true,
+          "soloGatewaysConectados": false,
+          "vereditoEsperadoRf17": "PENDIENTE + HTTP 500"
+        },
+        "3": {
+          "nombre": "Camarón Blanco",
+          "gatewaysRf17": [
+            "DISPOSITIVO-CAMARONERA-10"
+          ],
+          "conectividad": {
+            "DISPOSITIVO-CAMARONERA-10": false
+          },
+          "incluyeGatewayDeAiot": false,
+          "soloGatewaysConectados": false,
+          "vereditoEsperadoRf17": "PENDIENTE + HTTP 500"
+        },
+        "10": {
+          "nombre": "Tilapia",
+          "gatewaysRf17": [
+            "TC-M09-G59-1791163477491",
+            "TC-M09-G59-RESUELTO-1791163477491"
+          ],
+          "conectividad": {
+            "TC-M09-G59-1791163477491": false,
+            "TC-M09-G59-RESUELTO-1791163477491": false
+          },
+          "incluyeGatewayDeAiot": false,
+          "soloGatewaysConectados": false,
+          "vereditoEsperadoRf17": "PENDIENTE + HTTP 500"
+        },
+        "1": {
+          "nombre": "Tilapia Roja",
+          "gatewaysRf17": [
+            "RASPBERRY3BPRUEBA2"
+          ],
+          "conectividad": {
+            "RASPBERRY3BPRUEBA2": false
+          },
+          "incluyeGatewayDeAiot": false,
+          "soloGatewaysConectados": false,
+          "vereditoEsperadoRf17": "PENDIENTE + HTTP 500"
+        },
+        "2": {
+          "nombre": "Trucha Arcoíris",
+          "gatewaysRf17": [
+            "DISPOSITIVO-CAMARONERA-10",
+            "RASPBERRY3BPRUEBA2"
+          ],
+          "conectividad": {
+            "DISPOSITIVO-CAMARONERA-10": false,
+            "RASPBERRY3BPRUEBA2": false
+          },
+          "incluyeGatewayDeAiot": false,
+          "soloGatewaysConectados": false,
+          "vereditoEsperadoRf17": "PENDIENTE + HTTP 500"
+        }
+      },
+      "conectividadGateways": {
+        "DISPOSITIVO-CAMARONERA-10": false,
+        "PRUEBA2": false,
+        "RASPBERRY3BPRUEBA": false,
+        "RASPBERRY3BPRUEBA2": false,
+        "SERBY-TAX-FIRMWARE": true,
+        "TC-M09-G59-1791163477491": false,
+        "TC-M09-G59-RESUELTO-1791163477491": false
+      },
+      "especiesQueResuelvenSoloElGatewayDeAiot": [],
+      "especiesAptasParaTc62": []
+    }
+  },
+  "fin": "2026-10-08T03:19:29.336414+00:00"
+}

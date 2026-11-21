@@ -1,0 +1,33 @@
+== rol de la aplicacion ==
+  rolname  | rolsuper | rolinherit | rolbypassrls | rolcanlogin 
+-----------+----------+------------+--------------+-------------
+ sgpmp_app | f        | t          | t            | t
+(1 row)
+
+== owners de las tablas implicadas (el app role NO debe ser owner) ==
+ schemaname |        tablename         | tableowner  
+------------+--------------------------+-------------
+ modulo1    | eventos                  | postgres
+ modulo9    | auditorias_calibraciones | sgpmp_owner
+ modulo9    | calibraciones            | postgres
+(3 rows)
+
+== grants visibles del app role sobre las tablas de auditoria ==
+  grantee  | table_schema |        table_name        | privilege_type 
+-----------+--------------+--------------------------+----------------
+ sgpmp_app | modulo1      | eventos                  | DELETE
+ sgpmp_app | modulo1      | eventos                  | INSERT
+ sgpmp_app | modulo1      | eventos                  | SELECT
+ sgpmp_app | modulo1      | eventos                  | UPDATE
+ sgpmp_app | modulo9      | auditorias_calibraciones | DELETE
+ sgpmp_app | modulo9      | auditorias_calibraciones | INSERT
+ sgpmp_app | modulo9      | auditorias_calibraciones | SELECT
+ sgpmp_app | modulo9      | auditorias_calibraciones | UPDATE
+(8 rows)
+
+== has_table_privilege efectivo ==
+ calibraciones_insert | audit_m9_insert | eventos_insert 
+----------------------+-----------------+----------------
+ t                    | t               | t
+(1 row)
+

@@ -1,0 +1,302 @@
+================================================================================
+INFORME DE REEVALUACION - TC-M05-G42 (RF-81) - INC-M05-283-G42 - REINTENTO 1
+================================================================================
+Fecha: 2026-11-12 07:56:31 (America/Bogota)
+Staging: tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G42/evidencias/run-20261112-075631
+Veredicto: APROBADO (8/8 OK, 0 FALLAS)
+Ambiente: https://www.api.inmero.co/api-sgpmp-test
+
+================================================================================
+SECCION 0: SHA-256 INICIALES E INVENTARIO DE LA RONDA 1
+================================================================================
+0.1 SHA-256 iniciales de los 3 scripts:
+  407025901636554DD31F533715129CF0A92A3C5411391A5FDF1CEE67053FC517  ejecutar_tc_m05_g42.ps1
+  C4195A652B4A4F4D0F30BA3757BD022301B78900E4DDAD8F22D3B0810ACB0A27  generar_artefactos_run_g42.py
+  284B8EA002ADEF8B4DC55DC9C431B23F2B43A0F7066B790F4FF89A47F7F84541  test_tc_m05_g42.py
+
+0.1b SHA-256 iniciales de resultados/ (ronda 1):
+  01BA4719C80B6FE911B091A7C05124B64EEECE964E09C058EF8F9805DACA546B  resultados/.gitkeep
+  9D827F31F3E639D01816822A16D8919CF4B10E13154C91E7D166F17C69AF0EBF  resultados/resultado_TC-M05-G42.html
+  60DC80490B8976EC73779F66ED958F157A82CCDE8CD1294BF41331579CEAF76C  resultados/resultado_TC-M05-G42.json
+
+0.2 Inventario de la Ronda 1 (resultados/resultado_TC-M05-G42.json, replica exacta en evidencias/run-20261107-223324/):
+  Veredicto Ronda 1: Rechazado (total: 8, ok: 5, falla: 3). No existia ningun artefacto *_reintento1*.
+  Checkpoints Ronda 1:
+  1. [OK] T00 Setup de activos y línea base
+     - Esperado: Creación exitosa de activos A y B con fase productiva abierta y 3 registros de suministros en A (HTTP 201)
+     - Obtenido: Activos A y B creados (HTTP 201), fases abiertas, 3 suministros en A (2 alimentos, 1 medicamento). Estado: OK.
+  2. [OK] A01 Combinaciones inválidas de filtros (100 / 035)
+     - Esperado: HTTP 422 para cada combinación (fecha_fin < fecha_inicio, costo_max < costo_min, ciclo ajeno real e inexistente) con mensajes descriptivos específicos que difieren entre sí; sin items ni resumen
+     - Obtenido: HTTP 422 para fecha_fin < fecha_inicio, costo_max < costo_min y ciclo ajeno; mensajes descriptivos y específicos; 0 datos devueltos. Estado: OK.
+  3. [FALLA] A02a Validación de fecha fin futura (100 / 035, caso CU04 FA-02)
+     - Esperado: HTTP 422 para fecha_fin_filtro futura (hoy+1), con mensaje de conflicto específico
+     - Obtenido: AssertionError: fecha_fin_filtro futura (2026-11-08) respondio HTTP 200 en lugar de 422 (retornó 3 items y resumen).
+  4. [FALLA] A02b Validación de fecha inicio anterior al ciclo (100 / 035, caso CU04 FA-02)
+     - Esperado: HTTP 422 para fecha_inicio_filtro anterior al ciclo productivo, con mensaje de conflicto específico
+     - Obtenido: AssertionError: fecha_inicio_filtro anterior al ciclo (2026-01-01) respondio HTTP 200 en lugar de 422 (retornó 3 items y resumen).
+  5. [OK] B01a Paginación y recorrido completo sobre activo grande (101 / 036)
+     - Esperado: HTTP 200 con 200 items (param 200); recorrido completo de páginas sin duplicados; metadatos coherentes; orden fecha_aplicacion DESC; suma de costo_registro igual a monto_total_filtrado
+     - Obtenido: Resultado: Completado exitosamente sin excepciones.
+  6. [FALLA] B01b Tope máximo de registros por página (101 / 036)
+     - Esperado: HTTP 200 aplicando tope máximo de 200 items ante param=201 ('El sistema aplica el límite máximo si se excede')
+     - Obtenido: AssertionError: backend respondió HTTP 400 (VAL_ENTRADA: "Input should be less than or equal to 200").
+  7. [OK] T98 Cierre estricto de corrida sandbox
+     - Esperado: DELETE /test-control/runs/{run_id} responde HTTP 200 con 'Rollback exitoso'
+     - Obtenido: DELETE /test-control/runs respondió HTTP 200 ('Rollback exitoso'). Estado: OK.
+  8. [OK] T99 Inocuidad final fuera de sandbox
+     - Esperado: Verificación fuera de sandbox: activo propio responde HTTP 404 (0 efectos persistidos)
+     - Obtenido: Verificación sin sandbox completada; activo A responde HTTP 404 (0 efectos persistidos). Estado: OK.
+
+================================================================================
+SECCION 1: INVENTARIO DEL SCRIPT Y ANALISIS DE CODIGO
+================================================================================
+1.1 Inventario del script de Ronda 1 (antes de Parte A) [HECHO]:
+  - Creacion de datos: En T00, con la cuenta de Administrador (TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD en .env.test), el script creaba 2 activos biologicos INDIVIDUAL (especie=5, id_infraestructura=389, origen_financiero="nacimiento"), abria fase productiva (id_ciclo_productiva=5) y registraba 3 suministros en el activo A (2 alimentos y 1 medicamento con periodo_retiro_dias=0). Para B01a y B01b no creaba los 500 registros: consultaba en modo lectura dentro del sandbox el activo preexistente id=1042 (500 registros commiteados en TEST, 3 paginas con tamano 200).
+  - T00 y T99 en Ronda 1: T00 corria dentro del run principal sin run de linea base aparte; T99 hacia un login fuera de sandbox (sin X-Test-Run-Id ni X-Sandbox-Secret) y consultaba GET /suministros/historial?id_activo_biologico={id_a}. Ninguno de los dos usaba /test-control/query ni SQL directo.
+  - Checkpoints de Ronda 1 relevantes:
+    * A02a (test_a02a_fecha_fin_futura) y A02b (test_a02b_fecha_inicio_anterior_ciclo): citaban "caso/CU04 FA-02; RF-81 NO lo define", esperando HTTP 422.
+    * B01a (test_b01a_paginacion_activo_con_mas_de_205_registros): validaba registros_por_pagina=200 y recorrido completo de 500 registros. Adicionalmente enviaba pagina=0 y registros_por_pagina=0 como observaciones en trazas_http.jsonl (NO como checkpoints de pytest ni aserciones; en el MD de ronda 1 se reportaron como observaciones positivas HTTP 400 VAL_ENTRADA).
+    * B01b (test_b01b_tope_maximo_registros_por_pagina): enviaba registros_por_pagina=201 esperando HTTP 200 con 200 items, citando Tabla Entradas 'registros_por_pagina'.
+
+1.2 Analisis de codigo (commit e76b1068, PR #970) [HECHO]:
+  Commit: e76b106857a5f4d8a190b0c552462b7c96d05411 ("fix(rf81-mod5): registros_por_pagina mayor a 200 se limita a 200 en vez de rechazarse (#970)").
+  - Router GET /suministros/historial:
+    * src/supplies/infrastructure/routers/historial_suministros_router.py:121 -> registros_por_pagina: int = Query(default=50, ge=1, description="Máximo 200; un valor mayor se limita a 200.") (se retiro le=200; ge=1 se mantiene por lo que valores < 1 siguen dando 400).
+    * src/supplies/infrastructure/routers/historial_suministros_router.py:91 -> registros_por_pagina=min(registros_por_pagina, MAX_REGISTROS_POR_PAGINA) dentro de _filtros_desde_query() (donde MAX_REGISTROS_POR_PAGINA = 200).
+  - DTO de trabajos asincronos:
+    * src/supplies/infrastructure/dto/solicitar_trabajo_historial_dto.py:22 -> MAX_REGISTROS_POR_PAGINA = 200.
+    * src/supplies/infrastructure/dto/solicitar_trabajo_historial_dto.py:38 -> registros_por_pagina: int = Field(default=50, ge=1) (se retiro le=200).
+    * src/supplies/infrastructure/dto/solicitar_trabajo_historial_dto.py:41-44 -> @field_validator("registros_por_pagina") def _limitar_pagina(cls, valor: int) -> int: return min(valor, MAX_REGISTROS_POR_PAGINA).
+  - Validacion de filtros de fecha (fecha futura / anterior al ciclo):
+    * src/supplies/application/use_cases/historial_suministros/consultar_historial_suministros_use_case.py:216-250 -> _validar_filtros() solo valida:
+      1) fecha_fin_filtro < fecha_inicio_filtro (:218-230),
+      2) costo_max < costo_min (:231-239),
+      3) not self.historial_port.ciclo_pertenece_a_activo(...) (:240-250).
+      NO existe validacion de fecha_fin_filtro futura ni de fecha_inicio_filtro anterior al inicio del ciclo en el codigo.
+
+================================================================================
+SECCION 2: CONTROL DE DESPLIEGUE (GET /openapi.json en TEST)
+================================================================================
+Run de sandbox propio (solo lectura): tc-m05-g42-openapi-e7a7f294e9
+GET /openapi.json -> HTTP 200
+DELETE /test-control/runs/tc-m05-g42-openapi-e7a7f294e9 -> HTTP 404 {"detail":"Run ID no encontrado."} (esperado en /openapi.json porque no invoca get_db y no abre transaccion en BD).
+
+Schema literal de registros_por_pagina en GET /suministros/historial:
+{
+  "name": "registros_por_pagina",
+  "in": "query",
+  "required": false,
+  "schema": {
+    "type": "integer",
+    "minimum": 1,
+    "description": "Máximo 200; un valor mayor se limita a 200.",
+    "default": 50,
+    "title": "Registros Por Pagina"
+  },
+  "description": "Máximo 200; un valor mayor se limita a 200."
+}
+
+Schema literal de registros_por_pagina en GET /suministros/historial/exportar:
+[] (el endpoint GET /suministros/historial/exportar no declara parametro query registros_por_pagina).
+
+Conclusion [HECHO]: El schema de GET /suministros/historial en TEST ya no tiene maximum: 200 ni exclusiveMaximum (solo minimum: 1, default: 50) y refleja la descripcion del commit #970. La correccion esta desplegada en TEST.
+
+================================================================================
+SECCION 3: DIFF APLICADO (git diff HEAD)
+================================================================================
+El diff completo de tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G42/ se guardo en:
+tests/Test_Testing/Test_Modulo5/RF-81/TC-M05-G42/evidencias/run-20261112-075631/git_diff_HEAD_G42.txt (74502 bytes).
+
+Resumen de cambios realizados (Parte A):
+- test_tc_m05_g42.py:
+  * Agregada cabecera de historial 12/11/2026.
+  * T00 ejecutado en run de sandbox aparte (solo lectura, GET /suministros/auditoria + DELETE -> 200) antes del run principal.
+  * A02a y A02b retirados como checkpoints; se envian como requests de observacion al final de A01 sin asercion.
+  * B01b redisenado (param=201 -> HTTP 200, 200 items, total_registros_filtrados=500, total_paginas=3, pagina_actual=1).
+  * B01c nuevo (param=201 paginas 1, 2, 3 -> [200, 200, 100], 500 ids distintos sin duplicados, orden fecha_aplicacion DESC intra e inter pagina con >=1 comparacion).
+  * B01d nuevo (param=1000, pagina=1 -> HTTP 200, 200 items, total_paginas=3).
+  * T99 ejecutado en run de sandbox aparte (solo lectura, GET /suministros/auditoria igual a T00, GET activos A/B e historial A -> 404, DELETE -> 200).
+  * _trazar registra paso y X-Request-Id de cada respuesta.
+- generar_artefactos_run_g42.py:
+  * Agregada cabecera de historial 12/11/2026 y parametro --reintento N.
+  * Checkpoints actualizados a los 8 vigentes; valores reales en "obtenido" extraidos de trazas_http.jsonl; fallos como PENDIENTE_DIAGNOSTICO sin diagnosticos fijos; observaciones con A02a, A02b (motivo literal) y OBS-0.
+- ejecutar_tc_m05_g42.ps1:
+  * Agregada cabecera de historial 12/11/2026; soporte -Reintento N en todos los artefactos y --reintento N al generador.
+  * Eliminada copia/promocion a resultados/ y agregada verificacion SHA-256 de resultados/ antes/despues.
+  * Escaneo de secretos reporta criterios/longitudes y termina con exit 4 si hay hallazgos.
+  * Archivo en ASCII puro sin BOM.
+
+================================================================================
+SECCION 4: VERIFICACION ESTATICA Y SHA-256 FINALES DE SCRIPTS
+================================================================================
+- py_compile (test_tc_m05_g42.py, generar_artefactos_run_g42.py): OK (exit 0)
+- [System.Management.Automation.Language.Parser]::ParseFile (ejecutar_tc_m05_g42.ps1): 0 errores
+- .ps1 sin BOM y sin bytes >= 0x80: BOM=False, nonAsciiBytes=0
+- pytest --collect-only --tb=short: 8 tests recolectados (exit 0)
+- Busqueda de "/test-control/query": 0 coincidencias
+- SHA-256 finales de los 3 scripts:
+  B4F55BA60D0DCBF29FFAC5EAA2C7F5C266749544A41F48724B073B8DF1C931FB  ejecutar_tc_m05_g42.ps1
+  F1A125BD51E43CD0AF518BEA7234F6157BBEEE11D5C938DB740927DD5347D840  generar_artefactos_run_g42.py
+  39C5D2847C55C109F5A847FAEA22F62C3FE51D2524110D29E3454EA56F9EB186  test_tc_m05_g42.py
+
+================================================================================
+SECCION 5: EJECUCION OFICIAL
+================================================================================
+- Comando: powershell -ExecutionPolicy Bypass -File "tests\Test_Testing\Test_Modulo5\RF-81\TC-M05-G42\ejecutar_tc_m05_g42.ps1" -Reintento 1
+- Exit code runner / pytest: 0 (8 passed, 1 StarletteDeprecationWarning en 11.10s pytest / 14.62s total)
+- Run IDs y cierres DELETE:
+  1) T00 (solo lectura): tc-m05-g42-t00-94f65eb0f996
+     DELETE /test-control/runs/tc-m05-g42-t00-94f65eb0f996 -> HTTP 200 {"status": "Rollback exitoso"} (xreq: 7c9bf453-934d-4d7d-a1f2-e0f71b70aab9)
+  2) Run principal: tc-m05-g42-adm-60604a2f2a8e
+     DELETE /test-control/runs/tc-m05-g42-adm-60604a2f2a8e -> HTTP 200 {"status": "Rollback exitoso"} (xreq: ab0081f5-66e6-4ab5-bc75-7da795b670f4)
+  3) T99 (solo lectura): tc-m05-g42-t99-6fa62ae1954d
+     DELETE /test-control/runs/tc-m05-g42-t99-6fa62ae1954d -> HTTP 200 {"status": "Rollback exitoso"} (xreq: 35b02ee1-cd7d-4e78-b252-19bb528dd54b)
+
+================================================================================
+SECCION 6: TABLA DE CHECKPOINTS
+================================================================================
+| Paso | Esperado (Fuente) | Obtenido Real | Estado | X-Request-Id |
+|---|---|---|---|---|
+| T00 Linea base (run aparte) y setup de activos | Run T00 consulta GET /suministros/auditoria (HTTP 200) y cierra con DELETE 200 'Rollback exitoso'; activos A y B con fase abierta y 3 suministros en A (HTTP 201) [Protocolo Sandbox / Setup] | T00 auditoria HTTP=200 total=69503; DELETE T00 HTTP=200; activo_a HTTP=201; activo_b HTTP=201; historial_a HTTP=200 len=3 | OK | b3ce0f71-00c1-4aa2-8a70-3d38a1d6fda5, 2cea8e4c-043d-4cf6-9dbb-a55ae325c700, f60cb1d9-21d1-4611-b777-f9d04d5ed539, a3ef1b72-40d6-4876-8f7e-e621e98d5cae, 13b44b0c-5310-44a2-a58b-06ee8c76a666, 719f55fa-e3fe-4046-a3cf-e9b6b89bbfb8, f922f0df-f8a3-4c71-90bc-3e25d9d7914b, 9387c2cb-6486-4fec-afaa-25e8623f706f |
+| A01 Combinaciones invalidas de filtros (100 / 035) | HTTP 422 para fecha_fin < fecha_inicio, costo_max < costo_min y ciclo ajeno (real e inexistente) con mensajes descriptivos distintos y sin items ni resumen [RF-81 Restr. 7 / E5 / CA-10] | fecha_fin<inicio: HTTP=422 (COMBINACION_FILTROS_INVALIDA); costo_max<min: HTTP=422 (COMBINACION_FILTROS_INVALIDA); ciclo_ajeno: HTTP=422 (CICLO_NO_PERTENECE_AL_ACTIVO); ciclo_inexistente: HTTP=422 (CICLO_NO_PERTENECE_AL_ACTIVO) | OK | d2b68e32-6282-4313-8087-86f47652781e, 5a1a0b6d-62cd-4cde-812f-ae3185877cc5, 19c44e4a-8026-496b-ad03-c358f44c545d, bf5afd60-b5d3-4d1d-9905-6fa134abecb9 |
+| B01a Paginacion y recorrido completo param=200 (101 / 036) | HTTP 200, 200 registros en p1, total_paginas=3, total_registros_filtrados=500, pagina_actual=1, recorrido completo 500 sin duplicados, orden fecha_aplicacion DESC y suma de costos igual a monto_total_filtrado [RF-81 Entradas y RNF-04] | HTTP=200; len(registros)=200; total_paginas=3; total_registros_filtrados=500; pagina_actual=1; conteos_paginas=[200, 200, 100]; ids_distintos=500; duplicados=0 | OK | aa562a6a-6303-47c2-b873-75be08c58730, 61f69aa3-f48e-4523-af72-5b01fff83e9b, ed9968a9-9ad6-4dc1-9cce-cf17d326da6d |
+| B01b Tope maximo param=201 en pagina 1 (101 / 036) | HTTP 200; len(registros)=200; total_registros_filtrados=500; total_paginas=3; pagina_actual=1 [RF-81 Entradas ('max: 200 | El sistema aplica el limite maximo si se excede'); RNF-04] | HTTP=200; len(registros)=200; total_registros_filtrados=500; total_paginas=3; pagina_actual=1 | OK | 739bde44-b7ec-46e4-876c-5b590f1ee8e6 |
+| B01c Paginacion completa paginas 1, 2 y 3 con param=201 (101 / 036) | HTTP 200 en paginas 1, 2 y 3; conteos exactos [200, 200, 100]; 500 ids distintos sin duplicados; orden fecha_aplicacion DESC intra e inter pagina [RF-81 Entradas y Fase 3] | HTTP=[200, 200, 200]; conteos=[200, 200, 100]; ids_distintos=500; duplicados=0 | OK | 2c5050cc-6ea6-4a4b-9f64-c8607200a5f7, 2f1526f8-3182-4bf5-a32f-949c1c28d290, e0a47a36-5f2b-44b3-8fd2-66d7d09452f9 |
+| B01d Tope maximo extremo param=1000 en pagina 1 (101 / 036) | HTTP 200; len(registros)=200; total_paginas=3 [RF-81 Entradas ('si se excede')] | HTTP=200; len(registros)=200; total_paginas=3; total_registros_filtrados=500; pagina_actual=1 | OK | 09f5edc0-89d1-4a4a-94c5-79369c51ef36 |
+| T98 Cierre estricto de corrida sandbox principal | DELETE /test-control/runs/{run_id} responde HTTP 200 con 'Rollback exitoso' [Protocolo Sandbox] | HTTP=200; body={'status': 'Rollback exitoso'} | OK | ab0081f5-66e6-4ab5-bc75-7da795b670f4 |
+| T99 Inocuidad final en run de sandbox aparte | GET /suministros/auditoria igual a T00 (total y ultimo id); GET de activos A, B e historial de A responden HTTP 404; DELETE cierra con HTTP 200 'Rollback exitoso' [Protocolo Sandbox] | T99 auditoria HTTP=200 total=69503; GET activo_a HTTP=404; GET activo_b HTTP=404; GET historial_a HTTP=404; DELETE T99 HTTP=200 | OK | ae938da4-abf5-4f32-83e4-eb9c462eff51, 1ed80dc4-57e5-4df9-8b45-8829e1eeb83c, db8900ca-554e-4ce2-a288-a1798c4214d4, 595635c0-0c5a-4edd-b5a9-2fa8b5833c07, ef95d9e6-fdd3-47e6-9282-63af5402525e, 35b02ee1-cd7d-4e78-b252-19bb528dd54b |
+
+================================================================================
+SECCION 7: OBSERVACIONES
+================================================================================
+- A02a (RETIRADO):
+  Motivo: "Retirado: RF-81 Restriccion 7 y E5 no definen estas validaciones (vienen de CU04 FA-02, que no esta en la especificacion). Pendiente de decision de Analisis."
+  Observado: HTTP 200, error_code=None, registros=3, X-Request-Id=a2c3f204-ef6a-4628-8c7a-165fba5b731a
+- A02b (RETIRADO):
+  Motivo: "Retirado: RF-81 Restriccion 7 y E5 no definen estas validaciones (vienen de CU04 FA-02, que no esta en la especificacion). Pendiente de decision de Analisis."
+  Observado: HTTP 200, error_code=None, registros=3, X-Request-Id=13b981e3-1711-4745-8506-8117ff0c5120
+- OBS-0 (registros_por_pagina=0, pagina=1):
+  Observado: HTTP 400, error_code=VAL_ENTRADA, campo=registros_por_pagina, X-Request-Id=e906e925-0514-4856-b026-2a6463b278dd
+- OBS-PAG0 (pagina=0, registros_por_pagina=50):
+  Observado: HTTP 400, error_code=VAL_ENTRADA, campo=pagina, X-Request-Id=f0c01680-b601-42a0-a8a5-dfc317496049
+
+================================================================================
+SECCION 8: INOCUIDAD, ESCANEO DE SECRETOS Y ESTADO DE resultados/
+================================================================================
+- Inocuidad (T00 vs T99):
+  * T00 auditoria: total=69503, ultimo id_auditoria_suministro=76708 (HTTP 200, xreq=e00d8709-dbf0-4784-bc0c-5a98e8457ae5)
+  * T99 auditoria: total=69503, ultimo id_auditoria_suministro=76708 (HTTP 200, xreq=1ed80dc4-57e5-4df9-8b45-8829e1eeb83c)
+  * Recursos creados consultados en T99: GET /activos-biologicos/{id_a} -> 404, GET /activos-biologicos/{id_b} -> 404, GET /suministros/historial?id_activo_biologico={id_a} -> 404.
+  * Todos los runs cerrados con DELETE -> HTTP 200 "Rollback exitoso".
+- Escaneo de secretos en staging (exit code 0, 0 hallazgos):
+  * Patrones buscados (longitud):
+    - TEST_ADMIN_PASSWORD : len=9
+    - TEST_SANDBOX_SECRET : len=64
+    - TEST_SANDBOX_SECRET_ultimos20 : len=20
+    - TEST_ADMIN_EMAIL : len=26
+    - JWT_PREFIJO : len=3
+  * Patrones omitidos por valor vacio en .env.test: TEST_PRODUCTOR_EMAIL, TEST_INGENIERO_EMAIL.
+- Estado de resultados/:
+  Confirmado sin cambios (SHA-256 identicos a los de la seccion 0.1).
+
+================================================================================
+ANEXO: JSON COMPLETO DEL GENERADOR (resultado_TC-M05-G42_reintento1.json)
+================================================================================
+{
+  "tc": "TC-M05-G42",
+  "summary": {
+    "total": 8,
+    "ok": 8,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Linea base (run aparte) y setup de activos",
+      "esperado": "Run T00 consulta GET /suministros/auditoria (HTTP 200) y cierra con DELETE 200 'Rollback exitoso'; activos A y B con fase abierta y 3 suministros en A (HTTP 201)",
+      "obtenido": "T00 auditoria HTTP=200 total=69503; DELETE T00 HTTP=200; activo_a HTTP=201; activo_b HTTP=201; historial_a HTTP=200 len=3; X-Request-Id=[b3ce0f71-00c1-4aa2-8a70-3d38a1d6fda5, 2cea8e4c-043d-4cf6-9dbb-a55ae325c700, f60cb1d9-21d1-4611-b777-f9d04d5ed539, a3ef1b72-40d6-4876-8f7e-e621e98d5cae, 13b44b0c-5310-44a2-a58b-06ee8c76a666, 719f55fa-e3fe-4046-a3cf-e9b6b89bbfb8, f922f0df-f8a3-4c71-90bc-3e25d9d7914b, 9387c2cb-6486-4fec-afaa-25e8623f706f]",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Combinaciones invalidas de filtros (100 / 035)",
+      "esperado": "HTTP 422 para fecha_fin < fecha_inicio, costo_max < costo_min y ciclo ajeno (real e inexistente) con mensajes descriptivos distintos y sin items ni resumen",
+      "obtenido": "fecha_fin<inicio: HTTP=422 (COMBINACION_FILTROS_INVALIDA) xreq=d2b68e32-6282-4313-8087-86f47652781e; costo_max<min: HTTP=422 (COMBINACION_FILTROS_INVALIDA) xreq=5a1a0b6d-62cd-4cde-812f-ae3185877cc5; ciclo_ajeno: HTTP=422 (CICLO_NO_PERTENECE_AL_ACTIVO) xreq=19c44e4a-8026-496b-ad03-c358f44c545d; ciclo_inexistente: HTTP=422 (CICLO_NO_PERTENECE_AL_ACTIVO) xreq=bf5afd60-b5d3-4d1d-9905-6fa134abecb9",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01a Paginacion y recorrido completo param=200 (101 / 036)",
+      "esperado": "HTTP 200, 200 registros en p1, total_paginas=3, total_registros_filtrados=500, pagina_actual=1, recorrido completo 500 sin duplicados, orden fecha_aplicacion DESC y suma de costos igual a monto_total_filtrado",
+      "obtenido": "HTTP=200; len(registros)=200; total_paginas=3; total_registros_filtrados=500; pagina_actual=1; conteos_paginas=[200, 200, 100]; ids_distintos=500; duplicados=0; X-Request-Id=[aa562a6a-6303-47c2-b873-75be08c58730, 61f69aa3-f48e-4523-af72-5b01fff83e9b, ed9968a9-9ad6-4dc1-9cce-cf17d326da6d]",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01b Tope maximo param=201 en pagina 1 (101 / 036)",
+      "esperado": "HTTP 200; len(registros)=200; total_registros_filtrados=500; total_paginas=3; pagina_actual=1",
+      "obtenido": "HTTP=200; len(registros)=200; total_registros_filtrados=500; total_paginas=3; pagina_actual=1; X-Request-Id=739bde44-b7ec-46e4-876c-5b590f1ee8e6",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01c Paginacion completa paginas 1, 2 y 3 con param=201 (101 / 036)",
+      "esperado": "HTTP 200 en paginas 1, 2 y 3; conteos exactos [200, 200, 100]; 500 ids distintos sin duplicados; orden fecha_aplicacion DESC intra e inter pagina",
+      "obtenido": "HTTP=[200, 200, 200]; conteos=[200, 200, 100]; ids_distintos=500; duplicados=0; X-Request-Id=[2c5050cc-6ea6-4a4b-9f64-c8607200a5f7, 2f1526f8-3182-4bf5-a32f-949c1c28d290, e0a47a36-5f2b-44b3-8fd2-66d7d09452f9]",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01d Tope maximo extremo param=1000 en pagina 1 (101 / 036)",
+      "esperado": "HTTP 200; len(registros)=200; total_paginas=3",
+      "obtenido": "HTTP=200; len(registros)=200; total_paginas=3; total_registros_filtrados=500; pagina_actual=1; X-Request-Id=09f5edc0-89d1-4a4a-94c5-79369c51ef36",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre estricto de corrida sandbox principal",
+      "esperado": "DELETE /test-control/runs/{run_id} responde HTTP 200 con 'Rollback exitoso'",
+      "obtenido": "HTTP=200; body={'status': 'Rollback exitoso'}; X-Request-Id=ab0081f5-66e6-4ab5-bc75-7da795b670f4",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Inocuidad final en run de sandbox aparte",
+      "esperado": "GET /suministros/auditoria igual a T00 (total y ultimo id); GET de activos A, B e historial de A responden HTTP 404; DELETE cierra con HTTP 200 'Rollback exitoso'",
+      "obtenido": "T99 auditoria HTTP=200 total=69503; GET activo_a HTTP=404; GET activo_b HTTP=404; GET historial_a HTTP=404; DELETE T99 HTTP=200; X-Request-Id=[ae938da4-abf5-4f32-83e4-eb9c462eff51, 1ed80dc4-57e5-4df9-8b45-8829e1eeb83c, db8900ca-554e-4ce2-a288-a1798c4214d4, 595635c0-0c5a-4edd-b5a9-2fa8b5833c07, ef95d9e6-fdd3-47e6-9282-63af5402525e, 35b02ee1-cd7d-4e78-b252-19bb528dd54b]",
+      "estado": "OK"
+    }
+  ],
+  "observaciones": [
+    {
+      "id": "A02a",
+      "estado": "RETIRADO",
+      "motivo": "Retirado: RF-81 Restriccion 7 y E5 no definen estas validaciones (vienen de CU04 FA-02, que no esta en la especificacion). Pendiente de decision de Analisis.",
+      "http": 200,
+      "error_code": null,
+      "registros": 3,
+      "x_request_id": "a2c3f204-ef6a-4628-8c7a-165fba5b731a"
+    },
+    {
+      "id": "A02b",
+      "estado": "RETIRADO",
+      "motivo": "Retirado: RF-81 Restriccion 7 y E5 no definen estas validaciones (vienen de CU04 FA-02, que no esta en la especificacion). Pendiente de decision de Analisis.",
+      "http": 200,
+      "error_code": null,
+      "registros": 3,
+      "x_request_id": "13b981e3-1711-4745-8506-8117ff0c5120"
+    },
+    {
+      "id": "OBS-0",
+      "estado": "OBSERVACION",
+      "descripcion": "registros_por_pagina=0, pagina=1 (RF-81 no define un error_code especifico)",
+      "http": 400,
+      "error_code": "VAL_ENTRADA",
+      "campo": "registros_por_pagina",
+      "x_request_id": "e906e925-0514-4856-b026-2a6463b278dd"
+    },
+    {
+      "id": "OBS-PAG0",
+      "estado": "OBSERVACION",
+      "descripcion": "pagina=0, registros_por_pagina=50",
+      "http": 400,
+      "error_code": "VAL_ENTRADA",
+      "campo": "pagina",
+      "x_request_id": "f0c01680-b601-42a0-a8a5-dfc317496049"
+    }
+  ]
+}
+

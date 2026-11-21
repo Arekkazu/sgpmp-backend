@@ -1,0 +1,51 @@
+{
+  "fecha_utc": "2026-11-18T01:21:19.408474+00:00",
+  "objetivo": "E3.2 PK + E3.3 ENUM en PostgreSQL local aislado",
+  "prohibido": "INSERT en BD TEST / api.inmero",
+  "container": "infra-db-1",
+  "host_port": "127.0.0.1:5433",
+  "db_temporal": "sgpmp_g052_e3_tmp",
+  "migracion_origen_ddl": "94b14a6931d6_m07_integracion_aaef_rfc017.py",
+  "alembic_upgrade_completo": false,
+  "motivo_no_alembic_completo": "El historial Alembic de SGPMP requiere roles (sgpmp_app/owner), extensiones (p.ej. pg_cron), schemas previos (modulo1..modulo9) y cientos de revisiones. Para E3.2/E3.3 se aplicó DDL mínimo equivalente a la migración RF-102 (ENUM + PRIMARY KEY + FKs con stubs), sin modificar archivos de migración.",
+  "pasos": [
+    {
+      "paso": "probe_container",
+      "ok": true
+    },
+    {
+      "paso": "create_database",
+      "ok": true,
+      "stdout": "CREATE DATABASE\n",
+      "stderr": ""
+    },
+    {
+      "paso": "apply_schema_minimo_rf102",
+      "ok": true,
+      "archivo": "_sql_schema_e3_aislada.sql",
+      "stdout": "CREATE SCHEMA\nCREATE SCHEMA\nCREATE TABLE\nCREATE TABLE\nDO\nDO\nDO\nCREATE TABLE\n",
+      "stderr": ""
+    },
+    {
+      "paso": "verify_constraints",
+      "ok": true,
+      "constraints": "                      conname                       | contype \n----------------------------------------------------+---------\n ck_evento_integracion_hash_contenido               | c\n ck_evento_integracion_hash_integridad              | c\n eventos_integracion_fecha_evento_not_null          | n\n eventos_integracion_fecha_registro_not_null        | n\n eventos_integracion_hash_integridad_not_null       | n\n eventos_integracion_id_cliente_externo_fkey        | f\n eventos_integracion_id_evento_integracion_not_null | n\n eventos_integracion_id_usuario_fkey                | f\n eventos_integracion_modulo_not_null                | n\n eventos_integracion_pkey                           | p\n eventos_integracion_severidad_not_null             | n\n eventos_integracion_tipo_actor_not_null            | n\n eventos_integracion_tipo_evento_not_null           | n\n(13 rows)\n\n",
+      "enum_sample": "           enumlabel            \n--------------------------------\n PAQUETE_AAEF_CONSULTADO\n SOLICITUD_RECHAZADA\n CREDENCIALES_EN_URL\n RATE_LIMIT_EXCEDIDO\n VISTA_AAEF_GENERADA\n PREPARACION_AAEF_FALLIDA\n TOKEN_CANAL_EMITIDO\n TOKEN_CANAL_RECHAZADO\n USUARIO_CREADO_M2M\n USUARIO_ACTUALIZADO_M2M\n ESTADO_USUARIO_CAMBIADO_M2M\n CLIENTE_REGISTRADO\n CLIENTE_EDITADO\n CLIENTE_SUSPENDIDO\n CLIENTE_REACTIVADO\n CLIENTE_REVOCADO\n SECRETO_ROTADO\n CONTRATO_REGISTRADO\n CONTRATO_ACTIVADO\n CONTRATO_DEPRECADO\n CONTRATO_"
+    },
+    {
+      "paso": "drop_database_temporal",
+      "ok": true,
+      "stderr": ""
+    }
+  ],
+  "viable": true,
+  "esquema_aplicado": [
+    "CREATE SCHEMA modulo1/modulo7 (stubs)",
+    "CREATE TYPE modulo7.enum_evento_integracion_tipo_evento (desde _TIPOS_EVENTO de 94b14a6931d6)",
+    "CREATE TYPE severidad/tipo_actor",
+    "CREATE TABLE modulo7.eventos_integracion con PRIMARY KEY id_evento_integracion"
+  ],
+  "resultado_e3_2": "APROBADO",
+  "resultado_e3_3": "APROBADO",
+  "nota_estado_caso": "No se modifica el estado general de TC-M07-G052 en este paso; solo evidencias E3.2/E3.3."
+}

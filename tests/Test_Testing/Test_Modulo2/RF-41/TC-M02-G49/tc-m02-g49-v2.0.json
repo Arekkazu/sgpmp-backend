@@ -1,0 +1,877 @@
+{
+  "info": {
+    "name": "TC-M02-G49 v2.0 - Eventos sanitarios y estado EN_TRATAMIENTO/AISLADO (RF-41/RF-44)",
+    "_postman_id": "tcm02g49v2-0000-0000-0000-000000000000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "admin_email",
+      "value": "argeni.vargas1230@gmail.com"
+    },
+    {
+      "key": "admin_password",
+      "value": "@Daniela1"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo_random_letras",
+      "value": ""
+    },
+    {
+      "key": "fecha_hoy",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    },
+    {
+      "key": "activo_via_workaround",
+      "value": ""
+    },
+    {
+      "key": "fecha_evento_actual",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A - Login Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('0A - RESPUESTA DEL LOGIN ADMIN (no fue 200): ' + pm.response.text());",
+              "}",
+              "pm.test('0A - Login admin devuelve 200 y token', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var token = body.token || body.access_token || (body.data && body.data.token);",
+              "    pm.expect(token, 'debe existir un token de acceso').to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token_admin', token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1 - Crear finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/fincas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba Eventos Sanitarios {{sufijo_random_letras}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ficha\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 8.0\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var sufijo = '';",
+              "for (var i = 0; i < 8; i++) { sufijo += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_random_letras', sufijo);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-1 - Crear finca de prueba - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-1 - Finca de prueba creada', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.id_finca, 'debe devolver id_finca').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_finca', String(body.id_finca));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2 - Crear infraestructura de prueba en esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area TC-M02-G49 v2.0\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 200,\n  \"finca_id\": {{id_finca}}\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-2 - Crear infraestructura de prueba en esa finca - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-2 - Infraestructura de prueba creada', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.id_infraestructura, 'debe devolver id_infraestructura').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_infraestructura', String(body.id_infraestructura));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3 - Consultar catalogo de especies y ubicar una compatible con Estanque (Cachama Blanca)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('SETUP-3 - Consultar catalogo de especies - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-3 - Existe la especie Cachama Blanca en el catalogo (compatible con Estanque, RF-48)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var lista = Array.isArray(body) ? body : (body.items || []);",
+              "    console.log('SETUP-3 - catalogo de especies: ' + JSON.stringify(lista.map(function (e) { return e.nombre; })));",
+              "    var especie = lista.find(function (e) { return e.nombre === 'Cachama Blanca' && e.es_activo !== false; });",
+              "    pm.expect(especie, 'debe existir la especie Cachama Blanca activa en el catalogo').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_especie', String(especie.id_especie));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4 - Registrar activo INDIVIDUAL de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"Factura de compra No. TC-M02-G49-V2\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"IND-G49-{{sufijo_random_letras}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"MACHO\",\n  \"fecha_nacimiento\": \"2023-06-01T00:00:00Z\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));",
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var sufijo = '';",
+              "for (var i = 0; i < 8; i++) { sufijo += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_random_letras', sufijo);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-4 - Registrar activo INDIVIDUAL de prueba - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-4 - Activo INDIVIDUAL de prueba creado', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.id_activo_biologico, 'debe devolver id_activo_biologico').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_activo', String(body.id_activo_biologico));",
+              "    pm.collectionVariables.set('activo_via_workaround', 'false');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4B - Workaround: buscar activo INDIVIDUAL existente en estado ACTIVO (por si SETUP-4 sigue bloqueado)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos?tipo=INDIVIDUAL&page_size=100&pagina=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('SETUP-4B - Buscar activo INDIVIDUAL existente (catalogo) - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "",
+              "var idActivoActual = pm.collectionVariables.get('id_activo');",
+              "",
+              "if (idActivoActual) {",
+              "    console.log('SETUP-4B - OMITIDO: SETUP-4 ya registro un activo nuevo (id_activo=' + idActivoActual + '); no se necesita el workaround.');",
+              "    pm.test('SETUP-4B - Paso informativo (omitido, SETUP-4 ya proveyo un activo nuevo)', function () {",
+              "        pm.expect(true).to.be.true;",
+              "    });",
+              "} else if (pm.response.code !== 200) {",
+              "    pm.collectionVariables.set('activo_via_workaround', 'false');",
+              "    pm.test('SETUP-4B - El catalogo de activos biologicos INDIVIDUAL es consultable (workaround)', function () {",
+              "        pm.response.to.have.status(200);",
+              "    });",
+              "    postman.setNextRequest('CLEANUP-2 - Verificacion de salud del servicio');",
+              "} else {",
+              "    var body = pm.response.json();",
+              "    var candidatos = (body.registros || []).filter(function (a) {",
+              "        return a.tipo === 'INDIVIDUAL' && a.nombre_estado === 'ACTIVO';",
+              "    });",
+              "    console.log('SETUP-4B - candidatos INDIVIDUAL en estado ACTIVO: ' + JSON.stringify(candidatos.map(function (a) { return a.id_activo_biologico; })));",
+              "",
+              "    if (candidatos.length === 0) {",
+              "        pm.collectionVariables.set('activo_via_workaround', 'false');",
+              "        pm.test('SETUP-4B - Se encuentra un activo INDIVIDUAL existente en estado ACTIVO para probar RF-41/RF-44 (workaround por el defecto 500 en creacion)', function () {",
+              "            pm.expect.fail('No se encontro en TEST ningun activo INDIVIDUAL en estado ACTIVO para usar como workaround del defecto ERROR_INTERNO en POST /activos-biologicos. TC-M02-G49 v2.0 queda bloqueado por este defecto.');",
+              "        });",
+              "        postman.setNextRequest('CLEANUP-2 - Verificacion de salud del servicio');",
+              "    } else {",
+              "        var elegido = candidatos[0];",
+              "        pm.collectionVariables.set('id_activo', String(elegido.id_activo_biologico));",
+              "        pm.collectionVariables.set('activo_via_workaround', 'true');",
+              "        console.log('SETUP-4B - se usara el activo existente ' + elegido.id_activo_biologico + ' (estado ACTIVO) como workaround.');",
+              "        pm.test('SETUP-4B - Se encuentra un activo INDIVIDUAL existente en estado ACTIVO para probar RF-41/RF-44 (workaround por el defecto 500 en creacion)', function () {",
+              "            pm.expect(elegido.id_activo_biologico).to.be.a('number');",
+              "        });",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DIAG-1 - Confirmar el estado inicial del activo (debe ser ACTIVO)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('DIAG-1 - Confirmar el estado inicial del activo - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('DIAG-1 - El activo de prueba parte en estado ACTIVO', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.nombre_estado).to.eql('ACTIVO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-5 - Registrar evento DIAGNOSTICO previo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"DIAGNOSTICO\",\n  \"diagnostico\": \"Diagnostico TC-M02-G49 v2.0 - parasitosis intestinal leve\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('fecha_evento_actual', new Date(Date.now() - 30000).toISOString());"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-5 - Registrar evento DIAGNOSTICO previo - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-5 - Evento DIAGNOSTICO registrado (confirma que el defecto de fecha de TC-M02-G49 esta resuelto)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-090a - Registrar VACUNACION completa (medicamento y dosis)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"VACUNACION\",\n  \"medicamento\": \"Ivermectina 1%\",\n  \"dosis\": 2.5,\n  \"unidad_dosis\": \"ml\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('fecha_evento_actual', new Date(Date.now() - 30000).toISOString());"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('TC-090a - Registrar VACUNACION completa - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-090a - VACUNACION completa (medicamento + dosis) se registra exitosamente', function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-090b - Control: VACUNACION sin dosis debe rechazarse",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"VACUNACION\",\n  \"medicamento\": \"Ivermectina 1%\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 400 && pm.response.code !== 422) {",
+              "    console.log('TC-090b - Control: VACUNACION sin dosis - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-090b - VACUNACION sin dosis se rechaza', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-091a - Registrar TRATAMIENTO completo (sin solicitar cambio de estado)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"TRATAMIENTO\",\n  \"medicamento\": \"Antiparasitario oral\",\n  \"dosis\": 5,\n  \"unidad_dosis\": \"ml\",\n  \"frecuencia\": 1,\n  \"duracion\": 5,\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('fecha_evento_actual', new Date(Date.now() - 30000).toISOString());"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('TC-091a - Registrar TRATAMIENTO completo - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-091a - TRATAMIENTO completo (medicamento + dosis + frecuencia + duracion) se registra exitosamente', function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-091b - Control: TRATAMIENTO sin frecuencia debe rechazarse",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"TRATAMIENTO\",\n  \"medicamento\": \"Antiparasitario oral\",\n  \"dosis\": 5,\n  \"unidad_dosis\": \"ml\",\n  \"duracion\": 5\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 400 && pm.response.code !== 422) {",
+              "    console.log('TC-091b - Control: TRATAMIENTO sin frecuencia - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-091b - TRATAMIENTO sin frecuencia se rechaza', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-091c - Confirmar que el activo sigue en su estado original (TRATAMIENTO sin solicitar_estado no cambia el estado)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('TC-091c - Confirmar que el activo sigue ACTIVO - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-091c - El activo sigue en ACTIVO (ningun evento sin solicitar_estado debe cambiarlo)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.nombre_estado).to.eql('ACTIVO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095a - Registrar TRATAMIENTO solicitando estado EN_TRATAMIENTO (RF-44)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"TRATAMIENTO\",\n  \"medicamento\": \"Antibiotico de amplio espectro\",\n  \"dosis\": 3,\n  \"unidad_dosis\": \"ml\",\n  \"frecuencia\": 2,\n  \"duracion\": 7,\n  \"solicitar_estado\": \"EN_TRATAMIENTO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('fecha_evento_actual', new Date(Date.now() - 30000).toISOString());"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('TC-095a - Registrar TRATAMIENTO solicitando EN_TRATAMIENTO - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-095a - TRATAMIENTO con solicitar_estado=EN_TRATAMIENTO se registra y devuelve el cambio de estado', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.cambio_estado, 'la respuesta debe incluir el cambio de estado aplicado').to.not.be.null;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095b - Confirmar que el activo quedo en EN_TRATAMIENTO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('TC-095b - Confirmar EN_TRATAMIENTO - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-095b - RF-44: el activo pasa automaticamente a EN_TRATAMIENTO', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.nombre_estado).to.eql('EN_TRATAMIENTO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095c - Registrar CONTROL_PREVENTIVO solicitando estado AISLADO (RF-44)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"Aislamiento preventivo TC-M02-G49 v2.0\",\n  \"solicitar_estado\": \"AISLADO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('fecha_evento_actual', new Date(Date.now() - 30000).toISOString());"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('TC-095c - Registrar CONTROL_PREVENTIVO solicitando AISLADO - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-095c - CONTROL_PREVENTIVO con solicitar_estado=AISLADO se registra y devuelve el cambio de estado', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.cambio_estado, 'la respuesta debe incluir el cambio de estado aplicado').to.not.be.null;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095d - Confirmar que el activo quedo en AISLADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('TC-095d - Confirmar AISLADO - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-095d - RF-44: el activo pasa automaticamente a AISLADO', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.nombre_estado).to.eql('AISLADO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095e - Consultar bitacora de auditoria (RF-41) para el activo de prueba",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF41&id_activo_biologico={{id_activo}}&page_size=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('TC-095e - Consultar bitacora de auditoria - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-095e - La bitacora de auditoria registra al menos un evento sanitario EXITOSO para este activo', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var registros = body.registros || [];",
+              "    var exitosos = registros.filter(function (r) { return r.resultado === 'EXITOSO'; });",
+              "    pm.expect(exitosos.length, 'debe haber al menos un registro EXITOSO de rf_origen RF41 para este activo').to.be.greaterThan(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP-1 - Restaurar el estado original del activo (ACTIVO)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"ACTIVO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy}}\",\n  \"motivo_cambio\": \"Restauracion de estado tras ejecucion de TC-M02-G49 v2.0\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('fecha_hoy')) {",
+              "    pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var yaEstabaActivo = pm.response.code === 409 && pm.response.json().error_code === 'ESTADO_REDUNDANTE';",
+              "if (pm.response.code !== 200 && !yaEstabaActivo) {",
+              "    console.log('CLEANUP-1 - Restaurar el estado original del activo - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('CLEANUP-1 - El activo de prueba queda (o ya estaba) en ACTIVO', function () {",
+              "    if (!yaEstabaActivo) {",
+              "        pm.response.to.have.status(200);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP-2 - Verificacion de salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('CLEANUP-2 - Servicio saludable al cerrar la prueba', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

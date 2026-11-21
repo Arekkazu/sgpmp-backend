@@ -1,0 +1,53 @@
+================================================================================
+INFORME DE EJECUCION FASE 2, 3 Y 4 — TC-M05-G25
+RF-77: Permisos por Rol, Aislamiento de Datos/IDOR y Auditoria de Generacion
+================================================================================
+
+1. RESUMEN EJECUTIVO
+--------------------
+- Caso de Prueba: TC-M05-G25
+- Requerimiento: RF-77 (CU04)
+- Subcasos Evaluados: TC-M05-024 (roles y permisos), TC-M05-025 (auditoria)
+- Ambiente: API Staging (https://www.api.inmero.co/api-sgpmp-test)
+- Fecha y Hora de Ejecución: 2026-11-07 17:00:12
+- Total de Checkpoints: 18
+- Checkpoints Aprobados: 16
+- Checkpoints Fallidos: 2
+- Veredicto Global: RECHAZADO
+
+2. TABLA DE TEST Y CHECKPOINTS NORMATIVOS
+-----------------------------------------
+Test / Paso                                   | Esperado (Fuente)                             | Estado   | Clasificación  
+----------------------------------------------+-----------------------------------------------+----------+----------------
+A01 Generación de reporte sincrónico por Prod | HTTP 200, respuesta con id_reporte_gasto_acum | OK       | CONFORME       
+A02 Exportación de reporte a formato CSV por  | HTTP 201, generación de archivo CSV con vigen | OK       | CONFORME       
+A03 Exportación de reporte a formato PDF por  | HTTP 201, generación de archivo PDF con prefi | OK       | CONFORME       
+A04 Descarga de exportación propia por Produc | HTTP 200, Content-Type text/csv, Content-Disp | OK       | CONFORME       
+A05 Restricción de acceso a auditoría de M05  | HTTP 403 ACCESO_DENEGADO (Recurso 57 restring | OK       | CONFORME       
+A98 Cierre ordenado de sandbox Productor y ro | HTTP 200 con confirmación 'Rollback exitoso'  | OK       | CONFORME       
+B01 Restricción de generación de reporte para | HTTP 403 ACCESO_DENEGADO (Solo Productor y Ad | OK       | CONFORME       
+B02 Restricción de exportación de reporte par | HTTP 403 ACCESO_DENEGADO (Fuente: RF-77 RNF S | OK       | CONFORME       
+B03 Restricción de descarga de exportación pa | HTTP 403 ACCESO_DENEGADO (Fuente: RF-77 RNF S | OK       | CONFORME       
+B04 Restricción de acceso a auditoría para Ve | HTTP 403 ACCESO_DENEGADO (Fuente: RF-80 / RBA | OK       | CONFORME       
+B98 Cierre ordenado de sandbox Veterinario y  | HTTP 200 con confirmación 'Rollback exitoso'  | OK       | CONFORME       
+C01 Generación y exportación de reporte por A | HTTP 200 en generación y HTTP 201 en exportac | OK       | CONFORME       
+C02 Registro en bitácora de auditoría de M05  | Presencia de evento de auditoría con usuario  | FALLA    | DEFECTO_PRODUCTO
+C98 Cierre ordenado de sandbox Administrador  | HTTP 200 con confirmación 'Rollback exitoso'  | OK       | CONFORME       
+D01 Rechazo de solicitudes no autenticadas    | HTTP 401 NO_AUTENTICADO en endpoints de repor | OK       | CONFORME       
+D02 Prevención de IDOR en descarga de exporta | HTTP 403 ARCHIVO_DE_OTRO_USUARIO al intentar  | OK       | CONFORME       
+D03 Validación de tipos y resistencia ante ID | HTTP 404 en inexistentes, HTTP 422 en tipos i | FALLA    | DEFECTO_PRODUCTO
+D04 Aislamiento estricto de historial por usu | GET /historial filtra exclusivamente los repo | OK       | CONFORME       
+
+3. RUN IDS Y CICLO DE VIDA SANDBOX
+----------------------------------
+- Modalidad Productor: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
+- Modalidad Veterinario: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
+- Modalidad Administrador: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
+- Modalidad IDOR / Tipos: Ejecutada directamente contra la API pública sin sandbox.
+
+4. DIAGNOSTICO DE FALLOS Y ACCIONES RECOMENDADAS
+------------------------------------------------
+- TC-M05-024 (Roles y Permisos): 100% CONFORME. RBAC aplica con precisión matemática.
+- TC-M05-025 (Auditoría): NO CONFORME (GAP de Producto).
+  El backend no emite llamadas a la bitácora de auditoría de M05 al generar o exportar reportes de RF-77.
+  Candidato a INC: Falta integración de auditoría de generación y exportación de reportes de gastos.

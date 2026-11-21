@@ -1,0 +1,135 @@
+================================================================================
+INFORME FASE 5 - PROMOCION DE RESULTADOS Y NARRATIVO - TC-M05-G18 (RF-76)
+================================================================================
+Fecha: 2026-11-10
+Corrida oficial: tests/Test_Testing/Test_Modulo5/RF-76/TC-M05-G18/evidencias/run-20261110-204212/
+INC consolidado asignado (no creado por regla): INC-M05-285-G18
+
+--------------------------------------------------------------------------------
+1. VERIFICACION DE INTEGRIDAD (SHA-256 INICIAL Y FINAL)
+--------------------------------------------------------------------------------
+- test_tc_m05_g18.py
+  * Inicial / Esperado : 789C21DA45A93BA564FA419DCD49C3B81A4E165D83DD72CE8F4DE16CE6F1AE4A
+  * Final              : 789C21DA45A93BA564FA419DCD49C3B81A4E165D83DD72CE8F4DE16CE6F1AE4A
+  * Coincide           : True
+- ejecutar_tc_m05_g18.ps1
+  * Inicial / Esperado : BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0
+  * Final              : BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0
+  * Coincide           : True
+- evidencias/run-20261110-204212/generar_resultado_g18.py
+  * Inicial / Esperado : A65B9BF2867D63E19D50E618199F55C6BAA3CD84623D97D561BE889FC8CF4326
+  * Final              : A65B9BF2867D63E19D50E618199F55C6BAA3CD84623D97D561BE889FC8CF4326
+  * Coincide           : True
+
+--------------------------------------------------------------------------------
+2. ESCANEO PREVIO DE SECRETOS (ANTES DE PROMOVER A resultados/)
+--------------------------------------------------------------------------------
+Patrones verificados en memoria desde .env.test (TEST_ADMIN_PASSWORD,
+TEST_SANDBOX_SECRET, ultimos 20 chars de ambos y prefijo JWT, sin patrones vacios):
+- resultado_TC-M05-G18.html : 0 coincidencias
+- resultado_TC-M05-G18.json : 0 coincidencias
+
+--------------------------------------------------------------------------------
+3. VERIFICACION DE CONTENIDO Y COHERENCIA (ANTES DE PROMOVER)
+--------------------------------------------------------------------------------
+- HTML (evidencias/run-20261110-204212/resultado_TC-M05-G18.html):
+  * Autocontenido (sin <link href="http..."> ni <script src="..."> externos): SI
+  * Contiene data-jsonblob: SI
+  * Tests en blob: 10 total (8 Passed, 2 Failed: test_g18_s1_03_fin_retiro_notifica_veterinario_y_productor, test_g18_s3_03_incidente_auditoria_sobrevive_rollback)
+- JSON (evidencias/run-20261110-204212/resultado_TC-M05-G18.json):
+  * Esquema exacto {tc, summary:{total,ok,falla,veredicto}, checkpoints:[{paso,esperado,obtenido,estado}]}: SI
+  * tc="TC-M05-G18", summary total=10, ok=8, falla=2, veredicto="Rechazado": SI
+  * 10 checkpoints con estado solo "OK"|"FALLA"; FALLA unicamente en G18_S1_03 y G18_S3_03: SI
+- Coherencia cruzada (HTML data-jsonblob, JSON resultado, junit_TC-M05-G18.xml y trazas_tc_m05_g18.json):
+  * Mismos 10 tests en orden identico y mismos 8 OK / 2 FALLA: SI (10/10 coherente)
+
+--------------------------------------------------------------------------------
+4. PROMOCION A resultados/ (SHA-256 ORIGEN VS COPIA)
+--------------------------------------------------------------------------------
+- resultado_TC-M05-G18.html
+  * Origen SHA-256 : 3233A9BEC491816B6D9E5702C69FFBE23CE886D49CE673680D0D2543B2C263AB
+  * Copia  SHA-256 : 3233A9BEC491816B6D9E5702C69FFBE23CE886D49CE673680D0D2543B2C263AB
+  * Coincide       : True
+- resultado_TC-M05-G18.json
+  * Origen SHA-256 : ECA5F86D3B5669BF08407C596B5D3FEA12CA34279F8EEED427E5FE263EFCEB9B
+  * Copia  SHA-256 : ECA5F86D3B5669BF08407C596B5D3FEA12CA34279F8EEED427E5FE263EFCEB9B
+  * Coincide       : True
+
+--------------------------------------------------------------------------------
+5. LISTADO FINAL DE resultados/ Y VERIFICACION DE LIMPIEZA
+--------------------------------------------------------------------------------
+- .gitkeep | size=0 bytes | SHA-256=E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+- resultado_TC-M05-G18.html | size=88088 bytes | SHA-256=3233A9BEC491816B6D9E5702C69FFBE23CE886D49CE673680D0D2543B2C263AB
+- resultado_TC-M05-G18.json | size=4002 bytes | SHA-256=ECA5F86D3B5669BF08407C596B5D3FEA12CA34279F8EEED427E5FE263EFCEB9B
+- Confirmacion: resultados/ contiene EXCLUSIVAMENTE .gitkeep, resultado_TC-M05-G18.html y resultado_TC-M05-G18.json (sin sufijo _reintentoN, ni XML, ni log, ni trazas; ningun runner o generador escribio directamente en resultados/).
+
+--------------------------------------------------------------------------------
+6. ESCANEO DE SECRETOS DEL NARRATIVO (.md) Y DEL INFORME (.txt)
+--------------------------------------------------------------------------------
+- TC-M05-G18_resultado.md: 0 coincidencias
+- Escaneo independiente final sobre TC-M05-G18_fase5_informe.txt: 0 coincidencias
+
+================================================================================
+7. ANEXO: CONTENIDO COMPLETO DE TC-M05-G18_resultado.md (verbatim)
+================================================================================
+# Resultado Oficial - TC-M05-G18 (RF-76)
+
+## Encabezado
+- **Caso de prueba:** TC-M05-G18
+- **Requisito funcional:** RF-76 (Integración con RF-44 y fallas de persistencia)
+- **Subcasos planos (agrupado):** `043 / 044 / 047` (originales `011 / 012 / 042`)
+- **Fecha:** 2026-11-10
+- **Responsable:** Sebastian
+- **Veredicto:** **Rechazado** (`8 OK / 2 FALLA` de `10` tests)
+- **Rama / Commit:** `test-JuanSG` / `6ee0e5e9461c680015236d88bc0bda63457fff01`
+- **Huellas SHA-256:**
+  - `test_tc_m05_g18.py`: `789C21DA45A93BA564FA419DCD49C3B81A4E165D83DD72CE8F4DE16CE6F1AE4A`
+  - `ejecutar_tc_m05_g18.ps1`: `BED9169BB2EB235EF6EFED223F4C400887B458C7B17EC34958EA0FC0E12833A0`
+  - `evidencias/run-20261110-204212/generar_resultado_g18.py`: `A65B9BF2867D63E19D50E618199F55C6BAA3CD84623D97D561BE889FC8CF4326`
+- **Nota sobre árbol de trabajo:** `tests/conftest.py` tiene cambios locales sin confirmar (`tests/conftest.py | 30 ++++++++++++++++++++++++++++++`).
+  - **Impacto en G18:** **No afecta los resultados ni la validez de G18**. El diff consiste únicamente en un stub no-op de `fcntl` para Windows (necesario para importar `main` porque un módulo de M02 importa `fcntl`) y `os.environ.setdefault` con valores dummy en memoria (`sqlite:///:memory:`) para que `validar_configuracion()` permita cargar `main.app`; S1–S3 ejecutan en proceso con `dependency_overrides` y dobles propios sin usar PostgreSQL local ni `fcntl`, y `G18_R_01` realiza peticiones HTTP reales contra TEST usando `.env.test`.
+
+## Enfoque y límites
+- **S1–S3 (en proceso):** `TestClient` sobre `main.app` con `dependency_overrides`, `monkeypatch` y dobles en memoria; reloj controlado fijando `hoy_usuario`; acceso real a SMTP (`send_email`) y BD real bloqueados con guards (`_VIOLACIONES`).
+- **Atomicidad:** verificada a nivel de unidad de trabajo / sesión doble en memoria (`_FakeSession` con staging y rollback), no sobre transacciones reales de PostgreSQL.
+- **RBAC:** sobrescrito en proceso (`_FakeUsuarioActual`), fuera del alcance de este grupo.
+- **`G18_R_01` (control real en TEST):** ejecución HTTP directa contra TEST con sandbox transaccional (`X-Test-Run-Id` + `X-Sandbox-Secret`), `periodo_retiro_dias=0` (fechas hoy y D-6, ambos `HTTP 201`) e inocuidad verificada (`base=0` -> `en_sandbox=2` -> `post_rollback=0`).
+- **Motivo del diseño:** el job diario de reversión (`_revertir_retiros_vencidos_diariamente`) no tiene endpoint HTTP para disparo bajo demanda, `/test-control` no permite inyectar fallas internas de código o BD en medio de una petición real, y un registro real con `periodo_retiro_dias > 0` dispara correo real vía SMTP.
+
+## Tabla de resultados (10 tests)
+
+| ID | Subcaso | Estado | Obtenido (JSON) |
+| :--- | :--- | :--- | :--- |
+| `G18_S1_01` | plano 043 / orig 011 | **OK** | `activo_estado=3, revert_calls=0, listar_calls=1, vigente_calls=1` |
+| `G18_S1_02` | plano 043 / orig 011 | **OK** | `activo_estado=1, revert_calls=1, commits=1, listar_calls=1` |
+| `G18_S1_03` | plano 043 / orig 011 | **FALLA** | `AssertionError: Defecto RF-76 paso 13: no se notifico al Veterinario (veterinario.g18@finca.example) al finalizar el retiro; solo se envio a destinatarios=['productor.g18@finca.example'] \| assert 'veterinario.g18@finca.example' in ['productor.g18@finca.example']` |
+| `G18_S2_01` | plano 044 / orig 012 | **OK** | `http=500, error_code=ERROR_ESTADO_EN_TRATAMIENTO` |
+| `G18_S2_02` | plano 044 / orig 012 | **OK** | `rollbacks=2, commits=0, persistidos=0` |
+| `G18_S2_03` | plano 044 / orig 012 | **OK** | `activo_estado=1, notificaciones_inicio=0` |
+| `G18_S3_01` | plano 047 / orig 042 | **OK** | `http=500, error_code=ERROR_INTERNO, rollbacks=1, timedelta_calls=1` |
+| `G18_S3_02` | plano 047 / orig 042 | **OK** | `http=503, error_code=BD_NO_DISPONIBLE, flush_calls=1, rollbacks=2` |
+| `G18_S3_03` | plano 047 / orig 042 | **FALLA** | `AssertionError: Defecto CU03 FA-13: la falla al calcular fecha_fin_retiro no confirmo incidente de auditoria en sesion independiente sobreviviente al rollback (incidentes_confirmados=0, sesiones_indep_commiteadas=0). \| assert (0 >= 1) \|  +  where 0 = len([])` |
+| `G18_R_01` | plano 043/044/047 / orig 011/012/042 | **OK** | `activo=853, base=0, en_sandbox=2, post_rollback=0` |
+
+## Defectos (consolidados en INC-M05-285-G18)
+- **`G18_S1_03` (`INC-M05-285-G18`):** al revertir un período de retiro vencido, el sistema notifica únicamente al Productor y omite al Veterinario (incumpliendo RF-76 flujo paso 13 y CA-4).
+  - **Causa en backend:** `src/supplies/application/use_cases/suministros/revertir_retiros_vencidos_use_case.py:63,91,101` obtiene la entidad `vigente` (que ya incluye `id_usuario_veterinario`) pero invoca `notificar_fin_retiro(id_activo, fecha_fin_retiro)` sin pasarlo; además, `src/supplies/infrastructure/adapters/notificacion_medicamento_email_adapter.py:72-79` solo consulta `_productor_de_activo(id_activo)` y envía correo al Productor.
+- **`G18_S3_03` (`INC-M05-285-G18`):** un error HTTP `5xx` (`500` por excepción no controlada al calcular `fecha_fin_retiro` o `503` por pérdida de conexión en BD al persistir) en `POST /suministros/medicamentos` no persiste ningún incidente de auditoría sobreviviente al rollback (incumpliendo CU03 FA-13).
+  - **Causa en backend:** `src/shared/error_handlers.py:76-105` (`app_error_handler`) y `350-371` (`error_no_controlado_handler`) solo registran log en archivo/consola y retornan la respuesta JSON sin abrir sesión independiente ni escribir auditoría/incidente; adicionalmente, la auditoría de medicamentos depende de un trigger en BD dentro de la misma transacción (`modulo5.auditorias_suministros`), la cual se revierte completa en el rollback.
+
+## Observaciones para Análisis (no son defectos de esta evaluación)
+- El mensaje de `E10` en backend incluye simultáneamente las frases `"registrado correctamente"` y `"revertido"`.
+- Existe contradicción documental entre `RF-76 E10` y `CU03 FA-10`; en esta evaluación se verificó el comportamiento según `RF-76 E10`.
+- La especificación indica `"notifica internamente"`, mientras que el flujo implementado envía correo electrónico SMTP y no crea notificaciones en la bandeja interna (`modulo1.notificaciones` / `NotificacionSuministrosM01Adapter`).
+- El job nocturno omite explícitamente los activos en estado `EN_TRATAMIENTO` que no tienen un tratamiento con retiro referenciable (`src/supplies/application/use_cases/suministros/revertir_retiros_vencidos_use_case.py:68-74`), por lo que los 13 activos detectados en esa situación en TEST no revertirán solos a `ACTIVO`.
+
+## Relación con otros INC
+- **`INC-M05-271-G18`** (permisos de `rol_qa` en BD): no bloqueó la ejecución oficial de `TC-M05-G18` porque S1–S3 corrieron en proceso con dobles y `G18_R_01` operó vía HTTP/sandbox sin conexión directa a PostgreSQL; el bloqueo sigue vigente para cualquier prueba que requiera conexión SQL directa como `rol_qa`.
+
+## Historial de carpetas en `evidencias/`
+- `analisis-20261110-194514`: Fases 1 y 2 (análisis de especificación, contrato y diseño del caso).
+- `fase3-20261110-201535`: Corrección 1 de script/runner (Fase 3 Etapa 1).
+- `run-20261110-202406`: Corrida **NO oficial** (9 fallos por defectos del script de prueba + timeout en TEST; archivada).
+- `fase3r2-20261110-203613`: Corrección 2 de script (`G18` Fase 3 ronda 2).
+- `run-20261110-204212`: Corrida **OFICIAL** (`8 OK / 2 FALLA`, `G18_R_01 PASSED`, veredicto `Rechazado`).
+- `diagnostico_G18`: Diagnóstico profundo de ambas fallas (confirmadas como defectos de `PRODUCTO`; las comprobaciones en vivo A4 y B3 en TEST quedaron bloqueadas porque TEST dejó de responder con `ReadTimeout` hacia las 21:05 UTC-5).

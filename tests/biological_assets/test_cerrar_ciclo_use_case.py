@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """RF-38: el cierre de ciclo delega el cambio de estado en el componente centralizado.
 
 El use case valida sus precondiciones (estado, sensores, fase, fecha) y luego
@@ -10,7 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 
 from src.biological_assets.application.use_cases.gestion.cerrar_ciclo_use_case import CerrarCicloUseCase
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, HistoricoEstado
@@ -159,7 +162,7 @@ def test_cierre_mismo_dia_utc_usa_la_hora_real_no_medianoche() -> None:
     historico = HistoricoRepoFake()
     uc = CerrarCicloUseCase(db=db, repo=repo, evento_repo=EventoRepoFake(), historico_repo=historico)
 
-    dto = CerrarCicloDTO(fecha_cierre=hoy_colombia(), motivo_cierre='venta')
+    dto = CerrarCicloDTO(fecha_cierre=hoy_usuario(), motivo_cierre='venta')
     antes = datetime.now(timezone.utc)
     uc.execute(10, dto, _usuario())
     despues = datetime.now(timezone.utc)
@@ -176,7 +179,7 @@ def test_cierre_fecha_pasada_usa_fin_de_dia() -> None:
     historico = HistoricoRepoFake()
     uc = CerrarCicloUseCase(db=db, repo=repo, evento_repo=EventoRepoFake(), historico_repo=historico)
 
-    ayer = hoy_colombia() - timedelta(days=1)
+    ayer = hoy_usuario() - timedelta(days=1)
     dto = CerrarCicloDTO(fecha_cierre=ayer, motivo_cierre='venta')
     uc.execute(10, dto, _usuario())
 

@@ -1,0 +1,145 @@
+{
+ "ejecutado": "2026-11-02T17:40:27",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "creados": {
+  "infra": 13,
+  "activos": [
+   14,
+   15,
+   16
+  ]
+ },
+ "pasos": [
+  {
+   "id": "C1",
+   "descripcion": "Crear area de 35 m2 con Bovino (densidad 0.1)",
+   "esperado": "201, capacidad_maxima=3 (floor(3.5))",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3 id=13"
+  },
+  {
+   "id": "C2",
+   "descripcion": "Registrar animal 1 de 3 (capacidad 3)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=14"
+  },
+  {
+   "id": "C3",
+   "descripcion": "Registrar animal 2 de 3 (capacidad 3)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=15"
+  },
+  {
+   "id": "C4",
+   "descripcion": "Registrar animal 3 de 3 (capacidad 3) - LIMITE EXACTO",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=16"
+  },
+  {
+   "id": "C5",
+   "descripcion": "Registrar animal 4 (un animal sobre el limite)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-BOVINO-CAP-174021' superaría su capacidad efectiva (3 individuos = MIN d"
+  },
+  {
+   "id": "C6",
+   "descripcion": "Identificador duplicado",
+   "esperado": "409/422 por identificador repetido (no por otro motivo)",
+   "status": 409,
+   "error_code": "IDENTIFICADOR_DUPLICADO",
+   "resultado": "PASA",
+   "detalle": "El identificador 'QA-BOV-CAP-174021-1' ya está registrado en el sistema."
+  },
+  {
+   "id": "C7",
+   "descripcion": "Leer area: capacidad_maxima sigue 3",
+   "esperado": "capacidad_maxima=3",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3"
+  },
+  {
+   "id": "C8",
+   "descripcion": "Reducir superficie a 30 m2 (capacidad 3) con 3 animales",
+   "esperado": "200 (limite)",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3"
+  },
+  {
+   "id": "C9",
+   "descripcion": "Reducir superficie a 29.99 m2 (capacidad 2) con 3 animales",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-BOVINO-CAP-174021' superaría su capacidad efectiva (2 individuos = MIN d"
+  },
+  {
+   "id": "C10",
+   "descripcion": "La superficie no cambio tras el rechazo",
+   "esperado": "superficie=30.00",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "superficie=30.00"
+  },
+  {
+   "id": "C11",
+   "descripcion": "Area con Bovino + Ternero (ESPECIES_GRANDES + ESPECIES_MEDIANAS)",
+   "esperado": "422 GRUPOS_MANEJO_INCOMPATIBLES",
+   "status": 422,
+   "error_code": "GRUPOS_MANEJO_INCOMPATIBLES",
+   "resultado": "PASA",
+   "detalle": "Grupos de manejo incompatibles: el área 'QA-FLUJO-BOVINO-MIX-174021' aloja especies del grupo 'ESPECIES_GRANDES' y 'Tern"
+  },
+  {
+   "id": "L-activo-14",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-activo-15",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-activo-16",
+   "descripcion": "Limpieza: baja del activo (el cierre de ciclo da SIN_FASE_ACTIVA)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "L-infra-13",
+   "descripcion": "Limpieza: desactivar area",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  }
+ ]
+}

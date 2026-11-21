@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-76: observaciones y E11                |
+# | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 """Schemas de respuesta para los endpoints de aplicación de medicamento (RF-76)."""
 from __future__ import annotations
 
@@ -27,12 +31,14 @@ class MedicamentoResponse(BaseModel):
     motivo_aplicacion: Optional[str]
     id_evento_sanitario: Optional[int]
     nombre_veterinario: Optional[str]
+    observaciones: Optional[str] = None
     id_usuario: int
     id_usuario_veterinario: Optional[int]
     estado_registro: str
     fecha_registro: Optional[datetime.datetime]
     justificacion_anulacion: Optional[str]
     fecha_hora_anulacion: Optional[datetime.datetime]
+    identificador_activo: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +48,7 @@ class RegistroMedicamentoResponse(BaseModel):
 
     medicamento: MedicamentoResponse
     fecha_fin_retiro_vigente: Optional[datetime.date]
+    tratamientos_activos: int = 0
     mensaje: str
 
 

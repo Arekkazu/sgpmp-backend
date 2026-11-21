@@ -1,0 +1,87 @@
+================================================================================
+INFORME DE EJECUCION: TC-M05-G38 (REINTENTO 1)
+RF-80 v2.0 (RFC-025) "Auditoria y Trazabilidad de Registros de Suministros"
+================================================================================
+Fecha/Hora: 2026-11-11 21:25:50 (America/Bogota)
+Total tests: 13 | Aprobados: 10 | Fallidos: 3
+Veredicto Final: Rechazado
+Duracion: 18.02 s
+
+1. TABLA DETALLADA DE CHECKPOINTS
+--------------------------------------------------------------------------------
+[01] T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura)
+     Esperado: HTTP 200 GET /suministros/auditoria + conteo total y ultimo_id base; DELETE -> 200 Rollback exitoso
+     Obtenido: AssertionError: Diferencia total API (69264) vs SQL (0) en T00 | HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=b987fdad-e52b-4848-8797-621d925f6d6e]; GET /suministros/auditoria -> HTTP 200 (total=69264, ids=[75484]) [X-Request-Id=cfe8a868-bb71-4f6c-a476-c0ba2dacd4bb]; POST /test-control/query -> HTTP 200 (sql={'total': 0, 'ultimo_id': 0}) [X-Request-Id=b65ef9fe-3256-4aa1-8b5e-09219d6fa6dc]; DELETE /test-control/runs/tc-m05-g38-inobase-c0244a72 -> HTTP 200 [X-Request-Id=5705febc-d83e-4946-9065-6f388033f9f9]
+     Estado:   FALLA
+
+[02] C01 Cadena de custodia por activo y ciclo con orden por fecha_emision y RNF-08
+     Esperado: Todos los eventos del activo y ciclo sin ajenos, orden fecha_emision consistente, doble timestamp presente, costo_afectado y origen_precio en registro, ordenar_por=fecha_evento 200
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=48b15905-d11c-4c70-a78c-ac6993b2a944]; POST /activos-biologicos -> HTTP 201 (id_activo=1852) [X-Request-Id=f5be4894-ac84-4f41-9e2c-00f683a20557]; POST /activos-biologicos/1852/fases -> HTTP 201 (id_activo=1852) [X-Request-Id=4458073f-329f-4484-93c4-ff348bad62d1]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=de7e346f-1d03-44da-b151-c35641ebe4fd]; POST /suministros/costeo-directo -> HTTP 200 [X-Request-Id=733b91b7-8243-41cc-b9c7-721f326f10a8]; GET /suministros/historial -> HTTP 200 [X-Request-Id=edefe00c-3998-4618-b120-42ddf1f55dfd]; GET /suministros/auditoria -> HTTP 200 (total=7, ids=[75491, 75490, 75489, 75488, 75487, 75486, 75485]) [X-Request-Id=8e855e3d-8672-44c1-a808-a9c511d91260]; GET /suministros/auditoria -> HTTP 200 (total=7, ids=[75491, 75490, 75489, 75488, 75487, 75486, 75485]) [X-Request-Id=42ec0785-a1ec-4edd-8ffe-e7d882cf2272]
+     Estado:   OK
+
+[03] C02 Exportacion filtrada en formatos soportados (CSV, XLSX, PDF)
+     Esperado: HTTP 200 en CSV, XLSX y PDF conteniendo exactamente los eventos del filtro de C01 (RF-80 no define formatos)
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 200 (total=7, ids=[75491, 75490, 75489, 75488, 75487, 75486, 75485]) [X-Request-Id=46a3ce31-40f7-4312-b913-3196ca099771]; GET /suministros/auditoria/exportar -> HTTP 200 [X-Request-Id=6582d7e0-90a3-490d-9ca0-fcfaf6d46119]; GET /suministros/auditoria/exportar -> HTTP 200 (<archivo binario content_type=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet bytes=6796>) [X-Request-Id=dbcfb5d3-709d-45a9-81fd-720e1a80122e]; GET /suministros/auditoria/exportar -> HTTP 200 (<archivo binario content_type=application/pdf bytes=32086>) [X-Request-Id=f09ab39a-544f-469a-bc2e-7382f90837e9]
+     Estado:   OK
+
+[04] D01 Rango invertido en GET /suministros/auditoria (fecha_desde > fecha_hasta)
+     Esperado: HTTP 400 VAL_ENTRADA, field fecha_hasta, mensaje que pida corregir, sin items
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 400 VAL_ENTRADA [X-Request-Id=11763ea7-ff75-4196-9b97-85865ff6847f]
+     Estado:   OK
+
+[05] D02 Rango invertido con offsets distintos (10:00-05:00 = 15:00Z > 14:00Z)
+     Esperado: HTTP 400 VAL_ENTRADA comparando instantes UTC
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 400 VAL_ENTRADA [X-Request-Id=ce6ba6ed-72a7-4c17-a4d1-1cc28eb9e57d]
+     Estado:   OK
+
+[06] D03 Rango invertido en GET /suministros/auditoria/exportar
+     Esperado: HTTP 400 VAL_ENTRADA y ningun archivo exportado
+     Obtenido: HTTP: GET /suministros/auditoria/exportar -> HTTP 400 VAL_ENTRADA [X-Request-Id=e5a761f4-05e4-4026-9678-7cda4dc31339]
+     Estado:   OK
+
+[07] D04 Formato de fecha incorrecto (fecha_desde='2026-13-45')
+     Esperado: HTTP 400 o 422 con campo fecha_desde identificado; nunca 200 ni 500
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 400 VAL_ENTRADA [X-Request-Id=e9498fd8-3499-42d1-af44-ceaf229844d0]
+     Estado:   OK
+
+[08] D05 Limites temporales validos (iguales, solo desde, solo hasta)
+     Esperado: HTTP 200 en los tres escenarios
+     Obtenido: HTTP: GET /suministros/auditoria -> HTTP 200 (total=0) [X-Request-Id=4c9bcee2-491a-4a8d-a315-9df00656f1d2]; GET /suministros/auditoria -> HTTP 200 (total=3328, ids=[75491, 75490, 75489, 75488, 75487]) [X-Request-Id=a7c938fc-da86-4972-bffe-d8da22809a0d]; GET /suministros/auditoria -> HTTP 200 (total=65967, ids=[72129, 72003, 72002, 72001, 72000]) [X-Request-Id=70dbd7e0-d214-4d32-87a7-85e58c550c51]
+     Estado:   OK
+
+[09] D06 Consulta valida sin coincidencias (activo de prueba sin eventos)
+     Esperado: HTTP 200 con items=[] y total=0
+     Obtenido: HTTP: POST /activos-biologicos -> HTTP 201 (id_activo=1853) [X-Request-Id=7169640b-6fd1-414b-99e8-a0a56c79c78a]; GET /suministros/auditoria -> HTTP 200 (total=69271, ids=[75491]) [X-Request-Id=a0098b59-7e44-439e-8634-6faed5b2b4ac]; GET /suministros/auditoria -> HTTP 200 (total=0) [X-Request-Id=ec98205f-88c7-4274-b517-ced4c4ad55ff]; GET /suministros/auditoria -> HTTP 200 (total=69271, ids=[75491]) [X-Request-Id=69ae4fc7-24c6-4b21-bc1e-41c49adea4a0]
+     Estado:   OK
+
+[10] D07 Control de acceso sin permiso (Productor y Veterinario)
+     Esperado: HTTP 403 ACCESO_DENEGADO sin clave items ni fuga de datos en lista, detalle y exportar
+     Obtenido: HTTP: POST /sesiones/ -> HTTP 200 [X-Request-Id=8b038950-9ac2-4305-81e7-5ec4712cf8c8]; POST /sesiones/ -> HTTP 200 [X-Request-Id=d0afff6a-f43f-49ff-8805-2754609a5199]; POST /test-control/query -> HTTP 200 (sql={'c': 0}) [X-Request-Id=18db358a-d634-4969-8fb6-936487adcf8c]; POST /test-control/query -> HTTP 200 (sql={'c': 0}) [X-Request-Id=0d8bd066-0280-427b-bd9b-02288baa51db]; POST /test-control/query -> HTTP 200 (sql={'c': 0}) [X-Request-Id=17eed318-26a9-4eba-9be6-64190a7ec986]; GET /suministros/auditoria -> HTTP 403 ACCESO_DENEGADO [X-Request-Id=1e0a7793-e248-45cc-b103-e642c6cde813]; GET /suministros/auditoria/1 -> HTTP 403 ACCESO_DENEGADO [X-Request-Id=0136ec74-e49b-4d9c-9f85-212501838d04]; GET /suministros/auditoria/exportar -> HTTP 403 ACCESO_DENEGADO [X-Request-Id=331a4c2f-da49-462b-b2c2-4de2f8b7c5ab]; (+6 requests)
+     Estado:   OK
+
+[11] D08 Control de acceso con permiso (Contador y Revisor Fiscal)
+     Esperado: HTTP 200 para Contador y Revisor Fiscal (PRECONDICION_NO_CUMPLIDA si faltan credenciales)
+     Obtenido: AssertionError: PRECONDICION_NO_CUMPLIDA: faltan credenciales en .env.test para roles RF-80 Actores 3: TEST_ACCOUNTANT_EMAIL, TEST_ACCOUNTANT_PASSWORD, TEST_FISCAL_REVIEWER_EMAIL, TEST_FISCAL_REVIEWER_PASSWORD | HTTP: Sin llamadas HTTP registradas (fallo previo en precondicion)
+     Estado:   FALLA
+
+[12] T98 Cierre de la corrida sandbox principal
+     Esperado: DELETE /test-control/runs/{run_id} -> HTTP 200 Rollback exitoso
+     Obtenido: HTTP: DELETE /test-control/runs/tc-m05-g38-adm-4e0e7f7f -> HTTP 200 [X-Request-Id=d5e5c392-7300-4c77-88fa-afb9c68d9261]
+     Estado:   OK
+
+[13] T99 Inocuidad post-rollback en corrida sandbox aparte de solo lectura
+     Esperado: total y ultimo_id iguales a T00; GET de activos y acumulado creados -> HTTP 404; DELETE -> 200
+     Obtenido: AssertionError: PRECONDICION_NO_CUMPLIDA: T00 no establecio linea base | HTTP: Sin llamadas HTTP registradas (fallo previo en precondicion)
+     Estado:   FALLA
+
+2. DETALLE DE FALLOS
+--------------------------------------------------------------------------------
+- T00 Linea base de modulo5.auditorias_suministros (corrida aparte solo lectura) [PENDIENTE_DIAGNOSTICO] (Testing Harness / Inocuidad)
+  Mensaje: AssertionError: Diferencia total API (69264) vs SQL (0) en T00
+  HTTP:    POST /sesiones/ -> HTTP 200 [X-Request-Id=b987fdad-e52b-4848-8797-621d925f6d6e]; GET /suministros/auditoria -> HTTP 200 (total=69264, ids=[75484]) [X-Request-Id=cfe8a868-bb71-4f6c-a476-c0ba2dacd4bb]; POST /test-control/query -> HTTP 200 (sql={'total': 0, 'ultimo_id': 0}) [X-Request-Id=b65ef9fe-3256-4aa1-8b5e-09219d6fa6dc]; DELETE /test-control/runs/tc-m05-g38-inobase-c0244a72 -> HTTP 200 [X-Request-Id=5705febc-d83e-4946-9065-6f388033f9f9]
+- D08 Control de acceso con permiso (Contador y Revisor Fiscal) [PENDIENTE_DIAGNOSTICO] (RF-80 v2.0 Actores 3 / RBAC recurso 57)
+  Mensaje: AssertionError: PRECONDICION_NO_CUMPLIDA: faltan credenciales en .env.test para roles RF-80 Actores 3: TEST_ACCOUNTANT_EMAIL, TEST_ACCOUNTANT_PASSWORD, TEST_FISCAL_REVIEWER_EMAIL, TEST_FISCAL_REVIEWER_PASSWORD
+  HTTP:    Sin llamadas HTTP registradas (fallo previo en precondicion)
+- T99 Inocuidad post-rollback en corrida sandbox aparte de solo lectura [PENDIENTE_DIAGNOSTICO] (Testing Harness / Inocuidad)
+  Mensaje: AssertionError: PRECONDICION_NO_CUMPLIDA: T00 no establecio linea base
+  HTTP:    Sin llamadas HTTP registradas (fallo previo en precondicion)

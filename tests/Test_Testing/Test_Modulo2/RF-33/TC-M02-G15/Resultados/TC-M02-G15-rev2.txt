@@ -1,0 +1,148 @@
+TC-M02-G15 rev2 — RF-33 / RF-34 — TEST
+Fecha UTC: 2026-09-15T04:34:25.391919+00:00
+Estado global: RECHAZADO
+
+{
+  "TC-M02-027": {
+    "resultado": "RECHAZADO",
+    "usuario": "m2m.nuevo@ejemplo.com",
+    "rol_jwt": 2,
+    "finca_usuario": [
+      57
+    ],
+    "finca_activo_objetivo": 65,
+    "id_activo": 350,
+    "endpoint_get": "GET /activos-biologicos/{id}",
+    "endpoint_patch": "PATCH /activos-biologicos/{id}",
+    "put_existe": false,
+    "http_get": 404,
+    "http_patch": 200,
+    "respuesta_get": "{\"error_code\": \"ACTIVO_NO_ENCONTRADO\", \"message\": \"El activo biológico con ID 350 no existe.\", \"fields\": [], \"timestamp\": \"2026-09-15T04:34:51.219094+00:00\"}",
+    "respuesta_patch": "{\"id_activo_biologico\": 350, \"id_especie\": 41, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"TCM02-G15-031-1789176563\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"compra\", \"costo_adquisicion\": \"1500000.0000\", \"soporte_documental\": \"soporte_TC-M02-031.pdf\", \"descripcion\": null, \"id_infraestructura\": 61, \"atributos_dinamicos\": {}, \"id_estado\": 6, \"nombre_estado\": \"BAJA\", \"id_usuario\": 1, \"fecha_creacion\": \"2026-09-12T01:29:23.251704Z\", \"detalle_individual\": {\"id_detalle\": 225, \"raza\": \"QA-G15-R2-BOLA-MARKER\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-12T01:29:23.251704Z\"}, \"detalle_poblacional\": null}",
+    "exposicion_datos": false,
+    "modificacion": true,
+    "conclusion_bola": "PATCH HTTP 200 sobre activo de otra finca. BOLA de escritura. GET habia denegado o ocultado el recurso.",
+    "login_productor_historico": {
+      "correo": "m2m.nuevo@ejemplo.com",
+      "http": 200,
+      "ok": true
+    },
+    "listado_productor_http": 200,
+    "listado_admin_http": 200,
+    "cantidad_propios": 22,
+    "cantidad_admin_muestra": 268,
+    "infra_fincas_mapeadas": 42,
+    "alcance_infra_productor": {
+      "1": {
+        "http": 200,
+        "n": 0
+      },
+      "2": {
+        "http": 200,
+        "n": 0
+      },
+      "3": {
+        "http": 200,
+        "n": 0
+      },
+      "4": {
+        "http": 200,
+        "n": 0
+      },
+      "5": {
+        "http": 200,
+        "n": 0
+      },
+      "6": {
+        "http": 200,
+        "n": 0
+      },
+      "7": {
+        "http": 200,
+        "n": 0
+      }
+    },
+    "nota_alcance_infra": "HTTP 200 al listar infra de varias fincas NO se usa como fincas del usuario para BOLA de activos; la finca se deriva de id_infraestructura de sus activos.",
+    "fincas_presentes_en_activos_admin": [
+      1,
+      2,
+      3,
+      4,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      55,
+      57,
+      58,
+      59,
+      60,
+      61,
+      64,
+      65
+    ],
+    "infras_sin_finca": [],
+    "tipo_activo": "INDIVIDUAL",
+    "id_infraestructura_objetivo": 61,
+    "restauracion_raza": "intentada_via_admin"
+  },
+  "TC-M02-028": {
+    "resultado": "BLOQUEADO",
+    "payload_campos_protegidos": {
+      "estado": "CERRADO",
+      "cantidad_actual": 9999
+    },
+    "http_post": 500,
+    "id_creado": null,
+    "estado_persistido": null,
+    "cantidad_actual_persistida": null,
+    "conclusion_mass_assignment": "POST HTTP 500 ERROR_INTERNO. No se declara PASS ni vulnerabilidad de mass assignment. Impide comprobar persistencia de campos protegidos.",
+    "payload": {
+      "tipo_activo": "POBLACIONAL",
+      "id_especie": 4,
+      "fecha_inicio_ciclo": "2026-09-09",
+      "origen_financiero": "nacimiento",
+      "id_infraestructura": 3,
+      "atributos_dinamicos": {},
+      "cantidad_inicial": 10,
+      "peso_promedio_inicial": 2.5,
+      "costo_adquisicion": null,
+      "soporte_documental": null,
+      "estado": "CERRADO",
+      "cantidad_actual": 9999
+    },
+    "respuesta_post": "{\"error_code\": \"ERROR_INTERNO\", \"message\": \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\", \"fields\": [], \"timestamp\": \"2026-09-15T04:34:53.988322+00:00\"}"
+  },
+  "TC-M02-031": {
+    "resultado": "BLOQUEADO",
+    "rol_utilizado": "ingeniero@pecuaria.co",
+    "rol_jwt": null,
+    "permisos_relevantes": "No hay endpoint publico de matriz RBAC financiera en esta prueba. Se usa el usuario de TEST ingeniero@pecuaria.co. No se asume la matriz historica.",
+    "endpoint": "GET /activos-biologicos/{id} y GET /activos-biologicos (listado)",
+    "campos_financieros_buscados": [
+      "costo_adquisicion",
+      "soporte_documental",
+      "soporte_documental_costo"
+    ],
+    "expuestos": [],
+    "conclusion_exceso": "BLOQUEADO: login Ingeniero HTTP 401. No se evaluo exposicion."
+  }
+}
+
+Primera evaluacion (Newman HTML 2026-09-12): 027 GET ajeno 404 sin cuerpo de activo (asercion 403/404 PASS) y PATCH ajeno HTTP 200 sobre activo 348 (FAIL BOLA escritura). 028 POST 201 estado ACTIVO cantidad_actual=10 (PASS). 031 GET ingeniero 200 con costo_adquisicion y soporte_documental (FAIL exposicion). Correo productor historico m2m.nuevo@ejemplo.com. Esta rev2 no reutiliza ese password hardcodeado.
+Historico no modificado. Codigo productivo no modificado. Sin commit ni push.
+Password/JWT: [REDACTED]. Historico Newman no modificado.

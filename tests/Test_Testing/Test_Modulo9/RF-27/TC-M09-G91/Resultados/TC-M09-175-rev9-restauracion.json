@@ -1,0 +1,43 @@
+{
+  "revision": "TC-M09-175-rev9-restauracion",
+  "tipo": "verificacion_posterior_restauracion",
+  "fecha_utc": "2026-10-10T00:14:00Z",
+  "rama": "laura",
+  "commit": "c5ac9b6f",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "mutaciones": false,
+  "login_admin": {"status": 200, "variable": "SGPMP_TEST_PASSWORD"},
+  "get_global": {
+    "status": 200,
+    "body": {
+      "id_tema_visual": 1,
+      "id_usuario": 1,
+      "theme_mode": 2,
+      "es_global": true,
+      "fecha_actualizacion": "2026-10-01T21:03:39.159222Z"
+    },
+    "ausente": false
+  },
+  "presencia_restaurada": true,
+  "valores_identicos_a_rev1": false,
+  "comparacion_rev1_2026_09_26": {
+    "id_tema_visual": {"historico": 1, "actual": 1, "coincide": true},
+    "id_usuario": {"historico": 1, "actual": 1, "coincide": true},
+    "es_global": {"historico": true, "actual": true, "coincide": true},
+    "theme_mode": {"historico": 1, "actual": 2, "coincide": false},
+    "fecha_actualizacion": {
+      "historico": "2026-09-25T06:50:47.856604Z",
+      "actual": "2026-10-01T21:03:39.159222Z",
+      "coincide": false
+    }
+  },
+  "casos": {
+    "TC-M09-173": "APROBADO (historico, no reejecutado)",
+    "TC-M09-174": "APROBADO (historico, no reejecutado)",
+    "TC-M09-175": "APROBADO (rev8, no reejecutado)"
+  },
+  "g91_casos_funcionales_completos": true,
+  "g91_valores_originales_rev1_confirmados": false,
+  "recomendacion_cierre_g91": "SI, con salvedad de theme_mode=2 vs snapshot rev1 theme_mode=1"
+}

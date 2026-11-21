@@ -1,0 +1,161 @@
+{
+  "caso": "TC-M06-G118",
+  "rf": [
+    "RF-COT",
+    "RF-AE01",
+    "RF-AE02",
+    "RF-101"
+  ],
+  "subcaso_relacionado": "TC-M06-50",
+  "actualizado_en": "2026-11-14T03:58:00.408121+00:00",
+  "ambiente": "https://api.inmero.co/api-sgpmp-test",
+  "dictamen_general": "REEVALUACION_PARCIAL_NO_APROBADO_COMPLETO",
+  "grupo_completo_aprobado": false,
+  "motivo": "Contrato 2.1 verificado; vista previa QA bloqueada por periodo 220 abierto; cliente externo no consultable con Contador (403); canal sin credencial segura; cotizacion TC-50 no ejecutada.",
+  "escrituras_ejecutadas": false,
+  "cierre_periodo_ejecutado": false,
+  "cotizacion_tc50_ejecutada": false,
+  "commit_push": false,
+  "contrato_aaef": {
+    "version": "2.1",
+    "id_version_contrato_aaef": 3,
+    "estado_api": "ACTIVO",
+    "fecha_vigencia": "2026-11-13",
+    "mapeadores": [
+      "COMPRAS"
+    ],
+    "anexo": {
+      "id_mapeo_anexo_aaef": 2,
+      "version_anexo": "2.0",
+      "estado": "APROBADO"
+    },
+    "otras_versiones": [
+      {
+        "version": "1.0",
+        "estado": "INACTIVO"
+      },
+      {
+        "version": "2.0",
+        "estado": "DEPRECADO"
+      }
+    ],
+    "verificacion": "APROBADO"
+  },
+  "cliente_qa": {
+    "informado": {
+      "id": 5,
+      "codigo": "QA_M06_AAEF_CONSULTA",
+      "client_id": "qa-m06-aaef-consulta",
+      "canal": "CONSULTA_AAEF",
+      "limite_por_minuto": 60,
+      "sin_m2m": true,
+      "vencimiento_credencial": "2026-11-27"
+    },
+    "verificacion_api": "BLOQUEADO",
+    "motivo": "GET /integracion/clientes respondio 403 con sesion Contador; no hay credenciales Admin ni secreto de canal en env."
+  },
+  "autenticacion_canal": {
+    "estado": "BLOQUEADO",
+    "motivo": "client_secret no disponible por mecanismo seguro (env). POST /integraciones/agrofusion/token no autorizado/ejecutado."
+  },
+  "vista_previa": {
+    "titular_qa_900000003": {
+      "http": 422,
+      "error_code": "PERIODO_NO_CERRADO",
+      "periodo_220": "ABIERTO",
+      "dictamen_comportamiento_error": "APROBADO",
+      "dictamen_generacion_paquete": "BLOQUEADO"
+    },
+    "titular_referencia_900000002": {
+      "http": 200,
+      "periodo_219": "CERRADO",
+      "x_version_contrato": "2.1",
+      "envelope_keys": [
+        "metadata",
+        "summary",
+        "invoices",
+        "transactions"
+      ],
+      "invoices_count": 0,
+      "transactions_count": 0,
+      "dictamen": "APROBADO_COMO_REFERENCIA",
+      "no_equivale_a_aprobacion_titular_qa": true
+    }
+  },
+  "transformacion_aaef": {
+    "config_contrato_solo_compras": "APROBADO",
+    "validacion_estatica_envelope_referencia": "APROBADO",
+    "validacion_funcional_titular_qa": "BLOQUEADO",
+    "motivo_bloqueo": "PERIODO_NO_CERRADO en periodo 220"
+  },
+  "escenarios": [
+    {
+      "id": "G118-AAEF-CONTRATO-2.1",
+      "estado": "APROBADO"
+    },
+    {
+      "id": "G118-AAEF-ANEXO-V2.0",
+      "estado": "APROBADO"
+    },
+    {
+      "id": "G118-AAEF-TRANSFORMADOR-COMPRAS-CONFIG",
+      "estado": "APROBADO"
+    },
+    {
+      "id": "G118-AAEF-VISTA-PREVIA-QA-ERROR-PERIODO",
+      "estado": "APROBADO"
+    },
+    {
+      "id": "G118-AAEF-VISTA-PREVIA-QA-PAQUETE",
+      "estado": "BLOQUEADO"
+    },
+    {
+      "id": "G118-AAEF-VISTA-PREVIA-REF-200",
+      "estado": "APROBADO"
+    },
+    {
+      "id": "G118-AAEF-CLIENTE-5-PERMISOS",
+      "estado": "BLOQUEADO"
+    },
+    {
+      "id": "G118-AAEF-CANAL-AUTH",
+      "estado": "BLOQUEADO"
+    },
+    {
+      "id": "G118-AAEF-TRANSFORMACION-QA",
+      "estado": "BLOQUEADO"
+    },
+    {
+      "id": "TC-M06-50-COTIZACION",
+      "estado": "PENDIENTE_DE_AUTORIZACION"
+    }
+  ],
+  "prerrequisitos_tc_m06_50": [
+    {
+      "id": "AUTH_POST_COTIZACION",
+      "estado": "PENDIENTE_DE_AUTORIZACION",
+      "detalle": "Autorizacion expresa para POST /finanzas/cotizaciones sobre activo 1571"
+    },
+    {
+      "id": "CIERRE_PERIODO_220",
+      "estado": "PENDIENTE_DE_AUTORIZACION",
+      "detalle": "Si se exige verificar AAEF del titular QA post-cotizacion, hace falta cierre administrativo del periodo 220 (no ejecutado aqui)"
+    },
+    {
+      "id": "CREDENCIAL_CANAL_ENV",
+      "estado": "BLOQUEADO",
+      "detalle": "Configurar QA_AAEF_CLIENT_ID/SECRET/EMAIL (o equivalentes) sin pegar secretos en chat"
+    },
+    {
+      "id": "AUTH_POST_TOKEN_CANAL",
+      "estado": "PENDIENTE_DE_AUTORIZACION",
+      "detalle": "Autorizar POST /integraciones/agrofusion/token solo para consulta"
+    },
+    {
+      "id": "PERMISO_LISTAR_CLIENTES",
+      "estado": "BLOQUEADO",
+      "detalle": "Sesion con clientes_externos R (Admin) o evidencia administrativa equivalente"
+    }
+  ],
+  "evidencia_principal": "tests\\Test_Testing\\Test_Modulo6\\RF-COT\\TC-M06-G118\\resultados\\reevaluacion_2026-11-13_aaef\\evidencia_consultas_reevaluacion_G118.json"
+}

@@ -1,5 +1,17 @@
 # Gaps BD — M03 CU02: Procesar y enviar datos al motor de inferencia (RF-56)
 
+## Actualización DEV-17 — 2026-10-15
+
+El stub ya no confirma entregas inexistentes. RF-56 persiste y conserva el
+paquete en el estado existente `PENDIENTE`, con cero intentos. La recuperación
+y reconsolidación por evento reutilizan el paquete y bloquean la fila del
+evento al consolidar para evitar creaciones concurrentes por ese mismo flujo.
+No se agregan migraciones, estados, tablas de transporte ni un nuevo buffer.
+La rama positiva/fallida del puerto booleano se conserva para futuros adaptadores.
+
+El esquema migrado incluye los enums y el trigger descritos abajo. Las notas
+DDL históricas no son instrucciones de ejecución de DEV-17 sobre bases compartidas.
+
 ## Contexto
 
 CU02 cubre el flujo Dev de RF-56: consolidar el paquete multivariable a partir de

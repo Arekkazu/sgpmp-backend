@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M04-G083: Distribucion OTA e Integridad (RF-73 / RF-70)" tests="10" time="2.037">
+  <testsuite name="01-Login-ADMIN" id="162e00ae-63e3-4eb2-b1d0-816623c731e2" timestamp="2026-10-29T03:06:57.044Z" tests="1" failures="0" errors="0" time="0.840">
+    <testcase name="01.01: Login exitoso del Administrador (HTTP 200)" time="0.840" classname="01LoginAdmin"/>
+  </testsuite>
+  <testsuite name="02-Preflight-Identificar-Despliegue-Pendiente" id="946fd268-687c-487b-8e0e-080901c641ad" timestamp="2026-10-29T03:06:57.044Z" tests="1" failures="0" errors="0" time="0.137">
+    <testcase name="02.01: Consulta de despliegues OTA existentes (HTTP 200)" time="0.137" classname="02PreflightIdentificarDesplieguePendiente"/>
+  </testsuite>
+  <testsuite name="03-TC-M04-257-Disparar-Distribucion-Sandbox-A" id="76bddea5-93b6-4c9c-b046-c3fbe8d280f2" timestamp="2026-10-29T03:06:57.044Z" tests="1" failures="0" errors="0" time="0.125">
+    <testcase name="03.01: Reporte OTA integrity_ok aceptado (HTTP 200)" time="0.125" classname="03TcM04257DispararDistribucionSandboxA"/>
+  </testsuite>
+  <testsuite name="04-TC-M04-257-Verificar-Auditoria-Modelo-Distribuido" id="dbdaf673-a759-4b13-9014-036ece766fb9" timestamp="2026-10-29T03:06:57.044Z" tests="10" failures="0" errors="0" time="0.165">
+    <testcase name="04.01: Consulta de auditoria exitosa (HTTP 200)" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.02: Total de eventos MODELO_DISTRIBUIDO_EDGE >= 1" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.03: tipo_evento es MODELO_DISTRIBUIDO_EDGE" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.04: tipo_actor es DISPOSITIVO_EDGE" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.05: id_sistema coincide con el serial del dispositivo" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.06: severidad_evento es INFO" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.07: resultado_operacion es EXITOSO" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.08: payload_evento valida hash_verificado / integrity_ok" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.09: id_referencia coincide con id_despliegue_ota" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+    <testcase name="04.10: correlacion_id no es nulo" time="0.165" classname="04TcM04257VerificarAuditoriaModeloDistribuido"/>
+  </testsuite>
+  <testsuite name="05-Teardown-Cerrar-Sandbox-A" id="2d8a0c26-db56-4e45-9431-1c9ffbfb4b91" timestamp="2026-10-29T03:06:57.044Z" tests="1" failures="0" errors="0" time="0.116">
+    <testcase name="05.01: Rollback y cierre exitoso de Sandbox A (HTTP 200)" time="0.116" classname="05TeardownCerrarSandboxA"/>
+  </testsuite>
+  <testsuite name="06-TC-M04-258-Simular-Rollback-Hash-Invalido-Sandbox-B" id="32325659-12aa-4d8d-93d5-daf16413fb40" timestamp="2026-10-29T03:06:57.044Z" tests="1" failures="0" errors="0" time="0.135">
+    <testcase name="06.01: Reporte OTA rollback procesado (HTTP 200)" time="0.135" classname="06TcM04258SimularRollbackHashInvalidoSandboxB"/>
+  </testsuite>
+  <testsuite name="07-TC-M04-258-Verificar-Auditoria-Hash-Invalido-Falla" id="da86c286-c05d-4d82-8b2d-ee518459bd39" timestamp="2026-10-29T03:06:57.044Z" tests="6" failures="0" errors="0" time="0.138">
+    <testcase name="07.01: Total de eventos HASH_INVALIDO_DETECTADO >= 1" time="0.138" classname="07TcM04258VerificarAuditoriaHashInvalidoFalla"/>
+    <testcase name="07.02: tipo_evento es HASH_INVALIDO_DETECTADO" time="0.138" classname="07TcM04258VerificarAuditoriaHashInvalidoFalla"/>
+    <testcase name="07.03: tipo_actor es DISPOSITIVO_EDGE y exclusividad de actor (RF-73 CA-13)" time="0.138" classname="07TcM04258VerificarAuditoriaHashInvalidoFalla"/>
+    <testcase name="07.04: severidad_evento es CRITICAL" time="0.138" classname="07TcM04258VerificarAuditoriaHashInvalidoFalla"/>
+    <testcase name="07.05: payload_evento.hash_esperado no nulo" time="0.138" classname="07TcM04258VerificarAuditoriaHashInvalidoFalla"/>
+    <testcase name="07.06: payload_evento.hash_recibido no nulo" time="0.138" classname="07TcM04258VerificarAuditoriaHashInvalidoFalla"/>
+  </testsuite>
+  <testsuite name="08-TC-M04-258-Evidencia-Distribucion-Fallida-Real" id="3065020b-ee0b-4aa4-866b-f7185a222f37" timestamp="2026-10-29T03:06:57.044Z" tests="4" failures="0" errors="0" time="0.128">
+    <testcase name="08.01: Consulta de auditoria DISTRIBUCION_FALLIDA (HTTP 200)" time="0.128" classname="08TcM04258EvidenciaDistribucionFallidaReal"/>
+    <testcase name="08.02: Total de eventos DISTRIBUCION_FALLIDA >= 1" time="0.128" classname="08TcM04258EvidenciaDistribucionFallidaReal"/>
+    <testcase name="08.03: tipo_evento es DISTRIBUCION_FALLIDA" time="0.128" classname="08TcM04258EvidenciaDistribucionFallidaReal"/>
+    <testcase name="08.04: payload_evento documenta causa HASH_INVALIDO" time="0.128" classname="08TcM04258EvidenciaDistribucionFallidaReal"/>
+  </testsuite>
+  <testsuite name="09-Teardown-Cerrar-Sandbox-B" id="0d2e5918-2820-4fb9-91d8-10fbd9158772" timestamp="2026-10-29T03:06:57.044Z" tests="1" failures="0" errors="0" time="0.116">
+    <testcase name="09.01: Rollback y cierre exitoso de Sandbox B (HTTP 200)" time="0.116" classname="09TeardownCerrarSandboxB"/>
+  </testsuite>
+  <testsuite name="10-Verificar-Despliegue-Post-Rollback" id="c6519520-bcaf-46d7-83d5-2f43b1dd1cfe" timestamp="2026-10-29T03:06:57.044Z" tests="1" failures="0" errors="0" time="0.137">
+    <testcase name="10.01: Consulta de despliegues post-rollback (HTTP 200)" time="0.137" classname="10VerificarDesplieguePostRollback"/>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,254 @@
+{
+    "contrato":  "sigab-qa-escenario/1",
+    "fuente":  "Casos_Prueba(Modulo3 Agrupado).csv, fila TC-M03-G88; RF-58 fase 3 y RF-17 M09",
+    "estado_semilla":  "POR_CONFIRMAR_EN_TEST",
+    "semilla_180": {
+                       "estado": "ACREDITADA_POR_RESPONSABLE_QA_EN_TEST_2026-10-24",
+                       "finca": 184,
+                       "area": 349,
+                       "especie": 126,
+                       "activo_vinculable_unico": 884,
+                       "dispositivo": 357,
+                       "dispositivo_activo_sin_gateway": true,
+                       "sensor": 737,
+                       "nombre_sensor": "QA G88 180 NH3",
+                       "categoria": "AMONIACO",
+                       "asociacion": 522,
+                       "calibracion": 69,
+                       "valor_referencia": 5,
+                       "ganancia": 1,
+                       "offset": 0,
+                       "variable": 11,
+                       "unidad": "ppm",
+                       "umbrales_activos_nh3": 0,
+                       "sensor_552_intacto": true,
+                       "lecturas_nh3_enviadas": 0,
+                       "fuente": "Confirmación del responsable QA en TEST el 2026-10-24; asociación y calibración HTTP 201. Revalidar por GET antes de la única ingesta del RUN autorizado."
+                    },
+    "semilla_266": {
+                       "estado": "ACREDITADA_POR_RESPONSABLE_QA_EN_TEST_2026-10-24",
+                       "finca": 184,
+                       "especie": 220,
+                       "nombre_especie_informativo": "Qa Semaforo Dinamico",
+                       "area": 504,
+                       "nombre_area_informativo": "QA G88 266 AREA",
+                       "activo_vinculable_unico": 885,
+                       "tipo_activo": "INDIVIDUAL",
+                       "estado_activo": 1,
+                       "dispositivo": 520,
+                       "categoria_dispositivo": "SENSOR_AMBIENTAL",
+                       "sin_gateway": true,
+                       "sensor": 738,
+                       "nombre_sensor_informativo": "QA G88 266 TEMPERATURA",
+                       "categoria_sensor": "TEMPERATURA",
+                       "asociacion": 523,
+                       "calibracion": 70,
+                       "modo_calibracion": "SENSOR",
+                       "valor_referencia": 15,
+                       "ganancia": 1,
+                       "offset": 0,
+                       "rango_temperatura": [0, 45],
+                       "umbrales_especie": 0,
+                       "lecturas_sensor": 0,
+                       "gateways_especie": 0,
+                       "fuente": "Confirmacion del responsable QA en TEST el 2026-10-24; asociacion 523 y calibracion 70 HTTP 201. Revalidar por GET y repetir compuerta SQL durante RUN autorizado. Serial privado no registrado."
+                     },
+    "semilla_169_171": {
+                          "estado": "PRECONDICION_ACTIVO_RESUELTA_POR_RESPONSABLE_QA_2026-10-24",
+                          "finca": 184,
+                          "area": 349,
+                          "especie": 126,
+                          "activo_vinculable": { "id": 884, "tipo": "INDIVIDUAL", "estado": 1, "identificador": "QA-G88-IND-001" },
+                          "dispositivo": 357,
+                          "sensor": 552,
+                          "fuente": "Confirmación del responsable QA en TEST el 2026-10-24; exactamente un activo vinculable en 349.",
+                          "verificacion_en_run": "Consultar unicidad y vinculación por GET como evidencia y hallazgo posible RF-61-A, sin condicionar el veredicto RF-58."
+                      },
+    "representacion_T":  {
+                             "estado":  "POR_DEFECTO_SIN_CONFIGURACION_ESPECIFICA",
+                             "regla":  "T = 10 % de (umbral_max - umbral_min) cuando no existe configuracion especifica. RF-17 no define un campo T."
+                         },
+    "secuencia_m09":  [
+                          "TC-M03-169 configuracion existente",
+                          "TC-M03-170 configuracion existente",
+                          "TC-M03-171 configuracion existente",
+                          "TC-M03-180 sin escritura M09",
+                          "TC-M03-266 solo con alcance_reevaluacion.habilitar_266=true, especie QA y compuerta humana"
+                      ],
+    "cadena_obligatoria":  [
+                               "sensor activo y variable correcta",
+                               "sensor pertenece a dispositivo activo con serial confirmado",
+                               "infraestructura del DISPOSITIVO identificada y activa",
+                               "especie de esa infraestructura identificada y activa",
+                               "umbral M09 activo y niveles de esa especie y variable, o ausencia acreditada para 180",
+                               "calibración vigente del par sensor/dispositivo, con transformación compatible",
+                               "asociación activa del sensor y alcance del Productor en el dashboard",
+                               "ausencia de alerta ACTIVA/CRÍTICA que altere el semáforo de la lectura",
+                               "estado e historial anterior de telemetría documentados para verificar rollback"
+                           ],
+    "semilla_candidata":  {
+                              "estado":  "POR_CONFIRMAR_EN_TEST",
+                              "sensor":  552,
+                              "dispositivo":  357,
+                              "infraestructura_dispositivo":  349,
+                              "especie":  126,
+                              "umbral":  70,
+                              "calibracion":  68,
+                              "nota":  "Antecedente G87 para sensor/umbral/calibración; la exclusividad del activo 884 en área 349 fue confirmada después por el responsable QA. Umbral, calibración, alcance y lecturas se revalidan por GET en RUN autorizado. No crear otro activo en 349."
+                          },
+    "politica_escrituras":  {
+                                "recursos_prohibidos":  [
+                                                            "sensor",
+                                                            "dispositivo",
+                                                            "infraestructura",
+                                                            "finca",
+                                                            "activo biológico"
+                                                        ],
+                                "m09":  "169-172/180 sin escrituras M09. Solo 266 habilitado explícitamente y con compuerta humana puede escribir en la especie QA; nunca en especie 126.",
+                                "lecturas":  "Solo por ingesta oficial dentro del RUN; conservar IDs y timestamps para comprobar ausencia en historial tras DELETE.",
+                                "restauracion":  "DELETE /test-control/runs/\u003cid\u003e y re-login si expira la sesión; comparar asociaciones, dashboard, historial y M09 contra el estado anterior. DELETE 200/404 no basta."
+                            },
+    "casos":  {
+                  "TC-M03-169":  {
+                                     "estado_datos":  "PRECONDICION_ACTIVO_RESUELTA_POR_RESPONSABLE_QA_2026-10-24",
+                                     "dependencia_T":  "T = 10 % del rango activo existente; evaluar min, centro y max sin alterar M09.",
+                                     "variable":  "TEMPERATURA_AMBIENTAL",
+                                     "m09":  {
+                                                 "antes":  "GET umbral y niveles, conservar respuesta íntegra saneada",
+                                                 "durante":  "Usar umbral activo existente de la especie del dispositivo y TEMPERATURA_AMBIENTAL; sin escritura M09.",
+                                                 "despues":  "GET y comparación con antes"
+                                             },
+                                     "entradas":  [
+                                                      {
+                                                          "formula":  "min",
+                                                          "clave":  "169a",
+                                                          "esperado":  "VERDE"
+                                                      },
+                                                      {
+                                                          "formula":  "(min+max)/2",
+                                                          "clave":  "169b",
+                                                          "esperado":  "VERDE"
+                                                      },
+                                                      {
+                                                          "formula":  "max",
+                                                          "clave":  "169c",
+                                                          "esperado":  "VERDE"
+                                                      }
+                                                  ],
+                                     "modo":  "CONFIGURACION_EXISTENTE"
+                                 },
+                  "TC-M03-170":  {
+                                     "estado_datos":  "PRECONDICION_ACTIVO_RESUELTA_POR_RESPONSABLE_QA_2026-10-24",
+                                     "dependencia_T":  "T = 10 % del rango activo existente; FUERA_DE_RANGO es resultado observable.",
+                                     "variable":  "TEMPERATURA_AMBIENTAL",
+                                     "m09":  {
+                                                 "antes":  "GET umbral y niveles",
+                                                 "durante":  "Usar umbral activo existente de la especie del dispositivo y TEMPERATURA_AMBIENTAL; sin escritura M09.",
+                                                 "despues":  "GET y comparación con antes"
+                                             },
+                                     "entradas":  [
+                                                      {
+                                                          "formula":  "min-0.9T",
+                                                          "clave":  "170a",
+                                                          "esperado":  "AMARILLO"
+                                                      },
+                                                      {
+                                                          "formula":  "min-0.1T",
+                                                          "clave":  "170b",
+                                                          "esperado":  "AMARILLO"
+                                                      },
+                                                      {
+                                                          "formula":  "max+0.1T",
+                                                          "clave":  "170c",
+                                                          "esperado":  "AMARILLO"
+                                                      },
+                                                      {
+                                                          "formula":  "max+0.9T",
+                                                          "clave":  "170d",
+                                                          "esperado":  "AMARILLO"
+                                                      }
+                                                  ],
+                                     "modo":  "CONFIGURACION_EXISTENTE"
+                                 },
+                  "TC-M03-171":  {
+                                     "estado_datos":  "PRECONDICION_ACTIVO_RESUELTA_POR_RESPONSABLE_QA_2026-10-24",
+                                     "dependencia":  "T = 10 % del rango activo existente; REF-G87-01: FUERA_DE_RANGO puede conservar ultima lectura valida.",
+                                     "variable":  "TEMPERATURA_AMBIENTAL",
+                                     "m09":  {
+                                                 "antes":  "GET umbral y niveles",
+                                                 "durante":  "Usar umbral activo existente de la especie del dispositivo y TEMPERATURA_AMBIENTAL; sin escritura M09.",
+                                                 "despues":  "GET y comparación con antes"
+                                             },
+                                     "entradas":  [
+                                                      {
+                                                          "formula":  "min-1.1T",
+                                                          "clave":  "171a",
+                                                          "esperado":  "ROJO"
+                                                      },
+                                                      {
+                                                          "formula":  "max+1.1T",
+                                                          "clave":  "171b",
+                                                          "esperado":  "ROJO"
+                                                      }
+                                                  ],
+                                     "modo":  "CONFIGURACION_EXISTENTE"
+                                 },
+                  "TC-M03-172":  {
+                                     "estado_datos":  "POR_CONFIRMAR_EN_TEST",
+                                     "variable":  "TEMPERATURA_AMBIENTAL",
+                                     "m09":  {
+                                                 "antes":  "GET /configuracion/umbrales?id_especie y lista de campos, sin valores sensibles",
+                                                 "durante":  "GET umbral y niveles; abrir formulario UI sin guardar. No usar bandas como T.",
+                                                 "despues":  "Sin cambios M09"
+                                             },
+                                     "entradas":  [
+                                                      {
+                                                          "valor":  18.5,
+                                                          "esperado":  "AMARILLO"
+                                                      },
+                                                      {
+                                                          "valor":  31.5,
+                                                          "esperado":  "AMARILLO"
+                                                      }
+                                                  ],
+                                     "clasificacion_preparacion":  "DEFECTO_FUNCIONAL_CANDIDATO"
+                                 },
+                  "TC-M03-180":  {
+                                     "estado_datos":  "SEMILLA_ACREDITADA_REVALIDAR_EN_RUN",
+                                     "variable":  "NH3",
+                                     "m09":  {
+                                                 "antes":  "GET todos los umbrales de especie; confirmar ausencia de rango de la variable",
+                                                 "durante":  "Sin escritura M09; si existe umbral, bloquear este caso",
+                                                 "despues":  "GET y comparación con antes"
+                                             },
+                                     "entradas":  [
+                                                      {
+                                                          "valor":  5,
+                                                          "unidad":  "ppm",
+                                                          "esperado":  "GRIS"
+                                                      }
+                                                  ],
+                                     "ui_obligatoria":  true
+                                 },
+                  "TC-M03-266":  {
+                                     "estado_datos":  "SEMILLA_ACREDITADA_REVALIDAR_EN_RUN",
+                                     "modo_semilla": "SEMILLA_PREEXISTENTE",
+                                     "variable":  "TEMPERATURA_AMBIENTAL",
+                                     "m09":  {
+                                                 "antes":  "GET umbral y niveles",
+                                                 "durante":  "No ejecutar en V1: dos cambios M09 necesarios y riesgo Edge no controlado.",
+                                                 "despues":  "GET y comparación con antes"
+                                             },
+                                     "entradas":  [
+                                                      {
+                                                          "valor":  15,
+                                                          "esperado_inicial":  "VERDE",
+                                                          "esperado_tras_cambio":  "ROJO/AMARILLO",
+                                                          "nueva_lectura_tras_cambio":  false
+                                                      }
+                                                  ],
+                                     "clasificacion_preparacion":  "BLOQUEADO",
+                                     "motivo_bloqueo":  "El recalculo solo puede acreditarse reconfigurando M09 dos veces; no se ha demostrado ausencia de propagacion Edge o afectacion compartida. GET no basta."
+                                 }
+              }
+}

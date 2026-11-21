@@ -1,0 +1,2175 @@
+{
+  "info": {
+    "_postman_id": "6912c05d-1b09-427b-b923-daa0572015cc",
+    "name": "RF-104 - TC-M08-G006 Permisos por tipo de reporte y rol (001 a 003)",
+    "description": "RF-104 CU-02. 001 Productor y Veterinario; 002 Contador e Ingeniero de Campo; 003 rechazo 403 sin efectos secundarios. Matriz de permisos tomada de la migracion a7c3e91f5b20 (recurso reporte_<tipo>, accion Ejecutar). Todo dentro de un run del sandbox (rollback automatico).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el ultimo paso la",
+          "// revierte (DELETE /test-control/runs/{run_id}). Los logins van FUERA del sandbox (dentro del run solo funciona el primero).",
+          "// El secreto no se guarda en este archivo: se pasa con  --env-var \"sandbox_secret=<secreto>\"  (correr_newman.ps1 lo pide oculto).",
+          "const nombre = pm.info.requestName || '';",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "const base = String(pm.variables.get('base_url') || '');",
+          "const desviar = function (motivo) {",
+          "  console.error(motivo + ' Peticion desviada, no se envia.');",
+          "  pm.request.url.update('http://127.0.0.1:9/desviada');",
+          "};",
+          "if (!pm.collectionVariables.get('sufijo')) {",
+          "  const ahora = Date.now() - 5 * 3600 * 1000;                       // America/Bogota (UTC-5, sin horario de verano)",
+          "  const dia = function (n) { return new Date(ahora - n * 86400000).toISOString().slice(0, 10); };",
+          "  pm.collectionVariables.set('sufijo', pm.variables.replaceIn('{{$guid}}').replace(/-/g, '').slice(0, 8));",
+          "  pm.collectionVariables.set('hoy', dia(0));",
+          "}",
+          "if (!/api-sgpmp-test/.test(base)) {",
+          "  desviar('base_url no apunta al ambiente TEST (/api-sgpmp-test): MAIN (/sigab) nunca se prueba.');",
+          "} else if (nombre.indexOf('LOGIN') === 0) {",
+          "  // login: sin cabeceras de sandbox",
+          "} else if (!secreto) {",
+          "  desviar('Falta sandbox_secret (--env-var sandbox_secret=<secreto>).');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-newman-' + pm.variables.replaceIn('{{$guid}}').replace(/-/g, '')); }",
+          "  if (!pm.collectionVariables.get('t0')) { pm.collectionVariables.set('t0', String(Date.now())); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Logins (fuera del sandbox)",
+      "item": [
+        {
+          "name": "LOGIN admin (fuera del sandbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de admin responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' - ' + pm.response.text().slice(0, 160)).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_admin', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LOGIN Productor M08 (fuera del sandbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_m08_productor}}\",\n  \"contrasena\": \"{{contrasena_m08_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de Productor M08 responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' - ' + pm.response.text().slice(0, 160)).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_productor', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LOGIN Veterinario M08 (fuera del sandbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_m08_veterinario}}\",\n  \"contrasena\": \"{{contrasena_m08_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de Veterinario M08 responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' - ' + pm.response.text().slice(0, 160)).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_veterinario', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LOGIN Contador M08 (fuera del sandbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_m08_contador}}\",\n  \"contrasena\": \"{{contrasena_m08_contador}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de Contador M08 responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' - ' + pm.response.text().slice(0, 160)).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_contador', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LOGIN Ingeniero M08 (fuera del sandbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_m08_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_m08_ingeniero}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const ok = pm.response.code === 200;",
+                  "pm.test('PRECONDICION: login de Ingeniero M08 responde 200', function () { pm.expect(ok, 'respondio ' + pm.response.code + ' - ' + pm.response.text().slice(0, 160)).to.be.true; });",
+                  "if (ok) { pm.collectionVariables.set('token_ingeniero', pm.response.json().token); } else { pm.collectionVariables.set('bloqueado', '1'); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-001 Productor y Veterinario: permitidos se generan y no permitidos se rechazan",
+      "item": [
+        {
+          "name": "001 Productor: catalogo de reportes del rol",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/catalogo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "catalogo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { catalogo('productor', '001 Productor'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "001 Productor: reporte permitido (inventario biologico)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_INVENTARIO_BIOLOGICO\",\n  \"filtros\": {\n    \"fecha_inicio\": \"2026-01-01\",\n    \"fecha_fin\": \"{{hoy}}\",\n    \"finca_id\": {{id_finca}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { permitido('REPORTE_INVENTARIO_BIOLOGICO', '001 Productor'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "001 Productor: reporte de otro rol (NIC 41)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_VALORACION_NIC41\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { rechazado('001 Productor / NIC 41'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "001 Veterinario: catalogo de reportes del rol",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/catalogo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "catalogo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { catalogo('veterinario', '001 Veterinario'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "001 Veterinario: reporte sanitario permitido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_HISTORICO_SANITARIO\",\n  \"filtros\": {\n    \"fecha_inicio\": \"2026-01-01\",\n    \"fecha_fin\": \"{{hoy}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { permitido('REPORTE_HISTORICO_SANITARIO', '001 Veterinario'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "001 Veterinario: reporte financiero no permitido (NIC 41)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_VALORACION_NIC41\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { rechazado('001 Veterinario / NIC 41'); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M08-002 Contador e Ingeniero de Campo: solo reportes de su rol",
+      "item": [
+        {
+          "name": "002 Contador: catalogo de reportes del rol",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/catalogo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "catalogo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { catalogo('contador', '002 Contador'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "002 Contador: NIC 41 permitido (periodo cerrado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_VALORACION_NIC41\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { permitido('REPORTE_VALORACION_NIC41', '002 Contador'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "002 Contador: telemetria (dispositivos IoT) no permitida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_TELEMETRIA\",\n  \"filtros\": {\n    \"fecha_inicio\": \"2026-11-01\",\n    \"fecha_fin\": \"{{hoy}}\",\n    \"infraestructura_id\": {{id_infra}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { rechazado('002 Contador / telemetria'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "002 Ingeniero: catalogo de reportes del rol",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/catalogo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "catalogo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { catalogo('ingeniero', '002 Ingeniero'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "002 Ingeniero: telemetria permitida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_TELEMETRIA\",\n  \"filtros\": {\n    \"fecha_inicio\": \"2026-11-01\",\n    \"fecha_fin\": \"{{hoy}}\",\n    \"infraestructura_id\": {{id_infra}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { permitido('REPORTE_TELEMETRIA', '002 Ingeniero'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "002 Ingeniero: reporte financiero no permitido (NIC 41)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes/vista-previa",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes",
+                "vista-previa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_VALORACION_NIC41\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { rechazado('002 Ingeniero / NIC 41'); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M08-003 Rechazo 403 sin efectos secundarios",
+      "item": [
+        {
+          "name": "003 SELECT: estado antes del rechazo (solicitudes, archivos, eventos, notificaciones)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo8.solicitudes_reportes WHERE id_usuario IN ({{id_user_productor}}, {{id_user_contador}})) AS solicitudes, (SELECT count(*) FROM modulo8.archivos_reportes a JOIN modulo8.solicitudes_reportes s ON s.id_solicitud_reporte = a.id_solicitud_reporte WHERE s.id_usuario IN ({{id_user_productor}}, {{id_user_contador}})) AS archivos, (SELECT count(*) FROM modulo1.eventos WHERE modulo = 'MODULO8' AND id_usuario IN ({{id_user_productor}}, {{id_user_contador}})) AS eventos, (SELECT count(*) FROM modulo1.notificaciones WHERE id_usuario IN ({{id_user_productor}}, {{id_user_contador}})) AS notificaciones\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  pm.test('SELECT 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  const f = filas(cuerpo())[0] || {};",
+                  "  pm.collectionVariables.set('base_efectos', JSON.stringify(f));",
+                  "  console.log('Efectos antes: ' + JSON.stringify(f));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "003 Productor pide NIC 41 (POST /reportes)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_VALORACION_NIC41\",\n  \"formato\": \"PDF\",\n  \"filtros\": {\n    \"periodo_contable\": {{id_periodo_cerrado}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { rechazado('003 Productor / NIC 41'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "003 Contador pide telemetria (POST /reportes)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_reporte\": \"REPORTE_TELEMETRIA\",\n  \"formato\": \"EXCEL\",\n  \"filtros\": {\n    \"fecha_inicio\": \"2026-11-01\",\n    \"fecha_fin\": \"{{hoy}}\",\n    \"infraestructura_id\": {{id_infra}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "if (listo()) { rechazado('003 Contador / telemetria'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "003 Mis reportes del Productor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reportes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  const d = cuerpo();",
+                  "  pm.test('003: Mis reportes responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "  pm.test('003: el reporte rechazado (NIC 41) no aparece en Mis reportes del Productor', function () {",
+                  "    const nic = (Array.isArray(d) ? d : []).filter(function (r) { return r.tipo_reporte === 'REPORTE_VALORACION_NIC41'; });",
+                  "    pm.expect(nic.length).to.eql(0);",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "003 SELECT: estado despues del rechazo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\": \"SELECT (SELECT count(*) FROM modulo8.solicitudes_reportes WHERE id_usuario IN ({{id_user_productor}}, {{id_user_contador}})) AS solicitudes, (SELECT count(*) FROM modulo8.archivos_reportes a JOIN modulo8.solicitudes_reportes s ON s.id_solicitud_reporte = a.id_solicitud_reporte WHERE s.id_usuario IN ({{id_user_productor}}, {{id_user_contador}})) AS archivos, (SELECT count(*) FROM modulo1.eventos WHERE modulo = 'MODULO8' AND id_usuario IN ({{id_user_productor}}, {{id_user_contador}})) AS eventos, (SELECT count(*) FROM modulo1.notificaciones WHERE id_usuario IN ({{id_user_productor}}, {{id_user_contador}})) AS notificaciones\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "function listo() {",
+                  "  if (pm.collectionVariables.get('bloqueado')) {",
+                  "    pm.test('BLOQUEADO: una precondicion fallo; este caso no se evalua', function () { throw new Error('Revisar los items de logins'); });",
+                  "    return false;",
+                  "  }",
+                  "  const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "  if (t0 && (Date.now() - t0) / 1000 > 175) {",
+                  "    pm.test('NO CONCLUYENTE: se agoto el tiempo del sandbox (180 s)', function () { throw new Error('el run se cierra solo a los 180 s'); });",
+                  "    return false;",
+                  "  }",
+                  "  return true;",
+                  "}",
+                  "function cuerpo() { try { return pm.response.json(); } catch (e) { return null; } }",
+                  "function filas(d) { return Array.isArray(d) ? d : ((d && (d.filas || d.items || d.rows || d.data)) || []); }",
+                  "const MATRIZ = {",
+                  "  productor: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_PRODUCTIVIDAD','REPORTE_BAJAS_Y_SALIDAS','REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_EJECUTIVO_CONSOLIDADO','REPORTE_RENTABILIDAD_FINCA','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  veterinario: ['REPORTE_HISTORICO_SANITARIO','REPORTE_FICHA_ANIMAL','REPORTE_VACUNACION_MEDICAMENTOS','REPORTE_RIESGO_SANITARIO'],",
+                  "  contador: ['REPORTE_INVENTARIO_BIOLOGICO','REPORTE_COSTOS_SUMINISTROS','REPORTE_BAJAS_Y_SALIDAS','REPORTE_VALORACION_NIC41','REPORTE_ESTADO_EXPORTACIONES','REPORTE_VARIACION_PERIODOS','REPORTE_COMPARATIVO_PERIODOS'],",
+                  "  ingeniero: ['REPORTE_TELEMETRIA','REPORTE_ESTADO_DISPOSITIVOS','REPORTE_CALIBRACION_SENSORES','REPORTE_ALERTAS_SENSORES']",
+                  "};",
+                  "function catalogo(rol, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': el catalogo responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.eql(200); });",
+                  "  const tipos = (Array.isArray(d) ? d : []).map(function (x) { return x.tipo_reporte; });",
+                  "  const esp = MATRIZ[rol];",
+                  "  const faltan = esp.filter(function (t) { return tipos.indexOf(t) < 0; });",
+                  "  const sobran = tipos.filter(function (t) { return esp.indexOf(t) < 0; });",
+                  "  pm.test(etiqueta + ': los tipos listados coinciden con la matriz (' + esp.length + ' reportes)', function () {",
+                  "    pm.expect(faltan.length + sobran.length, 'faltan: [' + faltan.join(', ') + '] sobran: [' + sobran.join(', ') + ']').to.eql(0);",
+                  "  });",
+                  "}",
+                  "function permitido(tipo, etiqueta) {",
+                  "  const d = cuerpo();",
+                  "  pm.test(etiqueta + ': ' + tipo + ' avanza a la vista previa (200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  pm.test(etiqueta + ': la vista previa trae encabezado y no genera archivo', function () {",
+                  "    pm.expect(d && d.tipo_reporte, 'cuerpo: ' + pm.response.text().slice(0, 200)).to.eql(tipo);",
+                  "    pm.expect(Array.isArray(d.encabezado)).to.be.true;",
+                  "    pm.expect(d.partes, 'la vista previa no debe traer archivo').to.be.undefined;",
+                  "  });",
+                  "}",
+                  "function rechazado(etiqueta) {",
+                  "  const d = cuerpo() || {};",
+                  "  pm.test(etiqueta + ': se rechaza con HTTP 403', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(403); });",
+                  "  pm.test(etiqueta + ': codigo REPORTE_NO_AUTORIZADO y mensaje claro', function () {",
+                  "    pm.expect(d.error_code).to.eql('REPORTE_NO_AUTORIZADO');",
+                  "    pm.expect(String(d.message || '').length, 'mensaje: ' + d.message).to.be.above(10);",
+                  "  });",
+                  "  pm.test(etiqueta + ': sin vista previa, sin archivo y sin id de reporte', function () {",
+                  "    pm.expect(d.resumen).to.be.undefined; pm.expect(d.detalle).to.be.undefined;",
+                  "    pm.expect(d.partes).to.be.undefined; pm.expect(d.id_reporte).to.be.undefined;",
+                  "  });",
+                  "}",
+                  "",
+                  "",
+                  "if (listo()) {",
+                  "  pm.test('SELECT 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "  const d = filas(cuerpo())[0] || {};",
+                  "  const a = JSON.parse(pm.collectionVariables.get('base_efectos') || '{}');",
+                  "  ['solicitudes', 'archivos', 'eventos', 'notificaciones'].forEach(function (k) {",
+                  "    pm.test('003: el rechazo 403 no cambio ' + k + ' (antes ' + a[k] + ', despues ' + d[k] + ')', function () {",
+                  "      pm.expect(Number(d[k]), k + ' cambio').to.eql(Number(a[k]));",
+                  "    });",
+                  "  });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Rollback del sandbox",
+      "item": [
+        {
+          "name": "Rollback del sandbox (la BD queda como estaba)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Zona-Horaria",
+                "value": "America/Bogota"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "const t0 = Number(pm.collectionVariables.get('t0') || 0);",
+                  "pm.test('El run se cerro (2xx) - duracion ' + (t0 ? Math.round((Date.now() - t0) / 1000) : '?') + ' s de 180 s', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 200)).to.be.within(200, 299); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "t0",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "hoy",
+      "value": ""
+    },
+    {
+      "key": "bloqueado",
+      "value": ""
+    },
+    {
+      "key": "base_efectos",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": "494"
+    },
+    {
+      "key": "id_periodo_cerrado",
+      "value": "635"
+    },
+    {
+      "key": "id_infra",
+      "value": "1468"
+    },
+    {
+      "key": "id_user_productor",
+      "value": "176"
+    },
+    {
+      "key": "id_user_contador",
+      "value": "178"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_contador",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    }
+  ]
+}

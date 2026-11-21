@@ -1,0 +1,613 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g91-173-174-rev1-test",
+    "name": "TC-M09-G91 rev1 TEST - 173 y 174 (sin 175)",
+    "description": "TEST. TC-M09-173 productor@pecuaria.co personal=2 global=1. TC-M09-174 contador@pecuaria.co sin fila personal; PATCH temporal global=2 y restore=1. PATCH/GET global con admin (recurso 27). Password via --env-var contrasena. NO ejecuta 175. NO DELETE. No reejecutar para no duplicar PATCH global.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_productor", "value": "productor@pecuaria.co" },
+    { "key": "correo_contador", "value": "contador@pecuaria.co" },
+    { "key": "correo_admin", "value": "admin@pecuaria.co" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token_productor", "value": "" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_contador", "value": "" },
+    { "key": "login_productor_ok", "value": "0" },
+    { "key": "login_admin_ok", "value": "0" },
+    { "key": "login_contador_ok", "value": "0" },
+    { "key": "skip_174_patch", "value": "0" },
+    { "key": "patched_global", "value": "0" },
+    { "key": "snap_prod_mode", "value": "" },
+    { "key": "snap_prod_fuente", "value": "" },
+    { "key": "snap_prod_id", "value": "" },
+    { "key": "snap_global_mode", "value": "" },
+    { "key": "snap_global_id", "value": "" },
+    { "key": "snap_global_es", "value": "" },
+    { "key": "snap_global_user", "value": "" },
+    { "key": "snap_cont_mode", "value": "" },
+    { "key": "snap_cont_fuente", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "173.1 POST /sesiones productor (un intento)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('contrasena')) { throw new Error('BLOQUEADO: --env-var contrasena'); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const code = pm.response.code;",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) { json = {}; }",
+              "if (code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token_productor', json.token);",
+              "  pm.collectionVariables.set('login_productor_ok', '1');",
+              "} else {",
+              "  pm.collectionVariables.set('login_productor_ok', '0');",
+              "}",
+              "pm.test('173 login productor HTTP 200 (un intento)', function () { pm.expect(code).to.eql(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "173.2 SNAPSHOT GET tema productor",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_productor_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_productor_ok') !== '1') { return; }",
+              "const code = pm.response.code;",
+              "pm.test('173 snapshot GET tema HTTP 200', function () { pm.expect(code).to.eql(200); });",
+              "if (code !== 200) { return; }",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('snap_prod_mode', String(json.theme_mode));",
+              "pm.collectionVariables.set('snap_prod_fuente', String(json.fuente || ''));",
+              "pm.collectionVariables.set('snap_prod_id', json.id_tema_visual == null ? '' : String(json.id_tema_visual));",
+              "pm.test('173 snapshot personal theme_mode=2', function () { pm.expect(json.theme_mode).to.eql(2); });",
+              "pm.test('173 snapshot fuente=personal', function () { pm.expect(json.fuente).to.eql('personal'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "173.3 GET global con productor (RBAC recurso 27; 403 no invalida jerarquia)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_productor_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_productor_ok') !== '1') { return; }",
+              "const code = pm.response.code;",
+              "pm.test('173 GET global productor documentado (200 o 403)', function () {",
+              "  pm.expect([200, 403]).to.include(code);",
+              "});",
+              "pm.test('173 no PATCH en este paso', function () { pm.expect(pm.request.method).to.eql('GET'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "173.4 POST /sesiones admin (un intento, solo recurso 27)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const code = pm.response.code;",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) { json = {}; }",
+              "if (code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token_admin', json.token);",
+              "  pm.collectionVariables.set('login_admin_ok', '1');",
+              "} else {",
+              "  pm.collectionVariables.set('login_admin_ok', '0');",
+              "  pm.collectionVariables.set('skip_174_patch', '1');",
+              "}",
+              "pm.test('173 login admin HTTP 200 (GET/PATCH global)', function () { pm.expect(code).to.eql(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "173.5 SNAPSHOT GET global admin",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_admin_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_admin_ok') !== '1') { return; }",
+              "const code = pm.response.code;",
+              "pm.test('173 snapshot GET global HTTP 200', function () { pm.expect(code).to.eql(200); });",
+              "if (code !== 200) { return; }",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('snap_global_mode', String(json.theme_mode));",
+              "pm.collectionVariables.set('snap_global_id', String(json.id_tema_visual));",
+              "pm.collectionVariables.set('snap_global_es', String(json.es_global));",
+              "pm.collectionVariables.set('snap_global_user', String(json.id_usuario));",
+              "pm.test('173 global theme_mode=1 (Claro)', function () { pm.expect(json.theme_mode).to.eql(1); });",
+              "pm.test('173 global es_global=true', function () { pm.expect(json.es_global).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "173.6 GET resuelto productor (PERSONAL > GLOBAL)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_productor_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_productor_ok') !== '1') { return; }",
+              "const json = pm.response.json();",
+              "pm.test('173 GET resuelto HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('173 resuelto theme_mode=2 (personal Oscuro, no global Claro)', function () { pm.expect(json.theme_mode).to.eql(2); });",
+              "pm.test('173 resuelto fuente=personal', function () { pm.expect(json.fuente).to.eql('personal'); });",
+              "pm.test('173 no se modifico productor (id_tema_visual snapshot)', function () {",
+              "  pm.expect(String(json.id_tema_visual)).to.eql(pm.collectionVariables.get('snap_prod_id'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "174.1 POST /sesiones contador (un intento)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const code = pm.response.code;",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) { json = {}; }",
+              "if (code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token_contador', json.token);",
+              "  pm.collectionVariables.set('login_contador_ok', '1');",
+              "} else {",
+              "  pm.collectionVariables.set('login_contador_ok', '0');",
+              "  pm.collectionVariables.set('skip_174_patch', '1');",
+              "}",
+              "pm.test('174 login contador HTTP 200 (un intento)', function () { pm.expect(code).to.eql(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_contador}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "174.2 GET tema contador ANTES de PATCH (ausencia personal)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_contador_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_contador_ok') !== '1') { return; }",
+              "const code = pm.response.code;",
+              "pm.test('174 pre PATCH GET tema HTTP 200', function () { pm.expect(code).to.eql(200); });",
+              "if (code !== 200) { pm.collectionVariables.set('skip_174_patch', '1'); return; }",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('snap_cont_mode', String(json.theme_mode));",
+              "pm.collectionVariables.set('snap_cont_fuente', String(json.fuente || ''));",
+              "if (json.fuente === 'personal') {",
+              "  pm.collectionVariables.set('skip_174_patch', '1');",
+              "  pm.test('174 DETENER: fuente=personal (precondicion rota)', function () {",
+              "    pm.expect.fail('contador devolvio fuente=personal; no se hace PATCH global');",
+              "  });",
+              "  return;",
+              "}",
+              "pm.test('174 pre PATCH fuente=global (sin preferencia personal)', function () { pm.expect(json.fuente).to.eql('global'); });",
+              "pm.test('174 pre PATCH theme_mode=1 (global actual Claro)', function () { pm.expect(json.theme_mode).to.eql(1); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_contador}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "174.3 PATCH global temporal theme_mode=2 (solo admin)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('skip_174_patch') === '1' || pm.collectionVariables.get('login_admin_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('skip_174_patch') === '1' || pm.collectionVariables.get('login_admin_ok') !== '1') { return; }",
+              "const code = pm.response.code;",
+              "pm.test('174 PATCH global=2 HTTP 200', function () { pm.expect(code).to.eql(200); });",
+              "if (code === 200) { pm.collectionVariables.set('patched_global', '1'); }",
+              "if (code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test('174 PATCH body theme_mode=2', function () { pm.expect(json.theme_mode).to.eql(2); });",
+              "  pm.test('174 PATCH es_global=true', function () { pm.expect(json.es_global).to.eql(true); });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme_mode\": 2\n}"
+        },
+        "url": "{{base_url}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "174.4 GET global tras PATCH",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('patched_global') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('patched_global') !== '1') { return; }",
+              "const json = pm.response.json();",
+              "pm.test('174 GET global HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('174 global temporal theme_mode=2', function () { pm.expect(json.theme_mode).to.eql(2); });",
+              "pm.test('174 global temporal es_global=true', function () { pm.expect(json.es_global).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "174.5 GET resuelto contador (SIN personal + GLOBAL 2)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('patched_global') !== '1' || pm.collectionVariables.get('login_contador_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('patched_global') !== '1' || pm.collectionVariables.get('login_contador_ok') !== '1') { return; }",
+              "const json = pm.response.json();",
+              "pm.test('174 GET resuelto HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('174 resuelto theme_mode=2', function () { pm.expect(json.theme_mode).to.eql(2); });",
+              "pm.test('174 resuelto fuente=global (no se creo personal)', function () { pm.expect(json.fuente).to.eql('global'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_contador}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "174.6 RESTORE PATCH global theme_mode=1",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_admin_ok') !== '1') { pm.execution.skipRequest(); }",
+              "if (pm.collectionVariables.get('patched_global') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('patched_global') !== '1') { return; }",
+              "const json = pm.response.json();",
+              "pm.test('174 RESTORE PATCH HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('174 RESTORE theme_mode=1', function () { pm.expect(json.theme_mode).to.eql(1); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme_mode\": 1\n}"
+        },
+        "url": "{{base_url}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "174.7 GET global restaurado",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_admin_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_admin_ok') !== '1') { return; }",
+              "const json = pm.response.json();",
+              "pm.test('174 GET global restore HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('174 global restaurado theme_mode=1', function () { pm.expect(json.theme_mode).to.eql(1); });",
+              "pm.test('174 global restaurado es_global=true', function () { pm.expect(json.es_global).to.eql(true); });",
+              "pm.test('174 global id coincide snapshot', function () {",
+              "  pm.expect(String(json.id_tema_visual)).to.eql(pm.collectionVariables.get('snap_global_id'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "174.8 GET tema contador tras restore",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_contador_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_contador_ok') !== '1') { return; }",
+              "const json = pm.response.json();",
+              "pm.test('174 GET final contador HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('174 final theme_mode=1', function () { pm.expect(json.theme_mode).to.eql(1); });",
+              "pm.test('174 final fuente=global (sigue sin personal)', function () { pm.expect(json.fuente).to.eql('global'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_contador}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "173.R GET tema productor final (personal sigue 2)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_productor_ok') !== '1') { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login_productor_ok') !== '1') { return; }",
+              "const json = pm.response.json();",
+              "pm.test('173 final GET HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('173 final personal theme_mode=2', function () { pm.expect(json.theme_mode).to.eql(2); });",
+              "pm.test('173 final fuente=personal', function () { pm.expect(json.fuente).to.eql('personal'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/personalizacion/tema"
+      }
+    }
+  ]
+}

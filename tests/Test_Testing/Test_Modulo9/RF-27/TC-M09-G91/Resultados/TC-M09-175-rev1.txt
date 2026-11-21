@@ -1,0 +1,47 @@
+TC-M09-175 rev1 TEST RF-27
+Coleccion: tests/Test_Testing/Test_Modulo9/RF-27/TC-M09-G91/tc_m09_175_rev1.json
+Fecha UTC: 2026-09-26T03:58:33.9295496Z
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario caso: cm09175.qa@sgpmp-test.com (id 120). Password via env. JWT redactado.
+Admin usado SOLO para GET /tema/global (lectura). Sin PATCH. Sin DELETE. Sin DML.
+No se sobrescribe G91 historico, rev2 DEV, ni 173-174 rev1 TEST.
+
+Newman exit 0: las assertions de DEFAULT se SALTARON (skip) porque existe global.
+Exit 0 NO significa APROBADO.
+
+CODIGO (sin modificar):
+ObtenerTemaResueltoUseCase: personal -> global -> ThemeMode.CLARO=1 fuente=defecto id_tema_visual=null.
+GET tema: recurso 24 accion 2.
+GET tema/global: recurso 27 accion 2 (Productor 403).
+
+USUARIO 120:
+Login HTTP 200
+GET /usuarios/me: id_usuario=120, nombre_rol=Productor, estado_cuenta=Activo
+GET /sesiones/me/permisos: recurso 24 accion 2 presente (tambien 24/3)
+
+TEMA PERSONAL:
+GET resuelto fuente != personal.
+SELECT solo lectura: ninguna fila en modulo9.temas_visuales para id_usuario=120.
+Tema personal: NO.
+
+TEMA GLOBAL:
+GET /configuracion/personalizacion/tema/global (admin) HTTP 200
+{"id_tema_visual":1,"id_usuario":1,"theme_mode":1,"es_global":true,"fecha_actualizacion":"2026-09-25T06:50:47.856604Z"}
+SELECT: unica fila de temas es id=1 es_global=true theme_mode=1.
+Tema global: SI. No se elimino.
+
+GET /configuracion/personalizacion/tema (usuario 120):
+HTTP 200
+{"theme_mode":1,"fuente":"global","id_tema_visual":1}
+
+theme_mode=1 coincide numericamente con CLARO, pero fuente=global (no defecto).
+id_tema_visual=1 es el registro global, no DEFAULT (DEFAULT llevaria id null).
+
+RESULTADO: BLOQUEADO
+Falta precondicion "NO existe tema global".
+El usuario 120 cumple "sin tema personal".
+No se afirma DEFAULT. No es RECHAZADO: el producto resolvio GLOBAL como indica el codigo cuando hay fila global.
+
+Productor GET global: HTTP 403 ACCESO_DENEGADO (esperado RBAC).
+
+Sin commit. Sin push. Sin merge. Sin codigo productivo.

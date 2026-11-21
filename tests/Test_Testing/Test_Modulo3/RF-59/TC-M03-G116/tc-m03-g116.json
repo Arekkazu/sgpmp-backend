@@ -1,0 +1,198 @@
+{
+  "info": {
+    "name": "TC-M03-G116 - Estado vacio del historial de telemetria: consulta valida sin resultados",
+    "description": "RF-59 CU04 flujo alterno E3 sobre GET /iot/monitoreo/historial: consulta valida sin resultados. Primero comprueba que el sensor 545 tiene lecturas (0.1); luego lo consulta en 18/10 a 20/10, donde no tiene, y consulta el dia 24/10 sin filtros. Verifica HTTP 200, items vacio, total = 0, sin estadisticas ni rango de datos fabricados y estructura de paginacion. El mensaje de la interfaz (Cypress) no se puede verificar con Newman. Solo GET. Las claves no se guardan en este archivo: correr_newman.ps1 pide correo y contrasena del Administrador. Ejecucion (desde tests\\Test_Testing): .\\correr_newman.ps1 -Caso G116 -Rf RF-59. Ambiente: solo TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": ""
+    },
+    {
+      "key": "contrasena_admin",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0. Precondicion",
+      "item": [
+        {
+          "name": "0.1 Precondicion: el sensor 545 si tiene lecturas en el periodo completo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&sensor_id=545&por_pagina=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G116 0.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('El sensor 545 tiene lecturas en 18/10 a 25/10 (el vacio posterior se debe al periodo elegido)', function () { pm.expect(J.total_encontrado).to.be.above(0); });",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Consulta sin resultados (TC-M03-233)",
+      "item": [
+        {
+          "name": "1.1 Sensor 545 en un periodo sin lecturas (18/10 a 20/10) (TC-M03-233)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-20&sensor_id=545"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G116 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('items vacio y total = 0 (cero resultados no es un error)', function () { pm.expect(J.items, 'items').to.be.an('array').that.is.empty; pm.expect(J.total, 'total').to.eql(0); pm.expect(J.total_encontrado, 'total_encontrado').to.eql(0); });",
+                  "pm.test('No se fabrican datos: sin estadisticas ni rango real de datos', function () { pm.expect((J.estadisticas || []).length, 'estadisticas').to.eql(0); pm.expect(J.rango_real_datos && (J.rango_real_datos.primer_timestamp || J.rango_real_datos.ultimo_timestamp) ? 'con rango' : 'sin rango', JSON.stringify(J.rango_real_datos)).to.eql('sin rango'); });",
+                  "pm.test('La respuesta mantiene la estructura de paginacion (pagina 1, paginas_totales >= 1)', function () { pm.expect(J.pagina).to.eql(1); pm.expect(J.paginas_totales).to.be.at.least(1); pm.expect(J).to.have.property('filtros_aplicados'); });",
+                  "console.log('[G116-OBSERVADO] aviso=' + JSON.stringify(J.aviso) + ' message=' + JSON.stringify(J.message) + ' filtros_aplicados=' + JSON.stringify(J.filtros_aplicados));",
+                  "pm.test.skip('Mensaje de la interfaz \"No se encontraron registros para los filtros seleccionados\" y sugerencia de ampliar el rango: NO CONCLUYENTE con Newman (es de la interfaz, requiere Cypress)');",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Periodo sin datos (24/10, sin filtros) (TC-M03-233)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-24&fecha_fin=2026-10-24"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G116 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('items vacio y total = 0 (cero resultados no es un error)', function () { pm.expect(J.items, 'items').to.be.an('array').that.is.empty; pm.expect(J.total, 'total').to.eql(0); pm.expect(J.total_encontrado, 'total_encontrado').to.eql(0); });",
+                  "pm.test('No se fabrican datos: sin estadisticas ni rango real de datos', function () { pm.expect((J.estadisticas || []).length, 'estadisticas').to.eql(0); pm.expect(J.rango_real_datos && (J.rango_real_datos.primer_timestamp || J.rango_real_datos.ultimo_timestamp) ? 'con rango' : 'sin rango', JSON.stringify(J.rango_real_datos)).to.eql('sin rango'); });",
+                  "pm.test('La respuesta mantiene la estructura de paginacion (pagina 1, paginas_totales >= 1)', function () { pm.expect(J.pagina).to.eql(1); pm.expect(J.paginas_totales).to.be.at.least(1); pm.expect(J).to.have.property('filtros_aplicados'); });",
+                  "console.log('[G116-OBSERVADO] aviso=' + JSON.stringify(J.aviso) + ' message=' + JSON.stringify(J.message) + ' filtros_aplicados=' + JSON.stringify(J.filtros_aplicados));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Control: sensor inexistente (999999) con rango valido (informativo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&sensor_id=999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G116 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "console.log('[G116-1.3][OBSERVADO] sensor inexistente -> status=' + pm.response.code + ' total_encontrado=' + J.total_encontrado);",
+                  "pm.test('Control informativo: sin error 5xx', function () { pm.expect(pm.response.code).to.be.below(500); });",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

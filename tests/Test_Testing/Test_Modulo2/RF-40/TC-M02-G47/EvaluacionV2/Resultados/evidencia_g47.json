@@ -1,0 +1,59 @@
+{
+  "payload": "<script>document.location=\"http://evil.test\"</script>",
+  "actores": {
+    "productor": {
+      "nombre": "Productor",
+      "correo": "m2m.nuevo@ejemplo.com",
+      "id_usuario": 35,
+      "id_activo": 450,
+      "id_evento": 355,
+      "conteo_antes": 0,
+      "conteo_despues": 1
+    },
+    "veterinario": {
+      "nombre": "Veterinario",
+      "correo": "juan.carlos.qa133@sgpmp-test.com",
+      "id_usuario": 3,
+      "id_activo": 451,
+      "id_evento": 356,
+      "conteo_antes": 0,
+      "conteo_despues": 1
+    },
+    "ingeniero": {
+      "nombre": "Ingeniero de campo",
+      "correo": "ingeniero@pecuaria.co",
+      "id_usuario": 4,
+      "id_activo": 452,
+      "id_evento": 357,
+      "conteo_antes": 0,
+      "conteo_despues": 1
+    }
+  },
+  "respuestas": {
+    "productor": {
+      "http": 201,
+      "cuerpo": "{\"evento\":{\"id_eventos\":355,\"id_activo_biologico\":450,\"fecha\":\"2026-09-19T06:22:54Z\",\"descripcion\":\"<script>document.location=\\\"http://evil.test\\\"</script>\",\"id_usuario\":35,\"crecimiento\":{\"tipo_medicion\":\"PESO\",\"valor_medicion\":\"250.00\",\"unidad_medida\":\"kg\",\"tipo_agregacion\":null,\"frecuencia\":null,\"nuevo_peso_promedio\":null,\"cantidad_medida\":null},\"baja\":null,\"sanitario\":null,\"productivo\":null,\"reproductivo\":null},\"fase_avanzada\":false}",
+      "peticion_enviada": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-09-19T06:22:54Z\", \"descripcion\": \"<script>document.location=\\\"http://evil.test\\\"</script>\"}"
+    },
+    "veterinario": {
+      "http": 201,
+      "cuerpo": "{\"evento\":{\"id_eventos\":356,\"id_activo_biologico\":451,\"fecha\":\"2026-09-19T06:22:54Z\",\"descripcion\":\"<script>document.location=\\\"http://evil.test\\\"</script>\",\"id_usuario\":3,\"crecimiento\":{\"tipo_medicion\":\"PESO\",\"valor_medicion\":\"250.00\",\"unidad_medida\":\"kg\",\"tipo_agregacion\":null,\"frecuencia\":null,\"nuevo_peso_promedio\":null,\"cantidad_medida\":null},\"baja\":null,\"sanitario\":null,\"productivo\":null,\"reproductivo\":null},\"fase_avanzada\":false}",
+      "peticion_enviada": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-09-19T06:22:54Z\", \"descripcion\": \"<script>document.location=\\\"http://evil.test\\\"</script>\"}"
+    },
+    "ingeniero": {
+      "http": 201,
+      "cuerpo": "{\"evento\":{\"id_eventos\":357,\"id_activo_biologico\":452,\"fecha\":\"2026-09-19T06:22:54Z\",\"descripcion\":\"<script>document.location=\\\"http://evil.test\\\"</script>\",\"id_usuario\":4,\"crecimiento\":{\"tipo_medicion\":\"PESO\",\"valor_medicion\":\"250.00\",\"unidad_medida\":\"kg\",\"tipo_agregacion\":null,\"frecuencia\":null,\"nuevo_peso_promedio\":null,\"cantidad_medida\":null},\"baja\":null,\"sanitario\":null,\"productivo\":null,\"reproductivo\":null},\"fase_avanzada\":false}",
+      "peticion_enviada": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-09-19T06:22:54Z\", \"descripcion\": \"<script>document.location=\\\"http://evil.test\\\"</script>\"}"
+    }
+  },
+  "descripcion_bd": {
+    "productor": "<script>document.location=\"http://evil.test\"</script>",
+    "veterinario": "<script>document.location=\"http://evil.test\"</script>",
+    "ingeniero": "<script>document.location=\"http://evil.test\"</script>"
+  },
+  "descripcion_api": {
+    "productor": "<script>document.location=\"http://evil.test\"</script>",
+    "veterinario": "<script>document.location=\"http://evil.test\"</script>",
+    "ingeniero": "<script>document.location=\"http://evil.test\"</script>"
+  }
+}

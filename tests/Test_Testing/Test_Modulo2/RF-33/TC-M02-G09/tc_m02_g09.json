@@ -1,0 +1,487 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g09-rf33",
+    "name": "TC-M02-G09 - Integridad y exclusividad del identificador",
+    "description": "Prueba de validaciones RF-33 para exclusividad entre identificador y cantidad_inicial, obligatoriedad de uno de los campos y duplicidad del identificador.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Login Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Login exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La respuesta contiene token\", function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.token).to.be.a(\"string\");",
+              "    pm.collectionVariables.set(\"token\", json.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 - Obtener fincas activas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de fincas exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const fincas = Array.isArray(json) ? json : (json.items || json.fincas || json.data || []);",
+              "",
+              "pm.test(\"Existe al menos una finca activa\", function () {",
+              "    pm.expect(fincas.length).to.be.above(0);",
+              "});",
+              "",
+              "if (fincas.length > 0) {",
+              "    const fincaId = fincas[0].id_finca || fincas[0].id || fincas[0].finca_id;",
+              "    pm.collectionVariables.set(\"finca_id\", fincaId);",
+              "    console.log(\"FINCA_ID:\", fincaId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas?solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ],
+          "query": [
+            {
+              "key": "solo_activas",
+              "value": "true"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 - Obtener especie activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de especies exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const especies = Array.isArray(json) ? json : (json.items || json.especies || json.data || []);",
+              "",
+              "pm.test(\"Existe al menos una especie activa\", function () {",
+              "    pm.expect(especies.length).to.be.above(0);",
+              "});",
+              "",
+              "if (especies.length > 0) {",
+              "    const especie = especies[0];",
+              "    const especieId = especie.id_especie || especie.id || especie.especie_id;",
+              "    pm.collectionVariables.set(\"especie_id\", especieId);",
+              "    console.log(\"ESPECIE_ID:\", especieId);",
+              "    console.log(\"ESPECIE COMPLETA:\", especie);",
+              "",
+              "    pm.test(\"La especie tiene identificador\", function () {",
+              "        pm.expect(especieId).to.exist;",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies?solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ],
+          "query": [
+            {
+              "key": "solo_activas",
+              "value": "true"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 - Obtener infraestructura activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de infraestructura exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const infraestructuras = Array.isArray(json) ? json : (json.items || json.infraestructuras || json.data || []);",
+              "",
+              "pm.test(\"Existe al menos una infraestructura activa\", function () {",
+              "    pm.expect(infraestructuras.length).to.be.above(0);",
+              "});",
+              "",
+              "if (infraestructuras.length > 0) {",
+              "    const infraestructura = infraestructuras[0];",
+              "    const infraestructuraId = infraestructura.id_infraestructura || infraestructura.id || infraestructura.infraestructura_id;",
+              "    pm.collectionVariables.set(\"infraestructura_id\", infraestructuraId);",
+              "    console.log(\"INFRAESTRUCTURA_ID:\", infraestructuraId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{finca_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{finca_id}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 - TC-M02-006 Rechazar identificador y cantidad_inicial simultaneos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"============================================\");",
+              "console.log(\"TC-M02-006 - IDENTIFICADOR + CANTIDAD_INICIAL\");",
+              "console.log(\"STATUS:\", pm.response.code);",
+              "console.log(\"BODY:\", pm.response.text());",
+              "console.log(\"============================================\");",
+              "",
+              "pm.test(\"TC-M02-006 rechaza los campos excluyentes simultaneos\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "if (pm.response.code === 400) {",
+              "    const json = pm.response.json();",
+              "",
+              "    pm.test(\"La respuesta contiene informacion de validacion\", function () {",
+              "        pm.expect(json.message || json.fields || json.error_code).to.exist;",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-08\",\n  \"detalles_procedencia\": \"Prueba TC-M02-006\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 1500000,\n  \"soporte_documental\": \"soporte_TC-M02-006.pdf\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"TCM02-006-EXCLUSIVIDAD\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 400,\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": null\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 - TC-M02-007 Rechazar identificador y cantidad_inicial nulos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"============================================\");",
+              "console.log(\"TC-M02-007 - IDENTIFICADOR + CANTIDAD NULOS\");",
+              "console.log(\"STATUS:\", pm.response.code);",
+              "console.log(\"BODY:\", pm.response.text());",
+              "console.log(\"============================================\");",
+              "",
+              "pm.test(\"TC-M02-007 rechaza ambos campos nulos\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "if (pm.response.code === 400) {",
+              "    const json = pm.response.json();",
+              "",
+              "    pm.test(\"La respuesta contiene informacion de validacion\", function () {",
+              "        pm.expect(json.message || json.fields || json.error_code).to.exist;",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-08\",\n  \"detalles_procedencia\": \"Prueba TC-M02-007\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 1500000,\n  \"soporte_documental\": \"soporte_TC-M02-007.pdf\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": null,\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 400,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 - Preparar activo con identificador BOV-001",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"============================================\");",
+              "console.log(\"PRECONDICION TC-M02-008 - BOV-001\");",
+              "console.log(\"STATUS:\", pm.response.code);",
+              "console.log(\"BODY:\", pm.response.text());",
+              "console.log(\"============================================\");",
+              "",
+              "pm.test(\"BOV-001 existe o fue creado\", function () {",
+              "    pm.expect([201, 409]).to.include(pm.response.code);",
+              "});",
+              "",
+              "if (pm.response.code === 201) {",
+              "    const json = pm.response.json();",
+              "    pm.collectionVariables.set(\"bov001_id\", json.id_activo_biologico || json.id);",
+              "    console.log(\"BOV-001 creado con ID:\", json.id_activo_biologico || json.id);",
+              "} else if (pm.response.code === 409) {",
+              "    console.log(\"BOV-001 ya existe. Se utilizara para probar duplicidad.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-08\",\n  \"detalles_procedencia\": \"Activo existente para prueba TC-M02-008\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 1500000,\n  \"soporte_documental\": \"soporte_TC-M02-008.pdf\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"BOV-001\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 400,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 - TC-M02-008 Rechazar identificador duplicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"============================================\");",
+              "console.log(\"TC-M02-008 - IDENTIFICADOR DUPLICADO BOV-001\");",
+              "console.log(\"STATUS:\", pm.response.code);",
+              "console.log(\"BODY:\", pm.response.text());",
+              "console.log(\"============================================\");",
+              "",
+              "pm.test(\"TC-M02-008 rechaza el identificador duplicado\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "if (pm.response.code === 409) {",
+              "    const json = pm.response.json();",
+              "",
+              "    pm.test(\"La respuesta indica conflicto por duplicidad\", function () {",
+              "        pm.expect(json.message || json.error_code || json.fields).to.exist;",
+              "    });",
+              "",
+              "    console.log(\"CONFLICTO DE DUPLICIDAD CONFIRMADO\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-08\",\n  \"detalles_procedencia\": \"Intento duplicado TC-M02-008\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 1500000,\n  \"soporte_documental\": \"soporte_TC-M02-008-duplicado.pdf\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"BOV-001\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 400,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "pm.collectionVariables.set(\"base_url\", \"https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test\");"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "finca_id",
+      "value": ""
+    },
+    {
+      "key": "especie_id",
+      "value": ""
+    },
+    {
+      "key": "infraestructura_id",
+      "value": ""
+    },
+    {
+      "key": "bov001_id",
+      "value": ""
+    }
+  ]
+}

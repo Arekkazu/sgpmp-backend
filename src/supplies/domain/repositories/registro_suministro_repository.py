@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-78: ledger por origen y costo vigente  |
 """Puerto del repositorio de registros directos de suministro (RF-78, CU-05).
 
 Expresado en términos de dominio: recibe y devuelve
@@ -53,4 +56,25 @@ class RegistroSuministroRepository(ABC):
     @abstractmethod
     def listar_por_gestion_fase(self, id_gestion_fases: int) -> list[RegistroSuministroDirecto]:
         """Lista todos los registros (REGISTRO y CORRECCION) de una instancia de ciclo."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def obtener_por_origen(self, tipo_suministro: str, id_origen: int) -> Optional[RegistroSuministroDirecto]:
+        """REGISTRO del ledger que originó un consumo (ALIMENTO, RF-75) o un medicamento (RF-76).
+
+        ``None`` si el origen no existe, no está VALIDADO o no se acumuló (activo sin ciclo).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def obtener_por_referencia_rf(self, tipo_suministro: str, id_registro_rf: UUID) -> Optional[RegistroSuministroDirecto]:
+        """REGISTRO del ledger por ``id_registro_rf75``/``id_registro_rf76`` (RF-78 Fase 1b).
+
+        ``None`` si el registro de origen no existe o no está VALIDADO (E9/E10).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def costo_vigente(self, id_registro_suministro: UUID) -> Decimal:
+        """Costo del registro más el de todas sus correcciones (RF-78 R7/R12)."""
         raise NotImplementedError

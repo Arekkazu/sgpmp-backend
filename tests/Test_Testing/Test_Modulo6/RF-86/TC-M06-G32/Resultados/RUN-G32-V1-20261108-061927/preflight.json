@@ -1,0 +1,33 @@
+{
+  "grupo": "G32",
+  "run_id": "RUN-G32-V1-20261108-061927",
+  "fase": "PREFLIGHT_LOCAL",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 150,
+    "logins_fuera_run": 2,
+    "escrituras_preparacion": 1,
+    "eventos_m02": 5,
+    "precios": 2,
+    "disparos": 5,
+    "trazabilidades": 1,
+    "lecturas": 130,
+    "deletes": 1,
+    "timeout_login_ms": 120000,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 2400
+  },
+  "herramientas": {
+    "node": "v22.15.1",
+    "newman": "6.2.2"
+  },
+  "efectos": [
+    "Login de Contador y Administrador fuera del RUN",
+    "Eventos de crecimiento M02 y eventual cambio de estado",
+    "Dos precios RF-89 con notificación M01 fuera de la sesión sandbox",
+    "Procesamiento M06, líneas y auditoría dentro de la sesión sandbox; cadena por GET tras una verificacion RF-91 por periodo",
+    "DELETE de RUN intenta rollback; el HTTP 200 no prueba reversión de efectos externos"
+  ]
+}

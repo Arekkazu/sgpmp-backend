@@ -1,0 +1,107 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 1,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-10-05T21:08:31.895Z",
+    "end": "2026-10-05T21:08:47.778Z",
+    "duration": 15883,
+    "testsRegistered": 1,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "0e5a5032-3804-48ed-91dd-94fdbdaef506",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-26\\TC-M09-G88\\tc_m09_g88_rev2_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-26\\TC-M09-G88\\tc_m09_g88_rev2_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "bf705a9e-8461-4ca3-9388-2180a0bb3ecf",
+          "title": "TC-M09-G88 rev2 TEST - Aplicacion inmediata identidad visual",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-168 - Verificar aplicacion inmediata sin cerrar sesion",
+              "fullTitle": "TC-M09-G88 rev2 TEST - Aplicacion inmediata identidad visual TC-M09-168 - Verificar aplicacion inmediata sin cerrar sesion",
+              "timedOut": null,
+              "duration": 15805,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const correo = Cypress.env('correo') || 'admin@pecuaria.co';\nconst contrasena = Cypress.env('contrasena');\nexpect(contrasena, 'contrasena via Cypress.env (no hardcodear)').to.be.a('string').and.not.empty;\nlet sidebarAntes = '';\nlet fincaNombre = '';\nlet colorOriginalLeido = COLOR_ORIGINAL;\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('login');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/refresh\\/?$/\n}).as('refreshSesion');\ncy.intercept({\n  method: 'PATCH',\n  url: /\\/configuracion\\/identidad-visual\\//\n}).as('patchIv');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"], input[name=\"correo_electronico\"]').first().should('be.visible').clear().type(correo);\ncy.get('input[type=\"password\"]').first().should('be.visible').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar|iniciar sesión|login/i).click();\ncy.wait('@login').then(intc => {\n  expect(intc.response && intc.response.statusCode, 'login HTTP').to.eq(200);\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.url().should('not.include', '/login');\ncy.contains(/Panel principal|Configuración/i, {\n  timeout: 20000\n}).should('exist');\ncy.screenshot('G88-rev2-01-dashboard');\ncy.get('.ds-sidebar__logo-text, [class*=\"sidebar\"] [class*=\"logo\"]').first().then($el => {\n  sidebarAntes = ($el.text() || '').trim();\n});\ncy.contains('a, button, [role=\"button\"]', /^Configuración$/i, {\n  timeout: 15000\n}).click({\n  force: true\n});\ncy.contains(/Configuración del Sistema|Personalización|Catálogo/i, {\n  timeout: 20000\n}).should('exist');\ncy.get('body').then($body => {\n  if (/No se pudo restaurar tu sesión/i.test($body.text())) {\n    cy.screenshot('G88-rev2-sesion-rota');\n    throw new Error('TC-M09-G88 ERROR DE AMBIENTE: el frontend TEST no pudo restaurar la sesion (refresh 401).');\n  }\n});\ncy.contains('button, [role=\"tab\"], a, ion-segment-button, span', /^Personalización$/i).click({\n  force: true\n});\ncy.contains('button', /Costa Azul|Finca Activa Prueba|El Remanso|Los Esteros|La Esperanza|El palmar/i, {\n  timeout: 25000\n}).should('be.visible');\ncy.contains(/Identidad Visual/i, {\n  timeout: 15000\n}).should('exist');\ncy.screenshot('G88-rev2-02-identidad-visual');\ncy.get('body').then($body => {\n  const texto = $body.text();\n  cy.writeFile(`${EVIDENCIA}/G88-rev2-ui-personalizacion.txt`, texto.slice(0, 8000));\n  if (/No hay fincas activas/i.test(texto)) {\n    throw new Error('TC-M09-G88 BLOQUEADO: Identidad Visual visible pero no hay fincas activas seleccionables para el usuario de prueba.');\n  }\n  const bots = [...$body.find('button, ion-button, [role=\"button\"]')];\n  const farm = bots.find(el => /Costa Azul/i.test(el.innerText || '')) || bots.find(el => {\n    const t = (el.innerText || '').replace(/\\s+/g, ' ').trim();\n    return t.length > 3 && t.length < 80 && /Finca Activa Prueba|El Remanso|Los Esteros|La Esperanza|El palmar/i.test(t);\n  });\n  if (!farm) {\n    throw new Error('TC-M09-G88 BLOQUEADO: no hay boton de finca seleccionable en Identidad Visual.');\n  }\n  fincaNombre = (farm.innerText || '').trim();\n  cy.wrap(farm).click({\n    force: true\n  });\n});\ncy.get('input[aria-label=\"Hex Color primario\"]', {\n  timeout: 15000\n}).first().should('be.visible').invoke('val').then(val => {\n  if (val && /^#[0-9A-Fa-f]{6}$/.test(String(val))) {\n    colorOriginalLeido = String(val);\n  }\n});\ncy.get('input[aria-label=\"Hex Color primario\"]').first().clear({\n  force: true\n}).type(COLOR_NUEVO, {\n  force: true\n});\ncy.contains('button', /Aplicar vista previa/i).click({\n  force: true\n});\ncy.contains(/Vista previa activa/i, {\n  timeout: 10000\n}).should('exist');\ncy.screenshot('G88-rev2-03-vista-previa');\ncy.contains('button', /Actualizar identidad/i).click({\n  force: true\n});\ncy.contains(/Identidad visual actualizada/i, {\n  timeout: 20000\n}).should('be.visible');\ncy.url().should('include', '/configuracion');\ncy.url().should('not.include', '/login');\ncy.get('input[aria-label=\"Hex Color primario\"]').first().should('have.value', COLOR_NUEVO);\ncy.get('.ds-sidebar__logo-text, [class*=\"sidebar\"] [class*=\"logo\"]').first().should('contain.text', 'Costa Azul');\ncy.window().then(win => {\n  const logo = win.document.querySelector('.ds-sidebar__logo-text, [class*=\"sidebar\"] [class*=\"logo\"]');\n  const sidebar = win.document.querySelector('.ds-sidebar, aside, nav');\n  const bg = sidebar ? win.getComputedStyle(sidebar).backgroundColor : '';\n  const logoText = logo ? (logo.textContent || '').trim() : '';\n  cy.writeFile(`${EVIDENCIA}/G88-rev2-sidebar-tras-guardar.json`, {\n    sidebarAntes,\n    fincaNombre,\n    logoText,\n    sidebarBg: bg,\n    colorEsperado: COLOR_NUEVO,\n    bgCercaNuevo: colorCerca(bg, COLOR_NUEVO),\n    url: win.location.href\n  });\n  expect(/Costa Azul/i.test(logoText), 'sidebar muestra Costa Azul sin logout').to.eq(true);\n  expect(bg, 'sidebar deja de ser el verde generico previo').to.not.eq('rgb(23, 64, 36)');\n});\ncy.screenshot('G88-rev2-04-sidebar-sin-logout');\ncy.get('input[aria-label=\"Hex Color primario\"]').first().clear({\n  force: true\n}).type(colorOriginalLeido, {\n  force: true\n});\ncy.contains('button', /Actualizar identidad/i).click({\n  force: true\n});\ncy.contains(/Identidad visual actualizada/i, {\n  timeout: 20000\n}).should('be.visible');\ncy.url().should('not.include', '/login');\ncy.get('input[aria-label=\"Hex Color primario\"]').first().should('have.value', colorOriginalLeido);\ncy.screenshot('G88-rev2-05-restauracion');\ncy.window().then(win => {\n  const logo = win.document.querySelector('.ds-sidebar__logo-text, [class*=\"sidebar\"] [class*=\"logo\"]');\n  const sidebar = win.document.querySelector('.ds-sidebar, aside, nav');\n  const bg = sidebar ? win.getComputedStyle(sidebar).backgroundColor : '';\n  const logoText = logo ? (logo.textContent || '').trim() : '';\n  cy.writeFile(`${EVIDENCIA}/G88-rev2-sidebar-restaurado.json`, {\n    sidebarBg: bg,\n    logoText,\n    colorOriginal: colorOriginalLeido,\n    bgCercaOriginal: colorCerca(bg, colorOriginalLeido),\n    url: win.location.href\n  });\n  expect(/Costa Azul/i.test(logoText), 'marca Costa Azul permanece').to.eq(true);\n  expect(bg, 'sidebar ya no queda en el rojo de prueba').to.not.eq('rgb(88, 14, 26)');\n});",
+              "err": {},
+              "uuid": "2bdab9f6-dd96-4198-8d72-b1caf26214de",
+              "parentUUID": "bf705a9e-8461-4ca3-9388-2180a0bb3ecf",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "2bdab9f6-dd96-4198-8d72-b1caf26214de"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 15805,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G88_rev2_cypress",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-26\\TC-M09-G88\\Resultados",
+        "reportFilename": "TC-M09-G88_rev2_cypress",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

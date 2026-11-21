@@ -1,0 +1,38 @@
+{
+  "tc": "TC-M02-G89",
+  "ronda": "V1",
+  "reintento": 0,
+  "fecha": "2026-09-10",
+  "run_id": "G89-RUN-V1-20260910",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-217: Superación automática (ACTIVA -> SUPERADA)",
+      "esperado": "HTTP 201 Created, estado_asociacion: SUPERADA en previa y ACTIVA en nueva",
+      "obtenido": "HTTP 500 Internal Server Error (P0229 conflicto en trigger único)",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-217.html"
+    },
+    {
+      "paso": "TC-M02-216: Desactivación manual (ACTIVA -> INACTIVA)",
+      "esperado": "HTTP 200 OK, estado_asociacion: INACTIVA vía PATCH",
+      "obtenido": "HTTP 404 Not Found (Ruta PATCH no implementada en backend)",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-216.html"
+    },
+    {
+      "paso": "TC-M02-218: Reactivación manual (INACTIVA -> ACTIVA)",
+      "esperado": "HTTP 200 OK, estado_asociacion: ACTIVA vía PATCH",
+      "obtenido": "HTTP 404 Not Found (Ruta PATCH no implementada en backend)",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-218.html"
+    },
+    {
+      "paso": "TC-M02-219: Transición inválida (INACTIVA -> SUPERADA)",
+      "esperado": "HTTP 409 Conflict o 422 Unprocessable Entity al intentar forzar SUPERADA",
+      "obtenido": "HTTP 404 Not Found (Ruta PATCH no implementada en backend)",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-219.html"
+    }
+  ]
+}

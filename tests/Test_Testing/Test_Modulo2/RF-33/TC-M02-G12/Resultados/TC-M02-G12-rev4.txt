@@ -1,0 +1,47 @@
+
+TC-M02-G12 rev4 RF-33/RF-16 TEST
+Coleccion: tests/Test_Testing/Test_Modulo2/RF-33/TC-M02-G12/tc_m02_g12_rev4.json
+Fecha UTC: 2026-09-26T02:51:35.4825875Z
+Usuario: admin@pecuaria.co (recurso 19 metricas + POST activos). Password via env.
+Newman exit 1: UNICA assertion fallida = peso_destete no existe en GET. No es fallo de 013.
+
+ENDPOINT GET /configuracion/metricas
+OpenAPI TEST: query id_especie obligatorio, solo_activas opcional. Responses 200/401/403/422.
+Schema MetricaProduccionResponse NO incluye valor_min ni valor_max.
+Auth: recurso 19 accion 2. Productor HTTP 403 ACCESO_DENEGADO. Admin HTTP 200.
+
+INC-M02-G12-002 (GET metricas 500):
+Reproduccion rev4: HTTP 200 en especie 4 con y sin solo_activas.
+Barrido 11 especies activas x 2 modos = 22 GET, 0 HTTP 500.
+Causa historica del 500: en codigo laura _a_entidad hace TipoMedicion(orm.tipo_medicion) / AplicaTipoActivo / TipoDatoAtributo sin try; un valor legado invalidaria el enum y caeria a ERROR_INTERNO. En TEST actual los registros visibles mapean a PESO/AMBOS|INDIVIDUAL/NUMERICO. El 500 NO se reproduce. Incidente: SUPERADO / no reproducible en esta revision. No se crea ID nuevo.
+
+RF-16 en TEST (especie 4 Cachama Blanca, activa):
+- Activa: id_metrica=16 nombre=Peso unidad=kg tipo_medicion=PESO aplica=AMBOS tipo_dato=NUMERICO es_obligatorio=false
+- Inactiva: id_metrica=15 nombre=Peso Test unidad=kg tipo=PESO aplica=INDIVIDUAL tipo_dato=NUMERICO es_activo=false
+- peso_destete: NO EXISTE (ninguna especie activa)
+- color_pelaje: NO EXISTE en catalogo (adecuado para 013)
+- GET no expone min/max. Ningun item del barrido trajo valor_min/valor_max.
+No se invento RF-16. No se creo metrica.
+
+Contrato POST /activos-biologicos atributos:
+- clave no configurada: ValidationError ATRIBUTO_INVALIDO HTTP 400 (codigo actual; historico tambien 400)
+- fuera de rango: BusinessRuleError ATRIBUTO_FUERA_DE_RANGO HTTP 422 (historico pedia 400; desfase documentado, 014 no se ejecuto)
+Mensaje actual 013: "El atributo 'color_pelaje' no corresponde a una metrica activa de la especie." campo atributos_dinamicos.
+
+TC-M02-013: APROBADO
+POST POBLACIONAL especie 4 infra 3 atributos_dinamicos.color_pelaje=Negro nacimiento cantidad_inicial=10
+HTTP 400 ATRIBUTO_INVALIDO. Sin id_activo_biologico. Sin residuo.
+Diagnostico 05b INDIVIDUAL misma clave: HTTP 400 ATRIBUTO_INVALIDO. Confirma que no es DENSIDAD_MAXIMA ni 500.
+color_pelaje verificado ausente en GET metricas especie 4.
+
+TC-M02-014: BLOQUEADO / NO EJECUTADO
+No se envio peso_destete=5.
+Motivo: no hay peso_destete; GET oficial no expone rango; no hay 20-40 demostrable.
+No se sustituyo atributo ni especie en silencio.
+
+TC-M02-G12 GLOBAL: BLOQUEADO (el grupo no puede cerrarse: 014 no ejecutable).
+013 esta APROBADO. El exit 1 de Newman NO significa defecto de 013.
+
+Restauracion: no aplica (ningun 201).
+No se modifico backend ni historicos rev2/revision3.
+Secretos redactados.

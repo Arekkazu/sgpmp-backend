@@ -1,0 +1,12 @@
+{
+  "info":{"name":"G069 RF-72 unicidad por usuario","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json","description":"Dos casos, cinco POST principales y reemplazos condicionales en una iteración."},
+  "item":[
+    {"name":"G069-212-A","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_r1}}"}}},
+    {"name":"G069-212-REEMPLAZO","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_r1_reemplazo}}"}}},
+    {"name":"G069-212-IGUAL","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_r1}}"}}},
+    {"name":"G069-212-DISTINTO","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_r1_distinto}}"}}},
+    {"name":"G069-213-A","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_r2}}"}}},
+    {"name":"G069-213-REEMPLAZO","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_r2_reemplazo}}"}}},
+    {"name":"G069-213-B","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{cuerpo_r2}}"}}}
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "info": { "name": "TC-M03-G124 RF-59 exportación de historial", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [
+    {
+      "name": "API-G124-HISTORIAL",
+      "request": { "method": "GET", "header": [
+        { "key": "Authorization", "value": "Bearer {{token}}" },
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{sensor_id}}&pagina=1&por_pagina=20&orden=DESC" },
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+        "const base=pm.environment.get('base_url')||'';",
+        "if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(base==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(base)))){pm.execution.skipRequest();throw Error('BLOQUEO_G124');}"
+      ] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "let b=null;try{b=pm.response.json()}catch{}",
+        "const ok=pm.response.code===200&&pm.response.headers.get('X-Test-Run-Id')===pm.environment.get('run_id')&&Array.isArray(b?.items)&&Number.isSafeInteger(b?.total)&&b.total>0&&b.items.some(x=>Number(x.id_sensor)===Number(pm.environment.get('sensor_id')));",
+        "pm.environment.set('semilla_ok',ok?'SI':'NO');"
+      ] } }]
+    },
+    {
+      "name": "API-G124-PDF",
+      "request": { "method": "GET", "header": [
+        { "key": "Authorization", "value": "Bearer {{token}}" },
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "url": "{{base_url}}/iot/monitoreo/historial/exportar?formato=PDF&fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{sensor_id}}" },
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+        "if(pm.environment.get('semilla_ok')!=='SI')pm.execution.skipRequest();"
+      ] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('[TC-M03-249][ASSERT][API-249-01] respuesta PDF con eco',()=>{pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id'));});"
+      ] } }]
+    },
+    {
+      "name": "API-G124-EXCEL",
+      "request": { "method": "GET", "header": [
+        { "key": "Authorization", "value": "Bearer {{token}}" },
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "url": "{{base_url}}/iot/monitoreo/historial/exportar?formato=EXCEL&incluir_alertas=true&fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{sensor_id}}" },
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+        "if(pm.environment.get('semilla_ok')!=='SI')pm.execution.skipRequest();"
+      ] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('[TC-M03-250][ASSERT][API-250-01] respuesta Excel con eco',()=>{pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id'));});"
+      ] } }]
+    }
+  ]
+}

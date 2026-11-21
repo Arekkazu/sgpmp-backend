@@ -1,0 +1,532 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "e8bc6710-af50-439c-afae-2b8223f00829",
+        "name": "G036-N-01 Anexos",
+        "request": {
+          "url": {
+            "path": [
+              "integracion",
+              "anexos"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "57e3a0b0-5d49-4d86-b616-289918b54849",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Anexos HTTP 200',()=>pm.response.to.have.status(200));",
+                "pm.test('Anexos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+                "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+              ],
+              "_lastExecutionId": "a18d47f8-76a5-44b8-9a07-6ff31f009384"
+            }
+          }
+        ]
+      },
+      {
+        "id": "2db8952e-b6f3-4d81-ab42-2d4144ccdcb6",
+        "name": "G036-N-02 Contratos",
+        "request": {
+          "url": {
+            "path": [
+              "integracion",
+              "contratos"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "54adee42-f1e7-46a8-9205-4d567ad32838",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Contratos HTTP 200',()=>pm.response.to.have.status(200));",
+                "pm.test('Contratos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+                "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+              ],
+              "_lastExecutionId": "b896c5f3-6dca-4b2f-b6d0-15224c6f7d38"
+            }
+          }
+        ]
+      },
+      {
+        "id": "6c10d70b-de2f-4ed4-a8ad-d01a00a961a7",
+        "name": "G036-N-03 Auditoria",
+        "request": {
+          "url": {
+            "path": [
+              "integracion",
+              "auditoria"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "tipo_evento",
+                "value": "CONTRATO_REGISTRADO"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "100"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "c4e43182-5729-4de4-8a63-9dd0f0c6ac6b",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));",
+                "pm.test('Auditoria paginada',()=>pm.expect(pm.response.json().items).to.be.an('array'));",
+                "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+              ],
+              "_lastExecutionId": "7e20ab4a-bd6b-4bb4-bd45-feecc7cb1952"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [],
+    "info": {
+      "_postman_id": "c45e9bee-f3f0-4a59-87c9-b03e28b6f7ca",
+      "name": "G036 RF-98 lecturas de contraste",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "329fcc4d-1af3-45c4-9e74-4541811ddfea",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "RUN-G036-V1-20261118-040435",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[RESERVADO]",
+        "key": "sandbox_secret"
+      },
+      {
+        "type": "any",
+        "value": "[RESERVADO]",
+        "key": "admin_token"
+      }
+    ]
+  },
+  "globals": {
+    "id": "014dd1a8-7118-40c6-8e69-787308382f21",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 249.66666666666666,
+      "responseMin": 152,
+      "responseMax": 439,
+      "responseSd": 133.90129034313134,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1794974681887,
+      "completed": 1794974682911
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "eb5ef3fb-79a1-4444-9a46-e237038851ab",
+          "httpRequestId": "f5cb6831-f54d-459d-aae0-a482ca9ee653"
+        },
+        "item": {
+          "id": "e8bc6710-af50-439c-afae-2b8223f00829",
+          "name": "G036-N-01 Anexos",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "anexos"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "57e3a0b0-5d49-4d86-b616-289918b54849",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Anexos HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Anexos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "a18d47f8-76a5-44b8-9a07-6ff31f009384"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "anexos"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "e65a8bdb-6650-4fec-938f-1d62df3692a8",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 439,
+          "responseSize": 1463
+        },
+        "id": "e8bc6710-af50-439c-afae-2b8223f00829",
+        "assertions": [
+          {
+            "assertion": "Anexos HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Anexos lista",
+            "skipped": false
+          },
+          {
+            "assertion": "Sandbox eco",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1998c8b9-b646-4271-9ed3-dcf4f8e95349",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "7060c2c4-ec5b-4b66-8b7f-1249dcdae6c7"
+        },
+        "item": {
+          "id": "2db8952e-b6f3-4d81-ab42-2d4144ccdcb6",
+          "name": "G036-N-02 Contratos",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "contratos"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "54adee42-f1e7-46a8-9205-4d567ad32838",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Contratos HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Contratos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "b896c5f3-6dca-4b2f-b6d0-15224c6f7d38"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "contratos"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "3a6e7d1c-798a-45b4-87d3-47765d901b31",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 158,
+          "responseSize": 2818
+        },
+        "id": "2db8952e-b6f3-4d81-ab42-2d4144ccdcb6",
+        "assertions": [
+          {
+            "assertion": "Contratos HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Contratos lista",
+            "skipped": false
+          },
+          {
+            "assertion": "Sandbox eco",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "a86f082a-1df4-432d-93cd-8a170f1d0448",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "c4cf8c98-4de1-4421-bacc-268996dd53c4"
+        },
+        "item": {
+          "id": "6c10d70b-de2f-4ed4-a8ad-d01a00a961a7",
+          "name": "G036-N-03 Auditoria",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "auditoria"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "CONTRATO_REGISTRADO"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "100"
+                }
+              ],
+              "variable": []
+            },
+            "header": "[REDACTADO]",
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "c4e43182-5729-4de4-8a63-9dd0f0c6ac6b",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Auditoria paginada',()=>pm.expect(pm.response.json().items).to.be.an('array'));",
+                  "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "7e20ab4a-bd6b-4bb4-bd45-feecc7cb1952"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "auditoria"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "tipo_evento",
+                "value": "CONTRATO_REGISTRADO"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "100"
+              }
+            ],
+            "variable": []
+          },
+          "header": "[REDACTADO]",
+          "method": "GET"
+        },
+        "response": {
+          "id": "945d5c56-5854-43f6-8947-494a6e20782b",
+          "status": "OK",
+          "code": 200,
+          "header": "[REDACTADO]",
+          "stream": "[REDACTADO]",
+          "cookie": [],
+          "responseTime": 152,
+          "responseSize": 2315
+        },
+        "id": "6c10d70b-de2f-4ed4-a8ad-d01a00a961a7",
+        "assertions": [
+          {
+            "assertion": "Auditoria HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Auditoria paginada",
+            "skipped": false
+          },
+          {
+            "assertion": "Sandbox eco",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 6596
+    },
+    "failures": [],
+    "error": null
+  }
+}

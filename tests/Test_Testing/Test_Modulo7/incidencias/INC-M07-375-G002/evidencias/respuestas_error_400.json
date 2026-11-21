@@ -1,0 +1,77 @@
+{
+  "capturado": "2026-11-18T13:14:02-05:00",
+  "esperado_RF95_salida": [
+    "error_code",
+    "message",
+    "field"
+  ],
+  "obtenido": "error_code, message, fields[{field,message}], timestamp",
+  "casos": [
+    {
+      "caso": "desde_con_separador_/",
+      "solicitud": "GET /integracion/aaef/productores/901444215?desde=2026/09/01&hasta=2026-10-31",
+      "http": 400,
+      "claves_del_cuerpo": [
+        "error_code",
+        "fields",
+        "message",
+        "timestamp"
+      ],
+      "respuesta": {
+        "error_code": "PARAMETROS_INVALIDOS",
+        "message": "El parámetro «desde» es obligatorio y debe tener el formato AAAA-MM-DD, por ejemplo 2026-10-01.",
+        "fields": [
+          {
+            "field": "desde",
+            "message": "El parámetro «desde» es obligatorio y debe tener el formato AAAA-MM-DD, por ejemplo 2026-10-01."
+          }
+        ],
+        "timestamp": "2026-11-18T18:14:08.684055+00:00"
+      }
+    },
+    {
+      "caso": "sin_hasta",
+      "solicitud": "GET /integracion/aaef/productores/901444215?desde=2026-09-01",
+      "http": 400,
+      "claves_del_cuerpo": [
+        "error_code",
+        "fields",
+        "message",
+        "timestamp"
+      ],
+      "respuesta": {
+        "error_code": "PARAMETROS_INVALIDOS",
+        "message": "El parámetro «hasta» es obligatorio y debe tener el formato AAAA-MM-DD, por ejemplo 2026-10-01.",
+        "fields": [
+          {
+            "field": "hasta",
+            "message": "El parámetro «hasta» es obligatorio y debe tener el formato AAAA-MM-DD, por ejemplo 2026-10-01."
+          }
+        ],
+        "timestamp": "2026-11-18T18:14:09.005405+00:00"
+      }
+    },
+    {
+      "caso": "nit_con_digito_verificacion",
+      "solicitud": "GET /integracion/aaef/productores/901444215-0?desde=2026-09-01&hasta=2026-10-31",
+      "http": 400,
+      "claves_del_cuerpo": [
+        "error_code",
+        "fields",
+        "message",
+        "timestamp"
+      ],
+      "respuesta": {
+        "error_code": "PARAMETROS_INVALIDOS",
+        "message": "El NIT debe tener solo dígitos, sin dígito de verificación.",
+        "fields": [
+          {
+            "field": "nit",
+            "message": "El NIT debe tener solo dígitos, sin dígito de verificación."
+          }
+        ],
+        "timestamp": "2026-11-18T18:14:09.320317+00:00"
+      }
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "run_origen": "RUN-G051-V2-20261101-022937",
+  "tipo": "intento_tecnico_v2",
+  "solicitudes": [
+    {
+      "caso": "TC-M04-121",
+      "dato": "variables existentes / ayer",
+      "http": 201,
+      "codigo_error": null,
+      "aparece_en_listado_final": true
+    },
+    {
+      "caso": "TC-M04-121",
+      "dato": "variable inexistente",
+      "http": 422,
+      "codigo_error": "VARIABLE_I3P1_NO_ENCONTRADA",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-122",
+      "dato": "ahora menos 10 s",
+      "http": 201,
+      "codigo_error": null,
+      "aparece_en_listado_final": true
+    },
+    {
+      "caso": "TC-M04-122",
+      "dato": "mañana",
+      "http": 422,
+      "codigo_error": "FECHA_ENTRENAMIENTO_FUTURA",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-123",
+      "dato": "tipo inexistente",
+      "http": 422,
+      "codigo_error": "TIPO_MODELO_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-123",
+      "dato": "tipo vacío",
+      "http": 422,
+      "codigo_error": "TIPO_MODELO_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-123",
+      "dato": "tipo eliminado RFC-009",
+      "http": 422,
+      "codigo_error": "TIPO_MODELO_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-124",
+      "dato": "sin f1_score_global",
+      "http": 422,
+      "codigo_error": "METRICAS_INCOMPLETAS",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-124",
+      "dato": "sin recall_clase_riesgo_alto",
+      "http": 422,
+      "codigo_error": "METRICAS_INCOMPLETAS",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-124",
+      "dato": "sin matriz_confusion",
+      "http": 422,
+      "codigo_error": "METRICAS_INCOMPLETAS",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-125",
+      "dato": "f1=0.0",
+      "http": null,
+      "codigo_error": null,
+      "aparece_en_listado_final": true
+    },
+    {
+      "caso": "TC-M04-125",
+      "dato": "f1=1.0",
+      "http": 201,
+      "codigo_error": null,
+      "aparece_en_listado_final": true
+    },
+    {
+      "caso": "TC-M04-125",
+      "dato": "f1=-0.01",
+      "http": 422,
+      "codigo_error": "METRICA_FUERA_DE_RANGO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-125",
+      "dato": "f1=1.01",
+      "http": 422,
+      "codigo_error": "METRICA_FUERA_DE_RANGO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-126",
+      "dato": "hash_artefacto_sha256: 63 caracteres",
+      "http": 422,
+      "codigo_error": "HASH_SHA256_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-126",
+      "dato": "hash_artefacto_sha256: 65 caracteres",
+      "http": 422,
+      "codigo_error": "HASH_SHA256_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-126",
+      "dato": "hash_artefacto_sha256: 64 no hexadecimal",
+      "http": 422,
+      "codigo_error": "HASH_SHA256_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-126",
+      "dato": "dataset_entrenamiento_hash: 63 caracteres",
+      "http": 422,
+      "codigo_error": "HASH_SHA256_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-126",
+      "dato": "dataset_entrenamiento_hash: 65 caracteres",
+      "http": 422,
+      "codigo_error": "HASH_SHA256_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-126",
+      "dato": "dataset_entrenamiento_hash: 64 no hexadecimal",
+      "http": 422,
+      "codigo_error": "HASH_SHA256_INVALIDO",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-127",
+      "dato": "sin hash_artefacto_sha256",
+      "http": 422,
+      "codigo_error": "VAL_ENTRADA",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-127",
+      "dato": "sin dataset_entrenamiento_hash",
+      "http": 422,
+      "codigo_error": "VAL_ENTRADA",
+      "aparece_en_listado_final": false
+    },
+    {
+      "caso": "TC-M04-127",
+      "dato": "sin ambos hashes",
+      "http": 422,
+      "codigo_error": "VAL_ENTRADA",
+      "aparece_en_listado_final": false
+    }
+  ],
+  "post": {
+    "previstos": 23,
+    "con_http": 22,
+    "sin_http": 1,
+    "error_sin_http": "ESOCKETTIMEDOUT"
+  },
+  "conteo": {
+    "inicial": 1,
+    "final": 5,
+    "delta": 4,
+    "aceptados_con_respuesta": 3
+  },
+  "estado": "NO_CONCLUYENTE",
+  "motivo": "POST f1=0.0 sin HTTP; delta 4 no atribuible a los 3 aceptados con respuesta",
+  "cierre": {
+    "http": 200,
+    "sandbox_confirmo_cierre": true,
+    "comprobacion_posterior_bd": false
+  }
+}

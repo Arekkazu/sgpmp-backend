@@ -1,0 +1,25 @@
+#!/usr/bin/env pwsh
+# Reproduccion automatica de la corrida TC-M05-G25
+param([string]$FiltroTest = "")
+$repo = "C:\Users\Juansegutt\Integrador\sgpmp-backend"
+$python = Join-Path $repo ".venv\Scripts\python.exe"
+$envFile = Join-Path $repo ".env.test"
+foreach ($linea in Get-Content -LiteralPath $envFile -Encoding UTF8) {
+    $t = $linea.Trim()
+    if ($t -eq '' -or $t.StartsWith('#')) { continue }
+    $i = $t.IndexOf('=')
+    if ($i -lt 1) { continue }
+    $n = $t.Substring(0, $i).Trim()
+    $v = $t.Substring($i + 1).Trim()
+    if ($v.Length -ge 2 -and (($v.StartsWith('"') -and $v.EndsWith('"')) -or ($v.StartsWith("'") -and $v.EndsWith("'")))) {
+        $v = $v.Substring(1, $v.Length - 2)
+    }
+    [Environment]::SetEnvironmentVariable($n, $v, 'Process')
+}
+$env:PYTHONPATH = $repo
+$env:PYTHONUTF8 = "1"
+if ($FiltroTest -ne "") {
+    & $python -m pytest -p no:randomly --tb=short -k $FiltroTest (Join-Path $repo "tests\Test_Testing\Test_Modulo5\RF-77\TC-M05-G25\test_tc_m05_g25.py")
+} else {
+    & $python -m pytest -p no:randomly --tb=short (Join-Path $repo "tests\Test_Testing\Test_Modulo5\RF-77\TC-M05-G25\test_tc_m05_g25.py")
+}

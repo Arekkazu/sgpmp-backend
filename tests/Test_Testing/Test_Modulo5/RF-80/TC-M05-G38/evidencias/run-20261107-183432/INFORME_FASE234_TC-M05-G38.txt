@@ -1,0 +1,92 @@
+================================================================================
+INFORME DE EJECUCION FASES 2, 3 Y 4: TC-M05-G38
+RF-80 "Auditoria y Trazabilidad de Registros de Suministros"
+================================================================================
+Fecha/Hora: 2026-11-07 18:34:48 (America/Bogota)
+Suite: TC-M05-G38 (Casos TC-M05-032 y TC-M05-044)
+Total tests: 11 | Aprobados: 5 | Fallidos: 6
+Veredicto Final: Rechazado
+Duracion: 14.70 s
+
+1. TABLA DETALLADA DE CHECKPOINTS
+--------------------------------------------------------------------------------
+[01] T00 Admin Conteo inicial de eventos y creacion de activo con operaciones
+     Esperado: HTTP 200 en auditoria base, HTTP 201 en activo QA y HTTP 200 en suministros
+     Obtenido: AssertionError: Fallo suministro 1: HTTP 422
+     Estado:   FALLA
+
+[02] A01 Cadena de custodia cronologica con doble timestamp visible
+     Esperado: Secuencia completa de eventos del activo ordenada cronologicamente con fecha_evento y fecha_emision visibles
+     Obtenido: AssertionError: Se esperaban al menos 4 eventos para la cadena de custodia del activo 985, obtenidos 0
+     Estado:   FALLA
+
+[03] A02 Exportacion de bitacora en CSV, XLSX y PDF con filtro de activo
+     Esperado: HTTP 200 con archivo valido segun formato (CSV, XLSX, PDF); HTTP 400 ante formato no soportado
+     Obtenido: AssertionError: CSV exportado contiene pocas lineas (1)
+     Estado:   FALLA
+
+[04] B01 Validacion de filtros invalidos (formato de fecha y rango invertido)
+     Esperado: HTTP 4xx con mensaje explicativo ante formato invalido o fecha_desde > fecha_hasta
+     Obtenido: AssertionError: DEFECTO_PRODUCTO (TC-M05-044.1 / RNF Validacion): La especificacion requiere que la combinacion invalida fecha_desde > fecha_hasta retorne HTTP 4xx con mensaje explicativo. Obtenido HTTP 200 (el endpoint retorno 200 con lista vacia sin validar la coherencia temporal de los filtros).
+     Estado:   FALLA
+
+[05] B02 Consulta sin coincidencias (200 lista vacia) y registro de consulta en bitacora
+     Esperado: HTTP 200 con lista vacia y registro de la consulta (+1 evento) segun CU06 FA-02
+     Obtenido: AssertionError: DEFECTO_PRODUCTO / CONFLICTO DE DISENO (CU06 FA-02 vs Catalogo / TC-M05-044.2): La especificacion CU06 FA-02 establece que la ejecucion de consultas a la bitacora debe auditarse (+1 evento). El conteo total se mantuvo en 52725 (sin incremento), ya que ConsultarAuditoriaSuministrosUseCase no implementa auto-auditoria al no haberse definido un evento de negocio para consultas a la bitacora de M05.
+     Estado:   FALLA
+
+[06] T98 Admin Cierre ordenado de sandbox Administrador y rollback
+     Esperado: HTTP 200 con confirmacion de rollback exitoso
+     Obtenido: HTTP 200 con confirmacion de rollback exitoso
+     Estado:   OK
+
+[07] T99 Admin Verificacion de inocuidad y reversion de datos fuera de sandbox
+     Esperado: Conteo final de auditoria identico al conteo inicial
+     Obtenido: Conteo final de auditoria identico al conteo inicial
+     Estado:   OK
+
+[08] C01 Vet Restriccion de acceso RBAC a endpoints de auditoria para Veterinario
+     Esperado: HTTP 403 ACCESO_DENEGADO en lista, detalle y exportar sin fuga de datos en la respuesta
+     Obtenido: HTTP 403 ACCESO_DENEGADO en lista, detalle y exportar sin fuga de datos en la respuesta
+     Estado:   OK
+
+[09] C02 Vet Registro de evento de seguridad ante intento de acceso denegado
+     Esperado: Incremento (+1) en eventos de seguridad/rechazo tras intentos denegados
+     Obtenido: AssertionError: DEFECTO_PRODUCTO (RF-80 / TC-M05-044.3): La especificacion de seguridad requiere que los intentos de acceso denegados a la bitacora de auditoria registren un evento de seguridad. El backend respondio HTTP 403 ACCESO_DENEGADO ante las 3 solicitudes del Veterinario pero registro 0 eventos con resultado RECHAZADO en modulo5.auditorias_suministros.
+     Estado:   FALLA
+
+[10] C98 Vet Cierre ordenado de sandbox Veterinario y rollback
+     Esperado: HTTP 200 con confirmacion de rollback exitoso
+     Obtenido: HTTP 200 con confirmacion de rollback exitoso
+     Estado:   OK
+
+[11] C99 Vet Verificacion de inocuidad tras corrida Veterinario
+     Esperado: Conteo final de auditoria identico al conteo inicial
+     Obtenido: Conteo final de auditoria identico al conteo inicial
+     Estado:   OK
+
+2. MATRIZ DE CAPACIDADES RF-80 (Porton P1)
+--------------------------------------------------------------------------------
+- Cadena de custodia:           PRESENTE (secuencia cronologica completa con fecha_evento y fecha_emision)
+- Exportacion multi-formato:    PRESENTE (CSV estructurado, XLSX con hoja 'Auditoria Suministros', PDF con tabla estilizada)
+- Validacion formato exportar:  PRESENTE (HTTP 400 ante formato invalido, codigo FORMATO_EXPORTACION_INVALIDO)
+- Filtros de fecha:             PARCIAL (valida formato ISO pero no valida coherencia fecha_desde <= fecha_hasta)
+- Auto-auditoria de consultas:  AUSENTE (conflicto CU06 FA-02 vs Catalogo de eventos)
+- RBAC Recurso 57:              PRESENTE (HTTP 403 para Veterinario en lista, detalle y exportar sin fuga de datos)
+- Auditoria de eventos 403:     AUSENTE (los intentos denegados no persisten evento de seguridad)
+- Broker M12 / Cola:            AUSENTE / NO OBSERVABLE (la persistencia es relacional y local)
+
+3. INOCUIDAD Y SEGURIDAD
+--------------------------------------------------------------------------------
+- Corridas Sandbox: Admin y Vet ejecutadas secuencialmente, cerradas via DELETE /test-control/runs/{run_id} -> HTTP 200.
+- Inocuidad: Conteo total de eventos en modulo5.auditorias_suministros antes y despues de cada corrida permanece identico.
+- Escaneo de secretos: 0 contraseñas, 0 tokens JWT ('***REDACTED***'), 0 secretos de sandbox en artefactos.
+
+4. OBSERVACIONES PARA ANALISIS Y RECOMENDACIONES (INC BORRADOR)
+--------------------------------------------------------------------------------
+- Defecto 1 (B01): En `src/supplies/infrastructure/routers/auditoria_suministros_router.py`, `fecha_desde` y `fecha_hasta` no se comparan. Si `fecha_desde > fecha_hasta`, se retorna HTTP 200 con items vacios en vez de HTTP 400/422.
+  Borrador INC: "RF-80: Consulta a la bitacora de auditoria con fecha_desde > fecha_hasta retorna HTTP 200 en lugar de HTTP 4xx con mensaje explicativo".
+- Defecto 2 (B02): Discrepancia de diseno entre CU06 FA-02 (que pide auto-auditar consultas a la bitacora) y el catalogo de eventos de M05, donde no existe tipo de evento para consulta de auditoria.
+  Borrador INC: "RF-80 CU06 FA-02: La consulta a la bitacora de auditoria no genera evento de auditoria en modulo5.auditorias_suministros".
+- Defecto 3 (C02): En `src/shared/rbac.py`, las denegaciones de acceso (HTTP 403) no persisten registros en la tabla de auditoria ni en la bitacora de seguridad.
+  Borrador INC: "Seguridad / RF-80: Intentos de acceso denegados con HTTP 403 no generan evento de seguridad en la bitacora".

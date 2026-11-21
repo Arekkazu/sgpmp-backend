@@ -1,0 +1,660 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g01-rf00-rev2",
+    "name": "TC-M02-G01 rev2 - Catalogo de especies (RF-00)",
+    "description": "Segunda evaluacion QA. TC-M02-001 alta valida y TC-M02-002 duplicado exacto y case-insensitive. Password via --env-var contrasena. Un solo login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "token", "value": "" },
+    { "key": "loginOk", "value": "0" },
+    { "key": "catalogoOk", "value": "0" },
+    { "key": "altaOk", "value": "0" },
+    { "key": "nombreNuevo", "value": "" },
+    { "key": "nombreNuevoLower", "value": "" },
+    { "key": "descripcionNueva", "value": "Especie creada para segunda evaluacion TC-M02-G01" },
+    { "key": "especieCreadaId", "value": "" },
+    { "key": "skipMotivo", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin (unico)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const correo = pm.environment.get('correo') || pm.collectionVariables.get('correo');",
+              "const pass = pm.environment.get('contrasena');",
+              "if (!pass) {",
+              "    throw new Error('BLOQUEADO: contrasena no definida. Usar --env-var contrasena=***');",
+              "}",
+              "if (!correo) {",
+              "    throw new Error('BLOQUEADO: correo no definido.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Respuesta contiene token', function () {",
+              "    pm.expect(json.token, 'token').to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (pm.response.code === 200 && json.token) {",
+              "    pm.collectionVariables.set('token', json.token);",
+              "    pm.environment.set('token', json.token);",
+              "    pm.collectionVariables.set('loginOk', '1');",
+              "} else {",
+              "    pm.collectionVariables.set('loginOk', '0');",
+              "    pm.collectionVariables.set('skipMotivo', 'Login no devolvio token. Resto de escenarios no ejecutables.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 - GET catalogo inicial y elegir nombre libre",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') {",
+              "    pm.test.skip('GET inicial omitido: login no OK');",
+              "    return;",
+              "}",
+              "",
+              "pm.test('GET catalogo HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "if (pm.response.code !== 200) {",
+              "    pm.collectionVariables.set('catalogoOk', '0');",
+              "    pm.collectionVariables.set('nombreNuevo', '');",
+              "    pm.collectionVariables.set('skipMotivo', 'GET catalogo inicial no fue 200. No se elige nombre ni se ejecuta el alta.');",
+              "    return;",
+              "}",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Contrato GET: items es array', function () {",
+              "    pm.expect(json).to.be.an('object');",
+              "    pm.expect(json.items, 'items').to.be.an('array');",
+              "    pm.expect(json.total, 'total').to.be.a('number');",
+              "});",
+              "",
+              "const items = Array.isArray(json.items) ? json.items : [];",
+              "const usados = {};",
+              "items.forEach(function (e) {",
+              "    usados[String(e.nombre || '').trim().toLowerCase()] = true;",
+              "});",
+              "",
+              "const candidatos = [",
+              "    'Especie Prueba Laura',",
+              "    'Especie Prueba Laura Dos',",
+              "    'Especie Prueba Gunoqa',",
+              "    'Especie Prueba Catalogo',",
+              "    'Especie Prueba Unicaqa'",
+              "];",
+              "const abc = 'abcdefghijklmnopqr';",
+              "let rand = 'Especie Prueba ';",
+              "for (let i = 0; i < 8; i++) {",
+              "    rand += abc.charAt(Math.floor(Math.random() * abc.length));",
+              "}",
+              "candidatos.push(rand);",
+              "",
+              "let elegido = null;",
+              "for (let i = 0; i < candidatos.length; i++) {",
+              "    const n = candidatos[i];",
+              "    if (!usados[n.trim().toLowerCase()]) {",
+              "        elegido = n;",
+              "        break;",
+              "    }",
+              "}",
+              "",
+              "pm.test('Existe un nombre de prueba libre (solo letras y espacios)', function () {",
+              "    pm.expect(elegido, 'nombre libre').to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (elegido) {",
+              "    pm.collectionVariables.set('nombreNuevo', elegido);",
+              "    pm.collectionVariables.set('nombreNuevoLower', elegido.toLowerCase());",
+              "    pm.collectionVariables.set('catalogoOk', '1');",
+              "    pm.test('Nombre elegido no existe en el catalogo inicial', function () {",
+              "        pm.expect(usados[elegido.trim().toLowerCase()]).to.not.eql(true);",
+              "    });",
+              "} else {",
+              "    pm.collectionVariables.set('catalogoOk', '0');",
+              "    pm.collectionVariables.set('skipMotivo', 'No hay nombre libre valido en candidatos.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/configuracion/especies"
+      }
+    },
+    {
+      "name": "03 - TC-M02-001 POST especie nueva valida",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1' || pm.collectionVariables.get('catalogoOk') !== '1' || !pm.collectionVariables.get('nombreNuevo')) {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1' || pm.collectionVariables.get('catalogoOk') !== '1' || !pm.collectionVariables.get('nombreNuevo')) {",
+              "    pm.test.skip('POST alta omitido: login, catalogo o nombre no disponibles');",
+              "    return;",
+              "}",
+              "",
+              "pm.test('TC-M02-001 HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "const esperado = String(pm.collectionVariables.get('nombreNuevo')).trim();",
+              "const desc = String(pm.collectionVariables.get('descripcionNueva'));",
+              "",
+              "pm.test('TC-M02-001 contiene id_especie', function () {",
+              "    pm.expect(json.id_especie).to.be.a('number');",
+              "});",
+              "",
+              "pm.test('TC-M02-001 nombre coincide (case-insensitive)', function () {",
+              "    pm.expect(String(json.nombre || '').trim().toLowerCase()).to.eql(esperado.toLowerCase());",
+              "});",
+              "",
+              "pm.test('TC-M02-001 descripcion coincide', function () {",
+              "    pm.expect(json.descripcion).to.eql(desc);",
+              "});",
+              "",
+              "pm.test('TC-M02-001 es_activo === true (asignado por backend)', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});",
+              "",
+              "if (pm.response.code === 201 && json.id_especie != null) {",
+              "    pm.collectionVariables.set('especieCreadaId', String(json.id_especie));",
+              "    pm.collectionVariables.set('altaOk', '1');",
+              "    if (json.nombre) {",
+              "        pm.collectionVariables.set('nombreNuevo', json.nombre);",
+              "        pm.collectionVariables.set('nombreNuevoLower', String(json.nombre).toLowerCase());",
+              "    }",
+              "} else {",
+              "    pm.collectionVariables.set('altaOk', '0');",
+              "    pm.collectionVariables.set('skipMotivo', 'TC-M02-001 no creo la especie. TC-M02-002 no ejecutable.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombreNuevo}}\",\n  \"descripcion\": \"{{descripcionNueva}}\"\n}"
+        },
+        "url": "{{baseUrl}}/configuracion/especies"
+      }
+    },
+    {
+      "name": "04 - GET verificar alta TC-M02-001",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.test.skip('GET alta omitido: TC-M02-001 no creo especie');",
+              "    return;",
+              "}",
+              "",
+              "pm.test('GET post-alta HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "const items = Array.isArray(json.items) ? json.items : [];",
+              "const nombre = String(pm.collectionVariables.get('nombreNuevo')).trim().toLowerCase();",
+              "const encontrados = items.filter(function (e) {",
+              "    return String(e.nombre || '').trim().toLowerCase() === nombre;",
+              "});",
+              "",
+              "pm.test('TC-M02-001 exactamente una especie con ese nombre', function () {",
+              "    pm.expect(encontrados.length).to.eql(1);",
+              "});",
+              "",
+              "pm.test('TC-M02-001 especie del catalogo es_activo === true', function () {",
+              "    pm.expect(encontrados[0].es_activo).to.eql(true);",
+              "});",
+              "",
+              "pm.test('TC-M02-001 id_especie coincide con el alta', function () {",
+              "    pm.expect(String(encontrados[0].id_especie)).to.eql(pm.collectionVariables.get('especieCreadaId'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/configuracion/especies"
+      }
+    },
+    {
+      "name": "05 - TC-M02-002 POST duplicado exacto",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.test.skip('TC-M02-002 exacto NO EJECUTABLE: depende de alta 001');",
+              "    return;",
+              "}",
+              "",
+              "pm.test('TC-M02-002 exacto HTTP 409 (no 400/422)', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('TC-M02-002 exacto error_code ESPECIE_DUPLICADA', function () {",
+              "    pm.expect(json.error_code).to.eql('ESPECIE_DUPLICADA');",
+              "});",
+              "",
+              "if (Array.isArray(json.fields) && json.fields.length > 0) {",
+              "    pm.test('TC-M02-002 exacto fields.field = nombre', function () {",
+              "        const campos = json.fields.map(function (f) { return f && f.field; });",
+              "        pm.expect(campos).to.include('nombre');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombreNuevo}}\",\n  \"descripcion\": \"Intento de duplicado exacto\"\n}"
+        },
+        "url": "{{baseUrl}}/configuracion/especies"
+      }
+    },
+    {
+      "name": "06 - GET tras duplicado exacto",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.test.skip('GET tras exacto omitido');",
+              "    return;",
+              "}",
+              "pm.test('GET tras exacto HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "const items = Array.isArray(json.items) ? json.items : [];",
+              "const nombre = String(pm.collectionVariables.get('nombreNuevo')).trim().toLowerCase();",
+              "const encontrados = items.filter(function (e) {",
+              "    return String(e.nombre || '').trim().toLowerCase() === nombre;",
+              "});",
+              "pm.test('Tras duplicado exacto sigue habiendo exactamente una especie', function () {",
+              "    pm.expect(encontrados.length).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/configuracion/especies"
+      }
+    },
+    {
+      "name": "07 - TC-M02-002 POST duplicado case-insensitive",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.test.skip('TC-M02-002 case-insensitive NO EJECUTABLE: depende de alta 001');",
+              "    return;",
+              "}",
+              "",
+              "pm.test('TC-M02-002 case-insensitive HTTP 409 (no 400/422)', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('TC-M02-002 case-insensitive error_code ESPECIE_DUPLICADA', function () {",
+              "    pm.expect(json.error_code).to.eql('ESPECIE_DUPLICADA');",
+              "});",
+              "",
+              "if (Array.isArray(json.fields) && json.fields.length > 0) {",
+              "    pm.test('TC-M02-002 case-insensitive fields.field = nombre', function () {",
+              "        const campos = json.fields.map(function (f) { return f && f.field; });",
+              "        pm.expect(campos).to.include('nombre');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombreNuevoLower}}\",\n  \"descripcion\": \"Intento de duplicado ignorando mayusculas\"\n}"
+        },
+        "url": "{{baseUrl}}/configuracion/especies"
+      }
+    },
+    {
+      "name": "08 - GET tras duplicado case-insensitive",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.test.skip('GET tras case-insensitive omitido');",
+              "    return;",
+              "}",
+              "pm.test('GET tras case-insensitive HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "const items = Array.isArray(json.items) ? json.items : [];",
+              "const nombre = String(pm.collectionVariables.get('nombreNuevo')).trim().toLowerCase();",
+              "const encontrados = items.filter(function (e) {",
+              "    return String(e.nombre || '').trim().toLowerCase() === nombre;",
+              "});",
+              "pm.test('Tras case-insensitive sigue habiendo exactamente una especie', function () {",
+              "    pm.expect(encontrados.length).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/configuracion/especies"
+      }
+    },
+    {
+      "name": "09 - Restaurar PATCH desactivar especie creada",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1' || !pm.collectionVariables.get('especieCreadaId')) {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1' || !pm.collectionVariables.get('especieCreadaId')) {",
+              "    pm.test.skip('Desactivar omitido: no hay especie creada');",
+              "    return;",
+              "}",
+              "pm.test('PATCH desactivar HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "pm.test('Tras desactivar es_activo === false (no es DELETE)', function () {",
+              "    pm.expect(json.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/configuracion/especies/{{especieCreadaId}}/desactivar"
+      }
+    },
+    {
+      "name": "10 - GET solo_activas tras desactivar",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.test.skip('GET solo_activas omitido');",
+              "    return;",
+              "}",
+              "pm.test('GET solo_activas HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "const items = Array.isArray(json.items) ? json.items : [];",
+              "const nombre = String(pm.collectionVariables.get('nombreNuevo')).trim().toLowerCase();",
+              "const encontrados = items.filter(function (e) {",
+              "    return String(e.nombre || '').trim().toLowerCase() === nombre;",
+              "});",
+              "pm.test('La especie creada ya no aparece en solo_activas=true', function () {",
+              "    pm.expect(encontrados.length).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [{ "key": "solo_activas", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "11 - GET catalogo completo confirma residuo inactivo",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaOk') !== '1') {",
+              "    pm.test.skip('GET residuo omitido');",
+              "    return;",
+              "}",
+              "pm.test('GET catalogo completo HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "const items = Array.isArray(json.items) ? json.items : [];",
+              "const nombre = String(pm.collectionVariables.get('nombreNuevo')).trim().toLowerCase();",
+              "const encontrados = items.filter(function (e) {",
+              "    return String(e.nombre || '').trim().toLowerCase() === nombre;",
+              "});",
+              "pm.test('Residuo: la especie sigue existiendo (no fue eliminada)', function () {",
+              "    pm.expect(encontrados.length).to.eql(1);",
+              "});",
+              "pm.test('Residuo: es_activo === false', function () {",
+              "    pm.expect(encontrados[0].es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/configuracion/especies"
+      }
+    }
+  ]
+}

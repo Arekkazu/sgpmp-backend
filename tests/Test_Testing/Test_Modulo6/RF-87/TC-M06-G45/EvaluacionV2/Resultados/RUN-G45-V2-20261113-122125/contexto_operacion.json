@@ -1,0 +1,25 @@
+{
+  "grupo": "G45",
+  "version": 2,
+  "intento": 8,
+  "run_id": "RUN-G45-V2-20261113-122125",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G45-V2-R7-20261113",
+  "casos": [
+    "TC-M06-031",
+    "TC-M06-032",
+    "TC-M06-033"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M06-031",
+      "TC-M06-032",
+      "TC-M06-033"
+    ],
+    "incumplimientos_previos": "V1 OFICIAL RUN-G45-V1-20261110-081025: 031_en_cierre RECHAZADO (409 y período ABIERTO, sin EN_CIERRE; INC-M06-G45-01); 032_alta_costo RECHAZADO (422 PERIODO_CONTABLE_CERRADO en vez de 409; INC-M06-G45-02); 033_ajuste RECHAZADO (sin vía de ajuste; INC-M06-G45-03).",
+    "correcciones_informadas": "#1063 en origin/test 453277e4: la pausa por autorización deja el período EN_CIERRE y la cancelación lo devuelve a ABIERTO (confirmado en TEST en G43). 0fcde3bb (INC-M06-351-G45): POST /finanzas/lineas-asiento/{id}/ajustes registra AJUSTE_PERIODO_ANTERIOR en el período abierto con referencia y justificación. INC-M06-G45-02 sin corrección informada.",
+    "resultado_esperado": "Oráculos de la matriz (fila TC-M06-G45) sin cambios, con la decisión D2-V2 del responsable QA para el 032 (4xx de período cerrado con el período intacto → APROBADO con OBS-G45-01). 031: EN_CIERRE durante la pausa, costo no aceptado, evento M02 encolado y procesado en el período actual (B) o en el siguiente (A) con su fecha original. 033: ajuste en el período abierto con referencia a la línea 2625 y justificación en RF-94; el 219 intacto.",
+    "motivo": "Reintento técnico de V2 de TC-M06-G45, grupo completo. En RUN-G45-V2-20261113-115410 (AUT-G45-V2-R6-20261113) 031_en_cierre y 031_costo APROBADO en el 266, 032 y 033 APROBADO y rollback verificado, pero el crecimiento M02 del 1644 dio 422 (lote sin fase activa ni métrica de PESO) y 031_m02, A y B quedaron NO_CONCLUYENTE. Solución pedida por el responsable QA (no dejar la prueba bloqueada por datos): su chat de BD insertó la etapa 73, el ciclo 22, el enlace 36, la métrica 169 (PESO kg, especie 544) y la fase activa 995 del 1644 (COMMIT 12:09:15 UTC; se revierten al cerrar G45); rondas 7 y 8 (ORD-G45-018 y 019): cuerpos guardados, pesaje de lote (nuevo_peso_promedio, cantidad_medida 1, tipo_agregacion PROMEDIO) y evidencia de A y B con cualquier registro de medición del evento. Precondición temporal: usuarios_fincas 3493. Ensayo Windows: verificar.mjs 7 OK y 2 NO_APLICA, red 0; validar OFICIAL. SHA-256: g45.mjs bb4cc5162f4e5f60c2b5085abf72fea2404bf0f71a3d7b59bd5d814a799661a8; lib/flujo_v2.mjs 005b591102e39514addab8ef563981f9efc183c8bc69eb8aab21b78ba3a13030; lib/contrato.mjs aa9fcb905b890d536a363ec094d0cf81d6cbdb098a174447da5d561467b71600."
+  },
+  "version_anterior": null
+}

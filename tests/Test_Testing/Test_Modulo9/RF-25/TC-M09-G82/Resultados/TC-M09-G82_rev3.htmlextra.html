@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>TC-M09-G82 / TC-M09-157 tercera revisión TEST</title>
+<style>body{font-family:sans-serif;margin:2rem;color:#222} .pass{color:#0a7} .fail{color:#c00} .blocked{color:#c60} code{background:#f4f4f4;padding:0 .25rem}</style>
+</head><body>
+<h1>TC-M09-G82 — Tercera revisión (TEST)</h1>
+<p>Subcaso: <strong>TC-M09-157</strong> — Impedir acceso a información de una finca no asignada (RF-25).</p>
+<p>Ambiente: TEST · baseUrl: <code>https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test</code></p>
+<p>Matriz DBA: usuario <code>20</code> · finca <code>999</code> · esperado: rechazo + evento de seguridad.</p>
+<p>Inspección con Administrador id=1 (<code>admin@pecuaria.co</code>). JWT: [REDACTED]</p>
+<h2>TC-M09-157 — <span class="blocked">BLOQUEADO</span></h2>
+<ul>
+<li><code>GET /usuarios/20/detalle</code> → HTTP 404 <code>USUARIO_NO_ENCONTRADO</code></li>
+<li><code>GET /configuracion/fincas/999</code> → HTTP 404 <code>FINCA_NO_ENCONTRADA</code> (como admin de alcance global: la finca no existe)</li>
+<li>Listado admin: 75 usuarios; no hay id 20 (sí 19 y 22).</li>
+</ul>
+<p>No se autenticó al usuario 20 (no existe). No se sustituyó por ingeniero ni por finca 19 para forzar un veredicto de autorización.</p>
+<p>Diagnóstico (no es el escenario de la matriz): <code>GET /configuracion/fincas/19</code> como admin → HTTP 200, nombre Finca Ajena RBAC, <code>id_usuario=null</code>.</p>
+<h2>Evento de seguridad</h2>
+<p>NO COMPROBABLE: no hubo rechazo del actor de la matriz.</p>
+<p>Nota de diseño: <code>ConsultarFincasUseCase.obtener</code> no registra auditoría al denegar; el 403 de finca no autorizada no implica por sí solo un evento en <code>/auditoria</code>.</p>
+<h2>ANTES / AHORA</h2>
+<p>ANTES: segunda revisión — TC-M09-157 BLOCKED (Productor m2m.nuevo@ejemplo.com sin Finca A asignada).</p>
+<p>AHORA: BLOQUEADO — IDs de matriz 20 y 999 ausentes en TEST.</p>
+<p>CAMBIO OBSERVADO: el DBA indicó reintento con 20/999; esos registros aún no están en el API TEST inspeccionado. Finca 999 no existe (404), distinto de finca existente no asignada (403 FINCA_NO_AUTORIZADA).</p>
+</body></html>

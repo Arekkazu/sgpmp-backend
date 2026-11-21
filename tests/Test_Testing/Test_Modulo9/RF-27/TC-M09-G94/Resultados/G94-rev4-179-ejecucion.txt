@@ -1,0 +1,40 @@
+TC-M09-179 rev4 TEST
+Fecha: 2026-09-25
+No sobrescribe rev1/rev2/rev3.
+Usuario: productor@pecuaria.co id=2
+Finca: 1  Identidad: 1
+
+SNAPSHOT
+identidad: primary=#1A6B3C secondary=#A8D5B5 logo=/assets/logos/remanso.png version (GET)
+tema: theme_mode=2 fuente=personal id_tema_visual=2
+contexto: id_finca=1 identidad y accesibilidad presentes
+
+PATCH tema=1 GET confirma theme_mode=1
+PATCH identidad 1 primary=#FFFFFF (secondary/logo/nombre intactos)
+
+CONTEXTO NAVEGADOR (misma finca 1)
+primary=#FFFFFF
+claro ratio=1 cumple_aa=false color_ajustado=#757575
+
+GET tema navegador theme_mode=1
+html data-theme=light (espera explicita, sin forzar)
+
+CSS DESPUES (inline=computed)
+--brand-500 #757575  (esperado color_ajustado)
+--brand-600 #757575
+--brand-cta #757575
+--brand-cta-hover #757575
+--brand-400 #3F8252  (secondary.claro.color_ajustado, no cambiado)
+--brand-nav #353535  (derivado de primario ajustado)
+
+axe-core color-contrast: 1 violation, 16 nodos en passes.
+La variante SI se aplico; axe no sustituye esa comprobacion.
+
+Cypress after() fallo restore tema HTTP 401 (token productor).
+RESTORE API posterior:
+identidad #1A6B3C / #A8D5B5
+theme_mode=2
+contexto id_finca=1 primary=#1A6B3C
+
+Clasificacion 179: APROBADO
+El fail de Mocha es el hook de restore, no la asercion de variante.

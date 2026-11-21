@@ -1,3 +1,9 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-76: día calendario de Colombia         |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: el fin de retiro avisa también al Veterinario del tratamiento |
 """Caso de uso: revertir a ACTIVO los activos cuyo período de retiro venció (RF-76 pasos 11-13).
 
 Corre como tarea programada diaria (ver ``main.py``), sin usuario interactivo.
@@ -11,14 +17,16 @@ generó la obligación de retiro que ahora se levanta.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Callable
 
 from sqlalchemy.orm import Session
 
+from src.shared.fechas import hoy_usuario
+
 logger = logging.getLogger(__name__)
 
-_MOTIVO_REVERSION = "Vencimiento de período de retiro (RF-76)."
+_MOTIVO_REVERSION = "Vencimiento de período de retiro."
 
 
 class RevertirRetirosVencidosUseCase:
@@ -37,7 +45,7 @@ class RevertirRetirosVencidosUseCase:
         finally:
             db.close()
 
-        hoy = datetime.now(timezone.utc).date()
+        hoy = hoy_usuario()
         revertidos = 0
         for id_activo in activos:
             if self._revertir_si_vencido(id_activo, hoy):
@@ -52,6 +60,7 @@ class RevertirRetirosVencidosUseCase:
 
         db = self.session_factory()
         fecha_fin_retiro = None
+        id_veterinario = None
         try:
             medicamento_repo = SqlAlchemyMedicamentoRepository(db)
             vigente = medicamento_repo.obtener_tratamiento_vigente(id_activo)
@@ -68,6 +77,7 @@ class RevertirRetirosVencidosUseCase:
                 return False
 
             fecha_fin_retiro = vigente.fecha_fin_retiro
+            id_veterinario = vigente.id_usuario_veterinario
             EstadoActivoM02Adapter(db).revertir_a_activo(
                 id_activo=id_activo,
                 id_usuario=vigente.id_usuario,
@@ -82,17 +92,18 @@ class RevertirRetirosVencidosUseCase:
             db.close()
 
         if fecha_fin_retiro is not None:
-            self._notificar_fin_retiro(id_activo, fecha_fin_retiro)
+            self._notificar_fin_retiro(id_activo, fecha_fin_retiro, id_veterinario)
         return True
 
-    def _notificar_fin_retiro(self, id_activo: int, fecha_fin_retiro: date) -> None:
+    def _notificar_fin_retiro(self, id_activo: int, fecha_fin_retiro: date, id_veterinario) -> None:
+        """Paso 13: Productor y Veterinario del tratamiento (INC-M05-352-G18)."""
         from src.supplies.infrastructure.adapters.notificacion_medicamento_email_adapter import (
             NotificacionMedicamentoEmailAdapter,
         )
 
         db = self.session_factory()
         try:
-            NotificacionMedicamentoEmailAdapter(db).notificar_fin_retiro(id_activo, fecha_fin_retiro)
+            NotificacionMedicamentoEmailAdapter(db).notificar_fin_retiro(id_activo, fecha_fin_retiro, id_veterinario)
         except Exception:
             logger.warning("No se pudo notificar el fin de retiro del activo %s.", id_activo)
         finally:

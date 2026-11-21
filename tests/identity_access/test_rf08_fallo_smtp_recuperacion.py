@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                   |
+# |------------|----------|---------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-105: el repositorio falso acepta nivel, animal y contexto |
 """Pruebas de resiliencia SMTP para la recuperación de contraseña RF-08.
 
 El envío de correo y la alerta administrativa por fallo SMTP (INC-M01-14-044)
@@ -56,7 +59,7 @@ class NotificacionRepoFake:
     def verificar_anti_spam(self, _id_usuario, _tipo_evento, _id_canal, _ventana):
         return False
 
-    def registrar(self, id_evento, id_usuario, id_canal, mensaje, estado):
+    def registrar(self, id_evento, id_usuario, id_canal, mensaje, estado, **_rf105):
         if id_usuario in self.fallar_para:
             raise RuntimeError("bandeja interna no disponible")
         self.registradas.append(

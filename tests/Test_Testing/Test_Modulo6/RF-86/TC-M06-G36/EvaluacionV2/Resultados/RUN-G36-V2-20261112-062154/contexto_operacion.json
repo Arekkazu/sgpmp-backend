@@ -1,0 +1,24 @@
+{
+  "grupo": "G36",
+  "version": 2,
+  "intento": 3,
+  "run_id": "RUN-G36-V2-20261112-062154",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G36-V2-20261112",
+  "casos": [
+    "TC-M06-009",
+    "TC-M06-010"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M06-009",
+      "TC-M06-010"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 de TC-M06-G36 (RF-86 restricción 5, CA-12 y CA-13; solo API), ordenada por el responsable QA el 2026-11-12, tras el despliegue en TEST de la corrección de Desarrollo (rama test 453277e4). Prueba y oráculos de la matriz (csv:379) sin cambios. Escenario: NIT-D, período 241 ABIERTO, bovinos 1627 o 1831–1833. El producto exige que apruebe un usuario distinto del solicitante, así que aprueba un segundo Contador (usuario 169, preparado el 2026-11-12 por SQL con autorización del responsable QA, finca 468 por API); la autoaprobación queda como observación sin efecto en el veredicto. Ejecutor preparado en ORD-G36-007/008: SHA-256 g36.mjs e206a71351eceaca083ad76a079294729e26f68a6b8bc8f3ea1ee77973663122; lib/g36_core.mjs d2d9dd38c494038a742c5756538c0931301934762fde5ed4dd9a2921f5fd25cd; colección 7a6e16560555de3fb64f9cf4b891346e0944c0af84fa881d9646e3c7e31e6960. Verificación del responsable QA: ensayo local y validar del ejemplo A4 → OFICIAL.",
+    "incumplimientos_previos": "V1 oficial RUN-G36-V1-20261108-161426: TC-M06-009 RECHAZADO (9 intentos PUT, PATCH y DELETE → 404 sin orientar al correctivo; CA-12) y TC-M06-010 RECHAZADO (el OpenAPI no exponía crear ni aprobar un correctivo; CA-13), ambos por INC-M06-G36-01 (ALTA, Desarrollo). El bloqueo y la inmutabilidad ya eran conformes.",
+    "correcciones_informadas": "Documento de lanzamiento backend 1.4.0 (11-nov-2026), §4.2: #1023 INC-M06-336-G36, 'Solicitud de correctivo con aprobación del Contador e inmutable al resolverse' (migración e6a2c48f9d13, PR #1069). En test: m06_router.py:312-366 (409 VARIACION_INMUTABLE / LINEA_ASIENTO_INMUTABLE con orientación; POST variaciones/{id}/correctivos; POST correctivos/{id}/aprobacion) y correctivo_variacion_use_case.py:64-147.",
+    "resultado_esperado": "Si la corrección funciona: TC-M06-009 APROBADO (9 bloqueos 409 orientados al correctivo y registros idénticos) y TC-M06-010 APROBADO (solicitud PENDIENTE no efectiva; aprobación; variación correctiva con monto opuesto y referencia; ambas visibles; línea inversa positiva con cuentas invertidas). INC-M06-G36-01 CORREGIDA. Si no: RECHAZADO con la severidad de la regla (sin mecanismo o no efectivo → ALTA; bloqueo sin orientación → MEDIA). Solo TEST lo confirma."
+  },
+  "version_anterior": 1
+}

@@ -1,0 +1,1610 @@
+{
+  "grupo": "G056",
+  "run_id": "RUN-G056-V1-20261028-051318",
+  "version": 1,
+  "intento": 2,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G056-V1-R2-20261028",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M04-146": {
+      "estado": "APROBADO",
+      "motivo": "V1 93 y V1b 94: POST 201 APROBADO; PATCH notas 200/200; GET 200/200, estado APROBADO y notas asociadas"
+    },
+    "TC-M04-147": {
+      "estado": "APROBADO",
+      "motivo": "V2 95 RECHAZADO; ambos roles: GET inicial/posterior 200, auditoría 200, PUT/PATCH versión y PUT/PATCH/DELETE auditoría 4xx, activar 409; transiciones Administrador 2/2; Veterinario 2/2"
+    },
+    "TC-M04-148": {
+      "estado": "APROBADO",
+      "motivo": "V1 93 con nota de Veterinario: tras V3 POST 201, GET 200, estado APROBADO, esta_produccion=false"
+    },
+    "TC-M04-149": {
+      "estado": "APROBADO",
+      "motivo": "Administrador/Veterinario: sin filtro 26/26, tipo 5/5, RECHAZADO 2/2, APROBADO 3/3; V1/V1b/V2/V3 presentes con estado y métricas"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-146",
+      "id": "API-146-01",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "V1 93 y V1b 94: POST 201 APROBADO; PATCH notas 200/200; GET 200/200, estado APROBADO y notas asociadas",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-147",
+      "id": "API-147-01",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "V2 95 RECHAZADO; ambos roles: GET inicial/posterior 200, auditoría 200, PUT/PATCH versión y PUT/PATCH/DELETE auditoría 4xx, activar 409; transiciones Administrador 2/2; Veterinario 2/2",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-148",
+      "id": "API-148-01",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "V1 93 con nota de Veterinario: tras V3 POST 201, GET 200, estado APROBADO, esta_produccion=false",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-149",
+      "id": "API-149-01",
+      "fuente": "API",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Administrador/Veterinario: sin filtro 26/26, tipo 5/5, RECHAZADO 2/2, APROBADO 3/3; V1/V1b/V2/V3 presentes con estado y métricas",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "presupuesto": {
+    "logins": 2,
+    "catalogos": 1,
+    "posts": 4,
+    "notas_y_lecturas": 4,
+    "rechazo_historial": 20,
+    "permanencia": 1,
+    "listados": 8,
+    "cierre": 1,
+    "total": 41,
+    "duracion_segundos": 900,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "solicitudes": [
+    {
+      "rol": "Administrador",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "RF-71 interno",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos",
+      "dato": "V1",
+      "http": 201,
+      "eco": true,
+      "estado": "APROBADO",
+      "notas": null,
+      "id": 93,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null,
+      "duracion_ms": 2565
+    },
+    {
+      "rol": "RF-71 interno",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos",
+      "dato": "V1b",
+      "http": 201,
+      "eco": true,
+      "estado": "APROBADO",
+      "notas": null,
+      "id": 94,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null,
+      "duracion_ms": 382
+    },
+    {
+      "rol": "RF-71 interno",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos",
+      "dato": "V2",
+      "http": 200,
+      "eco": true,
+      "estado": "RECHAZADO",
+      "notas": null,
+      "id": 95,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null,
+      "duracion_ms": 32164
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/93/notas",
+      "http": 200,
+      "eco": true,
+      "estado_antes": "APROBADO",
+      "estado": "APROBADO",
+      "notas": "G056 RUN-G056-V1-20261028-051318 Veterinario nota clínica",
+      "id": 93,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/93",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": "APROBADO",
+      "notas": "G056 RUN-G056-V1-20261028-051318 Veterinario nota clínica",
+      "id": 93,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/94/notas",
+      "http": 200,
+      "eco": true,
+      "estado_antes": "APROBADO",
+      "estado": "APROBADO",
+      "notas": "G056 RUN-G056-V1-20261028-051318 Administrador nota clínica",
+      "id": 94,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/94",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": "APROBADO",
+      "notas": "G056 RUN-G056-V1-20261028-051318 Administrador nota clínica",
+      "id": 94,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/95",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": "RECHAZADO",
+      "notas": null,
+      "id": 95,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        }
+      ],
+      "eventos": [
+        {
+          "id": "15febdca-6413-41de-993a-224cd8305dfe",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "9965584a-80ba-4f97-b17e-fa72a9ad6748",
+          "tipo": "VERSION_RECHAZADA",
+          "referencia": "95",
+          "huella": "318ff2352ea59123fe8353476b1fa37ce190f783e3157bbda6982245acc2f3a8"
+        },
+        {
+          "id": "9d09964e-b1e1-42c6-843e-f97eb3197834",
+          "tipo": "VERSION_REGISTRADA",
+          "referencia": "95",
+          "huella": "8581035d6d08c85582d6cc735b4f6a074a8aac7f55d19e3c91dc826648330529"
+        }
+      ]
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/95",
+      "http": 405,
+      "eco": true,
+      "estado_antes": "RECHAZADO",
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/95",
+      "http": 405,
+      "eco": true,
+      "estado_antes": "RECHAZADO",
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos/95/activar",
+      "http": 409,
+      "eco": true,
+      "estado_antes": "RECHAZADO",
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PUT",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 405,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 405,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "DELETE",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 405,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/95",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": "RECHAZADO",
+      "notas": null,
+      "id": 95,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        }
+      ],
+      "eventos": [
+        {
+          "id": "7992eede-a43a-44af-a47e-a591ed672c52",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "15febdca-6413-41de-993a-224cd8305dfe",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "9965584a-80ba-4f97-b17e-fa72a9ad6748",
+          "tipo": "VERSION_RECHAZADA",
+          "referencia": "95",
+          "huella": "318ff2352ea59123fe8353476b1fa37ce190f783e3157bbda6982245acc2f3a8"
+        },
+        {
+          "id": "9d09964e-b1e1-42c6-843e-f97eb3197834",
+          "tipo": "VERSION_REGISTRADA",
+          "referencia": "95",
+          "huella": "8581035d6d08c85582d6cc735b4f6a074a8aac7f55d19e3c91dc826648330529"
+        }
+      ]
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/95",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": "RECHAZADO",
+      "notas": null,
+      "id": 95,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        }
+      ],
+      "eventos": [
+        {
+          "id": "c3120ee0-ae74-4ece-9caa-f65eee87fc9d",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "7992eede-a43a-44af-a47e-a591ed672c52",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "15febdca-6413-41de-993a-224cd8305dfe",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "9965584a-80ba-4f97-b17e-fa72a9ad6748",
+          "tipo": "VERSION_RECHAZADA",
+          "referencia": "95",
+          "huella": "318ff2352ea59123fe8353476b1fa37ce190f783e3157bbda6982245acc2f3a8"
+        },
+        {
+          "id": "9d09964e-b1e1-42c6-843e-f97eb3197834",
+          "tipo": "VERSION_REGISTRADA",
+          "referencia": "95",
+          "huella": "8581035d6d08c85582d6cc735b4f6a074a8aac7f55d19e3c91dc826648330529"
+        }
+      ]
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PUT",
+      "ruta": "/prediccion/modelos/95",
+      "http": 405,
+      "eco": true,
+      "estado_antes": "RECHAZADO",
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/95",
+      "http": 405,
+      "eco": true,
+      "estado_antes": "RECHAZADO",
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos/95/activar",
+      "http": 409,
+      "eco": true,
+      "estado_antes": "RECHAZADO",
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PUT",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 405,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 405,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "DELETE",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 405,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/95",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": "RECHAZADO",
+      "notas": null,
+      "id": 95,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        },
+        {
+          "id": null,
+          "metricas_completas": false,
+          "metricas_esquema": false
+        }
+      ],
+      "eventos": [
+        {
+          "id": "255a0517-d10b-4977-8764-ee7e223f5d6a",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "c3120ee0-ae74-4ece-9caa-f65eee87fc9d",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "7992eede-a43a-44af-a47e-a591ed672c52",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "15febdca-6413-41de-993a-224cd8305dfe",
+          "tipo": "HISTORIAL_CONSULTADO",
+          "referencia": "95",
+          "huella": null
+        },
+        {
+          "id": "9965584a-80ba-4f97-b17e-fa72a9ad6748",
+          "tipo": "VERSION_RECHAZADA",
+          "referencia": "95",
+          "huella": "318ff2352ea59123fe8353476b1fa37ce190f783e3157bbda6982245acc2f3a8"
+        },
+        {
+          "id": "9d09964e-b1e1-42c6-843e-f97eb3197834",
+          "tipo": "VERSION_REGISTRADA",
+          "referencia": "95",
+          "huella": "8581035d6d08c85582d6cc735b4f6a074a8aac7f55d19e3c91dc826648330529"
+        }
+      ]
+    },
+    {
+      "rol": "RF-71 interno",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos",
+      "dato": "V3",
+      "http": 201,
+      "eco": true,
+      "estado": "APROBADO",
+      "notas": null,
+      "id": 96,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null,
+      "duracion_ms": 404
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/93",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": "APROBADO",
+      "notas": "G056 RUN-G056-V1-20261028-051318 Veterinario nota clínica",
+      "id": 93,
+      "esta_produccion": false,
+      "metricas_completas": true,
+      "items": null,
+      "eventos": null
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": 96,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 95,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 94,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 93,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 57,
+          "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
+          "paradigma": "META",
+          "estado": "ACTIVO",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 56,
+          "tipo_modelo": "MODELO_ACUICULTURA",
+          "paradigma": "POBLACIONAL",
+          "estado": "ACTIVO",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 46,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 45,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "estado": "DEPRECADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 44,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "estado": "DEPRECADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 43,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "estado": "ACTIVO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 42,
+          "tipo_modelo": "MODELO_AVES",
+          "paradigma": "POBLACIONAL",
+          "estado": "ACTIVO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 31,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 30,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 29,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 28,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 27,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 25,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 23,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 19,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 17,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 15,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 14,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 13,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 10,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 9,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 8,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": 96,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 95,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 94,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 93,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 46,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": 95,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 46,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": 96,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 94,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 93,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": 96,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 95,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 94,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 93,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 57,
+          "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
+          "paradigma": "META",
+          "estado": "ACTIVO",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 56,
+          "tipo_modelo": "MODELO_ACUICULTURA",
+          "paradigma": "POBLACIONAL",
+          "estado": "ACTIVO",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 46,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 45,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "estado": "DEPRECADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 44,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "estado": "DEPRECADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 43,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "estado": "ACTIVO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 42,
+          "tipo_modelo": "MODELO_AVES",
+          "paradigma": "POBLACIONAL",
+          "estado": "ACTIVO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 31,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 30,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 29,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 28,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 27,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 25,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 23,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 19,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 17,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 15,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 14,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 13,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 10,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 9,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        },
+        {
+          "id": 8,
+          "tipo_modelo": null,
+          "paradigma": null,
+          "estado": "EN_VALIDACION",
+          "metricas_completas": false,
+          "metricas_esquema": true
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": 96,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 95,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 94,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 93,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 46,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": 95,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 46,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "RECHAZADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "http": 200,
+      "eco": true,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": [
+        {
+          "id": 96,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 94,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        },
+        {
+          "id": 93,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "estado": "APROBADO",
+          "metricas_completas": true,
+          "metricas_esquema": true
+        }
+      ],
+      "eventos": []
+    },
+    {
+      "rol": "Sistema",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G056-V1-20261028-051318",
+      "http": 200,
+      "eco": null,
+      "estado_antes": null,
+      "estado": null,
+      "notas": null,
+      "id": null,
+      "esta_produccion": null,
+      "metricas_completas": false,
+      "items": null,
+      "eventos": null
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G056-V1.json",
+    "newman/newman-G056-V1.html",
+    "newman/newman-G056-V1b.json",
+    "newman/newman-G056-V1b.html",
+    "newman/newman-G056-V2.json",
+    "newman/newman-G056-V2.html",
+    "newman/newman-G056-V3.json",
+    "newman/newman-G056-V3.html",
+    "resultado.json",
+    "TC-M04-G056_resultado.md"
+  ],
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "observaciones": [
+    "TC-M04-148: versión usada V1; Veterinario",
+    "Datos heredados inconsistentes en TEST: versión 57 MODELO_RIESGO_CONTAGIO ACTIVO: métricas almacenadas incompletas; versión 56 MODELO_ACUICULTURA ACTIVO: métricas poblacionales nulas; versión 42 MODELO_AVES ACTIVO: métricas poblacionales nulas; versión 31 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 30 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 29 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 28 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 27 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 25 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 23 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 19 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 17 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 15 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 14 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 13 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 10 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 9 sin tipo EN_VALIDACION: tipo_modelo nulo; versión 8 sin tipo EN_VALIDACION: tipo_modelo nulo"
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Sandbox informó cierre; rollback de BD sin lectura posterior"
+    }
+  }
+}

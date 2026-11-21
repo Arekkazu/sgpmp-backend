@@ -1,0 +1,92 @@
+[
+  {
+    "test": "G18_S1_01",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Con un retiro vencido y max(fecha_fin_retiro)=manana, sigue EN_TRATAMIENTO y RF-44 no se invoca.",
+    "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:19.923311-05:00"
+  },
+  {
+    "test": "G18_S1_02",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Con max(fecha_fin_retiro)=hoy (<= hoy), RF-44 se invoca 1 vez y el activo pasa a ACTIVO.",
+    "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:20.973020-05:00"
+  },
+  {
+    "test": "G18_S1_03",
+    "caso_plano": "043",
+    "caso_original": "011",
+    "esperado": "Al revertir retiro vencido, NotificacionMedicamentoEmailAdapter envia correo a Productor Y Veterinario.",
+    "obtenido": "AttributeError: <module 'main' from 'C:\\\\Users\\\\Juansegutt\\\\Integrador\\\\sgpmp-backend\\\\main.py'> has no attribute 'datetime'",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.065565-05:00"
+  },
+  {
+    "test": "G18_S2_01",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "HTTP 500 con error_code no vacio y mensaje que informa reversion, sin fugas internas.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.183663+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.202055-05:00"
+  },
+  {
+    "test": "G18_S2_02",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "Rollback ejecutado (>=1), 0 commits y 0 registros de medicamento persistidos.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.362385+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.377714-05:00"
+  },
+  {
+    "test": "G18_S2_03",
+    "caso_plano": "044",
+    "caso_original": "012",
+    "esperado": "Activo permanece ACTIVO (id_estado=1) y 0 notificaciones de inicio enviadas.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.471018+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.484256-05:00"
+  },
+  {
+    "test": "G18_S3_01",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "HTTP 5xx con error_code no vacio, sin fugas internas, rollback completo, sin registro y activo sin cambio.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.571906+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.587697-05:00"
+  },
+  {
+    "test": "G18_S3_02",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "Falla de BD en guardar() responde HTTP 5xx con error_code no vacio, sin fugas internas y rollback.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.682467+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.697846-05:00"
+  },
+  {
+    "test": "G18_S3_03",
+    "caso_plano": "047",
+    "caso_original": "042",
+    "esperado": "Un incidente de auditoria sobrevive al rollback en sesion independiente para S3_01 y S3_02.",
+    "obtenido": "AssertionError: Respuesta inesperada de autenticacion/RBAC HTTP 403: {\"error_code\":\"CUENTA_NO_ACTIVA\",\"message\":\"Acceso denegado. Su cuenta no se encuentra activa, por lo que los permisos de su rol no son efectivos.\",\"fields\":[],\"timestamp\":\"2026-11-11T01:24:21.796097+00:00\"}\nassert 403 not in (401, 403)\n +  where 403 = <Response [403 Forbidden]>.status_code",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:24:21.811919-05:00"
+  },
+  {
+    "test": "G18_R_01",
+    "caso_plano": "043/044/047",
+    "caso_original": "011/012/042",
+    "esperado": "POST real en TEST con periodo_retiro_dias=0 (hoy y D-6) retorna 201 y el rollback deja conteo intacto.",
+    "obtenido": "ReadTimeout: HTTPSConnectionPool(host='www.api.inmero.co', port=443): Read timed out. (read timeout=45)",
+    "estado": "FALLA",
+    "timestamp": "2026-11-10T20:25:54.100691-05:00"
+  }
+]

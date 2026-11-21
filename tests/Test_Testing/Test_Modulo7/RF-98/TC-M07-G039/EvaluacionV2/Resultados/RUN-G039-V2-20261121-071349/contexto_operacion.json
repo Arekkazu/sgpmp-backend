@@ -1,0 +1,28 @@
+{
+  "grupo": "G039",
+  "version": 2,
+  "intento": 3,
+  "run_id": "RUN-G039-V2-20261121-071349",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G039-V2-20261121",
+  "casos": [
+    "TC-M07-13",
+    "TC-M07-14",
+    "TC-M07-15",
+    "TC-M07-16"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M07-13",
+      "TC-M07-14",
+      "TC-M07-15",
+      "TC-M07-16"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 del grupo completo tras la corrección informada de INC-M07-G039-01/02/03. Base actual: 3.0 ACTIVO única vigente, sin DEPRECADO real (el retroceso se prueba tras deprecar la 3.0 en el RUN). Aviso de CA-27 exigido solo en el primer rechazo por el antispam de 10 minutos (decisión del responsable QA). Ensayo Windows: verificar.mjs OK, 18 escenarios, RED 0. g039.mjs 075929afc224ece83dae362eb8b0f25e1e83e6e3d653bbaf8bddac4a7e2f3cb1.",
+    "incumplimientos_previos": "V1 OFICIAL RUN-G039-V1-20261118-161622 (AUT-G039-V1-R2-20261118): 13 APROBADO; 14 RECHAZADO MEDIA (INC-M07-G039-01: sin WARNING en RF-102 ni aviso, CA-26/27); 15 RECHAZADO BAJA (INC-M07-G039-02: PATCH/PUT 404 en lugar de MODIFICACION_NO_PERMITIDA, CA-20); 16 RECHAZADO BAJA (INC-M07-G039-03: activar INACTIVO devolvía CONTRATO_NO_VALIDO, CA-12).",
+    "correcciones_informadas": "04bddac4 (#1175, INC-M07-375) y 20b5f701 en origin/test: rechazos auditados como CONTRATO_TRANSICION_RECHAZADA WARNING en sesión propia y avisados al Administrador; exigir_activable antes del anexo (FA-13); PATCH/PUT de contratos con MODIFICACION_NO_PERMITIDA salvo PENDIENTE.",
+    "resultado_esperado": "13: DEPRECADO con inactivación a +90 días y CONTRATO_DEPRECADO. 14: repetición, salto y retroceso con 422 TRANSICION_NO_PERMITIDA, estado intacto y un WARNING nuevo por intento; aviso al Administrador tras el primer rechazo (nuevo o agrupado). 15: PATCH y PUT con MODIFICACION_NO_PERMITIDA y versión intacta. 16: activar y deprecar la INACTIVO con REACTIVACION_NO_PERMITIDA, sigue INACTIVO y WARNING por intento."
+  },
+  "version_anterior": 1
+}

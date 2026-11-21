@@ -1,0 +1,144 @@
+{
+ "ejecutado": "2026-11-02T23:52:44",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "finca": 3,
+ "creados": {
+  "infra": 21,
+  "infra_extra": null,
+  "infra_m1": null,
+  "infra_m2": null,
+  "lotes": [
+   32,
+   33,
+   34,
+   35
+  ]
+ },
+ "pasos": [
+  {
+   "id": "P1",
+   "descripcion": "Crear area de 5.05 m2 con Tortuga (densidad 2.0)",
+   "esperado": "201, capacidad_maxima=10",
+   "status": 201,
+   "error_code": null,
+   "resultado": "FALLA",
+   "detalle": "capacidad_maxima=25 id=21"
+  },
+  {
+   "id": "P2",
+   "descripcion": "Un lote de 11 tortugas en area vacia (uno sobre el limite)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "FALLA",
+   "detalle": ""
+  },
+  {
+   "id": "P3",
+   "descripcion": "Lote de 9 tortugas (un animal bajo el limite)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=33"
+  },
+  {
+   "id": "P4",
+   "descripcion": "Segundo lote de 1 tortuga (total 10: limite exacto)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=34"
+  },
+  {
+   "id": "P5",
+   "descripcion": "Tercer lote de 1 tortuga (total 11)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "FALLA",
+   "detalle": ""
+  },
+  {
+   "id": "P6",
+   "descripcion": "Leer area: capacidad_maxima",
+   "esperado": "10",
+   "status": 200,
+   "error_code": null,
+   "resultado": "FALLA",
+   "detalle": "capacidad_maxima=25"
+  },
+  {
+   "id": "P7",
+   "descripcion": "Reducir superficie a 5.0 m2 con 10 tortugas (capacidad 10)",
+   "esperado": "200 (limite)",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=25"
+  },
+  {
+   "id": "P8",
+   "descripcion": "Reducir superficie a 4.99 m2 (capacidad 9) con 10 tortugas",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 200,
+   "error_code": null,
+   "resultado": "FALLA",
+   "detalle": ""
+  },
+  {
+   "id": "P9",
+   "descripcion": "La superficie no cambio tras el rechazo",
+   "esperado": "5.00",
+   "status": 200,
+   "error_code": null,
+   "resultado": "FALLA",
+   "detalle": "superficie=4.99"
+  },
+  {
+   "id": "P10",
+   "descripcion": "Area con Tortuga + Bovino (ACUICULTURA + ESPECIES_GRANDES)",
+   "esperado": "422 GRUPOS_MANEJO_INCOMPATIBLES",
+   "status": 422,
+   "error_code": "GRUPOS_MANEJO_INCOMPATIBLES",
+   "resultado": "PASA",
+   "detalle": "Grupos de manejo incompatibles: el área 'QA-FLUJO-TORTUGA-MIX-235236' aloja especies del grupo 'ACUI"
+  },
+  {
+   "id": "L-lote-32",
+   "descripcion": "Limpieza: baja del lote completo",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "L-lote-33",
+   "descripcion": "Limpieza: baja del lote completo",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "L-lote-34",
+   "descripcion": "Limpieza: baja del lote completo",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "L-lote-35",
+   "descripcion": "Limpieza: baja del lote completo",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK"
+  },
+  {
+   "id": "L-infra-21",
+   "descripcion": "Limpieza: desactivar area",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK"
+  }
+ ]
+}

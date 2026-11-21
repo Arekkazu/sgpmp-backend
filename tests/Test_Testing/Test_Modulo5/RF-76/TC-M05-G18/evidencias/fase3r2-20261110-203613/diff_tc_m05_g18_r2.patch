@@ -1,0 +1,113 @@
+--- original/test_tc_m05_g18.py
++++ corregido/test_tc_m05_g18.py
+@@ -14,7 +14,7 @@
+   (fecha hoy y D-6) e inocuidad total tras rollback.
+ 
+ Nota de alcance RBAC: los tests en proceso (S2 y S3) inyectan un `UsuarioActual`
+-Veterinario activo (`id_rol=3`, `id_estado_cuenta=1`) con permiso `(48, 1)` sobre
++Veterinario activo (`id_rol=3`, `id_estado_cuenta=Cuenta.ESTADO_ACTIVO`) con permiso `(48, 1)` sobre
+ `medicamentos`, porque la autorizacion por roles esta fuera del alcance de G18 y
+ ya fue verificada en TEST durante la Fase 1 (hallazgo B1).
+ """
+@@ -46,6 +46,7 @@
+ os.environ["ENV"] = "test"
+ 
+ import main
++from src.identity_access.domain.entities.cuenta import Cuenta
+ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+ import src.shared.database as shared_database
+ import src.shared.fechas as shared_fechas
+@@ -435,15 +436,6 @@
+         return getattr(self._real, name)
+ 
+ 
+-class _FakeDateTimeMain(datetime):
+-    """Hereda de `datetime` y fija `now(tz)` a las 02:59 del dia simulado para S1 (C6)."""
+-
+-    @classmethod
+-    def now(cls, tz: Any = None) -> datetime:
+-        base = datetime(FECHA_SIMULADA_S1.year, FECHA_SIMULADA_S1.month, FECHA_SIMULADA_S1.day, 2, 59, 0)
+-        return base.replace(tzinfo=tz) if tz is not None else base
+-
+-
+ def _ejecutar_scheduler_s1_con_dobles(store: _FakeStore, monkeypatch: pytest.MonkeyPatch) -> _FakeAsyncioEnMain:
+     """Invoca directamente `main._revertir_retiros_vencidos_diariamente` una sola iteracion."""
+     fake_asyncio = _FakeAsyncioEnMain()
+@@ -483,17 +475,17 @@
+             self.db.staged_estado = ESTADO_ACTIVO
+ 
+     class _UseCaseS1ConSesionFalsa(orig_rev_cls):
+-        def __init__(self, _session_factory: Any) -> None:
+-            # C5: acepta la factory sin compararla ni invocarla.
++        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
++            # F2: acepta la firma real de `main.py:381` (`session_factory=...`) o posicional sin invocarla.
+             super().__init__(session_factory=lambda: _FakeSession(store, es_sesion_peticion=False))
+ 
+     def _spy_send_email(*, to: str, subject: str, html_body: str) -> None:
+         store.correos_enviados.append({"to": to, "subject": subject, "html_body": html_body})
+ 
+-    # Parcheo exactamente en los modulos donde se buscan los simbolos (C4):
+-    # - `main` busca asyncio, datetime e importa RevertirRetirosVencidosUseCase desde `rev_uc_mod`.
++    # Parcheo exactamente en los modulos donde se buscan los simbolos (C4 / F1 / F2):
++    # - `main.py:378` busca asyncio (y F1: datetime/dtime/timedelta solo calculan la espera hasta 03:00).
++    # - `main.py:367-369` importa RevertirRetirosVencidosUseCase desde `rev_uc_mod`.
+     monkeypatch.setattr(main, "asyncio", fake_asyncio)
+-    monkeypatch.setattr(main, "datetime", _FakeDateTimeMain)
+     monkeypatch.setattr(shared_fechas, "hoy_usuario", lambda: FECHA_SIMULADA_S1)
+     monkeypatch.setattr(rev_uc_mod, "hoy_usuario", lambda: FECHA_SIMULADA_S1)
+     monkeypatch.setattr(rev_uc_mod, "RevertirRetirosVencidosUseCase", _UseCaseS1ConSesionFalsa)
+@@ -528,7 +520,7 @@
+         id_usuario=VET_USER_ID,
+         id_token=99,
+         id_rol=3,
+-        id_estado_cuenta=1,
++        id_estado_cuenta=Cuenta.ESTADO_ACTIVO,
+     )
+ 
+     def _fake_get_db() -> Iterator[_FakeSession]:
+@@ -543,6 +535,13 @@
+     # C1: `medicamento_router.py:65-66` y `rbac.py:105-106` guardaron las referencias originales en `Depends(...)`.
+     main.app.dependency_overrides[_GET_DB_ORIGINAL] = _fake_get_db
+     main.app.dependency_overrides[_GET_CURRENT_USER_ORIGINAL] = lambda: vet
++    # F4: en todos los tests en proceso de API (S2_01..S3_03), `sesion_sistema` entrega una
++    # sesion independiente no-peticion (en `error_handlers.py:136,163` se resuelve desde `src.shared.database`).
++    monkeypatch.setattr(
++        shared_database,
++        "sesion_sistema",
++        lambda: _FakeSession(store, es_sesion_peticion=False),
++    )
+     # `rbac.py:110` busca `tiene_permiso` en el namespace de `src.shared.rbac`.
+     monkeypatch.setattr(
+         shared_rbac,
+@@ -1097,13 +1096,8 @@
+     def _verificar() -> str:
+         _assert_sin_violaciones_guard()
+ 
+-        # Escenario A: falla calculando fecha_fin_retiro (sesion_sistema liberada para registro independiente C9)
++        # Escenario A: falla calculando fecha_fin_retiro (`_configurar_cliente_api_en_proceso` ya provee sesion_sistema F4)
+         with monkeypatch.context() as mp_a:
+-            mp_a.setattr(
+-                shared_database,
+-                "sesion_sistema",
+-                lambda: _FakeSession(store, es_sesion_peticion=False),
+-            )
+             client_a, _ = _configurar_cliente_api_en_proceso(store, mp_a, fallar_rf44=False)
+ 
+             def _fallar_td(*_a: Any, **_kw: Any) -> Any:
+@@ -1120,15 +1114,10 @@
+         assert store.timedelta_calls >= 1
+         audit_post_a = list(store.auditorias_persistidas)
+ 
+-        # Escenario B: falla real de BD en guardar() (sesion_sistema liberada para registro independiente C9)
++        # Escenario B: falla real de BD en guardar() (`_configurar_cliente_api_en_proceso` ya provee sesion_sistema F4)
+         pg_err = psycopg2.OperationalError("connection to PostgreSQL server lost during flush")
+         sa_err = OperationalError("INSERT INTO modulo5.registros_medicamentos ...", {}, pg_err)
+         with monkeypatch.context() as mp_b:
+-            mp_b.setattr(
+-                shared_database,
+-                "sesion_sistema",
+-                lambda: _FakeSession(store, es_sesion_peticion=False),
+-            )
+             client_b, fake_db_b = _configurar_cliente_api_en_proceso(
+                 store,
+                 mp_b,

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-18 RF-01: rechaza 100 años o más con 403 EDAD_FUERA_DE_RANGO |
 """Caso de uso: creación de un nuevo usuario en el sistema.
 
 Construye la entidad de dominio :class:`Usuario` a partir del DTO de entrada,
@@ -122,10 +125,21 @@ class CrearUsuarioUseCase:
         )
 
         # 4. Regla de negocio que vive en la entidad, no en el caso de uso.
-        if not usuario.es_mayor_de_edad():
+        limite = Usuario.limite_edad_incumplido(dto.fecha_nacimiento)
+        if limite == "MINIMA":
             raise AuthorizationError(
                 code="EDAD_MINIMA_REQUERIDA",
                 message="Registro denegado: debe ser mayor de 18 años para registrarse como responsable de una unidad productiva en el sistema.",
+                field="fecha_nacimiento",
+            )
+        if limite == "MAXIMA":
+            raise AuthorizationError(
+                code="EDAD_FUERA_DE_RANGO",
+                message=(
+                    "Registro denegado. La edad indicada está fuera del rango válido para "
+                    "registrarse como responsable de una unidad productiva (18 a 99 años). "
+                    "Verifique su fecha de nacimiento."
+                ),
                 field="fecha_nacimiento",
             )
 

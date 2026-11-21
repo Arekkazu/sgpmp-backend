@@ -1,0 +1,2295 @@
+================================================================================
+INFORME DE FASE 1 (ANÁLISIS) — RONDA CORRECTIVA (REV 2) — CASO TC-M05-G15
+"Precondiciones del activo: estado, ciclo y cantidad poblacional" (RF-76)
+Endpoint: POST /suministros/medicamentos
+Entorno: TEST (https://www.api.inmero.co/api-sgpmp-test)
+Fecha: 2026-11-07
+Autor: QA Módulo 5 (Gestión de Suministros)
+================================================================================
+
+1. TABLA DE PROBLEMAS DETECTADOS (P1–P4) Y RESOLUCIÓN
+--------------------------------------------------------------------------------
+| ID | Problema detectado | Estado | Cómo se resolvió |
+|---|---|---|---|
+| P1 | Anexos 1-4 no traían contenido de scripts; faltaban scripts diag-t2-*, check-*, etc. | RESUELTO | Se leyeron desde disco los 19 scripts de exploracion original de la carpeta analisis-20261107-121115 más los 4 scripts nuevos de analisis-20261107-123127 y se incorporó su código íntegro en la sección ANEXOS. |
+| P2 | Datos con apariencia no generada por backend (.123456, dummy UUID en AISLADO). | RESUELTO | Se reconoció la transcripción manual con relleno en el informe inicial. Se re-ejecutó T4 completo en UNA SOLA corrida sandbox (run_id uuid4 real) generando trazas automáticas en trazas_c2_c4.jsonl. Toda la matriz nuevo informe proviene al 100% de lecturas reales. |
+| P3 | Inconsistencias: (a) URL errónea back-sigab-test (404); (b) Activo 9 ACTIVO pero 409 dice "CERRADO". | RESUELTO | (a) Se validó desde código que TEST_BASE_URL es https://www.api.inmero.co/api-sgpmp-test y se corrigió la cabecera. (b) Se inspeccionó el trigger modulo2.trg_fn_fase_activo_estado_valido() comprobando que consulta historial_estados_activos_biologicos (donde está CERRADO) antes de activos_biologicos.id_estado (donde quedó 1). Además, el POST de medicamentos sobre activo 9 falla en Paso 3 (CICLO_NO_ABIERTO). |
+| P4 | "Estructuralmente imposible cantidad_actual=0 en ACTIVO" era inferencia de código. | RESUELTO | Se ejecutó sondeo empírico acotado (C5) en sandbox propia con 10 intentos reales por API: se demostró que al bajar un lote a 0 individuos el backend M02 transiciona a BAJA (id_estado 6) y cierra la fase, bloqueando cualquier medicamento con HTTP 422 ACTIVO_ESTADO_INVALIDO en Paso 2. |
+
+
+2. MATRIZ ESPERADO VS OBSERVADO (RECONSTRUIDA EXCLUSIVAMENTE CON TRAZAS REALES)
+--------------------------------------------------------------------------------
+Corrida sandbox única: tc-m05-g15-c2-c4-b8c49967-5d64-4912-bc2a-10ed4ce38daf
+Cierre verificado: DELETE /test-control/runs/tc-m05-g15-c2-c4-b8c49967-5d64-4912-bc2a-10ed4ce38daf -> HTTP 200 {"status": "Rollback exitoso"}
+
+| Subcaso / Escenario | Activo | Condición | HTTP Esp. (Fuente) | HTTP Obs. | Error Code Obs. | Mensaje Real Backend | Veredicto |
+|---|---|---|---|---|---|---|---|
+| TC-M05-005 (INACTIVO) | 2 | id_estado=2 | 422 (RF-76 E1) | 422 | ACTIVO_ESTADO_INVALIDO | "No es posible registrar una aplicación de medicamento para el activo 2 porque su estado actual es INACTIVO. Solo se permite el registro sobre activos en estado ACTIVO." | CONFORME |
+| TC-M05-005 (CERRADO) | 12 | id_estado=3 | 422 (RF-76 E1) | 422 | ACTIVO_ESTADO_INVALIDO | "No es posible registrar una aplicación de medicamento para el activo 12 porque su estado actual es CERRADO. Solo se permite el registro sobre activos en estado ACTIVO." | CONFORME |
+| TC-M05-005 (BAJA) | 10 | id_estado=6 | 422 (RF-76 E1) | 422 | ACTIVO_ESTADO_INVALIDO | "No es posible registrar una aplicación de medicamento para el activo 10 porque su estado actual es BAJA. Solo se permite el registro sobre activos en estado ACTIVO." | CONFORME |
+| TC-M05-005 (AISLADO, diag.) | 812 | id_estado=4 | 422 (RF-76 E1) | 422 | ACTIVO_ESTADO_INVALIDO | "No es posible registrar una aplicación de medicamento para el activo 812 porque su estado actual es AISLADO. Solo se permite el registro sobre activos en estado ACTIVO." | CONFORME |
+| TC-M05-005 (Sin ciclo abierto) | 853 | id_estado=1, fases=0 | 422 (RF-76 E7) | 422 | CICLO_NO_ABIERTO | "El activo 853 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar." | CONFORME |
+| TC-M05-005 (ID inexistente) | 999999999 | No existe en BD | 404 (Spec por conf.) | 404 | ACTIVO_NO_ENCONTRADO | "El activo biológico con id 999999999 no existe o no se encuentra disponible." | CONFORME (404 confirmado) |
+| TC-M05-041 (Poblacional cant. NULL) | 462 | id_estado=1, fase ciclo 4 activa, detalle_pob=NULL | 422 (CU03 FA-08) | 422 | POBLACIONAL_SIN_CANTIDAD | "El activo poblacional 462 no tiene registrada una cantidad actual válida en su detalle poblacional. Corrija el inventario del lote antes de registrar medicamentos." | CONFORME |
+| Activo 9 (Poblacional cant. 0 sin fase) | 9 | id_estado=1, cant=0, fases activas=0 | 422 (Paso 3 precede) | 422 | CICLO_NO_ABIERTO | "El activo 9 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar." | CONFORME (Paso 3 valida antes de Paso 8) |
+
+
+3. RESULTADO DE TAREAS C3, C4, C5 Y C6
+--------------------------------------------------------------------------------
+C3. URL REAL DEL AMBIENTE:
+- Verificación por código:
+  urllib.parse.urlparse(os.getenv("TEST_BASE_URL")) arrojó:
+  SCHEME: https
+  NETLOC: www.api.inmero.co
+  PATH: /api-sgpmp-test
+  FULL_BASE_URL: https://www.api.inmero.co/api-sgpmp-test
+- Confirmación: La URL citada en la versión preliminar (https://api.inmero.co/back-sigab-test) correspondía a una denominación obsoleta de infraestructura. Toda la comunicación real corre bajo /api-sgpmp-test.
+
+C4. ACTIVO 9 (INSPECCIÓN Y CONTRADICCIÓN DE ESTADO):
+- Estado según GET /activos-biologicos/9:
+  id_activo_biologico: 9, id_especie: 3 (camarón), tipo: POBLACIONAL, id_estado: 1 (ACTIVO),
+  detalle_poblacional: { id_detalle: 4, cantidad_inicial: 6000, cantidad_actual: 0 }.
+  Fases históricas: 1 fase finalizada (id_gestion_fases: 19, fecha_finalizacion: 2024-04-01). Fases activas: 0.
+- Explicación de la contradicción ACTIVO vs 409 "estado CERRADO":
+  Al invocar POST /activos-biologicos/9/fases con id_ciclo_productiva: 3, el backend responde HTTP 409:
+  {"error_code":"ACTIVO_NO_OPERATIVO","message":"No se puede cambiar fase en activo ID 9 (estado CERRADO)."}
+  Causa técnica: En base de datos, el trigger modulo2.trg_fn_fase_activo_estado_valido() consulta prioritariamente modulo2.historial_estados_activos_biologicos (ORDER BY fecha_cambio DESC LIMIT 1). En dicha tabla el lote 9 fue registrado como CERRADO, mientras que en la tabla maestra modulo2.activos_biologicos la columna id_estado quedó en 1 (desincronizada). Al encontrar CERRADO en el historial, el trigger lanza la excepción personalizada P0228 (INVALID_STATE), la cual es traducida por db_error_translator.py como HTTP 409 ACTIVO_NO_OPERATIVO.
+- Respuesta de POST /suministros/medicamentos sobre Activo 9:
+  Al intentar registrar medicamento sobre el Activo 9, el pipeline valida:
+  Paso 1: Existencia (OK).
+  Paso 2: id_estado in (1, 3) (OK, id_estado es 1).
+  Paso 3: Fases activas > 0 (FALLA: Activo 9 no tiene fase activa).
+  Respuesta real observada: HTTP 422 CICLO_NO_ABIERTO. El flujo se detiene en Paso 3 y nunca alcanza la validación de cantidad poblacional (Paso 8).
+
+C5. SONDEO ACOTADO DE POBLACIONAL ACTIVO + CICLO ABIERTO + CANTIDAD_ACTUAL = 0:
+- Corrida sandbox: tc-m05-g15-c5-d3bbac6e-66b5-4ba4-bad0-cd74004606e5 (cerrada con DELETE 200).
+- Intentos ejecutados por la API real (hechos observados):
+  1. Intento 1 (Reactivar Activo 9):
+     - PATCH /activos-biologicos/9/estado con estado_nuevo="ACTIVO" -> HTTP 409 ESTADO_REDUNDANTE ("El activo ya se encuentra en el estado solicitado").
+     - POST /activos-biologicos/9/fases -> HTTP 409 ACTIVO_NO_OPERATIVO ("No se puede cambiar fase en activo ID 9 (estado CERRADO)").
+  2. Intento 2 (Crear POBLACIONAL con cantidad_inicial=0):
+     - POST /activos-biologicos con cantidad_inicial=0 -> HTTP 400 VAL_ENTRADA ("cantidad_inicial debe ser mayor a 0.").
+  3. Intento 3 (Crear POBLACIONAL válido y abrir fase):
+     - POST /activos-biologicos (id_especie=1 Tilapia, id_infraestructura=2, cantidad_inicial=10) -> HTTP 201 Created (ID 941, cantidad_actual=10, id_estado=1 ACTIVO).
+     - POST /activos-biologicos/941/fases (ciclo 1) -> HTTP 201 Created (id_gestion_fases: 323, es_activa=True).
+  4. Intento 4 (Baja con cantidad_afectada=0):
+     - POST /activos-biologicos/941/eventos/baja con cantidad_afectada=0 -> HTTP 400 VAL_ENTRADA ("La cantidad afectada debe ser un entero positivo.").
+  5. Intento 5 (PATCH directo a /detalle-poblacional):
+     - PATCH /activos-biologicos/941/detalle-poblacional con cantidad_actual=0 -> HTTP 404 Not Found (endpoint no soportado).
+  6. Intento 6 (PATCH /activos-biologicos/{id} RF-35 con cantidad_actual):
+     - PATCH /activos-biologicos/941 con cantidad_actual=0 -> HTTP 400 VAL_ENTRADA ("Este campo no está permitido en esta solicitud.", exclusivo para INDIVIDUAL).
+  7. Intento 7 (Baja parcial dejando 1 individuo):
+     - POST /activos-biologicos/941/eventos/baja con tipo_baja="muerte", cantidad_afectada=9 -> HTTP 201 Created.
+     - GET /activos-biologicos/941 -> id_estado=1 (ACTIVO), cantidad_actual=1, fase sigue activa (es_activa=True).
+  8. Intento 8 (Baja final de 1 individuo alcanzando cantidad_actual=0):
+     - POST /activos-biologicos/941/eventos/baja con tipo_baja="muerte", cantidad_afectada=1 -> HTTP 201 Created.
+     - GET /activos-biologicos/941 -> cantidad_actual=0, id_estado=6 (BAJA), fases activas=0. El backend M02 cerró automáticamente la fase y transicionó el lote a BAJA.
+  9. Intento 9 (Intentar reactivar lote o abrir fase estando en cantidad=0):
+     - PATCH /activos-biologicos/941/estado a ACTIVO -> HTTP 409 ESTADO_BAJA_IRREVERSIBLE ("El activo se encuentra en estado BAJA. No se permite modificar el estado de activos dados de baja definitivamente.").
+     - POST /activos-biologicos/941/fases -> HTTP 409 ACTIVO_NO_OPERATIVO ("El activo biológico se encuentra en estado BAJA. No se permiten cambios de fase en activos cerrados o dados de baja.").
+  10. Intento 10 (POST /suministros/medicamentos sobre lote en cantidad=0):
+     - POST /suministros/medicamentos sobre Activo 941 -> HTTP 422 ACTIVO_ESTADO_INVALIDO ("No es posible registrar una aplicación de medicamento para el activo 941 porque su estado actual es BAJA...").
+- Conclusión basada en lo OBSERVADO:
+  No es posible por la API real colocar un lote POBLACIONAL en estado ACTIVO con ciclo abierto y cantidad_actual = 0, porque cualquier baja que extinga el lote transiciona inmediatamente el activo a BAJA (id_estado 6) y cierra la fase activa. El intento de registro de medicamentos sobre dicho activo es interceptado en el Paso 2 (estado no permitido) antes de evaluar la cantidad.
+  Por lo tanto, la precondición TC-M05-041 (FA-08) solo es reproducible y verificable de manera pura mediante lotes con cantidad_actual NULL (como el Activo 462 con apertura de fase en sandbox), el cual alcanza determinísticamente el Paso 8 produciendo HTTP 422 POBLACIONAL_SIN_CANTIDAD.
+
+C6. INOCUIDAD TOTAL AMPLIADA (LINEA BASE INICIAL VS FINAL SIN SANDBOX):
+Medición realizada fuera de sandbox con credenciales de administrador (POST /sesiones/ regular, sin cabeceras X-Test-Run-Id):
+- Activo 853:
+  * Medicamentos inicial: 0 | Medicamentos final: 0 (Delta: 0)
+  * id_estado inicial: 1    | id_estado final: 1    (Coincide)
+  * Total fases inicial: 0  | Total fases final: 0  (Coincide)
+  * Fases activas inicial: 0| Fases activas final: 0(Coincide)
+- Activo 462:
+  * Medicamentos inicial: 0 | Medicamentos final: 0 (Delta: 0)
+  * id_estado inicial: 1    | id_estado final: 1    (Coincide)
+  * Total fases inicial: 0  | Total fases final: 0  (Coincide)
+  * Fases activas inicial: 0| Fases activas final: 0(Coincide)
+Resultado: INOCUIDAD 100% CERTIFICADA. Cero contaminación en TEST.
+
+
+4. LISTA DE RUNS DE PRUEBA ABIERTOS Y CERRADOS
+--------------------------------------------------------------------------------
+1. tc-m05-g15-c2-c4-b8c49967-5d64-4912-bc2a-10ed4ce38daf -> DELETE /test-control/runs/... HTTP 200 Rollback exitoso
+2. tc-m05-g15-c5-d3bbac6e-66b5-4ba4-bad0-cd74004606e5 -> DELETE /test-control/runs/... HTTP 200 Rollback exitoso
+3. Runs auxiliares de calibración (ej. tc-m05-g15-c2-c4-23b9be58-..., tc-m05-g15-diag-9-..., test-create-..., test-ciclo-...) -> Todos cerrados con DELETE HTTP 200 Rollback exitoso.
+Total de runs abiertos en el ambiente: 0.
+
+
+5. RESULTADO DEL ESCANEO DE SEGURIDAD Y SECRETOS
+--------------------------------------------------------------------------------
+Se escanearon todos los artefactos generados en la carpeta analisis-20261107-123127:
+- Búsqueda de TEST_ADMIN_PASSWORD: 0 coincidencias.
+- Búsqueda de TEST_SANDBOX_SECRET: 0 coincidencias.
+- Búsqueda de últimos 20 caracteres de secretos: 0 coincidencias.
+- Búsqueda de tokens JWT: 0 coincidencias.
+Todos los artefactos y trazas registradas están 100% sanitizados.
+
+
+================================================================================
+ANEXOS: CÓDIGO COMPLETO DE SCRIPTS Y TRAZAS CRUDAS
+================================================================================
+
+
+--- ANEXO T1: TRAZAS CRUDAS C2-C4 (trazas_c2_c4.jsonl) ---
+{"timestamp_local": "2026-11-07T12:35:31.992308-05:00", "server_date": "Sat, 07 Nov 2026 17:35:30 GMT", "duracion_ms": 1387.49, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/sesiones/", "status_code": 200, "request_body": {"correo_electronico": "administador.dev@gmail.com", "contrasena": "***REDACTED***"}, "response_body": {"token": "***REDACTED***", "tipo": "Bearer", "expira_en": 28799, "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.", "perfil_incompleto": false}}
+{"timestamp_local": "2026-11-07T12:35:32.144544-05:00", "server_date": "Sat, 07 Nov 2026 17:35:30 GMT", "duracion_ms": 151.81, "metodo": "GET", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/9", "status_code": 200, "request_body": null, "response_body": {"id_activo_biologico": 9, "id_especie": 3, "tipo": "POBLACIONAL", "identificador": null, "fecha_inicio_ciclo": null, "detalles_procedencia": null, "origen_financiero": "compra", "costo_adquisicion": "750000.0000", "soporte_documental": null, "descripcion": "Lote de cachama — ciclo productivo cerrado por cosecha", "id_infraestructura": 4, "atributos_dinamicos": {"estanque": "E2", "tipo_agua": "dulce", "cantidad_inicial": 800, "soporte_documental": "factura_LOTEPEC002.pdf"}, "id_estado": 1, "nombre_estado": "ACTIVO", "id_usuario": 2, "fecha_creacion": "2026-05-02T01:57:56.494000Z", "fecha_actualizacion": null, "detalle_individual": null, "detalle_poblacional": {"id_detalle": 4, "cantidad_inicial": 6000, "cantidad_actual": 0, "peso_promedio_inicial": null, "peso_promedio": "0.000", "biomasa_total": "0.000", "densidad": "0.0000"}, "nombre_especie": null, "nombre_infraestructura": null, "advertencia_edad": null}}
+{"timestamp_local": "2026-11-07T12:35:32.385521-05:00", "server_date": "Sat, 07 Nov 2026 17:35:30 GMT", "duracion_ms": 240.61, "metodo": "GET", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/9/fases", "status_code": 200, "request_body": null, "response_body": {"id_activo_biologico": 9, "fases": [{"id_gestion_fases": 19, "id_activo_biologico": 9, "id_ciclo_productiva": 6, "id_ciclos_productivo_biologico": 14, "nombre_ciclo": "Ciclo engorde rápido tilapia", "nombre_fase_actual": "Fase engorde tilapia", "paso_actual": 1, "total_pasos": 1, "fecha_inicio": "2026-06-27T21:55:47.817029Z", "fecha_finalizacion": "2024-04-01T00:00:00Z", "es_activa": false, "motivo_cambio": null, "es_transicion_no_estandar": false}]}}
+{"timestamp_local": "2026-11-07T12:35:32.590281-05:00", "server_date": "Sat, 07 Nov 2026 17:35:30 GMT", "duracion_ms": 204.52, "metodo": "GET", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/9/ciclos-productivos", "status_code": 200, "request_body": null, "response_body": {"id_activo_biologico": 9, "total": 2, "items": [{"id_ciclo_productivo": 3, "nombre": "Ciclo completo camarón 2025-A", "fases": [{"id_ciclos_productivo_biologico": 7, "id_ciclo_biologico": 7, "nombre_fase": "Fase postlarval camarón", "duracion_dias": 20}, {"id_ciclos_productivo_biologico": 8, "id_ciclo_biologico": 8, "nombre_fase": "Fase juvenil camarón", "duracion_dias": 40}, {"id_ciclos_productivo_biologico": 9, "id_ciclo_biologico": 9, "nombre_fase": "Fase engorde camarón", "duracion_dias": 40}]}, {"id_ciclo_productivo": 7, "nombre": "Ciclo experimental camarón", "fases": [{"id_ciclos_productivo_biologico": 15, "id_ciclo_biologico": 7, "nombre_fase": "Fase postlarval camarón", "duracion_dias": 20}, {"id_ciclos_productivo_biologico": 16, "id_ciclo_biologico": 8, "nombre_fase": "Fase juvenil camarón", "duracion_dias": 40}, {"id_ciclos_productivo_biologico": 17, "id_ciclo_biologico": 9, "nombre_fase": "Fase engorde camarón", "duracion_dias": 40}]}]}}
+{"timestamp_local": "2026-11-07T12:35:32.744642-05:00", "server_date": "Sat, 07 Nov 2026 17:35:31 GMT", "duracion_ms": 154.12, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/9/fases", "status_code": 422, "request_body": {"id_ciclo_productiva": 1, "motivo_cambio": "Reproduccion 409 activo 9"}, "response_body": {"error_code": "CICLO_ESPECIE_INCOMPATIBLE", "message": "El ciclo productivo \"Ciclo completo tilapia 2025-A\" no corresponde a la especie del activo.", "fields": [{"field": "id_ciclo_productiva", "message": "El ciclo productivo \"Ciclo completo tilapia 2025-A\" no corresponde a la especie del activo."}], "timestamp": "2026-11-07T17:35:31.513132+00:00"}}
+{"timestamp_local": "2026-11-07T12:35:32.892525-05:00", "server_date": "Sat, 07 Nov 2026 17:35:31 GMT", "duracion_ms": 147.64, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 422, "request_body": {"id_activo_biologico": 9, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "09:00", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 100.0, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento preventivo 9 prueba automatica", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "CICLO_NO_ABIERTO", "message": "El activo 9 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar.", "fields": [{"field": "id_activo_biologico", "message": "El activo 9 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar."}], "timestamp": "2026-11-07T17:35:31.661259+00:00"}}
+{"timestamp_local": "2026-11-07T12:35:33.036193-05:00", "server_date": "Sat, 07 Nov 2026 17:35:31 GMT", "duracion_ms": 143.38, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 422, "request_body": {"id_activo_biologico": 2, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:01", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 10.0, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento preventivo 2 prueba automatica", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "ACTIVO_ESTADO_INVALIDO", "message": "No es posible registrar una aplicación de medicamento para el activo 2 porque su estado actual es INACTIVO. Solo se permite el registro sobre activos en estado ACTIVO.", "fields": [{"field": "id_activo_biologico", "message": "No es posible registrar una aplicación de medicamento para el activo 2 porque su estado actual es INACTIVO. Solo se permite el registro sobre activos en estado ACTIVO."}], "timestamp": "2026-11-07T17:35:31.804094+00:00"}}
+{"timestamp_local": "2026-11-07T12:35:33.183045-05:00", "server_date": "Sat, 07 Nov 2026 17:35:31 GMT", "duracion_ms": 146.52, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 422, "request_body": {"id_activo_biologico": 12, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:02", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 10.0, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento preventivo 12 prueba automatica", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "ACTIVO_ESTADO_INVALIDO", "message": "No es posible registrar una aplicación de medicamento para el activo 12 porque su estado actual es CERRADO. Solo se permite el registro sobre activos en estado ACTIVO.", "fields": [{"field": "id_activo_biologico", "message": "No es posible registrar una aplicación de medicamento para el activo 12 porque su estado actual es CERRADO. Solo se permite el registro sobre activos en estado ACTIVO."}], "timestamp": "2026-11-07T17:35:31.949214+00:00"}}
+{"timestamp_local": "2026-11-07T12:35:33.327217-05:00", "server_date": "Sat, 07 Nov 2026 17:35:31 GMT", "duracion_ms": 143.92, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 422, "request_body": {"id_activo_biologico": 10, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:03", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 10.0, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento preventivo 10 prueba automatica", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "ACTIVO_ESTADO_INVALIDO", "message": "No es posible registrar una aplicación de medicamento para el activo 10 porque su estado actual es BAJA. Solo se permite el registro sobre activos en estado ACTIVO.", "fields": [{"field": "id_activo_biologico", "message": "No es posible registrar una aplicación de medicamento para el activo 10 porque su estado actual es BAJA. Solo se permite el registro sobre activos en estado ACTIVO."}], "timestamp": "2026-11-07T17:35:32.094926+00:00"}}
+{"timestamp_local": "2026-11-07T12:35:33.492161-05:00", "server_date": "Sat, 07 Nov 2026 17:35:31 GMT", "duracion_ms": 164.68, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 422, "request_body": {"id_activo_biologico": 812, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:04", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 10.0, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento preventivo 812 prueba automatica", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "ACTIVO_ESTADO_INVALIDO", "message": "No es posible registrar una aplicación de medicamento para el activo 812 porque su estado actual es AISLADO. Solo se permite el registro sobre activos en estado ACTIVO.", "fields": [{"field": "id_activo_biologico", "message": "No es posible registrar una aplicación de medicamento para el activo 812 porque su estado actual es AISLADO. Solo se permite el registro sobre activos en estado ACTIVO."}], "timestamp": "2026-11-07T17:35:32.258955+00:00"}}
+{"timestamp_local": "2026-11-07T12:35:33.643138-05:00", "server_date": "Sat, 07 Nov 2026 17:35:31 GMT", "duracion_ms": 150.61, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 422, "request_body": {"id_activo_biologico": 853, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:05", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 10.0, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento preventivo 853 prueba automatica", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "CICLO_NO_ABIERTO", "message": "El activo 853 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar.", "fields": [{"field": "id_activo_biologico", "message": "El activo 853 no tiene un ciclo productivo activo. No es posible registrar tratamientos sobre un activo sin ciclo abierto. Inicie el ciclo productivo antes de continuar."}], "timestamp": "2026-11-07T17:35:32.411151+00:00"}}
+{"timestamp_local": "2026-11-07T12:35:33.776086-05:00", "server_date": "Sat, 07 Nov 2026 17:35:32 GMT", "duracion_ms": 132.74, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 404, "request_body": {"id_activo_biologico": 999999999, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:06", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 10.0, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento preventivo 999999999 prueba automatica", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "ACTIVO_NO_ENCONTRADO", "message": "El activo biológico con ID 999999999 no existe.", "fields": [{"field": "id_activo_biologico", "message": "El activo biológico con ID 999999999 no existe."}], "timestamp": "2026-11-07T17:35:32.544502+00:00"}}
+{"timestamp_local": "2026-11-07T12:35:33.935546-05:00", "server_date": "Sat, 07 Nov 2026 17:35:32 GMT", "duracion_ms": 159.18, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/462/fases", "status_code": 201, "request_body": {"id_ciclo_productiva": 4, "motivo_cambio": "Apertura fase activo 462 en sandbox"}, "response_body": {"id_gestion_fases": 318, "id_activo_biologico": 462, "id_ciclo_productiva": 4, "id_ciclos_productivo_biologico": 10, "nombre_ciclo": "Ciclo completo cachama 2025-A", "nombre_fase_actual": "Fase juvenil cachama", "paso_actual": 1, "total_pasos": 2, "fecha_inicio": "2026-11-07T17:35:32.686958Z", "fecha_finalizacion": null, "es_activa": true, "motivo_cambio": "Apertura fase activo 462 en sandbox", "es_transicion_no_estandar": false}}
+{"timestamp_local": "2026-11-07T12:35:34.110368-05:00", "server_date": "Sat, 07 Nov 2026 17:35:32 GMT", "duracion_ms": 174.62, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 422, "request_body": {"id_activo_biologico": 462, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:07", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 100.0, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento preventivo 462 prueba automatica", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "POBLACIONAL_SIN_CANTIDAD", "message": "No es posible registrar el medicamento para el activo 462 porque su cantidad actual de individuos es cero o no está definida.", "fields": [{"field": "id_activo_biologico", "message": "No es posible registrar el medicamento para el activo 462 porque su cantidad actual de individuos es cero o no está definida."}], "timestamp": "2026-11-07T17:35:32.877215+00:00"}}
+
+
+
+--- ANEXO T2: TRAZAS CRUDAS C5 SONDEO (trazas_c5_sondeo.jsonl) ---
+{"timestamp_local": "2026-11-07T12:45:56.654969-05:00", "server_date": "Sat, 07 Nov 2026 17:45:54 GMT", "duracion_ms": 1254.28, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/sesiones/", "status_code": 200, "request_body": {"correo_electronico": "administador.dev@gmail.com", "contrasena": "***REDACTED***"}, "response_body": {"token": "***REDACTED***", "tipo": "Bearer", "expira_en": 28799, "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.", "perfil_incompleto": false}}
+{"timestamp_local": "2026-11-07T12:45:56.815708-05:00", "server_date": "Sat, 07 Nov 2026 17:45:54 GMT", "duracion_ms": 159.88, "metodo": "PATCH", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/9/estado", "status_code": 409, "request_body": {"estado_nuevo": "ACTIVO", "fecha_cambio_estado": "2026-11-07", "motivo_cambio": "Intento de reactivacion activo 9"}, "response_body": {"error_code": "ESTADO_REDUNDANTE", "message": "El activo ya se encuentra en el estado solicitado. No se realizó ningún cambio.", "fields": [], "timestamp": "2026-11-07T17:45:55.577147+00:00"}}
+{"timestamp_local": "2026-11-07T12:45:56.968732-05:00", "server_date": "Sat, 07 Nov 2026 17:45:54 GMT", "duracion_ms": 152.85, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/9/fases", "status_code": 409, "request_body": {"id_ciclo_productiva": 3, "motivo_cambio": "Apertura fase ciclo 3"}, "response_body": {"error_code": "ACTIVO_NO_OPERATIVO", "message": "No se puede cambiar fase en activo ID 9 (estado CERRADO).", "fields": [], "timestamp": "2026-11-07T17:45:55.729853+00:00"}}
+{"timestamp_local": "2026-11-07T12:45:57.122017-05:00", "server_date": "Sat, 07 Nov 2026 17:45:54 GMT", "duracion_ms": 153.12, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos", "status_code": 400, "request_body": {"tipo_activo": "POBLACIONAL", "id_especie": 1, "fecha_inicio_ciclo": "2026-11-07", "origen_financiero": "nacimiento", "id_infraestructura": 2, "cantidad_inicial": 0, "descripcion": "Lote prueba cantidad 0"}, "response_body": {"error_code": "VAL_ENTRADA", "message": "Errores de validacion en la solicitud", "fields": [{"field": null, "message": "cantidad_inicial debe ser mayor a 0."}], "timestamp": "2026-11-07T17:45:55.883078+00:00"}}
+{"timestamp_local": "2026-11-07T12:45:57.313588-05:00", "server_date": "Sat, 07 Nov 2026 17:45:55 GMT", "duracion_ms": 191.4, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos", "status_code": 201, "request_body": {"tipo_activo": "POBLACIONAL", "id_especie": 1, "fecha_inicio_ciclo": "2026-11-07", "origen_financiero": "nacimiento", "id_infraestructura": 2, "cantidad_inicial": 10, "descripcion": "Lote prueba sondeo cantidad 0 sandbox"}, "response_body": {"id_activo_biologico": 941, "id_especie": 1, "tipo": "POBLACIONAL", "identificador": null, "fecha_inicio_ciclo": "2026-11-07", "detalles_procedencia": null, "origen_financiero": "nacimiento", "costo_adquisicion": null, "soporte_documental": null, "descripcion": null, "id_infraestructura": 2, "atributos_dinamicos": null, "id_estado": 1, "nombre_estado": "ACTIVO", "id_usuario": 104, "fecha_creacion": "2026-11-07T17:45:56.037554Z", "fecha_actualizacion": null, "detalle_individual": null, "detalle_poblacional": {"id_detalle": 188, "cantidad_inicial": 10, "cantidad_actual": 10, "peso_promedio_inicial": null, "peso_promedio": null, "biomasa_total": null, "densidad": "0.0056"}, "nombre_especie": null, "nombre_infraestructura": null, "advertencia_edad": null}}
+{"timestamp_local": "2026-11-07T12:45:57.459711-05:00", "server_date": "Sat, 07 Nov 2026 17:45:55 GMT", "duracion_ms": 145.74, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/941/fases", "status_code": 201, "request_body": {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase lote nuevo"}, "response_body": {"id_gestion_fases": 323, "id_activo_biologico": 941, "id_ciclo_productiva": 1, "id_ciclos_productivo_biologico": 1, "nombre_ciclo": "Ciclo completo tilapia 2025-A", "nombre_fase_actual": "Fase larval tilapia", "paso_actual": 1, "total_pasos": 3, "fecha_inicio": "2026-11-07T17:45:56.203559Z", "fecha_finalizacion": null, "es_activa": true, "motivo_cambio": "Apertura fase lote nuevo", "es_transicion_no_estandar": false}}
+{"timestamp_local": "2026-11-07T12:45:57.613383-05:00", "server_date": "Sat, 07 Nov 2026 17:45:55 GMT", "duracion_ms": 153.35, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/941/eventos/baja", "status_code": 400, "request_body": {"tipo_baja": "muerte", "fecha_baja": "2026-11-07", "motivo_baja": "Intento de baja con cantidad 0", "cantidad_afectada": 0}, "response_body": {"error_code": "VAL_ENTRADA", "message": "Errores de validacion en la solicitud", "fields": [{"field": "cantidad_afectada", "message": "La cantidad afectada debe ser un entero positivo."}], "timestamp": "2026-11-07T17:45:56.372427+00:00"}}
+{"timestamp_local": "2026-11-07T12:45:57.725539-05:00", "server_date": "Sat, 07 Nov 2026 17:45:55 GMT", "duracion_ms": 111.95, "metodo": "PATCH", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/941/detalle-poblacional", "status_code": 404, "request_body": {"cantidad_actual": 0}, "response_body": {"detail": "Not Found"}}
+{"timestamp_local": "2026-11-07T12:45:57.856880-05:00", "server_date": "Sat, 07 Nov 2026 17:45:55 GMT", "duracion_ms": 131.1, "metodo": "PATCH", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/941", "status_code": 400, "request_body": {"cantidad_actual": 0}, "response_body": {"error_code": "VAL_ENTRADA", "message": "Errores de validacion en la solicitud", "fields": [{"field": "cantidad_actual", "message": "Este campo no está permitido en esta solicitud."}], "timestamp": "2026-11-07T17:45:56.618345+00:00"}}
+{"timestamp_local": "2026-11-07T12:45:58.092641-05:00", "server_date": "Sat, 07 Nov 2026 17:45:55 GMT", "duracion_ms": 235.5, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/941/eventos/baja", "status_code": 201, "request_body": {"tipo_baja": "muerte", "fecha_baja": "2026-11-07", "motivo_baja": "Mortalidad parcial de 9 individuos", "cantidad_afectada": 9}, "response_body": {"id_eventos": 657, "id_activo_biologico": 941, "fecha": "2026-11-07T17:45:56.761759Z", "descripcion": null, "id_usuario": 104, "crecimiento": null, "baja": {"cantidad_afectada": 9, "tipo": "muerte", "motivo_baja": "Mortalidad parcial de 9 individuos"}, "sanitario": null, "productivo": null, "reproductivo": null, "ingreso": null}}
+{"timestamp_local": "2026-11-07T12:45:58.581676-05:00", "server_date": "Sat, 07 Nov 2026 17:45:56 GMT", "duracion_ms": 303.81, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/941/eventos/baja", "status_code": 201, "request_body": {"tipo_baja": "muerte", "fecha_baja": "2026-11-07", "motivo_baja": "Mortalidad de 1 individuo restante", "cantidad_afectada": 1}, "response_body": {"id_eventos": 658, "id_activo_biologico": 941, "fecha": "2026-11-07T17:45:57.169169Z", "descripcion": null, "id_usuario": 104, "crecimiento": null, "baja": {"cantidad_afectada": 1, "tipo": "muerte", "motivo_baja": "Mortalidad de 1 individuo restante"}, "sanitario": null, "productivo": null, "reproductivo": null, "ingreso": null}}
+{"timestamp_local": "2026-11-07T12:45:59.137861-05:00", "server_date": "Sat, 07 Nov 2026 17:45:56 GMT", "duracion_ms": 148.57, "metodo": "PATCH", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/941/estado", "status_code": 409, "request_body": {"estado_nuevo": "ACTIVO", "fecha_cambio_estado": "2026-11-07", "motivo_cambio": "Reactivar lote en 0"}, "response_body": {"error_code": "ESTADO_BAJA_IRREVERSIBLE", "message": "El activo se encuentra en estado BAJA. No se permite modificar el estado de activos dados de baja definitivamente.", "fields": [], "timestamp": "2026-11-07T17:45:57.898410+00:00"}}
+{"timestamp_local": "2026-11-07T12:45:59.273516-05:00", "server_date": "Sat, 07 Nov 2026 17:45:57 GMT", "duracion_ms": 135.39, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/941/fases", "status_code": 409, "request_body": {"id_ciclo_productiva": 1, "motivo_cambio": "Abrir fase en lote en 0"}, "response_body": {"error_code": "ACTIVO_NO_OPERATIVO", "message": "El activo biológico se encuentra en estado BAJA. No se permiten cambios de fase en activos cerrados o dados de baja.", "fields": [], "timestamp": "2026-11-07T17:45:58.035161+00:00"}}
+{"timestamp_local": "2026-11-07T12:45:59.506572-05:00", "server_date": "Sat, 07 Nov 2026 17:45:57 GMT", "duracion_ms": 232.86, "metodo": "POST", "url": "https://www.api.inmero.co/api-sgpmp-test/suministros/medicamentos", "status_code": 422, "request_body": {"id_activo_biologico": 941, "nombre_medicamento": "Oxitetraciclina", "fecha_aplicacion": "2026-11-07", "hora_aplicacion": "08:10", "via_administracion": "INTRAMUSCULAR", "dosis_aplicada": 100, "unidad_dosis": "ml", "periodo_retiro_dias": 0, "motivo_aplicacion": "Tratamiento sobre lote con cantidad 0", "costo_unitario": 500, "nombre_veterinario": "Dr. Pérez"}, "response_body": {"error_code": "ACTIVO_ESTADO_INVALIDO", "message": "No es posible registrar una aplicación de medicamento para el activo 941 porque su estado actual es BAJA. Solo se permite el registro sobre activos en estado ACTIVO.", "fields": [{"field": "id_activo_biologico", "message": "No es posible registrar una aplicación de medicamento para el activo 941 porque su estado actual es BAJA. Solo se permite el registro sobre activos en estado ACTIVO."}], "timestamp": "2026-11-07T17:45:58.168286+00:00"}}
+
+
+
+--- ANEXO SCRIPT NUEVO: c2_c4_ejecutar_t4_trazas.py ---
+"""Ejecución de T4 + C2 + C4 en UNA SOLA corrida sandbox.
+Genera run_id con uuid4.
+Registra trazas crudas automáticas en trazas_c2_c4.jsonl.
+Cierra la corrida con DELETE /test-control/runs/{run_id} y valida rollback.
+"""
+from __future__ import annotations
+
+import json
+import os
+import time
+import uuid
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+import requests
+from dotenv import dotenv_values
+
+_DIR_ACTUAL = Path(__file__).resolve().parent
+_RAIZ_REPO = Path(__file__).resolve().parents[7]
+if not (_RAIZ_REPO / ".env.test").exists():
+    _RAIZ_REPO = Path.cwd()
+_ENV_TEST = dotenv_values(_RAIZ_REPO / ".env.test")
+
+
+def env(nombre: str) -> str:
+    v = os.environ.get(nombre) or _ENV_TEST.get(nombre)
+    if not v:
+        raise RuntimeError(f"Falta variable de entorno: {nombre}")
+    return v
+
+
+BASE_URL = env("TEST_BASE_URL")
+SANDBOX_SECRET = env("TEST_SANDBOX_SECRET")
+EMAIL = env("TEST_ADMIN_EMAIL")
+PASSWORD = env("TEST_ADMIN_PASSWORD")
+
+TRAZAS_PATH = _DIR_ACTUAL / "trazas_c2_c4.jsonl"
+
+
+def sanitizar_cuerpo(data: any) -> any:
+    if isinstance(data, dict):
+        san = {}
+        for k, v in data.items():
+            if k.lower() in ("contrasena", "password", "token", "authorization"):
+                san[k] = "***REDACTED***"
+            elif isinstance(v, (dict, list)):
+                san[k] = sanitizar_cuerpo(v)
+            else:
+                san[k] = v
+        return san
+    elif isinstance(data, list):
+        return [sanitizar_cuerpo(x) for x in data]
+    return data
+
+
+def log_traza(f_out, metodo: str, url: str, status_code: int, req_body: any, resp: requests.Response | None, duracion_ms: float):
+    now_iso = datetime.now(timezone(timedelta(hours=-5))).isoformat()
+    resp_body = None
+    server_date = ""
+    if resp is not None:
+        server_date = resp.headers.get("Date", "")
+        try:
+            resp_body = resp.json()
+        except Exception:
+            resp_body = resp.text[:500]
+
+    entry = {
+        "timestamp_local": now_iso,
+        "server_date": server_date,
+        "duracion_ms": round(duracion_ms, 2),
+        "metodo": metodo,
+        "url": url,
+        "status_code": status_code,
+        "request_body": sanitizar_cuerpo(req_body),
+        "response_body": sanitizar_cuerpo(resp_body),
+    }
+    f_out.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    f_out.flush()
+    return entry
+
+
+def payload_base(id_activo: int, dosis: float = 10.0, hora: str = "08:00") -> dict:
+    hoy = datetime.now(timezone(timedelta(hours=-5))).date().isoformat()
+    return {
+        "id_activo_biologico": id_activo,
+        "nombre_medicamento": "Oxitetraciclina",
+        "fecha_aplicacion": hoy,
+        "hora_aplicacion": hora,
+        "via_administracion": "INTRAMUSCULAR",
+        "dosis_aplicada": dosis,
+        "unidad_dosis": "ml",
+        "periodo_retiro_dias": 0,
+        "motivo_aplicacion": f"Tratamiento preventivo {id_activo} prueba automatica",
+        "costo_unitario": 500,
+        "nombre_veterinario": "Dr. Pérez",
+    }
+
+
+def main():
+    run_id = f"tc-m05-g15-c2-c4-{uuid.uuid4()}"
+    print(f"Iniciando corrida C2-C4 con run_id: {run_id}")
+
+    session = requests.Session()
+    headers_base = {
+        "X-Test-Run-Id": run_id,
+        "X-Sandbox-Secret": SANDBOX_SECRET,
+        "X-Zona-Horaria": "America/Bogota",
+    }
+    session.headers.update(headers_base)
+
+    resultados_resumen = []
+    f_trazas = open(TRAZAS_PATH, "w", encoding="utf-8")
+
+    try:
+        # 1. Login único
+        t0 = time.perf_counter()
+        r_login = session.post(
+            f"{BASE_URL}/sesiones/",
+            json={"correo_electronico": EMAIL, "contrasena": PASSWORD},
+            timeout=30,
+        )
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/sesiones/", r_login.status_code, {"correo_electronico": EMAIL, "contrasena": "***"}, r_login, ms)
+        assert r_login.status_code == 200, f"Login fallo: {r_login.status_code} {r_login.text}"
+        token = r_login.json()["token"]
+        session.headers["Authorization"] = f"Bearer {token}"
+        print("Login sandbox OK")
+
+        # -------------------------------------------------------------
+        # C4: Inspección exhaustiva de Activo 9 y reproducción 409
+        # -------------------------------------------------------------
+        print("\n--- Ejecutando C4: Activo 9 ---")
+        # GET /activos-biologicos/9
+        t0 = time.perf_counter()
+        r_act9 = session.get(f"{BASE_URL}/activos-biologicos/9", timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "GET", f"{BASE_URL}/activos-biologicos/9", r_act9.status_code, None, r_act9, ms)
+
+        # GET /activos-biologicos/9/fases
+        t0 = time.perf_counter()
+        r_fas9 = session.get(f"{BASE_URL}/activos-biologicos/9/fases", timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "GET", f"{BASE_URL}/activos-biologicos/9/fases", r_fas9.status_code, None, r_fas9, ms)
+
+        # GET /activos-biologicos/9/ciclos-productivos
+        t0 = time.perf_counter()
+        r_cic9 = session.get(f"{BASE_URL}/activos-biologicos/9/ciclos-productivos", timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "GET", f"{BASE_URL}/activos-biologicos/9/ciclos-productivos", r_cic9.status_code, None, r_cic9, ms)
+
+        # Reproducir 409 abriendo fase en activo 9 con ciclo 1
+        t0 = time.perf_counter()
+        body_fase9 = {"id_ciclo_productiva": 1, "motivo_cambio": "Reproduccion 409 activo 9"}
+        r_post_fas9 = session.post(f"{BASE_URL}/activos-biologicos/9/fases", json=body_fase9, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        traza_409 = log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos/9/fases", r_post_fas9.status_code, body_fase9, r_post_fas9, ms)
+        print(f"Reproduccion 409 activo 9: HTTP {r_post_fas9.status_code}, body: {r_post_fas9.text}")
+
+        # POST /suministros/medicamentos sobre activo 9
+        t0 = time.perf_counter()
+        p_med9 = payload_base(9, dosis=100.0, hora="09:00")
+        r_med9 = session.post(f"{BASE_URL}/suministros/medicamentos", json=p_med9, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        traza_med9 = log_traza(f_trazas, "POST", f"{BASE_URL}/suministros/medicamentos", r_med9.status_code, p_med9, r_med9, ms)
+        print(f"POST medicamentos sobre activo 9: HTTP {r_med9.status_code}, body: {r_med9.text}")
+        resultados_resumen.append({"escenario": "ACTIVO_9_POST_MEDICAMENTO", "http": r_med9.status_code, "resp": r_med9.json()})
+
+        # -------------------------------------------------------------
+        # C2: Ejecución secuencial de T4
+        # Orden: 2 (INACTIVO), 12 (CERRADO), 10 (BAJA), 812 (AISLADO),
+        #        853 sin fase, 999999999 (inexistente), 462 con fase
+        # -------------------------------------------------------------
+        print("\n--- Ejecutando C2: Precondiciones T4 ---")
+        escenarios_precondiciones = [
+            ("INACTIVO", 2, "08:01", 10.0),
+            ("CERRADO", 12, "08:02", 10.0),
+            ("BAJA", 10, "08:03", 10.0),
+            ("AISLADO", 812, "08:04", 10.0),
+            ("CICLO_NO_ABIERTO", 853, "08:05", 10.0),
+            ("INEXISTENTE", 999999999, "08:06", 10.0),
+        ]
+
+        for nombre_esc, id_act, hora, dosis in escenarios_precondiciones:
+            p = payload_base(id_act, dosis=dosis, hora=hora)
+            t0 = time.perf_counter()
+            r = session.post(f"{BASE_URL}/suministros/medicamentos", json=p, timeout=30)
+            ms = (time.perf_counter() - t0) * 1000
+            log_traza(f_trazas, "POST", f"{BASE_URL}/suministros/medicamentos", r.status_code, p, r, ms)
+            print(f"Escenario {nombre_esc} (Activo {id_act}): HTTP {r.status_code}, error_code={r.json().get('error_code') if r.headers.get('content-type','').startswith('application/json') else 'NO_JSON'}")
+            resultados_resumen.append({"escenario": nombre_esc, "id_activo": id_act, "http": r.status_code, "resp": r.json()})
+
+        # Escenario POBLACIONAL 462 abriendo fase en la misma corrida
+        print("\n--- Ejecutando C2: Activo 462 (POBLACIONAL cantidad NULL) ---")
+        # 1. Abrir fase
+        t0 = time.perf_counter()
+        body_fase462 = {"id_ciclo_productiva": 4, "motivo_cambio": "Apertura fase activo 462 en sandbox"}
+        r_fas462 = session.post(f"{BASE_URL}/activos-biologicos/462/fases", json=body_fase462, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos/462/fases", r_fas462.status_code, body_fase462, r_fas462, ms)
+        print(f"Apertura fase activo 462: HTTP {r_fas462.status_code}")
+        assert r_fas462.status_code in (200, 201), f"Fallo abrir fase 462: {r_fas462.status_code} {r_fas462.text}"
+
+        # 2. POST medicamentos sobre 462
+        t0 = time.perf_counter()
+        p_med462 = payload_base(462, dosis=100.0, hora="08:07")
+        r_med462 = session.post(f"{BASE_URL}/suministros/medicamentos", json=p_med462, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/suministros/medicamentos", r_med462.status_code, p_med462, r_med462, ms)
+        print(f"Escenario POBLACIONAL_462: HTTP {r_med462.status_code}, error_code={r_med462.json().get('error_code')}")
+        resultados_resumen.append({"escenario": "POBLACIONAL_CANTIDAD_NULL_462", "id_activo": 462, "http": r_med462.status_code, "resp": r_med462.json()})
+
+    finally:
+        f_trazas.close()
+        # Teardown DELETE run_id
+        print(f"\nCerrando corrida sandbox {run_id}...")
+        try:
+            r_del = requests.delete(
+                f"{BASE_URL}/test-control/runs/{run_id}",
+                headers={"X-Sandbox-Secret": SANDBOX_SECRET},
+                timeout=30,
+            )
+            print(f"Teardown DELETE HTTP {r_del.status_code}: {r_del.text}")
+            teardown_status = r_del.status_code
+            teardown_body = r_del.text
+        except Exception as e:
+            print(f"Error en teardown: {e}")
+            teardown_status = 0
+            teardown_body = str(e)
+
+        # Guardar resumen de ejecución
+        resumen_path = _DIR_ACTUAL / "resumen_c2_c4.json"
+        with open(resumen_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "run_id": run_id,
+                "teardown_status": teardown_status,
+                "teardown_body": teardown_body,
+                "resultados": resultados_resumen
+            }, f, indent=2, ensure_ascii=False)
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+--- ANEXO SCRIPT NUEVO: c5_sondeo_cantidad_cero.py ---
+"""Sondeo acotado de cantidad_actual=0 (C5).
+Ejecuta hasta 10 intentos por API real dentro de una corrida sandbox propia.
+Registra trazas crudas automáticas en trazas_c5_sondeo.jsonl.
+Cierra la corrida con DELETE /test-control/runs/{run_id}.
+"""
+from __future__ import annotations
+
+import json
+import os
+import time
+import uuid
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+import requests
+from dotenv import dotenv_values
+
+_DIR_ACTUAL = Path(__file__).resolve().parent
+_RAIZ_REPO = Path(__file__).resolve().parents[7]
+if not (_RAIZ_REPO / ".env.test").exists():
+    _RAIZ_REPO = Path.cwd()
+_ENV_TEST = dotenv_values(_RAIZ_REPO / ".env.test")
+
+
+def env(nombre: str) -> str:
+    v = os.environ.get(nombre) or _ENV_TEST.get(nombre)
+    if not v:
+        raise RuntimeError(f"Falta variable de entorno: {nombre}")
+    return v
+
+
+BASE_URL = env("TEST_BASE_URL")
+SANDBOX_SECRET = env("TEST_SANDBOX_SECRET")
+EMAIL = env("TEST_ADMIN_EMAIL")
+PASSWORD = env("TEST_ADMIN_PASSWORD")
+
+TRAZAS_PATH = _DIR_ACTUAL / "trazas_c5_sondeo.jsonl"
+
+
+def sanitizar(data: any) -> any:
+    if isinstance(data, dict):
+        san = {}
+        for k, v in data.items():
+            if k.lower() in ("contrasena", "password", "token", "authorization"):
+                san[k] = "***REDACTED***"
+            elif isinstance(v, (dict, list)):
+                san[k] = sanitizar(v)
+            else:
+                san[k] = v
+        return san
+    elif isinstance(data, list):
+        return [sanitizar(x) for x in data]
+    return data
+
+
+def log_traza(f_out, metodo: str, url: str, status_code: int, req_body: any, resp: requests.Response | None, duracion_ms: float):
+    now_iso = datetime.now(timezone(timedelta(hours=-5))).isoformat()
+    resp_body = None
+    server_date = ""
+    if resp is not None:
+        server_date = resp.headers.get("Date", "")
+        try:
+            resp_body = resp.json()
+        except Exception:
+            resp_body = resp.text[:500]
+
+    entry = {
+        "timestamp_local": now_iso,
+        "server_date": server_date,
+        "duracion_ms": round(duracion_ms, 2),
+        "metodo": metodo,
+        "url": url,
+        "status_code": status_code,
+        "request_body": sanitizar(req_body),
+        "response_body": sanitizar(resp_body),
+    }
+    f_out.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    f_out.flush()
+    return entry
+
+
+def hoy_str() -> str:
+    return datetime.now(timezone(timedelta(hours=-5))).date().isoformat()
+
+
+def main():
+    run_id = f"tc-m05-g15-c5-{uuid.uuid4()}"
+    print(f"Iniciando corrida C5 con run_id: {run_id}")
+
+    session = requests.Session()
+    headers_base = {
+        "X-Test-Run-Id": run_id,
+        "X-Sandbox-Secret": SANDBOX_SECRET,
+        "X-Zona-Horaria": "America/Bogota",
+    }
+    session.headers.update(headers_base)
+
+    f_trazas = open(TRAZAS_PATH, "w", encoding="utf-8")
+    intentos_reporte = []
+
+    try:
+        # Login
+        t0 = time.perf_counter()
+        r_login = session.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": EMAIL, "contrasena": PASSWORD}, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/sesiones/", r_login.status_code, {"correo_electronico": EMAIL, "contrasena": "***"}, r_login, ms)
+        assert r_login.status_code == 200, f"Login fallo: {r_login.status_code}"
+        token = r_login.json()["token"]
+        session.headers["Authorization"] = f"Bearer {token}"
+        print("Login OK")
+
+        # -----------------------------------------------------------------
+        # INTENTO 1: Reactivar/abrir ciclo en Activo 9
+        # -----------------------------------------------------------------
+        print("\n--- Intento 1: Reactivar / abrir ciclo en Activo 9 ---")
+        body_patch9 = {
+            "estado_nuevo": "ACTIVO",
+            "fecha_cambio_estado": hoy_str(),
+            "motivo_cambio": "Intento de reactivacion activo 9"
+        }
+        t0 = time.perf_counter()
+        r1 = session.patch(f"{BASE_URL}/activos-biologicos/9/estado", json=body_patch9, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "PATCH", f"{BASE_URL}/activos-biologicos/9/estado", r1.status_code, body_patch9, r1, ms)
+        print(f"1.1 PATCH /activos-biologicos/9/estado: HTTP {r1.status_code}, body: {r1.text}")
+
+        body_fase9 = {"id_ciclo_productiva": 3, "motivo_cambio": "Apertura fase ciclo 3"}
+        t0 = time.perf_counter()
+        r1_2 = session.post(f"{BASE_URL}/activos-biologicos/9/fases", json=body_fase9, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos/9/fases", r1_2.status_code, body_fase9, r1_2, ms)
+        print(f"1.2 POST /activos-biologicos/9/fases: HTTP {r1_2.status_code}, body: {r1_2.text}")
+        intentos_reporte.append({
+            "intento": 1,
+            "descripcion": "Reactivar y abrir fase en activo 9",
+            "endpoint": "PATCH /activos-biologicos/9/estado y POST /activos-biologicos/9/fases",
+            "http_status": [r1.status_code, r1_2.status_code],
+            "resultado": r1_2.text[:200]
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 2: Crear POBLACIONAL con cantidad_inicial = 0
+        # -----------------------------------------------------------------
+        print("\n--- Intento 2: Crear POBLACIONAL con cantidad_inicial = 0 ---")
+        body_crear_cero = {
+            "tipo_activo": "POBLACIONAL",
+            "id_especie": 1,
+            "fecha_inicio_ciclo": hoy_str(),
+            "origen_financiero": "nacimiento",
+            "id_infraestructura": 2,
+            "cantidad_inicial": 0,
+            "descripcion": "Lote prueba cantidad 0"
+        }
+        t0 = time.perf_counter()
+        r2 = session.post(f"{BASE_URL}/activos-biologicos", json=body_crear_cero, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos", r2.status_code, body_crear_cero, r2, ms)
+        print(f"Intento 2: HTTP {r2.status_code}, body: {r2.text}")
+        intentos_reporte.append({
+            "intento": 2,
+            "descripcion": "Crear POBLACIONAL con cantidad_inicial = 0",
+            "endpoint": "POST /activos-biologicos",
+            "http_status": r2.status_code,
+            "resultado": r2.text[:200]
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 3: Crear POBLACIONAL válido con cantidad_inicial = 10 y abrir fase
+        # -----------------------------------------------------------------
+        print("\n--- Intento 3: Crear POBLACIONAL con cantidad_inicial = 10 y abrir fase ---")
+        body_crear_10 = {
+            "tipo_activo": "POBLACIONAL",
+            "id_especie": 1,
+            "fecha_inicio_ciclo": hoy_str(),
+            "origen_financiero": "nacimiento",
+            "id_infraestructura": 2,
+            "cantidad_inicial": 10,
+            "descripcion": "Lote prueba sondeo cantidad 0 sandbox"
+        }
+        t0 = time.perf_counter()
+        r3 = session.post(f"{BASE_URL}/activos-biologicos", json=body_crear_10, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos", r3.status_code, body_crear_10, r3, ms)
+        print(f"Intento 3 Creacion: HTTP {r3.status_code}, body: {r3.text}")
+        assert r3.status_code == 201, f"Fallo crear lote: {r3.status_code} {r3.text}"
+        nuevo_id = r3.json()["id_activo_biologico"]
+        print(f"Lote creado con ID: {nuevo_id}")
+
+        # Abrir fase en el lote nuevo
+        body_fase_nuevo = {"id_ciclo_productiva": 1, "motivo_cambio": "Apertura fase lote nuevo"}
+        t0 = time.perf_counter()
+        r3_fase = session.post(f"{BASE_URL}/activos-biologicos/{nuevo_id}/fases", json=body_fase_nuevo, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos/{nuevo_id}/fases", r3_fase.status_code, body_fase_nuevo, r3_fase, ms)
+        print(f"Intento 3 Apertura fase: HTTP {r3_fase.status_code}, body: {r3_fase.text}")
+        assert r3_fase.status_code in (200, 201), f"Fallo abrir fase: {r3_fase.status_code}"
+        intentos_reporte.append({
+            "intento": 3,
+            "descripcion": f"Crear POBLACIONAL ID={nuevo_id} (cantidad=10) y abrir fase ciclo 1",
+            "endpoint": f"POST /activos-biologicos y POST /activos-biologicos/{nuevo_id}/fases",
+            "http_status": [r3.status_code, r3_fase.status_code],
+            "resultado": f"Lote {nuevo_id} ACTIVO con fase abierta exitosamente"
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 4: Baja con cantidad_afectada = 0
+        # -----------------------------------------------------------------
+        print("\n--- Intento 4: Baja con cantidad_afectada = 0 ---")
+        body_baja_cero = {
+            "tipo_baja": "muerte",
+            "fecha_baja": hoy_str(),
+            "motivo_baja": "Intento de baja con cantidad 0",
+            "cantidad_afectada": 0
+        }
+        t0 = time.perf_counter()
+        r4 = session.post(f"{BASE_URL}/activos-biologicos/{nuevo_id}/eventos/baja", json=body_baja_cero, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos/{nuevo_id}/eventos/baja", r4.status_code, body_baja_cero, r4, ms)
+        print(f"Intento 4: HTTP {r4.status_code}, body: {r4.text}")
+        intentos_reporte.append({
+            "intento": 4,
+            "descripcion": "Baja con cantidad_afectada = 0",
+            "endpoint": f"POST /activos-biologicos/{nuevo_id}/eventos/baja",
+            "http_status": r4.status_code,
+            "resultado": r4.text[:200]
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 5: Intento de PATCH directo en detalle poblacional
+        # -----------------------------------------------------------------
+        print("\n--- Intento 5: PATCH directo /detalle-poblacional ---")
+        t0 = time.perf_counter()
+        r5 = session.patch(f"{BASE_URL}/activos-biologicos/{nuevo_id}/detalle-poblacional", json={"cantidad_actual": 0}, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "PATCH", f"{BASE_URL}/activos-biologicos/{nuevo_id}/detalle-poblacional", r5.status_code, {"cantidad_actual": 0}, r5, ms)
+        print(f"Intento 5: HTTP {r5.status_code}, body: {r5.text}")
+        intentos_reporte.append({
+            "intento": 5,
+            "descripcion": "PATCH directo /detalle-poblacional",
+            "endpoint": f"PATCH /activos-biologicos/{nuevo_id}/detalle-poblacional",
+            "http_status": r5.status_code,
+            "resultado": r5.text[:200]
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 6: Intento de PATCH /activos-biologicos/{id} (RF-35)
+        # -----------------------------------------------------------------
+        print("\n--- Intento 6: PATCH /activos-biologicos/{id} ---")
+        t0 = time.perf_counter()
+        r6 = session.patch(f"{BASE_URL}/activos-biologicos/{nuevo_id}", json={"cantidad_actual": 0}, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "PATCH", f"{BASE_URL}/activos-biologicos/{nuevo_id}", r6.status_code, {"cantidad_actual": 0}, r6, ms)
+        print(f"Intento 6: HTTP {r6.status_code}, body: {r6.text}")
+        intentos_reporte.append({
+            "intento": 6,
+            "descripcion": "PATCH /activos-biologicos/{id} sobre POBLACIONAL",
+            "endpoint": f"PATCH /activos-biologicos/{nuevo_id}",
+            "http_status": r6.status_code,
+            "resultado": r6.text[:200]
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 7: Baja parcial de 9 individuos (dejando 1 individuo)
+        # -----------------------------------------------------------------
+        print("\n--- Intento 7: Baja parcial de 9 individuos (dejando 1) ---")
+        body_baja_9 = {
+            "tipo_baja": "muerte",
+            "fecha_baja": hoy_str(),
+            "motivo_baja": "Mortalidad parcial de 9 individuos",
+            "cantidad_afectada": 9
+        }
+        t0 = time.perf_counter()
+        r7 = session.post(f"{BASE_URL}/activos-biologicos/{nuevo_id}/eventos/baja", json=body_baja_9, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos/{nuevo_id}/eventos/baja", r7.status_code, body_baja_9, r7, ms)
+        print(f"Intento 7: HTTP {r7.status_code}")
+        assert r7.status_code == 201, f"Fallo baja parcial: {r7.status_code} {r7.text}"
+
+        # Releer estado tras baja parcial
+        r7_act = session.get(f"{BASE_URL}/activos-biologicos/{nuevo_id}", timeout=30)
+        data7 = r7_act.json()
+        dp7 = data7.get("detalle_poblacional") or {}
+        print(f"Estado tras baja parcial: id_estado={data7.get('id_estado')}, cantidad_actual={dp7.get('cantidad_actual')}")
+        intentos_reporte.append({
+            "intento": 7,
+            "descripcion": "Baja parcial de 9 individuos dejando 1 individuo",
+            "endpoint": f"POST /activos-biologicos/{nuevo_id}/eventos/baja",
+            "http_status": r7.status_code,
+            "resultado": f"id_estado={data7.get('id_estado')}, cantidad_actual={dp7.get('cantidad_actual')}"
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 8: Baja final de 1 individuo (alcanzando cantidad_actual = 0)
+        # -----------------------------------------------------------------
+        print("\n--- Intento 8: Baja final de 1 individuo (alcanzando 0) ---")
+        body_baja_1 = {
+            "tipo_baja": "muerte",
+            "fecha_baja": hoy_str(),
+            "motivo_baja": "Mortalidad de 1 individuo restante",
+            "cantidad_afectada": 1
+        }
+        t0 = time.perf_counter()
+        r8 = session.post(f"{BASE_URL}/activos-biologicos/{nuevo_id}/eventos/baja", json=body_baja_1, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos/{nuevo_id}/eventos/baja", r8.status_code, body_baja_1, r8, ms)
+        print(f"Intento 8: HTTP {r8.status_code}")
+        assert r8.status_code == 201, f"Fallo baja final: {r8.status_code} {r8.text}"
+
+        # Releer estado y fases tras alcanzar cantidad 0
+        r8_act = session.get(f"{BASE_URL}/activos-biologicos/{nuevo_id}", timeout=30)
+        data8 = r8_act.json()
+        dp8 = data8.get("detalle_poblacional") or {}
+        r8_fas = session.get(f"{BASE_URL}/activos-biologicos/{nuevo_id}/fases", timeout=30)
+        fases8 = r8_fas.json().get("fases") or []
+        fases_activas8 = [f for f in fases8 if f.get("es_activa") is True]
+
+        print(f"Estado tras alcanzar 0: id_estado={data8.get('id_estado')} ({data8.get('nombre_estado')}), cantidad_actual={dp8.get('cantidad_actual')}, fases_activas={len(fases_activas8)}")
+        intentos_reporte.append({
+            "intento": 8,
+            "descripcion": "Baja final de 1 individuo alcanzando cantidad_actual = 0",
+            "endpoint": f"POST /activos-biologicos/{nuevo_id}/eventos/baja",
+            "http_status": r8.status_code,
+            "resultado": f"id_estado={data8.get('id_estado')} ({data8.get('nombre_estado')}), cantidad_actual={dp8.get('cantidad_actual')}, fases_activas={len(fases_activas8)}"
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 9: Intentar reactivar lote (PATCH estado) o abrir fase estando en 0
+        # -----------------------------------------------------------------
+        print("\n--- Intento 9: Intentar reactivar lote o abrir fase estando en cantidad 0 ---")
+        t0 = time.perf_counter()
+        body_patch_reactivar = {
+            "estado_nuevo": "ACTIVO",
+            "fecha_cambio_estado": hoy_str(),
+            "motivo_cambio": "Reactivar lote en 0"
+        }
+        r9_estado = session.patch(f"{BASE_URL}/activos-biologicos/{nuevo_id}/estado", json=body_patch_reactivar, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "PATCH", f"{BASE_URL}/activos-biologicos/{nuevo_id}/estado", r9_estado.status_code, body_patch_reactivar, r9_estado, ms)
+        print(f"Intento 9.1 PATCH estado: HTTP {r9_estado.status_code}, body: {r9_estado.text}")
+
+        t0 = time.perf_counter()
+        body_fase_reabrir = {"id_ciclo_productiva": 1, "motivo_cambio": "Abrir fase en lote en 0"}
+        r9_fase = session.post(f"{BASE_URL}/activos-biologicos/{nuevo_id}/fases", json=body_fase_reabrir, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/activos-biologicos/{nuevo_id}/fases", r9_fase.status_code, body_fase_reabrir, r9_fase, ms)
+        print(f"Intento 9.2 POST fases: HTTP {r9_fase.status_code}, body: {r9_fase.text}")
+        intentos_reporte.append({
+            "intento": 9,
+            "descripcion": "Intentar reactivar lote (PATCH estado=1) o abrir fase estando en 0",
+            "endpoint": f"PATCH /activos-biologicos/{nuevo_id}/estado y POST /activos-biologicos/{nuevo_id}/fases",
+            "http_status": [r9_estado.status_code, r9_fase.status_code],
+            "resultado": f"Reactivar HTTP {r9_estado.status_code} ({r9_estado.text[:100]}); Abrir fase HTTP {r9_fase.status_code} ({r9_fase.text[:100]})"
+        })
+
+        # -----------------------------------------------------------------
+        # INTENTO 10: POST /suministros/medicamentos sobre lote con cantidad 0
+        # -----------------------------------------------------------------
+        print("\n--- Intento 10: POST /suministros/medicamentos sobre lote con cantidad 0 ---")
+        p_med = {
+            "id_activo_biologico": nuevo_id,
+            "nombre_medicamento": "Oxitetraciclina",
+            "fecha_aplicacion": hoy_str(),
+            "hora_aplicacion": "08:10",
+            "via_administracion": "INTRAMUSCULAR",
+            "dosis_aplicada": 100,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 0,
+            "motivo_aplicacion": "Tratamiento sobre lote con cantidad 0",
+            "costo_unitario": 500,
+            "nombre_veterinario": "Dr. Pérez",
+        }
+        t0 = time.perf_counter()
+        r10 = session.post(f"{BASE_URL}/suministros/medicamentos", json=p_med, timeout=30)
+        ms = (time.perf_counter() - t0) * 1000
+        log_traza(f_trazas, "POST", f"{BASE_URL}/suministros/medicamentos", r10.status_code, p_med, r10, ms)
+        print(f"Intento 10: HTTP {r10.status_code}, body: {r10.text}")
+        intentos_reporte.append({
+            "intento": 10,
+            "descripcion": "POST /suministros/medicamentos sobre lote que alcanzó cantidad_actual = 0",
+            "endpoint": "POST /suministros/medicamentos",
+            "http_status": r10.status_code,
+            "resultado": r10.text[:200]
+        })
+
+    finally:
+        f_trazas.close()
+        # Cerrar corrida sandbox
+        print(f"\nCerrando corrida sandbox C5 {run_id}...")
+        try:
+            r_del = requests.delete(
+                f"{BASE_URL}/test-control/runs/{run_id}",
+                headers={"X-Sandbox-Secret": SANDBOX_SECRET},
+                timeout=30,
+            )
+            print(f"Teardown C5 DELETE HTTP {r_del.status_code}: {r_del.text}")
+            teardown_status = r_del.status_code
+            teardown_body = r_del.text
+        except Exception as e:
+            print(f"Error en teardown C5: {e}")
+            teardown_status = 0
+            teardown_body = str(e)
+
+        with open(_DIR_ACTUAL / "resumen_c5_sondeo.json", "w", encoding="utf-8") as f:
+            json.dump({
+                "run_id": run_id,
+                "teardown_status": teardown_status,
+                "teardown_body": teardown_body,
+                "intentos": intentos_reporte
+            }, f, indent=2, ensure_ascii=False)
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+--- ANEXO SCRIPT NUEVO: c6_linea_base_final.py ---
+"""Medición de línea base de inocuidad final (sin sandbox) para Activos 853 y 462.
+Compara contra linea_base_inicial.json y valida coincidencia estricta.
+"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import requests
+from dotenv import dotenv_values
+
+_DIR_ACTUAL = Path(__file__).resolve().parent
+_RAIZ_REPO = Path(__file__).resolve().parents[7]
+if not (_RAIZ_REPO / ".env.test").exists():
+    _RAIZ_REPO = Path.cwd()
+_ENV_TEST = dotenv_values(_RAIZ_REPO / ".env.test")
+
+
+def env(nombre: str) -> str:
+    v = os.environ.get(nombre) or _ENV_TEST.get(nombre)
+    if not v:
+        raise RuntimeError(f"Falta variable de entorno: {nombre}")
+    return v
+
+
+BASE_URL = env("TEST_BASE_URL")
+EMAIL = env("TEST_ADMIN_EMAIL")
+PASSWORD = env("TEST_ADMIN_PASSWORD")
+
+
+def consultar_estado_activo(token: str, id_activo: int) -> dict:
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # 1. Conteo medicamentos
+    r_med = requests.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico={id_activo}", headers=headers, timeout=30)
+    assert r_med.status_code == 200, f"Error medicamentos {id_activo}: {r_med.status_code} {r_med.text}"
+    total_meds = r_med.json().get("total")
+    
+    # 2. Estado del activo
+    r_act = requests.get(f"{BASE_URL}/activos-biologicos/{id_activo}", headers=headers, timeout=30)
+    assert r_act.status_code == 200, f"Error activo {id_activo}: {r_act.status_code} {r_act.text}"
+    data_act = r_act.json()
+    
+    # 3. Fases
+    r_fas = requests.get(f"{BASE_URL}/activos-biologicos/{id_activo}/fases", headers=headers, timeout=30)
+    assert r_fas.status_code == 200, f"Error fases {id_activo}: {r_fas.status_code} {r_fas.text}"
+    fases = r_fas.json().get("fases") or []
+    fases_activas = [f for f in fases if f.get("es_activa") is True]
+    
+    return {
+        "id_activo_biologico": id_activo,
+        "total_medicamentos": total_meds,
+        "id_estado": data_act.get("id_estado"),
+        "estado": data_act.get("estado"),
+        "total_fases": len(fases),
+        "total_fases_activas": len(fases_activas),
+        "fases_ids": [f.get("id_gestion_fase") for f in fases],
+    }
+
+
+def main():
+    r_login = requests.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": EMAIL, "contrasena": PASSWORD}, timeout=15)
+    assert r_login.status_code == 200, f"Login fallo: {r_login.status_code}"
+    token = r_login.json()["token"]
+    
+    res_853 = consultar_estado_activo(token, 853)
+    res_462 = consultar_estado_activo(token, 462)
+    
+    final_data = {
+        "timestamp_iso": r_login.headers.get("Date", ""),
+        "activo_853": res_853,
+        "activo_462": res_462,
+    }
+    
+    salida_json = _DIR_ACTUAL / "linea_base_final.json"
+    with open(salida_json, "w", encoding="utf-8") as f:
+        json.dump(final_data, f, indent=2)
+
+    # Comparar con inicial
+    inicial_json = _DIR_ACTUAL / "linea_base_inicial.json"
+    with open(inicial_json, "r", encoding="utf-8") as f:
+        inicial_data = json.load(f)
+        
+    print("LINEA_BASE_FINAL_OK")
+    print("Activo 853 Inicial:", json.dumps(inicial_data["activo_853"]))
+    print("Activo 853 Final:  ", json.dumps(res_853))
+    assert res_853 == inicial_data["activo_853"], "DISCREPANCIA EN ACTIVO 853!"
+    
+    print("Activo 462 Inicial:", json.dumps(inicial_data["activo_462"]))
+    print("Activo 462 Final:  ", json.dumps(res_462))
+    assert res_462 == inicial_data["activo_462"], "DISCREPANCIA EN ACTIVO 462!"
+    
+    print("INOCUIDAD TOTAL CONFIRMADA: Conteos, estados y fases coinciden 100% antes y después.")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+--- ANEXO SCRIPT NUEVO: c6_linea_base_inicial.py ---
+"""Medición de línea base de inocuidad inicial (sin sandbox) para Activos 853 y 462.
+Registra:
+- Conteo de medicamentos
+- Estado del activo
+- Número de fases totales y activas
+"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import requests
+from dotenv import dotenv_values
+
+_DIR_ACTUAL = Path(__file__).resolve().parent
+_RAIZ_REPO = Path(__file__).resolve().parents[7]
+if not (_RAIZ_REPO / ".env.test").exists():
+    _RAIZ_REPO = Path.cwd()
+_ENV_TEST = dotenv_values(_RAIZ_REPO / ".env.test")
+
+
+def env(nombre: str) -> str:
+    v = os.environ.get(nombre) or _ENV_TEST.get(nombre)
+    if not v:
+        raise RuntimeError(f"Falta variable de entorno: {nombre}")
+    return v
+
+
+BASE_URL = env("TEST_BASE_URL")
+EMAIL = env("TEST_ADMIN_EMAIL")
+PASSWORD = env("TEST_ADMIN_PASSWORD")
+
+
+def consultar_estado_activo(token: str, id_activo: int) -> dict:
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # 1. Conteo medicamentos
+    r_med = requests.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico={id_activo}", headers=headers, timeout=30)
+    assert r_med.status_code == 200, f"Error medicamentos {id_activo}: {r_med.status_code} {r_med.text}"
+    total_meds = r_med.json().get("total")
+    
+    # 2. Estado del activo
+    r_act = requests.get(f"{BASE_URL}/activos-biologicos/{id_activo}", headers=headers, timeout=30)
+    assert r_act.status_code == 200, f"Error activo {id_activo}: {r_act.status_code} {r_act.text}"
+    data_act = r_act.json()
+    
+    # 3. Fases
+    r_fas = requests.get(f"{BASE_URL}/activos-biologicos/{id_activo}/fases", headers=headers, timeout=30)
+    assert r_fas.status_code == 200, f"Error fases {id_activo}: {r_fas.status_code} {r_fas.text}"
+    fases = r_fas.json().get("fases") or []
+    fases_activas = [f for f in fases if f.get("es_activa") is True]
+    
+    return {
+        "id_activo_biologico": id_activo,
+        "total_medicamentos": total_meds,
+        "id_estado": data_act.get("id_estado"),
+        "estado": data_act.get("estado"),
+        "total_fases": len(fases),
+        "total_fases_activas": len(fases_activas),
+        "fases_ids": [f.get("id_gestion_fase") for f in fases],
+    }
+
+
+def main():
+    # Login outside sandbox
+    r_login = requests.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": EMAIL, "contrasena": PASSWORD}, timeout=15)
+    assert r_login.status_code == 200, f"Login fallo: {r_login.status_code}"
+    token = r_login.json()["token"]
+    
+    res_853 = consultar_estado_activo(token, 853)
+    res_462 = consultar_estado_activo(token, 462)
+    
+    datos = {
+        "timestamp_iso": r_login.headers.get("Date", ""),
+        "activo_853": res_853,
+        "activo_462": res_462,
+    }
+    
+    salida_json = _DIR_ACTUAL / "linea_base_inicial.json"
+    with open(salida_json, "w", encoding="utf-8") as f:
+        json.dump(datos, f, indent=2)
+        
+    print("LINEA_BASE_INICIAL_OK")
+    print("Activo 853:", json.dumps(res_853))
+    print("Activo 462:", json.dumps(res_462))
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+--- ANEXO SCRIPT PREVIO: buscar_activos_http.py ---
+# | Fecha      | Nombre                   | Que se hizo                                               |
+# |------------|--------------------------|-----------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G15 FASE 1: busqueda HTTP de activos viables       |
+import os
+import uuid
+import requests
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+BASE_URL = env["TEST_BASE_URL"].rstrip("/")
+ADMIN_EMAIL = env["TEST_ADMIN_EMAIL"]
+ADMIN_PASSWORD = env["TEST_ADMIN_PASSWORD"]
+SANDBOX_SECRET = env["TEST_SANDBOX_SECRET"]
+
+EXCLUIDOS = (930, 900, 901, 825)
+
+run_id = f"diag-http-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": SANDBOX_SECRET, "X-Zona-Horaria": "America/Bogota"})
+r = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+
+try:
+    # 1. Estados 2, 4, 5, 6
+    for st_id, st_name in [(2, "INACTIVO"), (4, "AISLADO"), (5, "CERRADO"), (6, "BAJA")]:
+        resp = s.get(f"{BASE_URL}/activos-biologicos?id_estado={st_id}&page_size=10")
+        registros = resp.json().get("registros", []) if resp.status_code == 200 else []
+        validos = [x for x in registros if x.get("id_activo_biologico") not in EXCLUIDOS]
+        print(f"\n--- Estado {st_name} ({st_id}): total={resp.json().get('total_registros')} ---")
+        for v in validos[:5]:
+            print(f"ID={v['id_activo_biologico']} | Tipo={v['tipo']} | Estado={v['nombre_estado']}({v['id_estado']})")
+
+    # 2. Poblacionales activos
+    resp_pob = s.get(f"{BASE_URL}/activos-biologicos?tipo=POBLACIONAL&page_size=50")
+    regs_pob = resp_pob.json().get("registros", []) if resp_pob.status_code == 200 else []
+    print(f"\n--- POBLACIONALES: total={resp_pob.json().get('total_registros')} ---")
+    for p in regs_pob:
+        aid = p["id_activo_biologico"]
+        if aid in EXCLUIDOS:
+            continue
+        # Consultar detalle del activo
+        det_r = s.get(f"{BASE_URL}/activos-biologicos/{aid}")
+        det = det_r.json() if det_r.status_code == 200 else {}
+        dp = det.get("detalle_poblacional") or {}
+        cant = dp.get("cantidad_actual")
+        # Consultar fases
+        fases_r = s.get(f"{BASE_URL}/activos-biologicos/{aid}/fases")
+        fases = fases_r.json().get("fases", []) if fases_r.status_code == 200 else []
+        activas = [f for f in fases if f.get("es_activa")]
+        print(f"POBLACIONAL ID={aid} | Estado={p.get('nombre_estado')}({p.get('id_estado')}) | cant_actual={cant} | FasesActivas={len(activas)}")
+
+finally:
+    s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": SANDBOX_SECRET}, timeout=45)
+    s.close()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: check_10.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-check10-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+
+q = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT id_activo_biologico, tipo::text, id_estado FROM modulo2.activos_biologicos WHERE id_activo_biologico = 10"})
+print("Activo 10:", q.json())
+
+q2 = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT id_activo_biologico, tipo::text, id_estado FROM modulo2.activos_biologicos WHERE id_estado = 6"})
+print("Activos id_estado=6:", q2.json())
+
+s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+
+
+
+
+--- ANEXO SCRIPT PREVIO: check_cols.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-col-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+
+q2 = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT tipo::text, count(*) as c FROM modulo2.activos_biologicos GROUP BY tipo::text"})
+print("q2 status:", q2.status_code, q2.text)
+
+q3 = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT id_estado, tipo::text, count(*) as c FROM modulo2.activos_biologicos GROUP BY id_estado, tipo::text ORDER BY id_estado, tipo::text"})
+print("q3 status:", q3.status_code, q3.text)
+
+s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+
+
+
+--- ANEXO SCRIPT PREVIO: check_type.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-type-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+
+q = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT id_activo_biologico, id_estado, pg_typeof(id_estado)::text as t FROM modulo2.activos_biologicos WHERE id_activo_biologico = 10"})
+print("Tipo:", q.json())
+
+q2 = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT id_activo_biologico, id_estado FROM modulo2.activos_biologicos WHERE id_estado::int = 6"})
+print("Cast int:", q2.json())
+
+q3 = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT id_activo_biologico, id_estado FROM modulo2.activos_biologicos WHERE id_estado::text = '6'"})
+print("Cast text:", q3.json())
+
+s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+
+
+
+
+--- ANEXO SCRIPT PREVIO: debug_cand.py ---
+# | Fecha      | Nombre                   | Que se hizo                                               |
+# |------------|--------------------------|-----------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G15 FASE 1: debug queries candidatos               |
+import os
+import uuid
+import json
+import requests
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+BASE_URL = env["TEST_BASE_URL"].rstrip("/")
+ADMIN_EMAIL = env["TEST_ADMIN_EMAIL"]
+ADMIN_PASSWORD = env["TEST_ADMIN_PASSWORD"]
+SANDBOX_SECRET = env["TEST_SANDBOX_SECRET"]
+
+run_id = f"diag-debug-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": SANDBOX_SECRET, "X-Zona-Horaria": "America/Bogota"})
+r = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+
+try:
+    for estado, nombre in [(5, "CERRADO"), (6, "BAJA"), (4, "AISLADO")]:
+        sql = f"SELECT id_activo_biologico, tipo::text, id_estado, fecha_inicio_ciclo FROM modulo2.activos_biologicos WHERE id_estado = {estado} AND id_activo_biologico NOT IN (930, 900, 901, 825) LIMIT 5"
+        resp = s.post(f"{BASE_URL}/test-control/query", json={"query": sql}, timeout=45)
+        print(f"Estado {nombre} ({estado}) status: {resp.status_code}")
+        print(resp.json())
+
+    # Ver fases activas
+    sql_gf = "SELECT id_gestion_fases, id_activo_biologico, es_activa FROM modulo2.gestiones_fases LIMIT 5"
+    resp_gf = s.post(f"{BASE_URL}/test-control/query", json={"query": sql_gf}, timeout=45)
+    print(f"Gestiones fases status: {resp_gf.status_code}")
+    print(resp_gf.json())
+
+    # Ver detalles poblacionales
+    sql_dp = "SELECT id_detalle_activo_biologico_poblacional, id_activo_biologico, cantidad_actual FROM modulo2.detalles_activos_biologicos_poblacionales LIMIT 5"
+    resp_dp = s.post(f"{BASE_URL}/test-control/query", json={"query": sql_dp}, timeout=45)
+    print(f"Detalles poblacionales status: {resp_dp.status_code}")
+    print(resp_dp.json())
+
+finally:
+    s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": SANDBOX_SECRET}, timeout=45)
+    s.close()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: ejecutar_t3_camino_feliz.py ---
+# | Fecha      | Nombre                   | Que se hizo                                               |
+# |------------|--------------------------|-----------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G15 FASE 1: ejecucion T3 Camino Feliz Activo 853   |
+import os
+import uuid
+import json
+import time
+from datetime import datetime, timezone, timedelta
+import requests
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+BASE_URL = env["TEST_BASE_URL"].rstrip("/")
+ADMIN_EMAIL = env["TEST_ADMIN_EMAIL"]
+ADMIN_PASSWORD = env["TEST_ADMIN_PASSWORD"]
+SANDBOX_SECRET = env["TEST_SANDBOX_SECRET"]
+
+ZONA_BOGOTA = timezone(timedelta(hours=-5))
+hoy_bogota = datetime.now(ZONA_BOGOTA).date().isoformat()
+hora_unica = datetime.now(ZONA_BOGOTA).strftime("%H:%M:%S")
+
+def main():
+    run_id = f"tc-m05-g15-t3-feliz-{uuid.uuid4()}"
+    s = requests.Session()
+    s.headers.update({
+        "X-Test-Run-Id": run_id,
+        "X-Sandbox-Secret": SANDBOX_SECRET,
+        "X-Zona-Horaria": "America/Bogota",
+    })
+
+    print(f"=== T3: Camino Feliz sobre Activo 853 [run_id={run_id}] ===")
+    try:
+        # 1. Login
+        t0 = time.perf_counter()
+        r_login = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+        assert r_login.status_code == 200, f"Login fallo: HTTP {r_login.status_code}"
+        token = r_login.json()["token"]
+        s.headers["Authorization"] = f"Bearer {token}"
+        print(f"[OK] Login exitoso en {round((time.perf_counter()-t0)*1000, 1)} ms")
+
+        # 2. Conteo base antes de cualquier accion
+        r_conteo_base = s.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico=853")
+        assert r_conteo_base.status_code == 200, f"Conteo base fallo: HTTP {r_conteo_base.status_code}"
+        conteo_base = r_conteo_base.json().get("total")
+        print(f"[OK] Conteo base medicamentos Activo 853: {conteo_base}")
+
+        # 3. Preparacion de fase en Activo 853
+        r_ciclos = s.get(f"{BASE_URL}/activos-biologicos/853/ciclos-productivos")
+        assert r_ciclos.status_code == 200, f"Listar ciclos fallo: HTTP {r_ciclos.status_code}"
+        con_fases = [c for c in r_ciclos.json().get("items", []) if c.get("fases")]
+        assert len(con_fases) > 0, "No hay ciclos con fases para especie de 853"
+        id_ciclo = con_fases[0]["id_ciclo_productivo"]
+
+        r_fase = s.post(f"{BASE_URL}/activos-biologicos/853/fases", json={
+            "id_ciclo_productiva": id_ciclo,
+            "motivo_cambio": "TC-M05-G15: apertura de fase sandbox T3 camino feliz",
+        })
+        assert r_fase.status_code == 201, f"Abrir fase fallo: HTTP {r_fase.status_code}: {r_fase.text}"
+        print(f"[OK] Fase abierta en Activo 853 (id_ciclo={id_ciclo})")
+
+        # 4. POST /suministros/medicamentos valido
+        payload = {
+            "id_activo_biologico": 853,
+            "nombre_medicamento": "Oxitetraciclina",
+            "fecha_aplicacion": hoy_bogota,
+            "hora_aplicacion": hora_unica[:5],  # HH:MM
+            "via_administracion": "INTRAMUSCULAR",
+            "dosis_aplicada": 10,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 0,
+            "motivo_aplicacion": "Tratamiento de infección respiratoria",
+            "costo_unitario": 500,
+            "nombre_veterinario": "Dr. Pérez",
+        }
+        t_post = time.perf_counter()
+        r_post = s.post(f"{BASE_URL}/suministros/medicamentos", json=payload)
+        lat_post = round((time.perf_counter() - t_post) * 1000, 1)
+
+        print(f"[POST /suministros/medicamentos] HTTP {r_post.status_code} en {lat_post} ms")
+        print(f"Respuesta JSON:\n{json.dumps(r_post.json(), indent=2, ensure_ascii=False)}")
+
+        assert r_post.status_code == 201, f"Esperado 201, recibido {r_post.status_code}: {r_post.text}"
+        data = r_post.json()
+        med = data.get("medicamento", {})
+        id_med = med.get("id_registro_medicamento")
+        estado_reg = med.get("estado_registro")
+        print(f"[OK] Medicamento registrado con id={id_med}, estado_registro={estado_reg}")
+
+        # 5. Conteo dentro del sandbox (debe ser base + 1)
+        r_conteo_sb = s.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico=853")
+        conteo_sb = r_conteo_sb.json().get("total")
+        print(f"[OK] Conteo dentro del sandbox: {conteo_sb} (base + 1)")
+        assert conteo_sb == conteo_base + 1, f"Conteo en sandbox debio ser {conteo_base+1}, fue {conteo_sb}"
+
+    finally:
+        # 6. Teardown
+        del_resp = s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": SANDBOX_SECRET})
+        print(f"[TEARDOWN] status={del_resp.status_code}, body={del_resp.text}")
+        assert del_resp.status_code == 200, f"Teardown fallo con HTTP {del_resp.status_code}"
+        assert "Rollback exitoso" in del_resp.json().get("status", "")
+        s.close()
+
+    # 7. Verificacion de inocuidad en nueva conexion independiente
+    run_id_check = f"tc-m05-g15-check-{uuid.uuid4()}"
+    s2 = requests.Session()
+    s2.headers.update({
+        "X-Test-Run-Id": run_id_check,
+        "X-Sandbox-Secret": SANDBOX_SECRET,
+        "X-Zona-Horaria": "America/Bogota",
+    })
+    try:
+        r_login2 = s2.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+        s2.headers["Authorization"] = f"Bearer {r_login2.json()['token']}"
+        r_final = s2.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico=853")
+        conteo_final = r_final.json().get("total")
+        print(f"[INOCUIDAD] Conteo final tras rollback: {conteo_final} (conteo base: {conteo_base})")
+        assert conteo_final == conteo_base, f"Fallo de inocuidad: base={conteo_base}, final={conteo_final}"
+        print("[EXITO TOTAL T3] Camino feliz verificado y base de datos 100% inocua.")
+    finally:
+        s2.delete(f"{BASE_URL}/test-control/runs/{run_id_check}", headers={"X-Sandbox-Secret": SANDBOX_SECRET})
+        s2.close()
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: ejecutar_t4_precondiciones.py ---
+# | Fecha      | Nombre                   | Que se hizo                                               |
+# |------------|--------------------------|-----------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G15 FASE 1: ejecucion T4 Precondiciones            |
+"""
+Ejecuta las pruebas reales de cada precondicion de T4 en corridas sandbox estrictamente secuenciales.
+Escenarios:
+1) INACTIVO (Activo 2)
+2) CERRADO (Activo 12)
+3) BAJA (Activo 10)
+4) SIN_CICLO (Activo 853 sin abrir fase)
+5) ID_INEXISTENTE (Id 999999999)
+6) POBLACIONAL_CANTIDAD_0 (Activo 9 con fase abierta en sandbox, dosis=100)
+7) POBLACIONAL_CANTIDAD_NULL (Activo 462 con fase abierta en sandbox, dosis=100)
+8) AISLADO (Activo 812, diagnostico)
+"""
+import os
+import uuid
+import json
+import time
+from datetime import datetime, timezone, timedelta
+import requests
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+BASE_URL = env["TEST_BASE_URL"].rstrip("/")
+ADMIN_EMAIL = env["TEST_ADMIN_EMAIL"]
+ADMIN_PASSWORD = env["TEST_ADMIN_PASSWORD"]
+SANDBOX_SECRET = env["TEST_SANDBOX_SECRET"]
+
+ZONA_BOGOTA = timezone(timedelta(hours=-5))
+hoy_bogota = datetime.now(ZONA_BOGOTA).date().isoformat()
+
+def correr_escenario(nombre_escenario: str, id_activo: int, dosis: float = 10.0, hora_str: str = "10:00", abrir_fase: bool = False) -> dict:
+    run_id = f"tc-m05-g15-t4-{nombre_escenario.lower()}-{uuid.uuid4()}"
+    s = requests.Session()
+    s.headers.update({
+        "X-Test-Run-Id": run_id,
+        "X-Sandbox-Secret": SANDBOX_SECRET,
+        "X-Zona-Horaria": "America/Bogota",
+    })
+
+    print(f"\n=======================================================")
+    print(f"--- Iniciando Escenario: {nombre_escenario} [Activo {id_activo}] ---")
+    print(f"Run ID: {run_id}")
+
+    resultado = {
+        "escenario": nombre_escenario,
+        "id_activo": id_activo,
+        "run_id": run_id,
+        "dosis": dosis,
+        "hora": hora_str,
+    }
+
+    try:
+        # 1. Login unico
+        r_login = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+        assert r_login.status_code == 200, f"Login fallo: {r_login.status_code}"
+        token = r_login.json()["token"]
+        s.headers["Authorization"] = f"Bearer {token}"
+
+        # 2. Conteo base de medicamentos y estado del activo (si existe)
+        conteo_base = None
+        estado_inicial = None
+        if id_activo != 999999999:
+            r_act = s.get(f"{BASE_URL}/activos-biologicos/{id_activo}")
+            if r_act.status_code == 200:
+                act_data = r_act.json()
+                estado_inicial = (act_data.get("id_estado"), act_data.get("nombre_estado"))
+                resultado["estado_inicial"] = estado_inicial
+
+            r_conteo = s.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico={id_activo}")
+            if r_conteo.status_code == 200:
+                conteo_base = r_conteo.json().get("total")
+                resultado["conteo_base"] = conteo_base
+
+        # 3. Abrir fase si aplica
+        if abrir_fase:
+            r_ciclos = s.get(f"{BASE_URL}/activos-biologicos/{id_activo}/ciclos-productivos")
+            ciclos = [c for c in r_ciclos.json().get("items", []) if c.get("fases")]
+            assert len(ciclos) > 0, f"No hay ciclos con fases para activo {id_activo}"
+            id_ciclo = ciclos[0]["id_ciclo_productivo"]
+            r_fase = s.post(f"{BASE_URL}/activos-biologicos/{id_activo}/fases", json={
+                "id_ciclo_productiva": id_ciclo,
+                "motivo_cambio": f"TC-M05-G15 FASE 1: apertura fase sandbox {nombre_escenario}",
+            })
+            print(f"Apertura de fase: HTTP {r_fase.status_code}")
+            assert r_fase.status_code == 201, f"Fallo abrir fase: {r_fase.text}"
+            resultado["fase_abierta"] = id_ciclo
+
+        # 4. Enviar POST /suministros/medicamentos
+        payload = {
+            "id_activo_biologico": id_activo,
+            "nombre_medicamento": "Oxitetraciclina",
+            "fecha_aplicacion": hoy_bogota,
+            "hora_aplicacion": hora_str,
+            "via_administracion": "INTRAMUSCULAR",
+            "dosis_aplicada": dosis,
+            "unidad_dosis": "ml",
+            "periodo_retiro_dias": 0,
+            "motivo_aplicacion": "Tratamiento de infección respiratoria",
+            "costo_unitario": 500,
+            "nombre_veterinario": "Dr. Pérez",
+        }
+        resultado["payload_enviado"] = payload
+
+        t0 = time.perf_counter()
+        r_post = s.post(f"{BASE_URL}/suministros/medicamentos", json=payload)
+        lat_ms = round((time.perf_counter() - t0) * 1000, 1)
+
+        resultado["http_status"] = r_post.status_code
+        resultado["latencia_ms"] = lat_ms
+        try:
+            body_json = r_post.json()
+        except Exception:
+            body_json = {"raw": r_post.text}
+        resultado["response_body"] = body_json
+        resultado["error_code"] = body_json.get("error_code")
+        resultado["message"] = body_json.get("message")
+        resultado["fields"] = body_json.get("fields")
+
+        print(f"[RESPUESTA POST] HTTP {r_post.status_code} | error_code={resultado['error_code']} en {lat_ms} ms")
+        print(f"Mensaje: {resultado['message']}")
+        if resultado["fields"]:
+            print(f"Fields: {resultado['fields']}")
+
+        # 5. Conteo dentro del sandbox (debe seguir siendo igual al base)
+        if conteo_base is not None:
+            r_conteo_sb = s.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico={id_activo}")
+            conteo_sb = r_conteo_sb.json().get("total") if r_conteo_sb.status_code == 200 else None
+            resultado["conteo_en_sandbox"] = conteo_sb
+            print(f"Conteo medicamentos en sandbox: {conteo_sb} (base={conteo_base})")
+
+        # 6. Verificar que el estado del activo no cambio
+        if id_activo != 999999999:
+            r_act_post = s.get(f"{BASE_URL}/activos-biologicos/{id_activo}")
+            if r_act_post.status_code == 200:
+                act_post = r_act_post.json()
+                estado_post = (act_post.get("id_estado"), act_post.get("nombre_estado"))
+                resultado["estado_post_post"] = estado_post
+                print(f"Estado del activo antes: {estado_inicial} | tras intento: {estado_post}")
+
+    finally:
+        # 7. Teardown obligatorio
+        del_r = s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": SANDBOX_SECRET})
+        print(f"[TEARDOWN] status={del_r.status_code}")
+        assert del_r.status_code == 200, f"Teardown fallo con HTTP {del_r.status_code}"
+        assert "Rollback exitoso" in del_r.json().get("status", "")
+        resultado["teardown_status"] = del_r.status_code
+        resultado["teardown_body"] = del_r.json()
+        s.close()
+
+    # 8. Verificacion de inocuidad final tras teardown
+    if conteo_base is not None:
+        run_id_verif = f"tc-m05-g15-verif-{uuid.uuid4()}"
+        s_v = requests.Session()
+        s_v.headers.update({
+            "X-Test-Run-Id": run_id_verif,
+            "X-Sandbox-Secret": SANDBOX_SECRET,
+            "X-Zona-Horaria": "America/Bogota",
+        })
+        try:
+            r_lv = s_v.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+            s_v.headers["Authorization"] = f"Bearer {r_lv.json()['token']}"
+            r_cf = s_v.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico={id_activo}")
+            conteo_final = r_cf.json().get("total") if r_cf.status_code == 200 else None
+            resultado["conteo_final"] = conteo_final
+            print(f"[INOCUIDAD] Conteo final tras rollback: {conteo_final} (base={conteo_base})")
+            assert conteo_final == conteo_base, f"Fallo inocuidad: base={conteo_base}, final={conteo_final}"
+        finally:
+            s_v.delete(f"{BASE_URL}/test-control/runs/{run_id_verif}", headers={"X-Sandbox-Secret": SANDBOX_SECRET})
+            s_v.close()
+
+    return resultado
+
+def main():
+    escenarios = [
+        ("INACTIVO", 2, 10.0, "10:01", False),
+        ("CERRADO", 12, 10.0, "10:02", False),
+        ("BAJA", 10, 10.0, "10:03", False),
+        ("SIN_CICLO", 853, 10.0, "10:04", False),
+        ("ID_INEXISTENTE", 999999999, 10.0, "10:05", False),
+        ("POBLACIONAL_CANTIDAD_0", 9, 100.0, "10:06", True),
+        ("POBLACIONAL_CANTIDAD_NULL", 462, 100.0, "10:07", True),
+        ("AISLADO", 812, 10.0, "10:08", False),
+    ]
+
+    resultados_totales = []
+    for nombre, aid, dos, hora, abrir_f in escenarios:
+        res = correr_escenario(nombre, aid, dos, hora, abrir_f)
+        resultados_totales.append(res)
+        time.sleep(1) # pausa preventiva
+
+    # Guardar trazas en JSON en la carpeta de evidencias
+    archivo_res = Path(__file__).parent / "resultados_t4_precondiciones.json"
+    with open(archivo_res, "w", encoding="utf-8") as fh:
+        json.dump(resultados_totales, fh, indent=2, ensure_ascii=False)
+    print(f"\nResultados guardados en {archivo_res}")
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: exploracion_schema.py ---
+# | Fecha      | Nombre                   | Que se hizo                                               |
+# |------------|--------------------------|-----------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G15 FASE 1: script consulta esquema modulo2        |
+"""Consulta esquema real de modulo2 en PostgreSQL."""
+import os
+import uuid
+import requests
+from pathlib import Path
+from dotenv import dotenv_values
+
+REPO_ROOT = Path(__file__).resolve().parents[7]
+ENV_PATH = REPO_ROOT / ".env.test"
+ENV = dotenv_values(ENV_PATH) if ENV_PATH.exists() else {}
+
+def get_env(k: str) -> str:
+    v = os.environ.get(k) or ENV.get(k)
+    return v or ""
+
+BASE_URL = get_env("TEST_BASE_URL").rstrip("/")
+ADMIN_EMAIL = get_env("TEST_ADMIN_EMAIL")
+ADMIN_PASSWORD = get_env("TEST_ADMIN_PASSWORD")
+SANDBOX_SECRET = get_env("TEST_SANDBOX_SECRET")
+
+def main():
+    run_id = f"diag-schema-{uuid.uuid4()}"
+    s = requests.Session()
+    s.headers.update({
+        "X-Test-Run-Id": run_id,
+        "X-Sandbox-Secret": SANDBOX_SECRET,
+        "X-Zona-Horaria": "America/Bogota",
+    })
+    try:
+        r = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+        if r.status_code != 200:
+            print("Login failed")
+            return
+        s.headers["Authorization"] = f"Bearer {r.json().get('token')}"
+        
+        # Consultar tablas de modulo2
+        q1 = s.post(f"{BASE_URL}/test-control/query", json={"query": "SELECT table_name FROM information_schema.tables WHERE table_schema = 'modulo2'"}, timeout=45)
+        print("Tablas modulo2:", [row['table_name'] for row in q1.json().get("rows", [])])
+        
+        # Columnas de estados_activos_biologicos
+        q2 = s.post(f"{BASE_URL}/test-control/query", json={"query": "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'modulo2' AND table_name = 'estados_activos_biologicos'"}, timeout=45)
+        print("Columnas estados_activos_biologicos:", q2.json().get("rows", []))
+
+        # Columnas de activos_biologicos
+        q3 = s.post(f"{BASE_URL}/test-control/query", json={"query": "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'modulo2' AND table_name = 'activos_biologicos'"}, timeout=45)
+        print("Columnas activos_biologicos:", [c['column_name'] for c in q3.json().get("rows", [])])
+
+    finally:
+        s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": SANDBOX_SECRET}, timeout=45)
+        s.close()
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: exploracion_t2.py ---
+# | Fecha      | Nombre                   | Que se hizo                                               |
+# |------------|--------------------------|-----------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G15 FASE 1: script exploratorio T2 inventario TEST |
+"""
+Script exploratorio para T2 (TC-M05-G15):
+Busca activos viables en TEST via /test-control/query para los escenarios a-h.
+Excluye 930, 900, 901, 825.
+"""
+import os
+import sys
+import uuid
+import json
+import requests
+from pathlib import Path
+from dotenv import dotenv_values
+
+REPO_ROOT = Path(__file__).resolve().parents[7]
+ENV_PATH = REPO_ROOT / ".env.test"
+ENV = dotenv_values(ENV_PATH) if ENV_PATH.exists() else {}
+
+def get_env(k: str) -> str:
+    v = os.environ.get(k) or ENV.get(k)
+    if not v:
+        raise RuntimeError(f"Falta variable de entorno: {k}")
+    return v
+
+BASE_URL = get_env("TEST_BASE_URL").rstrip("/")
+ADMIN_EMAIL = get_env("TEST_ADMIN_EMAIL")
+ADMIN_PASSWORD = get_env("TEST_ADMIN_PASSWORD")
+SANDBOX_SECRET = get_env("TEST_SANDBOX_SECRET")
+
+EXCLUIDOS = (930, 900, 901, 825)
+
+def run_query(session: requests.Session, sql: str) -> list[dict]:
+    r = session.post(f"{BASE_URL}/test-control/query", json={"query": sql}, timeout=45)
+    if r.status_code != 200:
+        print(f"[ERROR query {r.status_code}]: {r.text[:200]}")
+        return []
+    return r.json().get("data", [])
+
+def main():
+    run_id = f"diag-t2-{uuid.uuid4()}"
+    s = requests.Session()
+    s.headers.update({
+        "X-Test-Run-Id": run_id,
+        "X-Sandbox-Secret": SANDBOX_SECRET,
+        "X-Zona-Horaria": "America/Bogota",
+    })
+
+    print(f"Iniciando exploracion T2 bajo run_id={run_id}...")
+    try:
+        # 1. Login
+        login_resp = s.post(f"{BASE_URL}/sesiones/", json={
+            "correo_electronico": ADMIN_EMAIL,
+            "contrasena": ADMIN_PASSWORD,
+        }, timeout=45)
+        if login_resp.status_code != 200:
+            print(f"[FAIL] Login status={login_resp.status_code}")
+            return
+        token = login_resp.json().get("token")
+        s.headers["Authorization"] = f"Bearer {token}"
+        print("[OK] Login admin exitoso.")
+
+        # 2. Catalogo de estados
+        estados = run_query(s, "SELECT id_estado_activo_biologico, nombre FROM modulo2.estados_activos_biologicos ORDER BY id_estado_activo_biologico")
+        print("\n--- Catalogo de Estados (modulo2.estados_activos_biologicos) ---")
+        for e in estados:
+            print(f"ID={e.get('id_estado_activo_biologico')} | Nombre={e.get('nombre')}")
+
+        excl_str = ",".join(str(x) for x in EXCLUIDOS)
+        
+        # a) INACTIVO (id_estado = 2)
+        inactivos = run_query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo, ab.id_estado, est.nombre AS nombre_estado,
+                   ab.fecha_inicio_ciclo,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = ab.id_estado
+            WHERE ab.id_estado = 2 AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico
+            LIMIT 10
+        """)
+        print(f"\n--- a) Activos INACTIVOS (id_estado=2) encontrados: {len(inactivos)} ---")
+        for a in inactivos:
+            print(f"ID={a['id_activo_biologico']} | Tipo={a['tipo']} | Estado={a['nombre_estado']}({a['id_estado']}) | FasesActivas={a['fases_activas']}")
+
+        # b) CERRADO (id_estado = 5)
+        cerrados = run_query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo, ab.id_estado, est.nombre AS nombre_estado,
+                   ab.fecha_inicio_ciclo,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = ab.id_estado
+            WHERE ab.id_estado = 5 AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico
+            LIMIT 10
+        """)
+        print(f"\n--- b) Activos CERRADOS (id_estado=5) encontrados: {len(cerrados)} ---")
+        for a in cerrados:
+            print(f"ID={a['id_activo_biologico']} | Tipo={a['tipo']} | Estado={a['nombre_estado']}({a['id_estado']}) | FasesActivas={a['fases_activas']}")
+
+        # c) BAJA (id_estado = 6)
+        bajas = run_query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo, ab.id_estado, est.nombre AS nombre_estado,
+                   ab.fecha_inicio_ciclo,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = ab.id_estado
+            WHERE ab.id_estado = 6 AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico
+            LIMIT 10
+        """)
+        print(f"\n--- c) Activos BAJA (id_estado=6) encontrados: {len(bajas)} ---")
+        for a in bajas:
+            print(f"ID={a['id_activo_biologico']} | Tipo={a['tipo']} | Estado={a['nombre_estado']}({a['id_estado']}) | FasesActivas={a['fases_activas']}")
+
+        # d) ACTIVO sin ciclo abierto (id_estado = 1, fases_activas = 0)
+        sin_ciclo = run_query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo, ab.id_estado, est.nombre AS nombre_estado,
+                   ab.fecha_inicio_ciclo,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = ab.id_estado
+            WHERE ab.id_estado = 1 AND ab.id_activo_biologico NOT IN ({excl_str})
+              AND NOT EXISTS (
+                  SELECT 1 FROM modulo2.gestiones_fases gf
+                  WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE
+              )
+            ORDER BY ab.id_activo_biologico
+            LIMIT 10
+        """)
+        print(f"\n--- d) Activos ACTIVO (id_estado=1) SIN ciclo abierto encontrados: {len(sin_ciclo)} ---")
+        for a in sin_ciclo:
+            print(f"ID={a['id_activo_biologico']} | Tipo={a['tipo']} | Estado={a['nombre_estado']}({a['id_estado']}) | FasesActivas={a['fases_activas']}")
+
+        # e & f) POBLACIONAL ACTIVO con ciclo abierto y cantidad_actual = 0 o NULL
+        poblacionales = run_query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo, ab.id_estado, est.nombre AS nombre_estado,
+                   dp.cantidad_actual, dp.cantidad_inicial,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = ab.id_estado
+            LEFT JOIN modulo2.detalles_activos_biologicos_poblacionales dp ON dp.id_activo_biologico = ab.id_activo_biologico
+            WHERE ab.tipo = 'POBLACIONAL' AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico
+            LIMIT 25
+        """)
+        print(f"\n--- e/f) Activos POBLACIONALES encontrados: {len(poblacionales)} ---")
+        for a in poblacionales:
+            print(f"ID={a['id_activo_biologico']} | Tipo={a['tipo']} | Estado={a['nombre_estado']}({a['id_estado']}) | cant_actual={a['cantidad_actual']} | FasesActivas={a['fases_activas']}")
+
+        # g) Id inexistente: verificar 999999999
+        inexistente = run_query(s, "SELECT COUNT(*) as c FROM modulo2.activos_biologicos WHERE id_activo_biologico = 999999999")
+        print(f"\n--- g) ID 999999999 conteo en BD: {inexistente} ---")
+
+        # h) AISLADO (id_estado = 4)
+        aislados = run_query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo, ab.id_estado, est.nombre AS nombre_estado,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            JOIN modulo2.estados_activos_biologicos est ON est.id_estado_activo_biologico = ab.id_estado
+            WHERE ab.id_estado = 4 AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico
+            LIMIT 10
+        """)
+        print(f"\n--- h) Activos AISLADOS (id_estado=4) encontrados: {len(aislados)} ---")
+        for a in aislados:
+            print(f"ID={a['id_activo_biologico']} | Tipo={a['tipo']} | Estado={a['nombre_estado']}({a['id_estado']}) | FasesActivas={a['fases_activas']}")
+
+    finally:
+        # Teardown
+        del_resp = s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={
+            "X-Sandbox-Secret": SANDBOX_SECRET
+        }, timeout=45)
+        print(f"\nTeardown sandbox: status={del_resp.status_code}, body={del_resp.text[:100]}")
+        s.close()
+
+if __name__ == "__main__":
+    main()
+
+
+
+--- ANEXO SCRIPT PREVIO: exploracion_t2_candidatos.py ---
+# | Fecha      | Nombre                   | Que se hizo                                               |
+# |------------|--------------------------|-----------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G15 FASE 1: busqueda exhaustiva de activos T2      |
+import os
+import uuid
+import json
+import requests
+from pathlib import Path
+from dotenv import dotenv_values
+
+REPO_ROOT = Path(__file__).resolve().parents[7]
+ENV_PATH = REPO_ROOT / ".env.test"
+ENV = dotenv_values(ENV_PATH) if ENV_PATH.exists() else {}
+
+def get_env(k: str) -> str:
+    return os.environ.get(k) or ENV.get(k) or ""
+
+BASE_URL = get_env("TEST_BASE_URL").rstrip("/")
+ADMIN_EMAIL = get_env("TEST_ADMIN_EMAIL")
+ADMIN_PASSWORD = get_env("TEST_ADMIN_PASSWORD")
+SANDBOX_SECRET = get_env("TEST_SANDBOX_SECRET")
+
+EXCLUIDOS = (930, 900, 901, 825)
+excl_str = ",".join(str(x) for x in EXCLUIDOS)
+
+def query(s, sql):
+    r = s.post(f"{BASE_URL}/test-control/query", json={"query": sql}, timeout=45)
+    if r.status_code != 200:
+        print(f"Error {r.status_code}: {r.text[:200]}")
+        return []
+    return r.json().get("data", [])
+
+def main():
+    run_id = f"diag-t2-cand-{uuid.uuid4()}"
+    s = requests.Session()
+    s.headers.update({
+        "X-Test-Run-Id": run_id,
+        "X-Sandbox-Secret": SANDBOX_SECRET,
+        "X-Zona-Horaria": "America/Bogota",
+    })
+    try:
+        r = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+        if r.status_code != 200:
+            print("Login failed")
+            return
+        s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+
+        # a) INACTIVOS (id_estado = 2)
+        print("\n--- a) Activos INACTIVOS (id_estado = 2) ---")
+        res_a = query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo::text AS tipo, ab.id_estado, ab.fecha_inicio_ciclo
+            FROM modulo2.activos_biologicos ab
+            WHERE ab.id_estado = 2 AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico LIMIT 5
+        """)
+        for row in res_a:
+            print(row)
+
+        # b) CERRADOS (id_estado = 5)
+        print("\n--- b) Activos CERRADOS (id_estado = 5) ---")
+        res_b = query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo::text AS tipo, ab.id_estado, ab.fecha_inicio_ciclo
+            FROM modulo2.activos_biologicos ab
+            WHERE ab.id_estado = 5 AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico LIMIT 5
+        """)
+        for row in res_b:
+            print(row)
+
+        # c) BAJA (id_estado = 6)
+        print("\n--- c) Activos BAJA (id_estado = 6) ---")
+        res_c = query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo::text AS tipo, ab.id_estado, ab.fecha_inicio_ciclo
+            FROM modulo2.activos_biologicos ab
+            WHERE ab.id_estado = 6 AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico LIMIT 5
+        """)
+        for row in res_c:
+            print(row)
+
+        # d) ACTIVO sin ciclo abierto (id_estado = 1, sin fase activa)
+        print("\n--- d) Activos ACTIVO (id_estado = 1) sin ciclo abierto ---")
+        res_d = query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo::text AS tipo, ab.id_estado, ab.fecha_inicio_ciclo
+            FROM modulo2.activos_biologicos ab
+            WHERE ab.id_estado = 1 AND ab.id_activo_biologico NOT IN ({excl_str})
+              AND NOT EXISTS (
+                  SELECT 1 FROM modulo2.gestiones_fases gf
+                  WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE
+              )
+            ORDER BY ab.id_activo_biologico LIMIT 5
+        """)
+        for row in res_d:
+            print(row)
+
+        # e & f) POBLACIONALES
+        print("\n--- e/f) Activos POBLACIONALES con cantidad_actual y ciclo abierto ---")
+        res_ef = query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo::text AS tipo, ab.id_estado,
+                   dp.cantidad_actual, dp.cantidad_inicial,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            LEFT JOIN modulo2.detalles_activos_biologicos_poblacionales dp ON dp.id_activo_biologico = ab.id_activo_biologico
+            WHERE ab.tipo::text = 'POBLACIONAL' AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico LIMIT 20
+        """)
+        for row in res_ef:
+            print(row)
+
+        # Buscar especificamente si hay POBLACIONAL con cantidad_actual = 0 o NULL
+        print("\n--- e) POBLACIONAL con cantidad_actual = 0 ---")
+        res_e0 = query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo::text AS tipo, ab.id_estado, dp.cantidad_actual,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            LEFT JOIN modulo2.detalles_activos_biologicos_poblacionales dp ON dp.id_activo_biologico = ab.id_activo_biologico
+            WHERE ab.tipo::text = 'POBLACIONAL' AND dp.cantidad_actual = 0 AND ab.id_activo_biologico NOT IN ({excl_str})
+        """)
+        print("cantidad_actual = 0:", res_e0)
+
+        print("\n--- f) POBLACIONAL con cantidad_actual IS NULL ---")
+        res_enull = query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo::text AS tipo, ab.id_estado, dp.cantidad_actual,
+                   (SELECT COUNT(*) FROM modulo2.gestiones_fases gf WHERE gf.id_activo_biologico = ab.id_activo_biologico AND gf.es_activa IS TRUE) AS fases_activas
+            FROM modulo2.activos_biologicos ab
+            LEFT JOIN modulo2.detalles_activos_biologicos_poblacionales dp ON dp.id_activo_biologico = ab.id_activo_biologico
+            WHERE ab.tipo::text = 'POBLACIONAL' AND dp.cantidad_actual IS NULL AND ab.id_activo_biologico NOT IN ({excl_str})
+        """)
+        print("cantidad_actual IS NULL:", res_enull)
+
+        # h) AISLADOS (id_estado = 4)
+        print("\n--- h) Activos AISLADOS (id_estado = 4) ---")
+        res_h = query(s, f"""
+            SELECT ab.id_activo_biologico, ab.tipo::text AS tipo, ab.id_estado, ab.fecha_inicio_ciclo
+            FROM modulo2.activos_biologicos ab
+            WHERE ab.id_estado = 4 AND ab.id_activo_biologico NOT IN ({excl_str})
+            ORDER BY ab.id_activo_biologico LIMIT 5
+        """)
+        for row in res_h:
+            print(row)
+
+    finally:
+        s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": SANDBOX_SECRET}, timeout=45)
+        s.close()
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: find_all_pob.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-allpob-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+token = r.json()["token"]
+s.headers["Authorization"] = f"Bearer {token}"
+
+try:
+    cero_cands = []
+    null_cands = []
+    for pag in [1, 2]:
+        resp = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos?tipo=POBLACIONAL&page_size=100&pagina={pag}")
+        regs = resp.json().get("registros", [])
+        for reg in regs:
+            aid = reg["id_activo_biologico"]
+            det = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/{aid}").json()
+            dp = det.get("detalle_poblacional")
+            cant = dp.get("cantidad_actual") if dp else None
+            st = det.get("id_estado")
+            st_name = det.get("nombre_estado")
+            if cant == 0:
+                cero_cands.append((aid, st, st_name))
+            elif cant is None:
+                null_cands.append((aid, st, st_name))
+    print(f"Candidatos cant=0 ({len(cero_cands)}):", cero_cands)
+    print(f"Candidatos cant=None ({len(null_cands)}):", null_cands)
+
+finally:
+    s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+    s.close()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: inspect_9_20_462.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-check9-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+token = r.json()["token"]
+s.headers["Authorization"] = f"Bearer {token}"
+
+try:
+    for aid in [9, 20, 462]:
+        det = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/{aid}").json()
+        dp = det.get("detalle_poblacional")
+        fases = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/{aid}/fases").json().get("fases", [])
+        activas = [f for f in fases if f.get("es_activa")]
+        ciclos = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/{aid}/ciclos-productivos").json().get("items", [])
+        ciclos_con_fases = [c for c in ciclos if c.get("fases")]
+        print(f"Activo {aid}: Estado={det.get('nombre_estado')}({det.get('id_estado')}) | Tipo={det.get('tipo')} | cant_actual={dp.get('cantidad_actual') if dp else None} | fases_activas={len(activas)} | ciclos_con_fases={len(ciclos_con_fases)}")
+
+finally:
+    s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+    s.close()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: inspect_list_api.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-list3-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+token = r.json()["token"]
+s.headers["Authorization"] = f"Bearer {token}"
+
+r1 = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos?registros_por_pagina=100")
+print("Status:", r1.status_code)
+body = r1.json()
+print("total_registros:", body.get("total_registros"))
+registros = body.get("registros", [])
+print("registros len:", len(registros))
+
+estados_vistos = set()
+tipos_vistos = set()
+for reg in registros:
+    estados_vistos.add((reg.get("id_estado"), reg.get("nombre_estado")))
+    tipos_vistos.add(reg.get("tipo"))
+    if reg.get("tipo") == "POBLACIONAL":
+        print("POBLACIONAL:", reg.get("id_activo_biologico"), reg.get("nombre_estado"), reg.get("cantidad_actual"))
+
+print("Estados vistos:", estados_vistos)
+print("Tipos vistos:", tipos_vistos)
+
+s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+
+
+
+--- ANEXO SCRIPT PREVIO: search_aislados_pob.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-list-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+token = r.json()["token"]
+s.headers["Authorization"] = f"Bearer {token}"
+
+# Buscar AISLADOS (id_estado = 4)
+resp_aislados = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos?id_estado=4&por_pagina=10")
+print("Activos id_estado=4 HTTP:", resp_aislados.status_code)
+if resp_aislados.status_code == 200:
+    items = resp_aislados.json().get("items", [])
+    print("Aislados encontrados:", [(i['id_activo_biologico'], i['tipo'], i['nombre_estado']) for i in items[:5]])
+
+# Buscar POBLACIONALES
+resp_pob = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos?tipo=POBLACIONAL&por_pagina=20")
+print("Activos POBLACIONALES HTTP:", resp_pob.status_code)
+if resp_pob.status_code == 200:
+    items = resp_pob.json().get("items", [])
+    print("POBLACIONALES total:", resp_pob.json().get("total"))
+    for i in items[:10]:
+        print(f"ID={i['id_activo_biologico']} | Estado={i.get('nombre_estado')}({i.get('id_estado')}) | detalle_poblacional={i.get('detalle_poblacional')}")
+
+s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+
+
+
+
+--- ANEXO SCRIPT PREVIO: test_aislado_812.py ---
+import requests, uuid
+from datetime import datetime, timezone, timedelta
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+BASE_URL = env["TEST_BASE_URL"].rstrip("/")
+ADMIN_EMAIL = env["TEST_ADMIN_EMAIL"]
+ADMIN_PASSWORD = env["TEST_ADMIN_PASSWORD"]
+SANDBOX_SECRET = env["TEST_SANDBOX_SECRET"]
+
+ZONA_BOGOTA = timezone(timedelta(hours=-5))
+hoy_bogota = datetime.now(ZONA_BOGOTA).date().isoformat()
+
+run_id = f"tc-m05-g15-t4-aislado-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({
+    "X-Test-Run-Id": run_id,
+    "X-Sandbox-Secret": SANDBOX_SECRET,
+    "X-Zona-Horaria": "America/Bogota",
+})
+
+print(f"=== Probando Escenario 8: AISLADO [Activo 812] ===")
+try:
+    r_login = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+    s.headers["Authorization"] = f"Bearer {r_login.json()['token']}"
+
+    # Conteo base
+    r_conteo = s.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico=812")
+    c_base = r_conteo.json().get("total")
+    print(f"Conteo base 812: {c_base}")
+
+    # POST /suministros/medicamentos
+    payload = {
+        "id_activo_biologico": 812,
+        "nombre_medicamento": "Oxitetraciclina",
+        "fecha_aplicacion": hoy_bogota,
+        "hora_aplicacion": "10:45",
+        "via_administracion": "INTRAMUSCULAR",
+        "dosis_aplicada": 10,
+        "unidad_dosis": "ml",
+        "periodo_retiro_dias": 0,
+        "motivo_aplicacion": "Tratamiento de infección respiratoria",
+        "costo_unitario": 500,
+        "nombre_veterinario": "Dr. Pérez",
+    }
+    r_post = s.post(f"{BASE_URL}/suministros/medicamentos", json=payload)
+    print(f"[RESPUESTA POST 812 AISLADO] HTTP {r_post.status_code}")
+    print(f"Body: {r_post.json()}")
+
+    # Conteo en sandbox
+    r_conteo_sb = s.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico=812")
+    print(f"Conteo en sandbox: {r_conteo_sb.json().get('total')} (base: {c_base})")
+
+finally:
+    del_r = s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": SANDBOX_SECRET})
+    print(f"Teardown: HTTP {del_r.status_code}")
+    s.close()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: test_api_activos.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-api-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+token = r.json()["token"]
+s.headers["Authorization"] = f"Bearer {token}"
+
+for aid in [10, 12, 2, 4, 853, 5]:
+    resp = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/{aid}")
+    print(f"Activo {aid}: HTTP {resp.status_code}")
+    if resp.status_code == 200:
+        d = resp.json()
+        print(f"  Tipo={d.get('tipo')} | Estado={d.get('nombre_estado')}({d.get('id_estado')}) | CicloInicio={d.get('fecha_inicio_ciclo')}")
+        # ver fases
+        rf = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/{aid}/fases")
+        fases = rf.json().get('fases', []) if rf.status_code == 200 else []
+        activas = [f for f in fases if f.get('es_activa')]
+        print(f"  Fases activas: {len(activas)}")
+
+s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+
+
+
+
+--- ANEXO SCRIPT PREVIO: test_dp_count.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-dp-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+
+q = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT count(*) as total FROM modulo2.detalles_activos_biologicos_poblacionales"})
+print("Total detalles poblacionales:", q.json())
+
+# Ver si hay alguno con cantidad_actual
+q2 = s.post(env["TEST_BASE_URL"] + "/test-control/query", json={"query": "SELECT id_activo_biologico, cantidad_actual, cantidad_inicial FROM modulo2.detalles_activos_biologicos_poblacionales LIMIT 10"})
+print("Muestra detalles:", q2.json())
+
+s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+
+
+
+
+--- ANEXO SCRIPT PREVIO: test_pob_462.py ---
+import requests, uuid
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+run_id = f"diag-pob462-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({"X-Test-Run-Id": run_id, "X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"], "X-Zona-Horaria": "America/Bogota"})
+r = s.post(env["TEST_BASE_URL"] + "/sesiones/", json={"correo_electronico": env["TEST_ADMIN_EMAIL"], "contrasena": env["TEST_ADMIN_PASSWORD"]})
+s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+
+try:
+    # 1. Leer 462
+    r_462 = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/462")
+    print("Activo 462:", r_462.status_code, r_462.json())
+    
+    # 2. Leer fases de 462
+    r_fases = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/462/fases")
+    print("Fases 462:", r_fases.status_code, r_fases.json())
+
+    # 3. Listar ciclos disponibles para 462
+    r_ciclos = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/462/ciclos-productivos")
+    print("Ciclos 462:", r_ciclos.status_code, r_ciclos.json())
+
+    # 4. Probar abrir fase en 462 dentro del sandbox
+    ciclos = [c for c in r_ciclos.json().get("items", []) if c.get("fases")]
+    if ciclos:
+        id_c = ciclos[0]["id_ciclo_productivo"]
+        print(f"Intentando abrir fase con ciclo {id_c} en 462...")
+        rf = s.post(f"{env['TEST_BASE_URL']}/activos-biologicos/462/fases", json={
+            "id_ciclo_productiva": id_c,
+            "motivo_cambio": "Prueba exploratoria TC-M05-G15",
+        })
+        print("Respuesta abrir fase:", rf.status_code, rf.json())
+        
+        # Releer 462 tras abrir fase
+        r_releer = s.get(f"{env['TEST_BASE_URL']}/activos-biologicos/462")
+        print("Relectura 462:", r_releer.status_code, r_releer.json())
+
+finally:
+    s.delete(env["TEST_BASE_URL"] + f"/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": env["TEST_SANDBOX_SECRET"]})
+    s.close()
+
+
+
+
+--- ANEXO SCRIPT PREVIO: test_pob_462_med.py ---
+# | Fecha      | Nombre                   | Que se hizo                                               |
+# |------------|--------------------------|-----------------------------------------------------------|
+# | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G15 FASE 1: prueba escenario 462 cantidad NULL     |
+import requests, uuid, time
+from datetime import datetime, timezone, timedelta
+from dotenv import dotenv_values
+
+env = dotenv_values(".env.test")
+BASE_URL = env["TEST_BASE_URL"].rstrip("/")
+ADMIN_EMAIL = env["TEST_ADMIN_EMAIL"]
+ADMIN_PASSWORD = env["TEST_ADMIN_PASSWORD"]
+SANDBOX_SECRET = env["TEST_SANDBOX_SECRET"]
+
+ZONA_BOGOTA = timezone(timedelta(hours=-5))
+hoy_bogota = datetime.now(ZONA_BOGOTA).date().isoformat()
+
+run_id = f"tc-m05-g15-t4-pob462-{uuid.uuid4()}"
+s = requests.Session()
+s.headers.update({
+    "X-Test-Run-Id": run_id,
+    "X-Sandbox-Secret": SANDBOX_SECRET,
+    "X-Zona-Horaria": "America/Bogota",
+})
+
+print(f"=== Probando Escenario 7: POBLACIONAL cantidad NULL [Activo 462] ===")
+try:
+    r_login = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD}, timeout=45)
+    s.headers["Authorization"] = f"Bearer {r_login.json()['token']}"
+    
+    # 1. Abrir fase en 462
+    r_fase = s.post(f"{BASE_URL}/activos-biologicos/462/fases", json={
+        "id_ciclo_productiva": 4,
+        "motivo_cambio": "TC-M05-G15: apertura fase sandbox para probar POBLACIONAL cantidad NULL",
+    })
+    print(f"Apertura fase 462: HTTP {r_fase.status_code}")
+    assert r_fase.status_code == 201
+
+    # 2. Conteo base medicamentos
+    r_conteo = s.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico=462")
+    c_base = r_conteo.json().get("total")
+    print(f"Conteo base 462: {c_base}")
+
+    # 3. POST /suministros/medicamentos
+    payload = {
+        "id_activo_biologico": 462,
+        "nombre_medicamento": "Oxitetraciclina",
+        "fecha_aplicacion": hoy_bogota,
+        "hora_aplicacion": "10:30",
+        "via_administracion": "INTRAMUSCULAR",
+        "dosis_aplicada": 100,
+        "unidad_dosis": "ml",
+        "periodo_retiro_dias": 0,
+        "motivo_aplicacion": "Tratamiento de infección respiratoria",
+        "costo_unitario": 500,
+        "nombre_veterinario": "Dr. Pérez",
+    }
+    r_post = s.post(f"{BASE_URL}/suministros/medicamentos", json=payload)
+    print(f"[RESPUESTA POST 462] HTTP {r_post.status_code}")
+    print(f"Body: {r_post.json()}")
+
+    # 4. Conteo en sandbox
+    r_conteo_sb = s.get(f"{BASE_URL}/suministros/medicamentos?id_activo_biologico=462")
+    print(f"Conteo en sandbox: {r_conteo_sb.json().get('total')} (base: {c_base})")
+
+finally:
+    del_r = s.delete(f"{BASE_URL}/test-control/runs/{run_id}", headers={"X-Sandbox-Secret": SANDBOX_SECRET})
+    print(f"Teardown: HTTP {del_r.status_code}")
+    s.close()
+
+

@@ -1,0 +1,56 @@
+TC-M09-175 rev4 — detencion segura (sin retirar global, sin escenario DEFAULT)
+Fecha UTC: 2026-10-09T23:07:39Z
+Rama: laura @ c5ac9b6f
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+NO se sobrescribe rev1, rev2 ni rev3. 173/174 historicos intactos.
+Sin commit. Sin push. Sin DML. Sin PATCH. Sin DELETE.
+Sin modificacion de src del producto.
+La confirmacion de Alex para coordinar con Samuel NO se tomo como autorizacion DBA.
+
+RESULTADO FUNCIONAL: BLOQUEADO
+RESULTADO RESTAURACION BD: NO APLICA (no se retiro el global)
+
+MOTIVO DE DETENCION (ambas condiciones fallan; cualquiera bastaba para parar)
+1. PostgreSQL TEST no operativo.
+   GET /configuracion/personalizacion/tema/global sin token -> 503 BD_NO_DISPONIBLE
+     timestamp API: 2026-10-09T23:07:41.911897+00:00
+   POST /sesiones/ admin@pecuaria.co -> 503 BD_NO_DISPONIBLE
+     timestamp API: 2026-10-09T23:07:43.309580+00:00
+   OpenAPI /openapi.json HTTP 200 (proceso API arriba; persistencia no).
+   No hay JWT. No hay GET global autenticado. No hay respaldo verificable de la fila.
+2. Autorizacion expresa de Samuel/DBA para ESTA ventana: NO VERIFICABLE.
+   No hay ticket, mensaje, PR o archivo en el repo que autorice retirar
+   modulo9.temas_visuales (es_global=true) el 2026-10-09.
+   anotaciones/lote_qa_2026_10_06.md: NO EXISTE en el repositorio
+     (existen lote_qa_2026_09_26.md y lote_qa_2026_10_02.md; ninguno autoriza este DELETE).
+   No hay MCP/herramienta de DBA o ticket conectada en esta sesion.
+
+OPERACIONES NO EJECUTADAS
+- Consulta autenticada del singleton global
+- Respaldo verificable de id_tema_visual, id_usuario, theme_mode, es_global, fecha_actualizacion
+- DELETE / DML de la fila global
+- GET tema del usuario cm09175.qa@sgpmp-test.com
+- Aserciones theme_mode=1 / fuente=defecto / id_tema_visual=null
+- Restauracion (no habia nada que restaurar porque no se retiro nada)
+
+USUARIO 175
+Cuenta prevista: cm09175.qa@sgpmp-test.com (id 120 en rev1).
+SGPMP_175_PASSWORD / CONTRASENA_175: ausente.
+No se intento login 175 porque la BD ya respondio 503 en admin.
+
+QUE HACE FALTA PARA REV5
+A. Samuel/DBA: PostgreSQL TEST operativo (login y GET dejan de ser 503).
+B. Samuel/DBA: autorizacion expresa por escrito de la ventana (fecha/hora, alcance
+   = unica fila es_global=true, backup, DELETE temporal, restore inmediato).
+C. QA (solo despues de A+B): GET global admin -> respaldo JSON de la fila;
+   confirmar es_global=true y que no es preferencia individual.
+D. DBA ejecuta la retirada; QA verifica GET global ausente.
+E. QA GET /configuracion/personalizacion/tema con usuario 120:
+   esperado theme_mode=1 (int), fuente="defecto" (str), id_tema_visual=null.
+F. DBA restaura valores exactos; QA verifica GET global = respaldo y GET tema
+   usuario 120 vuelve a fuente=global con id_tema_visual del respaldo.
+G. No dejar el global ausente. No DML desde QA.
+
+GRUPO G91
+173 APROBADO historico TEST. 174 APROBADO historico TEST. 175 BLOQUEADO.
+G91 NO se cierra. 175 NO pasa a APROBADO.

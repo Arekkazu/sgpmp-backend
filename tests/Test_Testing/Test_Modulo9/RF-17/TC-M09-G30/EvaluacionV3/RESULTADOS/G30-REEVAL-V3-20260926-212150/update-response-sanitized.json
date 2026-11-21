@@ -1,0 +1,76 @@
+{
+  "grupo": "TC-M09-G30",
+  "caso": "TC-M09-64",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "tipo": "REEVALUACION V3",
+  "entorno": "TEST",
+  "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "runId": "G30-REEVAL-V3-20260926-212150",
+  "fecha": "2026-09-27T02:26:27.508Z",
+  "endpoint": "PATCH /configuracion/umbrales/56",
+  "t0": "2026-09-27T02:26:24.963Z",
+  "t1": "2026-09-27T02:26:27.369Z",
+  "status": 500,
+  "respuesta": {
+    "error_code": "FALLO_SINCRONIZACION_EDGE",
+    "message": "Configuración guardada en la base de datos, pero falló la actualización de los nodos Edge. Es posible que las alertas en campo sigan operando con los valores anteriores hasta que se restablezca la conexión.",
+    "fields": [],
+    "timestamp": "2026-09-27T02:26:26.365955+00:00"
+  },
+  "payloadEnviado": {
+    "valor_min": "37.00",
+    "valor_max": "43.00",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "37.00",
+        "limite_superior": "39.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "39.00",
+        "limite_superior": "41.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "41.00",
+        "limite_superior": "43.00"
+      }
+    ],
+    "fecha_actualizacion": null
+  },
+  "configAfterUpdate": {
+    "id_umbral_ambiental": 56,
+    "id_especie": 43,
+    "id_variable_ambiental": 13,
+    "unidad_medida": "°C",
+    "valor_min": "37.00",
+    "valor_max": "43.00",
+    "es_activo": true,
+    "fecha_actualizacion": "2026-09-27T02:26:26.338421Z",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "37.00",
+        "limite_superior": "39.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "39.00",
+        "limite_superior": "41.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "41.00",
+        "limite_superior": "43.00"
+      }
+    ],
+    "estado_sincronizacion": "PENDIENTE",
+    "fecha_ultima_sincronizacion": null,
+    "motivo_fallo_sincronizacion": "La propagación automática de umbrales hacia el Nodo Edge todavía no está disponible: el contrato de publicación (destino, topic, payload, ACK) está pendiente de definición con el equipo de IoT. La configuración quedó guardada y pendiente de sincronización."
+  },
+  "persistio": true,
+  "nivelesAplicados": true
+}

@@ -1,0 +1,657 @@
+{
+  "info": {
+    "name": "TC-M03-G128 — Autenticación del historial y la exportación (RF-59)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "TC-M03-257. Seis combinaciones (sin token, token expirado emitido por el sistema, firma manipulada) sobre historial y exportación. Solo se ejecuta desde ejecutar_tc_m03_g128.mjs con autorización vigente, dentro del sandbox del RUN."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Barrera: la colección solo se ejecuta desde ejecutar_tc_m03_g128.mjs con autorización vigente.",
+          "const autorizado = pm.environment.get(\"autorizado_run\") === \"SI\" && !!pm.environment.get(\"run_id\") && /^https:\\/\\//.test(pm.environment.get(\"base_url\") || \"\");",
+          "if (!autorizado) { if (pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest(); throw Error(\"BLOQUEO_G128\"); }"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"[PRE] respuesta dentro del sandbox del RUN\", () => pm.expect(pm.response.headers.get(\"X-Test-Run-Id\")).to.eql(pm.environment.get(\"run_id\")));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "[TC-M03-257] control: el historial con token válido devuelve lecturas del escenario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "pm.test(\"[TC-M03-257][PRE] con token válido el historial responde 200 con lecturas del escenario\", () => { pm.expect(pm.response.code).to.eql(200); pm.expect(((cuerpo && cuerpo.items) || []).some(i => String(i.id_sensor) === String(pm.environment.get(\"id_sensor\"))), \"lecturas del escenario\").to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_valido}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-257] control: exportación con token válido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "pm.test(`[TC-M03-257][INFO] exportación con token válido: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_valido}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial/exportar?formato=EXCEL&fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial",
+            "exportar"
+          ],
+          "query": [
+            {
+              "key": "formato",
+              "value": "EXCEL"
+            },
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-257][V:HISTORIAL_SIN_TOKEN] historial sin token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-01][V:HISTORIAL_SIN_TOKEN] responde HTTP 401\", () => pm.expect(pm.response.code).to.eql(401));",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-02][V:HISTORIAL_SIN_TOKEN] no devuelve lecturas, estadísticas, alertas, metadatos ni archivos\", () => {",
+              "  const claves = [];",
+              "  (function recorrer(o) { if (o && typeof o === \"object\") for (const [k, x] of Object.entries(o)) { claves.push(k); recorrer(x); } })(cuerpo);",
+              "  const prohibidas = [\"items\", \"estadisticas\", \"total\", \"filtros_aplicados\", \"rango_real_datos\", \"paginas_totales\", \"sensores\", \"alertas\", \"resumen_unidades\"].filter(k => claves.includes(k));",
+              "  const nombres = [pm.environment.get(\"nombre_sensor\"), pm.environment.get(\"nombre_unidad\")].filter(n => n && texto.includes(n));",
+              "  const disposicion = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+              "  const tipo = pm.response.headers.get(\"Content-Type\") || \"\";",
+              "  const archivo = /attachment|filename/i.test(disposicion) || /pdf|spreadsheet|excel|octet-stream|csv/i.test(tipo) ? [\"archivo\"] : [];",
+              "  pm.expect(prohibidas.concat(nombres.map(n => `nombre «${n}»`), archivo), \"información expuesta\").to.eql([]);",
+              "});",
+              "pm.test(`[TC-M03-257][INFO][V:HISTORIAL_SIN_TOKEN] respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-257][V:HISTORIAL_EXPIRADO] historial con token expirado",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sin un token emitido por el sistema y ya expirado, la petición no se envía (el ejecutor lo registra como PRE).",
+              "if (!pm.environment.get(\"token_expirado\") && pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest();"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-01][V:HISTORIAL_EXPIRADO] responde HTTP 401\", () => pm.expect(pm.response.code).to.eql(401));",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-02][V:HISTORIAL_EXPIRADO] no devuelve lecturas, estadísticas, alertas, metadatos ni archivos\", () => {",
+              "  const claves = [];",
+              "  (function recorrer(o) { if (o && typeof o === \"object\") for (const [k, x] of Object.entries(o)) { claves.push(k); recorrer(x); } })(cuerpo);",
+              "  const prohibidas = [\"items\", \"estadisticas\", \"total\", \"filtros_aplicados\", \"rango_real_datos\", \"paginas_totales\", \"sensores\", \"alertas\", \"resumen_unidades\"].filter(k => claves.includes(k));",
+              "  const nombres = [pm.environment.get(\"nombre_sensor\"), pm.environment.get(\"nombre_unidad\")].filter(n => n && texto.includes(n));",
+              "  const disposicion = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+              "  const tipo = pm.response.headers.get(\"Content-Type\") || \"\";",
+              "  const archivo = /attachment|filename/i.test(disposicion) || /pdf|spreadsheet|excel|octet-stream|csv/i.test(tipo) ? [\"archivo\"] : [];",
+              "  pm.expect(prohibidas.concat(nombres.map(n => `nombre «${n}»`), archivo), \"información expuesta\").to.eql([]);",
+              "});",
+              "pm.test(`[TC-M03-257][INFO][V:HISTORIAL_EXPIRADO] respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_expirado}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-257][V:HISTORIAL_FIRMA] historial con firma manipulada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-01][V:HISTORIAL_FIRMA] responde HTTP 401\", () => pm.expect(pm.response.code).to.eql(401));",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-02][V:HISTORIAL_FIRMA] no devuelve lecturas, estadísticas, alertas, metadatos ni archivos\", () => {",
+              "  const claves = [];",
+              "  (function recorrer(o) { if (o && typeof o === \"object\") for (const [k, x] of Object.entries(o)) { claves.push(k); recorrer(x); } })(cuerpo);",
+              "  const prohibidas = [\"items\", \"estadisticas\", \"total\", \"filtros_aplicados\", \"rango_real_datos\", \"paginas_totales\", \"sensores\", \"alertas\", \"resumen_unidades\"].filter(k => claves.includes(k));",
+              "  const nombres = [pm.environment.get(\"nombre_sensor\"), pm.environment.get(\"nombre_unidad\")].filter(n => n && texto.includes(n));",
+              "  const disposicion = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+              "  const tipo = pm.response.headers.get(\"Content-Type\") || \"\";",
+              "  const archivo = /attachment|filename/i.test(disposicion) || /pdf|spreadsheet|excel|octet-stream|csv/i.test(tipo) ? [\"archivo\"] : [];",
+              "  pm.expect(prohibidas.concat(nombres.map(n => `nombre «${n}»`), archivo), \"información expuesta\").to.eql([]);",
+              "});",
+              "pm.test(`[TC-M03-257][INFO][V:HISTORIAL_FIRMA] respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_firma}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-257][V:EXPORTAR_SIN_TOKEN] exportación sin token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-01][V:EXPORTAR_SIN_TOKEN] responde HTTP 401\", () => pm.expect(pm.response.code).to.eql(401));",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-02][V:EXPORTAR_SIN_TOKEN] no devuelve lecturas, estadísticas, alertas, metadatos ni archivos\", () => {",
+              "  const claves = [];",
+              "  (function recorrer(o) { if (o && typeof o === \"object\") for (const [k, x] of Object.entries(o)) { claves.push(k); recorrer(x); } })(cuerpo);",
+              "  const prohibidas = [\"items\", \"estadisticas\", \"total\", \"filtros_aplicados\", \"rango_real_datos\", \"paginas_totales\", \"sensores\", \"alertas\", \"resumen_unidades\"].filter(k => claves.includes(k));",
+              "  const nombres = [pm.environment.get(\"nombre_sensor\"), pm.environment.get(\"nombre_unidad\")].filter(n => n && texto.includes(n));",
+              "  const disposicion = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+              "  const tipo = pm.response.headers.get(\"Content-Type\") || \"\";",
+              "  const archivo = /attachment|filename/i.test(disposicion) || /pdf|spreadsheet|excel|octet-stream|csv/i.test(tipo) ? [\"archivo\"] : [];",
+              "  pm.expect(prohibidas.concat(nombres.map(n => `nombre «${n}»`), archivo), \"información expuesta\").to.eql([]);",
+              "});",
+              "pm.test(`[TC-M03-257][INFO][V:EXPORTAR_SIN_TOKEN] respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial/exportar?formato=EXCEL&fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial",
+            "exportar"
+          ],
+          "query": [
+            {
+              "key": "formato",
+              "value": "EXCEL"
+            },
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-257][V:EXPORTAR_EXPIRADO] exportación con token expirado",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sin un token emitido por el sistema y ya expirado, la petición no se envía (el ejecutor lo registra como PRE).",
+              "if (!pm.environment.get(\"token_expirado\") && pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest();"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-01][V:EXPORTAR_EXPIRADO] responde HTTP 401\", () => pm.expect(pm.response.code).to.eql(401));",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-02][V:EXPORTAR_EXPIRADO] no devuelve lecturas, estadísticas, alertas, metadatos ni archivos\", () => {",
+              "  const claves = [];",
+              "  (function recorrer(o) { if (o && typeof o === \"object\") for (const [k, x] of Object.entries(o)) { claves.push(k); recorrer(x); } })(cuerpo);",
+              "  const prohibidas = [\"items\", \"estadisticas\", \"total\", \"filtros_aplicados\", \"rango_real_datos\", \"paginas_totales\", \"sensores\", \"alertas\", \"resumen_unidades\"].filter(k => claves.includes(k));",
+              "  const nombres = [pm.environment.get(\"nombre_sensor\"), pm.environment.get(\"nombre_unidad\")].filter(n => n && texto.includes(n));",
+              "  const disposicion = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+              "  const tipo = pm.response.headers.get(\"Content-Type\") || \"\";",
+              "  const archivo = /attachment|filename/i.test(disposicion) || /pdf|spreadsheet|excel|octet-stream|csv/i.test(tipo) ? [\"archivo\"] : [];",
+              "  pm.expect(prohibidas.concat(nombres.map(n => `nombre «${n}»`), archivo), \"información expuesta\").to.eql([]);",
+              "});",
+              "pm.test(`[TC-M03-257][INFO][V:EXPORTAR_EXPIRADO] respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_expirado}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial/exportar?formato=EXCEL&fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial",
+            "exportar"
+          ],
+          "query": [
+            {
+              "key": "formato",
+              "value": "EXCEL"
+            },
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-257][V:EXPORTAR_FIRMA] exportación con firma manipulada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-01][V:EXPORTAR_FIRMA] responde HTTP 401\", () => pm.expect(pm.response.code).to.eql(401));",
+              "pm.test(\"[TC-M03-257][ASSERT][API-257-02][V:EXPORTAR_FIRMA] no devuelve lecturas, estadísticas, alertas, metadatos ni archivos\", () => {",
+              "  const claves = [];",
+              "  (function recorrer(o) { if (o && typeof o === \"object\") for (const [k, x] of Object.entries(o)) { claves.push(k); recorrer(x); } })(cuerpo);",
+              "  const prohibidas = [\"items\", \"estadisticas\", \"total\", \"filtros_aplicados\", \"rango_real_datos\", \"paginas_totales\", \"sensores\", \"alertas\", \"resumen_unidades\"].filter(k => claves.includes(k));",
+              "  const nombres = [pm.environment.get(\"nombre_sensor\"), pm.environment.get(\"nombre_unidad\")].filter(n => n && texto.includes(n));",
+              "  const disposicion = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+              "  const tipo = pm.response.headers.get(\"Content-Type\") || \"\";",
+              "  const archivo = /attachment|filename/i.test(disposicion) || /pdf|spreadsheet|excel|octet-stream|csv/i.test(tipo) ? [\"archivo\"] : [];",
+              "  pm.expect(prohibidas.concat(nombres.map(n => `nombre «${n}»`), archivo), \"información expuesta\").to.eql([]);",
+              "});",
+              "pm.test(`[TC-M03-257][INFO][V:EXPORTAR_FIRMA] respuesta registrada: HTTP ${pm.response.code} ${(cuerpo && cuerpo.error_code) || \"\"}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_firma}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial/exportar?formato=EXCEL&fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&id_infraestructura={{id_area}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "historial",
+            "exportar"
+          ],
+          "query": [
+            {
+              "key": "formato",
+              "value": "EXCEL"
+            },
+            {
+              "key": "fecha_inicio",
+              "value": "{{fecha_inicio}}"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "{{fecha_fin}}"
+            },
+            {
+              "key": "sensor_id",
+              "value": "{{id_sensor}}"
+            },
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_area}}"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

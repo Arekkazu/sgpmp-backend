@@ -1,0 +1,31 @@
+{
+  "info": {
+    "name": "TC-M02-G16 rev4 — solo 030 descubrimiento",
+    "description": "GET metricas. Veredicto XSS/inyeccion vive en pytest. No sobrescribe rev2/rev3.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token_admin", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 login admin",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 GET metricas especie 5",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=5&solo_activas=false"
+      }
+    }
+  ]
+}

@@ -1,0 +1,390 @@
+{
+  "caso": "TC-M06-026",
+  "id": "G43-UI-026-01",
+  "estado": "APROBADO",
+  "lista_completa": true,
+  "decision_por_activo": true,
+  "total_prevalidacion": 1,
+  "controles": [],
+  "captura": true,
+  "peticiones": [
+    {
+      "metodo": "GET",
+      "ruta": "/__sonda__",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/interfaz/contexto",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/idioma",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/titulares",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/prevalidacion",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/241/comprobantes",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/266/comprobantes",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/523/prevalidacion",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/periodos/523/comprobantes",
+      "http": 200,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/finanzas/reconocimientos/propuestas",
+      "http": 200,
+      "eco": true
+    }
+  ],
+  "post_prohibidos": [],
+  "titular_alias": "TITULAR_G",
+  "titular_seleccionado": true,
+  "consultas_periodos": [
+    {
+      "query": {
+        "numero_id_tributaria": "OTRO"
+      },
+      "otros_parametros": []
+    },
+    {
+      "query": {
+        "numero_id_tributaria": "TITULAR_G"
+      },
+      "otros_parametros": []
+    }
+  ],
+  "opciones_titular": [
+    "OPCION_1",
+    "OPCION_2",
+    "OPCION_3",
+    "OPCION_4",
+    "TITULAR_G",
+    "OPCION_6",
+    "OPCION_7",
+    "OPCION_8",
+    "OPCION_9",
+    "OPCION_10",
+    "OPCION_11",
+    "OPCION_12"
+  ],
+  "opciones_periodo": [
+    {
+      "value": "523",
+      "texto": "Diciembre de 2026 · Abierto"
+    },
+    {
+      "value": "266",
+      "texto": "Noviembre de 2026 · Cerrado"
+    }
+  ],
+  "respuestas_periodos": [
+    [
+      {
+        "id": 523,
+        "estado": "ABIERTO",
+        "fecha_inicio": "2026-12-01",
+        "fecha_fin": "2026-12-31"
+      },
+      {
+        "id": 266,
+        "estado": "CERRADO",
+        "fecha_inicio": "2026-11-01",
+        "fecha_fin": "2026-11-30"
+      }
+    ]
+  ],
+  "resumen_dom": {
+    "encabezados": [
+      "Cierre del período — Diciembre de 2026",
+      "Período Diciembre de 2026",
+      "Precondiciones para cerrar",
+      "Comprobantes NIC 41",
+      "Períodos cerrados"
+    ],
+    "tablas": [
+      {
+        "titulo": "",
+        "encabezados": [
+          "Activo",
+          "Especie",
+          "Motivo",
+          "Decisión",
+          "Lote 1644"
+        ],
+        "filas": [
+          "Lote 1644Caprino Aislado PreciosSin precio de mercado vigente para su especieLote 1644 (Caprino Aislado Precios)Excluir de este cierre (pasa al período siguiente) · Lote 1644Medir con el último precio conocido, como estimación · Lote 1644"
+        ]
+      },
+      {
+        "titulo": "",
+        "encabezados": [
+          "Período contable",
+          "Titular tributario",
+          "Fecha de cierre",
+          "Estado",
+          "Acciones"
+        ],
+        "filas": [
+          "Noviembre de 2026MensualNIT 90000010413/11/2026, 2:45 a. m.CerradoVer comprobantesVer revelaciones"
+        ]
+      }
+    ],
+    "controles": [
+      {
+        "tipo": "button",
+        "texto": "Valoración",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Cierre",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Reportes",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Datos",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Variaciones de valor",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Pendientes",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "button",
+        "texto": "Cierre del período",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Ir al período en curso",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Excluir todos",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Estimar todos",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "radio",
+        "texto": "Excluir de este cierre (pasa al período siguiente) · Lote 1644",
+        "aria_label": "",
+        "title": "",
+        "name": "sin-precio-1644",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "radio",
+        "texto": "Medir con el último precio conocido, como estimación · Lote 1644",
+        "aria_label": "",
+        "title": "",
+        "name": "sin-precio-1644",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Cerrar período",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": true
+      },
+      {
+        "tipo": "submit",
+        "texto": "Cancelar cierre (No)",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Ver comprobantes",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      },
+      {
+        "tipo": "submit",
+        "texto": "Ver revelaciones",
+        "aria_label": "",
+        "title": "",
+        "name": "",
+        "checked": false,
+        "deshabilitado": false
+      }
+    ]
+  },
+  "controles_citados": [
+    "Valoración  ",
+    "Cierre  ",
+    "Reportes  ",
+    "Datos  ",
+    "Variaciones de valor  ",
+    "Pendientes  ",
+    "Cierre del período  ",
+    "Ir al período en curso  ",
+    "Excluir todos  ",
+    "Estimar todos  ",
+    "Excluir de este cierre (pasa al período siguiente) · Lote 1644  ",
+    "Medir con el último precio conocido, como estimación · Lote 1644  ",
+    "Cerrar período  ",
+    "Cancelar cierre (No)  ",
+    "Ver comprobantes  ",
+    "Ver revelaciones  "
+  ],
+  "casilla_autorizacion": false,
+  "boton_deshabilitado": true,
+  "pausa": false,
+  "diagnostico": null,
+  "faltas": [],
+  "capturas_tramos": [
+    "G43-UI-026-tabla-1.png",
+    "G43-UI-026-radio-2.png",
+    "G43-UI-026-radio-3.png",
+    "G43-UI-026-submit-4.png",
+    "G43-UI-026-submit-5.png"
+  ]
+}

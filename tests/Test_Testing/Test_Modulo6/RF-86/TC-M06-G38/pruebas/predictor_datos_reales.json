@@ -1,0 +1,24 @@
+{
+  "fuente": "SELECT de solo lectura del responsable QA en TEST, 2026-11-08 (mediciones_posteriores, calculos_valor_razonable, parametros_costos_venta). Sin datos personales.",
+  "parametro_costos_venta": {"id": 6, "id_especie": 39, "region": "GENERAL", "pct_transporte": "0.0200", "pct_comisiones": "0.0300", "pct_impuestos": "0.0100", "otros": "0.0000"},
+  "calculos": [
+    {"id":15,"activo":946,"magnitud":"330.0000","precio_unitario":"9800.0000","bruto":"3234000.0000","transporte":"64680.0000","comisiones":"97020.0000","impuestos":"32340.0000","valor_neto":"3039960.0000","id_precio":15},
+    {"id":16,"activo":947,"magnitud":"35.0000","precio_unitario":"9800.0000","bruto":"343000.0000","transporte":"6860.0000","comisiones":"10290.0000","impuestos":"3430.0000","valor_neto":"322420.0000","id_precio":15},
+    {"id":21,"activo":943,"magnitud":"338.0000","precio_unitario":"9300.0000","bruto":"3143400.0000","transporte":"62868.0000","comisiones":"94302.0000","impuestos":"31434.0000","valor_neto":"2954796.0000","id_precio":17},
+    {"id":22,"activo":944,"magnitud":"310.0000","precio_unitario":"9300.0000","bruto":"2883000.0000","transporte":"57660.0000","comisiones":"86490.0000","impuestos":"28830.0000","valor_neto":"2710020.0000","id_precio":17},
+    {"id":23,"activo":945,"magnitud":"300.0000","precio_unitario":"9300.0000","bruto":"2790000.0000","transporte":"55800.0000","comisiones":"83700.0000","impuestos":"27900.0000","valor_neto":"2622600.0000","id_precio":17},
+    {"id":24,"activo":946,"magnitud":"330.0000","precio_unitario":"9300.0000","bruto":"3069000.0000","transporte":"61380.0000","comisiones":"92070.0000","impuestos":"30690.0000","valor_neto":"2884860.0000","id_precio":17},
+    {"id":25,"activo":947,"magnitud":"35.0000","precio_unitario":"9300.0000","bruto":"325500.0000","transporte":"6510.0000","comisiones":"9765.0000","impuestos":"3255.0000","valor_neto":"305970.0000","id_precio":17},
+    {"id":26,"activo":943,"magnitud":"345.0000","precio_unitario":"9300.0000","bruto":"3208500.0000","transporte":"64170.0000","comisiones":"96255.0000","impuestos":"32085.0000","valor_neto":"3015990.0000","id_precio":17},
+    {"id":27,"activo":944,"magnitud":"318.0000","precio_unitario":"9300.0000","bruto":"2957400.0000","transporte":"59148.0000","comisiones":"88722.0000","impuestos":"29574.0000","valor_neto":"2779956.0000","id_precio":17},
+    {"id":28,"activo":945,"magnitud":"306.0000","precio_unitario":"9600.0000","bruto":"2937600.0000","transporte":"58752.0000","comisiones":"88128.0000","impuestos":"29376.0000","valor_neto":"2761344.0000","id_precio":18}
+  ],
+  "mediciones": [
+    {"id":10,"activo":945,"calc_anterior":23,"calc_actual":28,"origen":"EVENTO","hubo_evento":true,"tb":"54144.0000","pm":"84600.0000","total":"138744.0000"},
+    {"id":9,"activo":944,"calc_anterior":22,"calc_actual":27,"origen":"EVENTO","hubo_evento":true,"tb":"69936.0000","pm":"0.0000","total":"69936.0000"},
+    {"id":8,"activo":943,"calc_anterior":21,"calc_actual":26,"origen":"EVENTO","hubo_evento":true,"tb":"61194.0000","pm":"0.0000","total":"61194.0000"},
+    {"id":7,"activo":947,"calc_anterior":16,"calc_actual":25,"origen":"CIERRE_PERIODO","hubo_evento":false,"tb":"0.0000","pm":"-16450.0000","total":"-16450.0000"},
+    {"id":6,"activo":946,"calc_anterior":15,"calc_actual":24,"origen":"CIERRE_PERIODO","hubo_evento":false,"tb":"0.0000","pm":"-155100.0000","total":"-155100.0000"}
+  ],
+  "analisis_orquestador": "Con precio_unitario entero (9300, 9600) y magnitud con 2 decimales, el bruto es m·p con 2 decimales y cada costo (pct de 2 dígitos × bruto) queda exacto en 4 decimales. Así, el valor neto es 0,94·bruto, con 2 decimales como máximo, y TB y PM nunca tienen un tercer decimal distinto de cero. Para que 015 distinga truncado de redondeo hay que registrar un precio MERCADO_ACTIVO con centavos (p. ej., 9612,37), de modo que el bruto, los costos y el valor neto lleguen a 4 decimales, y elegir el precio y el peso para que el componente buscado tenga el tercer decimal entre 5 y 9. Convención de la medición 10 (descomponer_variacion, nic41.py:129-148): TB se valora al precio actual y PM sobre la magnitud anterior."
+}

@@ -1,0 +1,197 @@
+{
+  "grupo": "G124",
+  "run_id": "RUN-G124-V1-20261027-004117",
+  "version": 1,
+  "operacion": "evaluar",
+  "autorizacion": "AUT-G124-V1-20261026",
+  "ambiente": "TEST",
+  "oficial": false,
+  "consume_version": false,
+  "casos": {
+    "TC-M03-249": {
+      "estado": "BLOQUEADO",
+      "subtipo": "REQUISITO_DEPENDIENTE",
+      "motivo": "M08 RF-10 no disponible: no se puede comprobar la estructura del archivo exigida por RF-59 CA-10/CA-11"
+    },
+    "TC-M03-250": {
+      "estado": "BLOQUEADO",
+      "subtipo": "REQUISITO_DEPENDIENTE",
+      "motivo": "M08 RF-10 no disponible: no se puede comprobar la estructura del archivo exigida por RF-59 CA-10/CA-11"
+    },
+    "TC-M03-254": {
+      "estado": "BLOQUEADO",
+      "subtipo": "REQUISITO_DEPENDIENTE",
+      "motivo": "M08 RF-10 no genera archivos; no se pueden comprobar los umbrales 5.000/5.001 PDF y 50.000/50.001 Excel"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-249",
+      "fuente": "API",
+      "id": "API-249-01",
+      "tipo": "ASSERT",
+      "estado": "BLOQUEADO",
+      "motivo": "M08 RF-10 no disponible: no se puede comprobar la estructura del archivo exigida por RF-59 CA-10/CA-11",
+      "evidencia": "newman/newman-G124.json"
+    },
+    {
+      "caso": "TC-M03-250",
+      "fuente": "API",
+      "id": "API-250-01",
+      "tipo": "ASSERT",
+      "estado": "BLOQUEADO",
+      "motivo": "M08 RF-10 no disponible: no se puede comprobar la estructura del archivo exigida por RF-59 CA-10/CA-11",
+      "evidencia": "newman/newman-G124.json"
+    },
+    {
+      "caso": "TC-M03-254",
+      "fuente": "API",
+      "id": "API-254-01",
+      "tipo": "ASSERT",
+      "estado": "BLOQUEADO",
+      "motivo": "M08 RF-10 no genera archivos; no se pueden comprobar los umbrales 5.000/5.001 PDF y 50.000/50.001 Excel",
+      "evidencia": "newman/newman-G124.json"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G124.json",
+    "newman/newman-G124.html",
+    "resultado.json",
+    "TC-M03-G124_resultado.md"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-20&fecha_fin=2026-10-27&sensor_id=6&pagina=1&por_pagina=20&orden=DESC",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial?fecha_inicio=2026-10-20&fecha_fin=2026-10-27&sensor_id=6&pagina=1&por_pagina=20&orden=DESC",
+      "http": 200,
+      "eco": true,
+      "en_run": true,
+      "error": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial/exportar?formato=PDF&fecha_inicio=2026-10-20&fecha_fin=2026-10-27&sensor_id=6",
+      "http": 503,
+      "eco": true,
+      "en_run": true,
+      "error": {
+        "codigo": "M08_NO_DISPONIBLE",
+        "mensaje": "El módulo de exportación (M08) no está disponible en este entorno. Reintente más tarde."
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/historial/exportar?formato=EXCEL&fecha_inicio=2026-10-20&fecha_fin=2026-10-27&sensor_id=6&incluir_alertas=true",
+      "http": 503,
+      "eco": true,
+      "en_run": true,
+      "error": {
+        "codigo": "M08_NO_DISPONIBLE",
+        "mensaje": "El módulo de exportación (M08) no está disponible en este entorno. Reintente más tarde."
+      }
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G124-V1-20261027-004117",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    }
+  ],
+  "semilla": {
+    "sensorId": 6,
+    "inicio": "2026-10-20",
+    "fin": "2026-10-27"
+  },
+  "diagnostico_seleccion": {
+    "modo": "seleccion_automatica",
+    "intentos": [
+      {
+        "fuente": "sensor_6_7_dias",
+        "sensor_id": 6,
+        "inicio": "2026-10-20",
+        "fin": "2026-10-27",
+        "total": 3,
+        "muestra_sensor": true,
+        "http": 200,
+        "eco": true
+      }
+    ],
+    "unidades": [],
+    "sensores_dashboard": 0,
+    "alcance_incompleto": false,
+    "seleccion": {
+      "fuente": "sensor_6_7_dias",
+      "sensor_id": 6,
+      "inicio": "2026-10-20",
+      "fin": "2026-10-27",
+      "total": 3
+    }
+  },
+  "respuestas": {
+    "historial": {
+      "http": 200,
+      "eco": true,
+      "total": 3,
+      "error": null
+    },
+    "PDF": {
+      "http": 503,
+      "eco": true,
+      "bytes": 197,
+      "sha256": "8a99f1ad3dd400f9b3bd0aed584cc9c201a4e5425ea020c39f84a72c981e6b23",
+      "error": {
+        "codigo": "M08_NO_DISPONIBLE",
+        "mensaje": "El módulo de exportación (M08) no está disponible en este entorno. Reintente más tarde."
+      },
+      "validacion": null
+    },
+    "EXCEL": {
+      "http": 503,
+      "eco": true,
+      "bytes": 197,
+      "sha256": "bff3ed673aff9632ad3c6bde3f74589c62f97ee3fec46186416a0154c2853f3d",
+      "error": {
+        "codigo": "M08_NO_DISPONIBLE",
+        "mensaje": "El módulo de exportación (M08) no está disponible en este entorno. Reintente más tarde."
+      },
+      "validacion": null
+    }
+  },
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Sin escrituras de escenario; DELETE 200. No acredita reversión de sesión, auditoría ni correos del dashboard"
+    }
+  },
+  "inicio": "2026-10-27T00:41:17.511Z"
+}

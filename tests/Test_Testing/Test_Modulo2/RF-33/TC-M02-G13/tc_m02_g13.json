@@ -1,0 +1,429 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g13-rf33",
+    "name": "TC-M02-G13 - Inmutabilidad de campos controlados por el sistema - RF-33",
+    "description": "Pruebas TC-M02-015, TC-M02-020 y TC-M02-021 para validar estado inicial, snapshot historico e inmutabilidad de costo_adquisicion.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "especie_id",
+      "value": ""
+    },
+    {
+      "key": "infraestructura_id",
+      "value": ""
+    },
+    {
+      "key": "activo_estado_id",
+      "value": ""
+    },
+    {
+      "key": "activo_snapshot_id",
+      "value": ""
+    },
+    {
+      "key": "activo_costo_id",
+      "value": ""
+    },
+    {
+      "key": "costo_original",
+      "value": "1000000"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login admin TEST",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('LOGIN:', d);",
+              "const token=d.token ?? (d.data && d.data.token);",
+              "pm.test('Login - token generado', () => pm.expect(token, 'No se encontró token').to.exist);",
+              "if(token) pm.collectionVariables.set('access_token', token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Consultar especie activa",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especies - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('ESPECIES:', d);",
+              "const items=Array.isArray(d) ? d : (d.items ?? d.data ?? []);",
+              "const especie=items.find(x => x.es_activo === true || x.estado === 'ACTIVO' || x.estado_especie === 'ACTIVO') ?? items.find(x => x.id_especie === 4) ?? items[0];",
+              "pm.test('Especie activa encontrada', () => pm.expect(especie, 'No se encontró especie activa').to.exist);",
+              "if(especie) {",
+              "  const id=especie.id_especie ?? especie.id;",
+              "  pm.collectionVariables.set('especie_id', String(id));",
+              "  console.log('ESPECIE SELECCIONADA:', id, especie.nombre ?? especie.nombre_especie);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Consultar infraestructura activa",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras?finca_id=3"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "javascript",
+            "exec": [
+              "pm.test('Infraestructuras - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('INFRAESTRUCTURAS:', d);",
+              "const items=Array.isArray(d) ? d : (d.items ?? d.data ?? []);",
+              "const infra=items.find(x => x.es_activa === true || x.es_activo === true || String(x.estado ?? '').toUpperCase() === 'ACTIVO') ?? items.find(x => (x.id_infraestructura ?? x.id) === 6) ?? items[0];",
+              "pm.test('Infraestructura activa encontrada', () => pm.expect(infra, 'No se encontró infraestructura activa').to.exist);",
+              "if(infra) {",
+              "  const id=infra.id_infraestructura ?? infra.id;",
+              "  pm.collectionVariables.set('infraestructura_id', String(id));",
+              "  console.log('INFRAESTRUCTURA SELECCIONADA:', id, infra.nombre ?? infra.nombre_infraestructura);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - TC-M02-015 - Crear activo enviando estado INACTIVO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"TCM02-G13-015-{{$timestamp}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null,\n  \"costo_adquisicion\": null,\n  \"soporte_documental\": null,\n  \"estado\": \"INACTIVO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('TC-M02-015 RESPUESTA:', d);",
+              "pm.test('TC-M02-015 - Registro aceptado', () => pm.expect(pm.response.code).to.eql(201));",
+              "const id=d.id_activo_biologico ?? d.id_activo ?? d.id ?? (d.data && (d.data.id_activo_biologico ?? d.data.id_activo ?? d.data.id));",
+              "pm.test('TC-M02-015 - ID generado', () => pm.expect(id, 'No se encontró ID del activo').to.exist);",
+              "if(id !== undefined) pm.collectionVariables.set('activo_estado_id', String(id));",
+              "const estado=String(d.nombre_estado ?? d.estado ?? d.estado_activo ?? (d.data && (d.data.nombre_estado ?? d.data.estado)) ?? '').toUpperCase();",
+              "pm.test('TC-M02-015 - Estado inicial ACTIVO', () => pm.expect(estado).to.include('ACTIVO'));",
+              "pm.test('TC-M02-015 - Estado no quedó INACTIVO', () => pm.expect(estado).to.not.eql('INACTIVO'));",
+              "pm.test('TC-M02-015 - El usuario no controla el estado inicial', () => pm.expect(estado, 'El backend no devolvió estado ACTIVO').to.eql('ACTIVO'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - TC-M02-020 - Crear activo poblacional para verificar snapshot",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.5,\n  \"costo_adquisicion\": null,\n  \"soporte_documental\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('TC-M02-020 CREACION:', d);",
+              "pm.test('TC-M02-020 - HTTP 201', () => pm.expect(pm.response.code).to.eql(201));",
+              "const id=d.id_activo_biologico ?? d.id_activo ?? d.id ?? (d.data && (d.data.id_activo_biologico ?? d.data.id_activo ?? d.data.id));",
+              "pm.test('TC-M02-020 - ID generado', () => pm.expect(id, 'No se encontró ID del activo poblacional').to.exist);",
+              "if(id !== undefined) pm.collectionVariables.set('activo_snapshot_id', String(id));",
+              "const pobl=d.detalle_poblacional ?? d.detallePoblacional ?? (d.data && (d.data.detalle_poblacional ?? d.data.detallePoblacional)) ?? {};",
+              "const qi=pobl.cantidad_inicial ?? d.cantidad_inicial ?? (d.data && d.data.cantidad_inicial);",
+              "const qp=pobl.peso_promedio_inicial ?? d.peso_promedio_inicial ?? (d.data && d.data.peso_promedio_inicial);",
+              "const qa=pobl.cantidad_actual ?? d.cantidad_actual ?? (d.data && d.data.cantidad_actual);",
+              "pm.test('TC-M02-020 - cantidad inicial persistida', () => pm.expect(Number(qi)).to.eql(10));",
+              "pm.test('TC-M02-020 - peso promedio inicial persistido', () => pm.expect(Number(qp)).to.eql(2.5));",
+              "pm.test('TC-M02-020 - cantidad actual inicia igual a cantidad inicial', () => pm.expect(Number(qa)).to.eql(10));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - TC-M02-020 - Consultar snapshot inicial en historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{activo_snapshot_id}}/historial"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('TC-M02-020 HISTORIAL:', d);",
+              "pm.test('TC-M02-020 - Historial HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "const registros=d.registros ?? d.items ?? d.data ?? [];",
+              "pm.test('TC-M02-020 - Existe al menos un registro historico', () => pm.expect(registros.length, 'El historial no contiene registros').to.be.above(0));",
+              "const snapshot=registros.find(x => String(x.tipo_evento ?? x.tipoEvento ?? '').toUpperCase() === 'CREACION' || Number(x.version ?? x.version_historial ?? 0) === 1) ?? registros[0];",
+              "pm.test('TC-M02-020 - Existe snapshot inicial', () => pm.expect(snapshot, 'No se encontró snapshot inicial').to.exist);",
+              "if(snapshot) {",
+              "  const version=Number(snapshot.version ?? snapshot.version_historial ?? snapshot.numero_version ?? 0);",
+              "  const tipo=String(snapshot.tipo_evento ?? snapshot.tipoEvento ?? '').toUpperCase();",
+              "  const qi=snapshot.cantidad_inicial ?? snapshot.cantidadInicial;",
+              "  const qp=snapshot.peso_promedio_inicial ?? snapshot.pesoPromedioInicial;",
+              "  const qa=snapshot.cantidad_actual ?? snapshot.cantidadActual;",
+              "  pm.test('TC-M02-020 - Version 1', () => pm.expect(version).to.eql(1));",
+              "  pm.test('TC-M02-020 - Tipo de evento CREACION', () => pm.expect(tipo).to.include('CREACION'));",
+              "  pm.test('TC-M02-020 - cantidad_inicial = 10', () => pm.expect(Number(qi)).to.eql(10));",
+              "  pm.test('TC-M02-020 - peso_promedio_inicial = 2.5', () => pm.expect(Number(qp)).to.eql(2.5));",
+              "  pm.test('TC-M02-020 - cantidad_actual = cantidad_inicial = 10', () => pm.expect(Number(qa)).to.eql(10));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - TC-M02-021 - Crear individual con costo_adquisicion = 1000000",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"compra\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"TCM02-G13-021-{{$timestamp}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null,\n  \"costo_adquisicion\": 1000000,\n  \"soporte_documental\": \"soporte_TC-M02-021.pdf\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('TC-M02-021 CREACION:', d);",
+              "pm.test('TC-M02-021 - HTTP 201', () => pm.expect(pm.response.code).to.eql(201));",
+              "const id=d.id_activo_biologico ?? d.id_activo ?? d.id ?? (d.data && (d.data.id_activo_biologico ?? d.data.id_activo ?? d.data.id));",
+              "pm.test('TC-M02-021 - ID generado', () => pm.expect(id, 'No se encontró ID del activo').to.exist);",
+              "if(id !== undefined) pm.collectionVariables.set('activo_costo_id', String(id));",
+              "const costo=d.costo_adquisicion ?? (d.data && d.data.costo_adquisicion);",
+              "pm.test('TC-M02-021 - Costo original = 1000000', () => pm.expect(Number(costo)).to.eql(1000000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - TC-M02-021 - Consultar activo antes de modificar costo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{activo_costo_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('TC-M02-021 ACTIVO ANTES:', d);",
+              "pm.test('TC-M02-021 - Consulta inicial HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "const costo=d.costo_adquisicion ?? (d.data && d.data.costo_adquisicion);",
+              "pm.test('TC-M02-021 - Costo antes de modificar = 1000000', () => pm.expect(Number(costo)).to.eql(1000000));",
+              "pm.collectionVariables.set('costo_original', String(costo));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - TC-M02-021 - Intentar modificar costo_adquisicion",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"costo_adquisicion\": 2000000\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/activos-biologicos/{{activo_costo_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('TC-M02-021 PATCH COSTO RESPUESTA:', d);",
+              "console.log('TC-M02-021 PATCH STATUS:', pm.response.code);",
+              "pm.test('TC-M02-021 - Modificación de costo rechazada', () => pm.expect([400,401,403,409,422]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - TC-M02-021 - Verificar que costo original permanece",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{activo_costo_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "console.log('TC-M02-021 ACTIVO DESPUES:', d);",
+              "pm.test('TC-M02-021 - Consulta posterior HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "const costo=d.costo_adquisicion ?? (d.data && d.data.costo_adquisicion);",
+              "pm.test('TC-M02-021 - Costo permanece en 1000000', () => pm.expect(Number(costo)).to.eql(1000000));",
+              "pm.test('TC-M02-021 - No se modificó a 2000000', () => pm.expect(Number(costo)).to.not.eql(2000000));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

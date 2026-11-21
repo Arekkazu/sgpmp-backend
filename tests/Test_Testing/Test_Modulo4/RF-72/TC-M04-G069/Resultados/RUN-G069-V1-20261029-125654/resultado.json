@@ -1,0 +1,394 @@
+{
+  "grupo": "G069",
+  "run_id": "RUN-G069-V1-20261029-125654",
+  "version": 1,
+  "intento": 1,
+  "referencia": "AUT-G069-V1-20261029",
+  "ambiente": "TEST",
+  "casos": {
+    "TC-M04-212": {
+      "estado": "APROBADO",
+      "motivo": "201, 409, 409 con mensaje E2; original y auditoría intactos",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "observado": {
+        "registros_a": 1,
+        "registros_b": 0,
+        "auditoria_registros": 1
+      }
+    },
+    "TC-M04-213": {
+      "estado": "APROBADO",
+      "motivo": "A y B recibieron 201; historial y auditoría muestran dos registros independientes",
+      "resultado": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+      "observado": {
+        "registros_a": 1,
+        "registros_b": 1,
+        "auditoria_registros": 2
+      }
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-212",
+      "fuente": "API",
+      "id": "API-212-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "201, 409, 409 con mensaje E2; original y auditoría intactos",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-213",
+      "fuente": "API",
+      "id": "API-213-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "A y B recibieron 201; historial y auditoría muestran dos registros independientes",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 1196,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 652,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/activos-biologicos/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 179,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null,
+        "eventos": null,
+        "items": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 256,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null,
+        "eventos": 14,
+        "items": null
+      }
+    },
+    {
+      "caso": "TC-M04-212",
+      "cuenta": "A",
+      "nombre": "G069-212-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "estado_enviado": "CORRECTO",
+      "respuesta": {
+        "id_retroalimentacion": "464f4077-3d55-435e-aac4-47df1a5da60d",
+        "error_code": null,
+        "message": "",
+        "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3"
+      },
+      "duracion_ms": 518
+    },
+    {
+      "caso": "TC-M04-212",
+      "cuenta": "A",
+      "nombre": "G069-212-IGUAL",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 409,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "estado_enviado": "CORRECTO",
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": "RETROALIMENTACION_DUPLICADA",
+        "message": "Ya existe una retroalimentación registrada por este usuario para este resultado.",
+        "id_resultado_inferencia": null
+      },
+      "duracion_ms": 145
+    },
+    {
+      "caso": "TC-M04-212",
+      "cuenta": "A",
+      "nombre": "G069-212-DISTINTO",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 409,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "estado_enviado": "INCORRECTO",
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": "RETROALIMENTACION_DUPLICADA",
+        "message": "Ya existe una retroalimentación registrada por este usuario para este resultado.",
+        "id_resultado_inferencia": null
+      },
+      "duracion_ms": 143
+    },
+    {
+      "caso": "TC-M04-213",
+      "cuenta": "A",
+      "nombre": "G069-213-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+      "estado_enviado": "CORRECTO",
+      "respuesta": {
+        "id_retroalimentacion": "cf669028-23ec-4558-b982-44d8be13972d",
+        "error_code": null,
+        "message": "",
+        "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873"
+      },
+      "duracion_ms": 151
+    },
+    {
+      "caso": "TC-M04-213",
+      "cuenta": "B",
+      "nombre": "G069-213-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "resultado": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+      "estado_enviado": "CORRECTO",
+      "respuesta": {
+        "id_retroalimentacion": "56d18146-ece7-4d11-99c1-b2d8897348c9",
+        "error_code": null,
+        "message": "",
+        "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873"
+      },
+      "duracion_ms": 169
+    },
+    {
+      "caso": "TC-M04-212",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 613,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null,
+        "eventos": 17,
+        "items": null
+      }
+    },
+    {
+      "caso": "TC-M04-212",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 154,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 3,
+        "eventos": null,
+        "items": 3
+      }
+    },
+    {
+      "caso": "TC-M04-213",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 199,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null,
+        "eventos": 17,
+        "items": null
+      }
+    },
+    {
+      "caso": "TC-M04-213",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 156,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 3,
+        "eventos": null,
+        "items": 3
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G069-V1-20261029-125654",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 138,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null,
+        "eventos": null,
+        "items": null
+      }
+    },
+    {
+      "caso": "TC-M04-212",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 289,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null,
+        "eventos": 14,
+        "items": null
+      }
+    },
+    {
+      "caso": "TC-M04-213",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 176,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null,
+        "eventos": 14,
+        "items": null
+      }
+    }
+  ],
+  "intentos": [
+    {
+      "caso": "TC-M04-212",
+      "cuenta": "A",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "estado_enviado": "CORRECTO",
+      "http": 201,
+      "codigo": null,
+      "mensaje": null,
+      "persistio": true
+    },
+    {
+      "caso": "TC-M04-212",
+      "cuenta": "A",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "estado_enviado": "CORRECTO",
+      "http": 409,
+      "codigo": "RETROALIMENTACION_DUPLICADA",
+      "mensaje": "Ya existe una retroalimentación registrada por este usuario para este resultado.",
+      "persistio": false
+    },
+    {
+      "caso": "TC-M04-212",
+      "cuenta": "A",
+      "resultado": "511a6d66-a862-4822-bf47-2634333531b3",
+      "estado_enviado": "INCORRECTO",
+      "http": 409,
+      "codigo": "RETROALIMENTACION_DUPLICADA",
+      "mensaje": "Ya existe una retroalimentación registrada por este usuario para este resultado.",
+      "persistio": false
+    },
+    {
+      "caso": "TC-M04-213",
+      "cuenta": "A",
+      "resultado": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+      "estado_enviado": "CORRECTO",
+      "http": 201,
+      "codigo": null,
+      "mensaje": null,
+      "persistio": true
+    },
+    {
+      "caso": "TC-M04-213",
+      "cuenta": "B",
+      "resultado": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+      "estado_enviado": "CORRECTO",
+      "http": 201,
+      "codigo": null,
+      "mensaje": null,
+      "persistio": true
+    }
+  ],
+  "incidencias": [],
+  "observaciones": [],
+  "problemas_tecnicos": [],
+  "datos_elegidos": {
+    "paginas": 1,
+    "cursor_pendiente": false,
+    "resultados_libres": 14,
+    "r1": "511a6d66-a862-4822-bf47-2634333531b3",
+    "r2": "f056f99d-78bf-478d-86f0-5b2ee1a70873"
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 5,
+      "aserciones": 10
+    }
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "DELETE 200 y ausencia de retroalimentaciones de R1/R2 en historial poscierre"
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G069.json",
+    "newman/newman-G069.html"
+  ],
+  "oficial": true,
+  "consume_version": true
+}

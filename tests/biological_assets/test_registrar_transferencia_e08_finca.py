@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-48 (INC-M02-74-G80): execute() nunca validaba alcance por finca entre
 infraestructura origen y destino -- listar_infraestructuras_disponibles ya
 lo filtraba para el listado, pero un POST directo con un
@@ -36,6 +39,9 @@ class TransferenciaRepoFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def __init__(self, infras: dict[int, InfraestructuraConsulta]) -> None:
         self.infras = infras
 

@@ -1,3 +1,8 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77 E6c: error 413                      |
+# | 2026-11-08 | Arekkazu         | INC-M05-259-G07 RF-74: es_fallo_tecnico para los reintentos |
+# | 2026-11-19 | LuisfNarvaez01 | TC-M07-381 RF-97: errores con detalle estructurado opcional |
 """Jerarquía de errores de dominio compartida.
 
 Todos los errores de negocio e infraestructura heredan de ``AppError``.
@@ -47,8 +52,9 @@ class AppError(Exception):
     """
 
     status_code: int = 400
+    detalle: Optional[dict] = None  # datos estructurados opcionales (p. ej. el Mapper y el documento que fallaron)
 
-    def __init__(self, code: str, message: str, field: Optional[str] = None):
+    def __init__(self, code: str, message: str, field: Optional[str] = None, *, detalle: Optional[dict] = None):
         """Inicializa el error con código, mensaje y campo opcional.
 
         Args:
@@ -60,6 +66,7 @@ class AppError(Exception):
         self.code = code
         self.message = message
         self.field = field
+        self.detalle = detalle or None
         super().__init__(message)
 
 
@@ -154,6 +161,16 @@ class GoneError(AppError):
     """
 
     status_code = 410
+
+
+class PayloadTooLargeError(AppError):
+    """El archivo a entregar supera el tamaño máximo permitido (HTTP 413).
+
+    Caso de referencia: la exportación CSV de RF-77 (E6c), que no puede pasar de
+    50 MB; nunca se entrega un archivo parcial.
+    """
+
+    status_code = 413
 
 
 class UnsupportedMediaTypeError(AppError):
@@ -303,3 +320,10 @@ class ServiceUnavailableError(AppError):
         """
         super().__init__(code, message, field)
         self.original_error = original_error
+
+
+def es_fallo_tecnico(exc: BaseException) -> bool:
+    """``True`` si vale la pena reintentar: una excepción nativa o un ``AppError`` 5xx (el error de BD
+    que traduce ``raise_from_db_error`` llega como ``InfrastructureError`` 500). Un 4xx es regla de
+    negocio o dato inválido y repetirlo da el mismo resultado."""
+    return not isinstance(exc, AppError) or exc.status_code >= 500

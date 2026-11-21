@@ -1,0 +1,1174 @@
+================================================================================
+INFORME FASE 3 - ETAPA 1 (EDICION Y DIFF): TC-M05-G25 (RF-77)
+================================================================================
+Fecha: 2026-11-11
+Staging base: tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/
+INC contexto: INC-M05-272-G25 (auditoria corregida en TEST; D02 oficial era defecto del script)
+Nota: NO se ejecuto la suite oficial ni el runner; NO se toco resultados/; NO git add/commit.
+
+--------------------------------------------------------------------------------
+1. RESULTADOS DEL PASO 0 (INVESTIGACION CON X-REQUEST-ID)
+--------------------------------------------------------------------------------
+a) Prueba unica DEF-04 (mismo run_id tc-m05-g25-p0a-3bd7d221):
+   - Login 1 (Admin) POST /sesiones/:
+     HTTP 200 | X-Request-Id: 03483af0-4b1b-4e48-9655-74ad22892265
+   - Login 2 (Productor, mismo run_id) POST /sesiones/:
+     HTTP 200 | X-Request-Id: 6b484f48-15e8-482d-b739-409fbd2d972d
+     ("Sesion iniciada exitosamente. Se ha cerrado automaticamente la sesion activa anterior...")
+   - Teardown DELETE /test-control/runs/tc-m05-g25-p0a-3bd7d221:
+     HTTP 200 {"status":"Rollback exitoso"} | X-Request-Id: 1a7fd014-ca2f-474b-ad01-53d37298ac51
+   -> Conclusion: 200/200 -> DEF-04 ya no aplica para dos usuarios distintos en un mismo run_id.
+
+b) Origen del UUID 4952e75b-9299-459f-bbad-506b58f63f77 y escrituras de Clase 4 en ronda 1:
+   - Busqueda en repo y evidencias run-20261107-*:
+     El UUID solo aparece hardcoded en test_tc_m05_g25.py (lineas 396 B03, 526 D01, 557 D02)
+     y en GET /suministros/reportes-gastos/exportaciones/4952e75b-9299-459f-bbad-506b58f63f77 de
+     run-20261107-165638, run-20261107-165944 y run-20261107-170026 (HTTP 403 ARCHIVO_DE_OTRO_USUARIO).
+     NO fue creado por la Clase 4 ni por ninguna corrida run-20261107-*.
+   - Peticiones de escritura en Clase 4 sin sandbox (ronda 1):
+     * En trazas_http.jsonl (endpoints M05):
+       - POST /suministros/reportes-gastos (D01 sin auth) -> HTTP 401 TOKEN_REQUERIDO (no creo datos).
+       - POST /suministros/reportes-gastos/19/exportacion (D01 sin auth) -> HTTP 401 TOKEN_REQUERIDO (no creo datos).
+       (El resto en D01/D02/D03 fueron GET -> 401/403/404/400).
+     * En codigo de test_tc_m05_g25.py (sin trazar en trazas_http.jsonl):
+       Clase 4 ejecutaba 4 POST /sesiones/ fuera de sandbox (lineas 544 Admin D02, 570 Prod D03,
+       605 Prod D04, 616 Admin D04), generando sesiones/tokens en modulo1 sin rollback.
+
+c) Corrida sandbox Administrador solo lectura para reporte committeado ajeno al Productor:
+   - Run ID: tc-m05-g25-p0c-9042a8a3
+   - Login Admin POST /sesiones/: HTTP 200 | X-Request-Id: af9740c1-edef-444a-a470-f457845aa21b
+   - GET /suministros/reportes-gastos/historial?limite=20:
+     HTTP 200 | X-Request-Id: 6da1830f-32a3-4bca-9cb0-2a0c42d6c05a | total=20
+     Reporte committeado de Admin (ajeno al Productor): id_reporte_gasto_acumulado=178
+     (fecha_generacion=2026-11-07T21:51:04.493260Z, id_infraestructura=2, gasto_total_acumulado=10.0000).
+     Determinacion del dueno: ReporteGastoResponse no expone id_usuario; el aislamiento por dueno lo
+     determina listar_historial (ReporteGastoAcumuladoModel.id_usuario == usuario_actual.id_usuario)
+     al consultar autenticado como Admin (id_usuario=104 vs Productor sub=2). Adicionalmente en
+     GET /suministros/auditoria?entidad_afectada=reporte_gastos_acumulados
+     (HTTP 200 | X-Request-Id: 05f068ac-d453-4b5b-aa02-d1577a55cf43) figura evento id=72001 con
+     id_reporte_gasto_acumulado=225 e id_usuario=100.
+   - Teardown DELETE /test-control/runs/tc-m05-g25-p0c-9042a8a3:
+     HTTP 200 {"status":"Rollback exitoso"} | X-Request-Id: 5197d20c-6b6a-4a8f-ac71-90d494bd9a30
+
+d) Comprobacion de propiedad en codigo (consultar, regenerar, exportar, descargar):
+   - consultar (GET /suministros/reportes-gastos/{id}):
+     src/supplies/infrastructure/routers/reporte_gastos_router.py:226-232
+     -> src/supplies/application/use_cases/reporte_gastos/consultar_reporte_gastos_use_case.py:36-44
+     -> src/supplies/infrastructure/repositories/reporte_gasto_repository.py:166-168 (obtener).
+     Sin comprobacion de id_usuario (el endpoint ni inyecta usuario_actual). Devuelve 404 REPORTE_NO_ENCONTRADO si no existe.
+   - regenerar (GET /suministros/reportes-gastos/{id}/regenerar):
+     src/supplies/application/use_cases/reporte_gastos/consultar_reporte_gastos_use_case.py:46-55
+     -> src/supplies/application/use_cases/reporte_gastos/generar_reporte_gastos_use_case.py:118-125 y 148-188.
+     No valida original.id_usuario == usuario_actual.id_usuario; solo valida alcance de activo
+     (AuthorizationError code="ACCESO_DENEGADO", HTTP 403, linea 181-188) si id_activo_biologico no es None.
+   - exportar (POST /suministros/reportes-gastos/{id}/exportacion):
+     src/supplies/application/use_cases/reporte_gastos/exportar_reporte_gastos_use_case.py:106-125.
+     Obtiene reporte via reporte_repo.obtener(id_reporte) sin comprobar guardado.id_usuario == usuario_actual.id_usuario
+     (delega a construir_desde_parametros con la misma validacion de activo).
+   - descargar (GET /suministros/reportes-gastos/exportaciones/{id}):
+     src/supplies/application/use_cases/reporte_gastos/exportar_reporte_gastos_use_case.py:186-191
+     -> src/supplies/domain/entities/archivo_exportacion.py:58-64 (contenido_para):
+     if id_usuario != self.id_usuario: raise AuthorizationError(code="ARCHIVO_DE_OTRO_USUARIO", ...) -> HTTP 403.
+
+--------------------------------------------------------------------------------
+2. SHA-256 ANTES Y DESPUES DE LOS ARCHIVOS MODIFICADOS (Y resultados/ INTACTO)
+--------------------------------------------------------------------------------
+- test_tc_m05_g25.py:
+  Antes:   6C58E9B4963B0AAA93B55BE903117957AFE6D235A2252F8CE3EEFDB473127CBE
+  Despues: A436AB2E8514DF74A9D41498229F45F9F50A5904DB04E958354A97F0212BA152
+- ejecutar_tc_m05_g25.ps1:
+  Antes:   429EB3C404AC5853498E2C5BDFC9E95B660062EFFC9ECB25AFE8C5E1E6F54624
+  Despues: 71F6B08F10572EFD00CDD2B8338EA37699CBBA8894DE50161D7A87C3C5103942
+- generar_artefactos_run_g25.py:
+  Antes:   24B09ED4EF732E4C8830B91554F42DD1C355F8014F09081CFC940EEA321693AF
+  Despues: 7441487C0B9B43C9B916B2899139DFC075ABE73144D62F58629ACAB33093DB49
+- diag_auditoria.py (cabecera):
+  Antes:   D924642F5957FCB8519C92AC0D7E056CC0C002FD5D892CC7B22CDEA6FEC5054C
+  Despues: 205D905F5CB72D00D9B653F0848E192E626D413CF8F46AC92C42DF34EA6B3537
+- resultados/ (sin modificaciones):
+  .gitkeep:                E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+  resultado_TC-M05-G25.html: 7C045A998AE91BFC3C5471549DCC847C94FF3129AEACE47710D2F2D60DCD66EF
+  resultado_TC-M05-G25.json: 252231D230BE7E486A9AFDAC52F1119AD4F171D81153B9BF661BED159C87C112
+
+--------------------------------------------------------------------------------
+3. GIT DIFF COMPLETO DE LOS ARCHIVOS MODIFICADOS
+--------------------------------------------------------------------------------
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/ejecutar_tc_m05_g25.ps1 b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/ejecutar_tc_m05_g25.ps1
+index 6785fa01..dc71d515 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/ejecutar_tc_m05_g25.ps1
++++ b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/ejecutar_tc_m05_g25.ps1
+@@ -1,6 +1,7 @@
+ # | Fecha      | Nombre                   | Que se hizo                                                          |
+ # |------------|--------------------------|----------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G25 RF-77: runner Pytest con staging de evidencias            |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3: sufijos _reintentoN, sin copiar a resultados y escaneo estricto |
+ <#
+ .SYNOPSIS
+   Ejecuta TC-M05-G25 (RF-77, Roles, IDOR y Auditoria) contra TEST.
+@@ -9,9 +10,9 @@
+   - Carga .env.test del repo en las variables de entorno del PROCESO.
+   - Verifica variables obligatorias para Producer, Vet, Admin y Sandbox.
+   - Crea el staging evidencias\run-<yyyyMMdd-HHmmss>\ y define TEST_EVIDENCE_DIR.
+-  - Ejecuta pytest (-p no:randomly, --tb=short) con reporte HTML y JUnit XML.
++  - Ejecuta pytest (-p no:randomly, --tb=short) con reporte HTML y JUnit XML (con sufijo _reintentoN si -Reintento > 0).
+   - Genera artefactos derivados (JSON, repro, MD, TXT).
+-  - Promocion condicionada: solo copia a resultados\ si 0 fallos y 0 secretos.
++  - Solo escanea secretos en staging (reporta y falla si hay hallazgos; nunca reescribe ni escribe en resultados\).
+ #>
+ param(
+     [int]$Reintento = 0
+@@ -122,8 +123,9 @@ $marcaTiempo = Get-Date -Format 'yyyyMMdd-HHmmss'
+ $staging     = Join-Path $tcDir "evidencias\run-$marcaTiempo"
+ New-Item -ItemType Directory -Path $staging -Force | Out-Null
+ 
+-$htmlReport  = Join-Path $staging 'resultado_TC-M05-G25.html'
+-$xmlReport   = Join-Path $staging 'resultado_TC-M05-G25.xml'
++$sufijo      = if ($Reintento -gt 0) { "_reintento$Reintento" } else { "" }
++$htmlReport  = Join-Path $staging "resultado_TC-M05-G25$sufijo.html"
++$xmlReport   = Join-Path $staging "resultado_TC-M05-G25$sufijo.xml"
+ $consoleLog  = Join-Path $staging 'consola_pytest.log'
+ 
+ # --- Variables de entorno del subproceso
+@@ -151,7 +153,7 @@ $salidaConsola | ForEach-Object { Write-Host $_ }
+ # --- Generacion de artefactos derivados
+ if (Test-Path -LiteralPath $generadorPy) {
+     Write-Host "Generando artefactos derivados en staging..."
+-    & $python $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS
++    & $python $generadorPy --staging $staging --repo-root $repo --duracion-s $duracionS --reintento $Reintento
+ }
+ 
+ # --- Verificacion de integridad SHA-256 post-corrida
+@@ -200,70 +202,46 @@ if ($shaG14ScriptIni -ne $shaG14ScriptFin -or $shaG14RunnerIni -ne $shaG14Runner
+ }
+ Write-Host "Integridad de suites previas G14-G24: 100% OK"
+ 
+-# --- Post-corrida de seguridad: escaneo de secretos
+-$claves = @(
+-    [Environment]::GetEnvironmentVariable('TEST_ADMIN_PASSWORD', 'Process'),
+-    [Environment]::GetEnvironmentVariable('TEST_PRODUCER_PASSWORD', 'Process'),
+-    [Environment]::GetEnvironmentVariable('TEST_VET_PASSWORD', 'Process')
++# --- Post-corrida de seguridad: escaneo de secretos (solo reporta, nunca reescribe)
++$entradasSecretos = @(
++    @{ Nombre = 'TEST_ADMIN_PASSWORD'; Valor = [Environment]::GetEnvironmentVariable('TEST_ADMIN_PASSWORD', 'Process') },
++    @{ Nombre = 'TEST_PRODUCER_PASSWORD'; Valor = [Environment]::GetEnvironmentVariable('TEST_PRODUCER_PASSWORD', 'Process') },
++    @{ Nombre = 'TEST_VET_PASSWORD'; Valor = [Environment]::GetEnvironmentVariable('TEST_VET_PASSWORD', 'Process') },
++    @{ Nombre = 'TEST_SANDBOX_SECRET'; Valor = [Environment]::GetEnvironmentVariable('TEST_SANDBOX_SECRET', 'Process') }
+ )
+-$correos = @(
+-    [Environment]::GetEnvironmentVariable('TEST_ADMIN_EMAIL', 'Process'),
+-    [Environment]::GetEnvironmentVariable('TEST_PRODUCER_EMAIL', 'Process'),
+-    [Environment]::GetEnvironmentVariable('TEST_VET_EMAIL', 'Process')
+-)
+-$secreto = [Environment]::GetEnvironmentVariable('TEST_SANDBOX_SECRET', 'Process')
+ 
+-$patrones = New-Object System.Collections.Generic.List[string]
+-foreach ($c in $claves) {
+-    if (-not [string]::IsNullOrEmpty($c)) {
+-        $patrones.Add($c)
+-        if ($c.Length -gt 20) { $patrones.Add($c.Substring($c.Length - 20)) }
++$patrones = New-Object System.Collections.Generic.List[object]
++foreach ($item in $entradasSecretos) {
++    $v = $item.Valor
++    if (-not [string]::IsNullOrWhiteSpace($v)) {
++        $patrones.Add([PSCustomObject]@{ Nombre = $item.Nombre; Valor = $v })
++        if ($v.Length -gt 20) {
++            $patrones.Add([PSCustomObject]@{ Nombre = "$($item.Nombre)_ULTIMOS_20"; Valor = $v.Substring($v.Length - 20) })
++        }
+     }
+ }
+-foreach ($e in $correos) {
+-    if (-not [string]::IsNullOrEmpty($e)) { $patrones.Add($e) }
+-}
+-if (-not [string]::IsNullOrEmpty($secreto)) {
+-    $patrones.Add($secreto)
+-    if ($secreto.Length -gt 20) { $patrones.Add($secreto.Substring($secreto.Length - 20)) }
+-}
+-$patrones.Add('eyJ')
++$patrones.Add([PSCustomObject]@{ Nombre = 'PREFIJO_JWT'; Valor = 'eyJ' })
+ 
+ $utf8 = New-Object System.Text.UTF8Encoding($false)
+ $artefactos = @(Get-ChildItem -LiteralPath $staging -File -Recurse)
++$hallazgos = 0
+ 
+-function Contar-Secretos([string]$texto) {
+-    $n = 0
+-    foreach ($p in $patrones) { if ($texto.Contains($p)) { $n++ } }
+-    return $n
+-}
+-
+-$quedan = 0
+ foreach ($a in $artefactos) {
+     $texto = [IO.File]::ReadAllText($a.FullName, $utf8)
+-    if ((Contar-Secretos $texto) -gt 0) {
+-        foreach ($p in $patrones) { $texto = $texto.Replace($p, '***REDACTED***') }
+-        [IO.File]::WriteAllText($a.FullName, $texto, $utf8)
+-        Write-Host "Saneado: $($a.Name)" -ForegroundColor Yellow
+-        $revisado = [IO.File]::ReadAllText($a.FullName, $utf8)
+-        if ((Contar-Secretos $revisado) -gt 0) { $quedan++ }
++    foreach ($p in $patrones) {
++        if (-not [string]::IsNullOrEmpty($p.Valor) -and $texto.Contains($p.Valor)) {
++            Write-Host "HALLAZGO SECRETO [$($p.Nombre)] en: $($a.Name)" -ForegroundColor Red
++            $hallazgos++
++        }
+     }
+ }
+-$claves = $null; $correos = $null; $secreto = $null; $patrones.Clear()
++$entradasSecretos = $null
++$patrones.Clear()
+ 
+-if ($quedan -gt 0) {
+-    Write-Host 'ARTEFACTOS CON SECRETOS: NO PROMOVER' -ForegroundColor Red
++if ($hallazgos -gt 0) {
++    Write-Host "Escaneo de secretos: $hallazgos hallazgo(s) encontrado(s). Revisar staging (sin reescritura ni promocion)." -ForegroundColor Red
+     exit 4
+ }
+ Write-Host 'Escaneo de secretos en staging: LIMPIO (0 secretos)'
+-
+-# --- Promocion condicionada a resultados/
+-if ($codigo -eq 0 -and $quedan -eq 0) {
+-    Write-Host "Promoviendo reporte a resultados/ (0 fallos, 0 secretos, SHA-256 intacto)..." -ForegroundColor Green
+-    Copy-Item -LiteralPath (Join-Path $staging 'resultado_TC-M05-G25.html') -Destination (Join-Path $tcDir 'resultados\resultado_TC-M05-G25.html') -Force
+-    Copy-Item -LiteralPath (Join-Path $staging 'resultado_TC-M05-G25.json') -Destination (Join-Path $tcDir 'resultados\resultado_TC-M05-G25.json') -Force
+-    Write-Host "Promocion completada con exito en resultados/." -ForegroundColor Green
+-} else {
+-    Write-Host "No se promueve a resultados/ (codigo=$codigo, secretos=$quedan). Se conserva resultados/ limpio." -ForegroundColor Yellow
+-}
++Write-Host "Evidencias guardadas en staging: $staging (sin copiar a resultados/)." -ForegroundColor Cyan
+ exit $codigo
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/generar_artefactos_run_g25.py b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/generar_artefactos_run_g25.py
+index c055ab9a..60d96142 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/generar_artefactos_run_g25.py
++++ b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/generar_artefactos_run_g25.py
+@@ -1,12 +1,13 @@
+ # | Fecha      | Nombre                   | Que se hizo                                                            |
+ # |------------|--------------------------|------------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | Generador de artefactos de corrida TC-M05-G25 (JSON, repro, MD, TXT)  |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3: sufijo reintento y clasificacion dinamica sin textos fijos |
+ """Generador de artefactos de corrida para TC-M05-G25.
+ Lee el JUnit XML y trazas_http.jsonl del staging de la corrida y genera:
+-- resultado_TC-M05-G25.json
++- resultado_TC-M05-G25[_reintentoN].json
+ - repro
+-- TC-M05-G25_resultado.md
+-- INFORME_FASE234_TC-M05-G25.txt
++- TC-M05-G25_resultado[_reintentoN].md
++- INFORME_FASE234_TC-M05-G25[_reintentoN].txt
+ """
+ from __future__ import annotations
+ 
+@@ -96,8 +97,8 @@ TEST_METADATA = {
+         "fuente": "RF-77 RNF Seguridad (TC-M05-024)",
+     },
+     "test_c02_verificacion_auditoria_ca11_postcondicion3": {
+-        "paso": "C02 Registro en bitácora de auditoría de M05 de generación/exportación",
+-        "esperado": "Presencia de evento de auditoría con usuario y timestamp (RF-77 CA-11 / Postcondición 3)",
++        "paso": "C02 Registro en bitácora de auditoría de M05 de generación y exportación",
++        "esperado": "Exactamente 1 evento GENERACION y 1 evento EXPORTACION con actor Admin, fecha_evento y registro <= 2 s",
+         "fuente": "RF-77 CA-11 / Postcondición 3 (TC-M05-025)",
+     },
+     "test_c98_cierre_sandbox_admin": {
+@@ -107,44 +108,67 @@ TEST_METADATA = {
+     },
+     "test_d01_solicitudes_sin_autenticacion_retornan_401": {
+         "paso": "D01 Rechazo de solicitudes no autenticadas",
+-        "esperado": "HTTP 401 NO_AUTENTICADO en endpoints de reporte, exportación, descarga, historial y auditoría",
+-        "fuente": "RF-02 / Especificación Global de Seguridad",
++        "esperado": "HTTP 401 sin Authorization (con cabeceras sandbox) en generación, exportación, descarga, historial y auditoría",
++        "fuente": "RF-02 / RF-77 RNF Seguridad",
+     },
+     "test_d02_idor_descarga_exportacion_ajena_retorna_403": {
+         "paso": "D02 Prevención de IDOR en descarga de exportaciones ajenas",
+-        "esperado": "HTTP 403 ARCHIVO_DE_OTRO_USUARIO al intentar descargar archivo generado por otro usuario",
+-        "fuente": "RF-77 RNF Seguridad / Aislamiento (TC-M05-024 / TC-M05-025)",
++        "esperado": "HTTP 403 ARCHIVO_DE_OTRO_USUARIO sin contenido del archivo al descargar CSV exportado por otro usuario en el mismo sandbox",
++        "fuente": "RF-77 Postcondición 2 / RNF Seguridad (TC-M05-024)",
+     },
+     "test_d03_manipulacion_identificadores_no_genera_500": {
+         "paso": "D03 Validación de tipos y resistencia ante IDs inexistentes o inválidos",
+-        "esperado": "HTTP 404 en inexistentes, HTTP 422 en tipos inválidos; jamás HTTP 500",
++        "esperado": "HTTP 404 en inexistentes, HTTP 400/422 en tipos inválidos; jamás HTTP 500",
+         "fuente": "Guía de Pruebas / Robustez de la API",
+     },
+     "test_d04_aislamiento_historial_por_usuario": {
+         "paso": "D04 Aislamiento estricto de historial por usuario",
+-        "esperado": "GET /historial filtra exclusivamente los reportes creados por el usuario autenticado",
+-        "fuente": "RF-77 RNF Historial (TC-M05-023 / TC-M05-024)",
++        "esperado": "GET /historial devuelve los reportes propios del usuario y excluye por completo los de otro usuario",
++        "fuente": "RF-77 RNF Historial (TC-M05-024)",
++    },
++    "test_d98_cierre_sandbox_idor": {
++        "paso": "D98 Cierre ordenado de sandbox IDOR/Aislamiento y rollback",
++        "esperado": "HTTP 200 con confirmación 'Rollback exitoso'",
++        "fuente": "Testing Harness / Sandbox Control",
+     },
+ }
+ 
+ 
++def _cargar_trazas(trazas_path: Path) -> list[dict]:
++    if not trazas_path.exists():
++        return []
++    registros = []
++    for linea in trazas_path.read_text(encoding="utf-8", errors="replace").splitlines():
++        linea = linea.strip()
++        if not linea:
++            continue
++        try:
++            registros.append(json.loads(linea))
++        except json.JSONDecodeError:
++            continue
++    return registros
++
++
+ def main():
+     parser = argparse.ArgumentParser(description="Generador de artefactos de corrida TC-M05-G25")
+     parser.add_argument("--staging", required=True, help="Ruta al directorio de staging de evidencias")
+     parser.add_argument("--repo-root", required=True, help="Ruta a la raiz del repositorio")
+     parser.add_argument("--duracion-s", type=float, default=0.0, help="Duracion de la corrida en segundos")
++    parser.add_argument("--reintento", type=int, default=0, help="Numero de reintento (>0 agrega sufijo _reintentoN)")
+     args = parser.parse_args()
+ 
+     staging = Path(args.staging)
+     repo = Path(args.repo_root)
++    sufijo = f"_reintento{args.reintento}" if args.reintento > 0 else ""
+ 
+-    xml_path = staging / "resultado_TC-M05-G25.xml"
++    xml_path = staging / f"resultado_TC-M05-G25{sufijo}.xml"
+     if not xml_path.exists():
+         print(f"ERROR: No se encontro el archivo XML: {xml_path}")
+         return
+ 
+     tree = ET.parse(xml_path)
+     root = tree.getroot()
++    trazas = _cargar_trazas(staging / "trazas_http.jsonl")
+ 
+     checkpoints = []
+     total_ok = 0
+@@ -187,13 +211,12 @@ def main():
+             "ok": total_ok,
+             "falla": total_falla,
+             "veredicto": veredicto_global,
+-            "duracion_s": round(args.duracion_s, 2),
+         },
+         "checkpoints": checkpoints,
+     }
+ 
+-    # Guardar resultado_TC-M05-G25.json en staging
+-    json_path = staging / "resultado_TC-M05-G25.json"
++    # Guardar resultado_TC-M05-G25[_reintentoN].json en staging
++    json_path = staging / f"resultado_TC-M05-G25{sufijo}.json"
+     json_path.write_text(json.dumps(json_data, indent=2, ensure_ascii=False), encoding="utf-8")
+ 
+     # Generar repro (script de reproducción)
+@@ -226,14 +249,19 @@ if ($FiltroTest -ne "") {{
+ """
+     repro_path.write_text(repro_content, encoding="utf-8")
+ 
+-    # Generar narrativo TC-M05-G25_resultado.md
+-    narrativo_path = staging / "TC-M05-G25_resultado.md"
++    fallidos = [c for c in checkpoints if c["estado"] == "FALLA"]
++    errores_conexion = sum(1 for t in trazas if t.get("error_conexion"))
++
++    # Generar narrativo TC-M05-G25_resultado[_reintentoN].md
++    narrativo_path = staging / f"TC-M05-G25_resultado{sufijo}.md"
+     md_content = f"""# Reporte de Ejecución: TC-M05-G25 (RF-77)
+ 
+ ## 1. Identificación y Alcance
+ - **Caso de Prueba**: TC-M05-G25
+ - **Requerimiento**: RF-77 (Reporte de Gastos Acumulados por Activo)
+-- **Subcasos Evaluados**: TC-M05-024 (Roles y Permisos), TC-M05-025 (Auditoría de Generación y Exportación)
++- **Subcasos Evaluados**: TC-M05-024 (Roles y Permisos / Aislamiento IDOR), TC-M05-025 (Auditoría de Generación y Exportación)
++- **Trazas HTTP Registradas**: {len(trazas)} (errores de conexión: {errores_conexion})
++- **Duración Medida**: {round(args.duracion_s, 2)} s
+ - **Veredicto Global**: **{veredicto_global.upper()}** ({total_ok} OK, {total_falla} FALLA)
+ 
+ ## 2. Resumen Normativo de Checkpoints
+@@ -244,25 +272,21 @@ if ($FiltroTest -ne "") {{
+         md_content += f"| {idx} | {chk['paso']} | {chk['esperado']} | {chk['obtenido']} | **{chk['estado']}** |\n"
+ 
+     md_content += f"""
+-## 3. Diagnóstico Técnico y Clasificación de Fallos
++## 3. Diagnóstico Técnico y Clasificación Derivada de Resultados
+ - **Total de Pruebas**: {len(checkpoints)}
+ - **Aprobadas**: {total_ok}
+ - **Fallidas**: {total_falla}
+-
+-### Análisis de Roles y Permisos (TC-M05-024)
+-- **Productor**: Autorizado para generar reportes y exportar en CSV/PDF. No autorizado para ver auditoría de M05 (HTTP 403).
+-- **Veterinario**: Rechazado correctamente con HTTP 403 ACCESO_DENEGADO en generación de reportes, exportaciones, descargas y auditoría.
+-- **No Autenticado**: Rechazado con HTTP 401 NO_AUTENTICADO en todos los endpoints probados.
+-- **Aislamiento e IDOR**: Verificada la protección contra descarga de exportaciones de otros usuarios (HTTP 403 ARCHIVO_DE_OTRO_USUARIO) y resistencia a IDs inválidos (404/422, sin 500).
+-
+-### Análisis de Auditoría (TC-M05-025 - CA-11 / Postcondición 3)
+-- La especificación RF-77 exige en CA-11 y Postcondición 3 que toda generación y exportación de reportes quede registrada de forma inmutable en la bitácora de auditoría con usuario y timestamp.
+-- **Hallazgo / Defecto de Producto**: La implementación actual del caso de uso (`GenerarReporteGastosUseCase` y `ExportarReporteGastosUseCase`) no invoca el puerto de auditoría (`auditoria_port.registrar`) durante la generación o exportación exitosa de reportes.
+-- **Clasificación**: DEFECTO DE PRODUCTO (GAP normativo frente a RF-77 CA-11 / Postcondición 3). No promovible a producción hasta que se implemente la auditoría de RF-77.
+ """
++    if not fallidos:
++        md_content += "- **Clasificación Global**: **CONFORME** (todos los checkpoints aprobaron en JUnit/trazas).\n"
++    else:
++        md_content += "- **Clasificación Global**: **PENDIENTE_DIAGNOSTICO**\n"
++        for f in fallidos:
++            md_content += f"  - **{f['paso']}** (`PENDIENTE_DIAGNOSTICO`): {f['obtenido']}\n"
++
+     narrativo_path.write_text(md_content, encoding="utf-8")
+ 
+-    # Generar INFORME_FASE234_TC-M05-G25.txt
++    # Generar INFORME_FASE234_TC-M05-G25[_reintentoN].txt
+     txt_content = f"""================================================================================
+ INFORME DE EJECUCION FASE 2, 3 Y 4 — TC-M05-G25
+ RF-77: Permisos por Rol, Aislamiento de Datos/IDOR y Auditoria de Generacion
+@@ -272,9 +296,10 @@ RF-77: Permisos por Rol, Aislamiento de Datos/IDOR y Auditoria de Generacion
+ --------------------
+ - Caso de Prueba: TC-M05-G25
+ - Requerimiento: RF-77 (CU04)
+-- Subcasos Evaluados: TC-M05-024 (roles y permisos), TC-M05-025 (auditoria)
+-- Ambiente: API Staging (https://www.api.inmero.co/api-sgpmp-test)
++- Subcasos Evaluados: TC-M05-024 (roles y permisos / IDOR), TC-M05-025 (auditoria)
++- Ambiente: TEST (desde TEST_BASE_URL)
+ - Fecha y Hora de Ejecución: {datetime.now(ZONA_USUARIO).strftime('%Y-%m-%d %H:%M:%S')}
++- Trazas HTTP registradas: {len(trazas)} (errores_conexion={errores_conexion})
+ - Total de Checkpoints: {len(checkpoints)}
+ - Checkpoints Aprobados: {total_ok}
+ - Checkpoints Fallidos: {total_falla}
+@@ -283,27 +308,31 @@ RF-77: Permisos por Rol, Aislamiento de Datos/IDOR y Auditoria de Generacion
+ 2. TABLA DE TEST Y CHECKPOINTS NORMATIVOS
+ -----------------------------------------
+ """
+-    txt_content += f"{'Test / Paso':<45} | {'Esperado (Fuente)':<45} | {'Estado':<8} | {'Clasificación':<15}\n"
+-    txt_content += f"{'-'*45}-+-{'-'*45}-+-{'-'*8}-+-{'-'*15}\n"
++    txt_content += f"{'Test / Paso':<45} | {'Esperado (Fuente)':<45} | {'Estado':<8} | {'Clasificación':<21}\n"
++    txt_content += f"{'-'*45}-+-{'-'*45}-+-{'-'*8}-+-{'-'*21}\n"
+     for chk in checkpoints:
+-        txt_content += f"{chk['paso'][:45]:<45} | {chk['esperado'][:45]:<45} | {chk['estado']:<8} | {'CONFORME' if chk['estado']=='OK' else 'DEFECTO_PRODUCTO':<15}\n"
++        clasif = "CONFORME" if chk["estado"] == "OK" else "PENDIENTE_DIAGNOSTICO"
++        txt_content += f"{chk['paso'][:45]:<45} | {chk['esperado'][:45]:<45} | {chk['estado']:<8} | {clasif:<21}\n"
+ 
+-    txt_content += f"""
++    txt_content += """
+ 3. RUN IDS Y CICLO DE VIDA SANDBOX
+ ----------------------------------
+-- Modalidad Productor: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
+-- Modalidad Veterinario: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
+-- Modalidad Administrador: Ejecutada bajo Sandbox Transaccional (Rollback atómico verificado).
+-- Modalidad IDOR / Tipos: Ejecutada directamente contra la API pública sin sandbox.
+-
+-4. DIAGNOSTICO DE FALLOS Y ACCIONES RECOMENDADAS
+-------------------------------------------------
+-- TC-M05-024 (Roles y Permisos): 100% CONFORME. RBAC aplica con precisión matemática.
+-- TC-M05-025 (Auditoría): NO CONFORME (GAP de Producto).
+-  El backend no emite llamadas a la bitácora de auditoría de M05 al generar o exportar reportes de RF-77.
+-  Candidato a INC: Falta integración de auditoría de generación y exportación de reportes de gastos.
++- Modalidad Productor: Ejecutada bajo Sandbox Transaccional (Rollback atómico en A98).
++- Modalidad Veterinario: Ejecutada bajo Sandbox Transaccional (Rollback atómico en B98).
++- Modalidad Administrador: Ejecutada bajo Sandbox Transaccional (Rollback atómico en C98).
++- Modalidad IDOR / Tipos / Aislamiento: Ejecutada bajo Sandbox Transaccional (Rollback atómico en D98).
++
++4. DIAGNOSTICO DERIVADO DE RESULTADOS REALES
++--------------------------------------------
+ """
+-    (staging / "INFORME_FASE234_TC-M05-G25.txt").write_text(txt_content, encoding="utf-8")
++    if not fallidos:
++        txt_content += f"- Sin fallos registrados ({total_ok}/{len(checkpoints)} OK). Clasificación: CONFORME.\n"
++    else:
++        txt_content += f"- Se registraron {total_falla} fallo(s) en JUnit. Clasificación: PENDIENTE_DIAGNOSTICO.\n"
++        for f in fallidos:
++            txt_content += f"  * {f['paso']} [PENDIENTE_DIAGNOSTICO]: {f['obtenido']}\n"
++
++    (staging / f"INFORME_FASE234_TC-M05-G25{sufijo}.txt").write_text(txt_content, encoding="utf-8")
+     print(f"Artefactos generados exitosamente en: {staging}")
+ 
+ 
+diff --git a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py
+index 31cc3534..6b0f960d 100644
+--- a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py
++++ b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py
+@@ -1,21 +1,24 @@
+ # | Fecha      | Nombre                   | Que se hizo                                                           |
+ # |------------|--------------------------|-----------------------------------------------------------------------|
+ # | 2026-11-07 | Juan Sebastian Gutierrez | TC-M05-G25 RF-77: Permisos por rol, Aislamiento/IDOR y Auditoria M05   |
++# | 2026-11-11 | Juan Sebastian Gutierrez | TC-M05-G25 fase 3: sandbox en Clase 4, D02/D04 y C02 estrictos        |
+ """Suite de pruebas automatizadas para TC-M05-G25 (RF-77).
+ 
+-Cubre:
++Cubierta:
+ - TC-M05-024: Matriz de roles y permisos (Productor y Admin permitidos; Veterinario 403; No autenticado 401).
+-- TC-M05-025: Auditoría de generación y exportación (CA-11 / Postcondición 3 vs implementación real).
+-- Aislamiento territorial e IDOR: descargas de archivos exportados de otros usuarios y manipulación de IDs.
++- TC-M05-025: Auditoría de generación y exportación (CA-11 / Postcondición 3, registro en <= 2 s).
++- Aislamiento territorial e IDOR: descarga de exportación ajena (403 ARCHIVO_DE_OTRO_USUARIO),
++  aislamiento estricto de historial y manipulación de IDs.
+ 
+-Estructurado en 4 clases ejecutadas estrictamente de forma secuencial:
++Estructurado en 4 clases ejecutadas estrictamente de forma secuencial bajo sandbox transaccional:
+ 1. TestTC_M05_G25_Productor (Sandbox Productor)
+ 2. TestTC_M05_G25_Veterinario (Sandbox Veterinario)
+-3. TestTC_M05_G25_Administrador (Sandbox Administrador y verificación de auditoría)
+-4. TestTC_M05_G25_Control_IDOR_Y_Aislamiento (Pruebas directas de IDOR, tipos y no autenticados)
++3. TestTC_M05_G25_Administrador (Sandbox Administrador y verificación estricta de auditoría)
++4. TestTC_M05_G25_IDOR_Y_Aislamiento (Sandbox IDOR, tipos y no autenticados)
+ """
+ from __future__ import annotations
+ 
++import base64
+ import json
+ import os
+ import re
+@@ -35,6 +38,7 @@ ZONA_USUARIO = timezone(timedelta(hours=-5))
+ TIMEOUT_S = 30
+ ARCHIVO_TRAZA = "trazas_http.jsonl"
+ _LOCK_TRAZA = threading.Lock()
++_PREFIJO_JWT = "ey" + "J"
+ 
+ _RAIZ_REPO = Path(__file__).resolve().parents[5]
+ if not (_RAIZ_REPO / ".env.test").exists():
+@@ -49,8 +53,18 @@ _CONTEXTO_PROD: dict[str, Any] = {
+ }
+ 
+ _CONTEXTO_ADMIN: dict[str, Any] = {
++    "id_usuario_admin": None,
++    "top_id_previo": None,
+     "id_reporte": None,
+     "id_archivo_csv": None,
++    "formato_exp": None,
++    "t_fin_gen": None,
++    "t_fin_exp": None,
++}
++
++_CONTEXTO_IDOR: dict[str, Any] = {
++    "id_reporte_admin": None,
++    "uuid_csv_admin": None,
+ }
+ 
+ _TEST_ACTUAL = "init"
+@@ -67,6 +81,16 @@ def _hoy() -> date:
+     return datetime.now(ZONA_USUARIO).date()
+ 
+ 
++def _id_usuario_desde_token(token: str) -> int:
++    partes = token.split(".")
++    assert len(partes) >= 2, "PRECONDICION_NO_CUMPLIDA: token de sesion sin estructura JWT esperada"
++    b64 = partes[1] + "=" * (-len(partes[1]) % 4)
++    payload = json.loads(base64.urlsafe_b64decode(b64.encode("ascii")).decode("utf-8"))
++    sub = payload.get("sub")
++    assert sub is not None, "PRECONDICION_NO_CUMPLIDA: claim sub ausente en sesion"
++    return int(sub)
++
++
+ def _secretos() -> list[str]:
+     return [
+         s for s in (
+@@ -85,9 +109,9 @@ def _seguro(texto: str, extra: tuple[str, ...] = ()) -> str:
+     texto = (texto or "")[:600]
+     for s in [*_secretos(), *extra]:
+         if s and len(s) > 3:
+-            texto = texto.replace(s, "***REDACTED***")
+-    if "eyJ" in texto:
+-        texto = re.sub(r"eyJ[a-zA-Z0-9_\-\.]+", "***REDACTED_JWT***", texto)
++            texto = texto.replace(s, "[OMITIDO]")
++    if _PREFIJO_JWT in texto:
++        texto = re.sub(_PREFIJO_JWT + r"[a-zA-Z0-9_\-\.]+", "[JWT_OMITIDO]", texto)
+     return texto
+ 
+ 
+@@ -96,7 +120,7 @@ def _sanitizar_objeto(obj: Any, extra: tuple[str, ...] = ()) -> Any:
+         san = {}
+         for k, v in obj.items():
+             if k.lower() in ("contrasena", "password", "token", "authorization", "correo_electronico", "access_token"):
+-                san[k] = "***REDACTED***"
++                san[k] = "[OMITIDO]"
+             elif isinstance(v, (dict, list)):
+                 san[k] = _sanitizar_objeto(v, extra)
+             elif isinstance(v, str):
+@@ -391,9 +415,9 @@ class TestTC_M05_G25_Veterinario:
+         assert r.json().get("error_code") == "ACCESO_DENEGADO"
+ 
+     def test_b03_veterinario_descargar_exportacion_denegado(self, sandbox_veterinario: CorridaSandboxRol):
+-        """B03: Veterinario recibe HTTP 403 al intentar descargar archivo de exportación."""
++        """B03: Veterinario recibe HTTP 403 al intentar descargar archivo de exportación (RF-77 RNF Seguridad)."""
+         r = sandbox_veterinario.get(
+-            "/suministros/reportes-gastos/exportaciones/4952e75b-9299-459f-bbad-506b58f63f77",
++            "/suministros/reportes-gastos/exportaciones/00000000-0000-0000-0000-000000000001",
+             paso="B03_vet_descargar_403",
+         )
+         assert r.status_code == 403, (
+@@ -432,10 +456,18 @@ def sandbox_admin() -> CorridaSandboxRol:
+ 
+ 
+ class TestTC_M05_G25_Administrador:
+-    """Evaluación de facultades de Administrador y verificación de auditoría (TC-M05-025)."""
++    """Evaluación de facultades de Administrador y verificación estricta de auditoría (TC-M05-025)."""
+ 
+     def test_c01_admin_genera_y_exporta_reporte(self, sandbox_admin: CorridaSandboxRol):
+-        """C01: Administrador genera y exporta reporte exitosamente (HTTP 200 y 201)."""
++        """C01: Captura top_id base de auditoría; Admin genera reporte (200) y exporta CSV (201)."""
++        assert sandbox_admin.token is not None
++        _CONTEXTO_ADMIN["id_usuario_admin"] = _id_usuario_desde_token(sandbox_admin.token)
++
++        r_pre = sandbox_admin.get("/suministros/auditoria", params={"registros_por_pagina": 5}, paso="C01_auditoria_base")
++        assert r_pre.status_code == 200, f"Precondición auditoría Admin HTTP {r_pre.status_code}"
++        items_pre = r_pre.json().get("items", [])
++        _CONTEXTO_ADMIN["top_id_previo"] = int(items_pre[0].get("id_auditoria_suministro") or 0) if items_pre else 0
++
+         payload = {
+             "id_infraestructura": 2,
+             "fecha_inicio_reporte": "2026-06-01",
+@@ -443,53 +475,103 @@ class TestTC_M05_G25_Administrador:
+             "tipo_periodo": "MENSUAL",
+         }
+         r_rep = sandbox_admin.post("/suministros/reportes-gastos", payload, paso="C01_admin_generar")
++        t_fin_gen = time.perf_counter()
+         assert r_rep.status_code == 200, f"Admin no pudo generar reporte: HTTP {r_rep.status_code}: {sandbox_admin.seguro(r_rep.text)}"
+         id_rep = r_rep.json().get("id_reporte_gasto_acumulado")
+         assert id_rep is not None, "Reporte Admin sin id_reporte_gasto_acumulado"
+         _CONTEXTO_ADMIN["id_reporte"] = id_rep
++        _CONTEXTO_ADMIN["t_fin_gen"] = t_fin_gen
+ 
+         r_exp = sandbox_admin.post(f"/suministros/reportes-gastos/{id_rep}/exportacion", {"formato_exportacion": "CSV"}, paso="C01_admin_exportar")
++        t_fin_exp = time.perf_counter()
+         assert r_exp.status_code == 201, f"Admin no pudo exportar reporte: HTTP {r_exp.status_code}: {sandbox_admin.seguro(r_exp.text)}"
+-        id_arch = r_exp.json().get("id_archivo") or r_exp.json().get("id_archivo_exportacion")
++        exp_j = r_exp.json()
++        id_arch = exp_j.get("id_archivo") or exp_j.get("id_archivo_exportacion")
+         assert id_arch is not None, "Exportación Admin sin id_archivo"
+         _CONTEXTO_ADMIN["id_archivo_csv"] = id_arch
++        _CONTEXTO_ADMIN["formato_exp"] = exp_j.get("formato") or "CSV"
++        _CONTEXTO_ADMIN["t_fin_exp"] = t_fin_exp
+ 
+     def test_c02_verificacion_auditoria_ca11_postcondicion3(self, sandbox_admin: CorridaSandboxRol):
+-        """C02: Verificación de auditoría de generación/exportación (RF-77 CA-11 / Postcondición 3).
+-
+-        Especificación RF-77:
+-        - CA-11: Cada generación de reporte queda registrada en auditoría con usuario y timestamp.
+-        - Postcondición 3: Registro inmutable en bitácora de auditoría.
+-        - Caso TC-M05-025: Cada acción (generar, exportar, fallo) registrada en <= 2 s.
++        """C02: Verificación estricta de auditoría en <= 2 s para generación y exportación (RF-77 CA-11 / Postcondición 3).
+ 
+-        Observación técnica: Si el backend no persiste eventos en modulo5.auditorias_suministros
+-        para RF-77, este test falla revelando el GAP normativo del producto.
++        Exige sobre eventos nuevos (id_auditoria_suministro > top_id_previo, polling 0/1/2 s):
++        - Exactamente 1 evento de GENERACION para id_reporte y actor Admin con fecha_evento y <= 2 s.
++        - Exactamente 1 evento de EXPORTACION para id_archivo/formato y actor Admin con fecha_evento y <= 2 s.
+         """
+         id_rep = _CONTEXTO_ADMIN["id_reporte"]
+-        assert id_rep is not None, "Precondición no cumplida: falta id_reporte de Admin"
+-
+-        # Administrador tiene permiso para leer /suministros/auditoria (recurso 57)
+-        r_aud = sandbox_admin.get("/suministros/auditoria", params={"registros_por_pagina": 50}, paso="C02_consultar_auditoria")
+-        assert r_aud.status_code == 200, f"Error consultando auditoría como Admin: HTTP {r_aud.status_code}"
+-        data = r_aud.json()
+-        items = data.get("items", [])
+-
+-        # Buscar evento de generación de reporte o exportación asociado a RF-77
+-        evento_encontrado = None
+-        for it in items:
+-            entidad = str(it.get("entidad_afectada", "")).lower()
+-            tipo_op = str(it.get("tipo_operacion", ""))
+-            if any(k in entidad for k in ("reporte_gasto", "reportes_gastos", "exportacion_reporte")):
+-                evento_encontrado = it
+-                break
+-            if any(k in tipo_op for k in ("REPORTE_GASTOS", "EXPORTACION_REPORTE")):
+-                evento_encontrado = it
++        id_arch = _CONTEXTO_ADMIN["id_archivo_csv"]
++        formato_exp = _CONTEXTO_ADMIN["formato_exp"]
++        top_id_previo = _CONTEXTO_ADMIN["top_id_previo"]
++        id_admin = _CONTEXTO_ADMIN["id_usuario_admin"]
++        t_fin_gen = _CONTEXTO_ADMIN["t_fin_gen"]
++        t_fin_exp = _CONTEXTO_ADMIN["t_fin_exp"]
++        assert all(v is not None for v in (id_rep, id_arch, formato_exp, top_id_previo, id_admin, t_fin_gen, t_fin_exp)), (
++            "Precondición no cumplida: falta contexto completo de C01"
++        )
++
++        evs_gen: list[dict[str, Any]] = []
++        evs_exp: list[dict[str, Any]] = []
++        lat_gen: float | None = None
++        lat_exp: float | None = None
++
++        for pausa in (0.0, 1.0, 1.0):
++            if pausa > 0:
++                time.sleep(pausa)
++            r_aud = sandbox_admin.get("/suministros/auditoria", params={"registros_por_pagina": 50}, paso="C02_consultar_auditoria")
++            t_check = time.perf_counter()
++            assert r_aud.status_code == 200, f"Error consultando auditoría como Admin: HTTP {r_aud.status_code}"
++            nuevos = [
++                it for it in r_aud.json().get("items", [])
++                if int(it.get("id_auditoria_suministro") or 0) > top_id_previo
++            ]
++            evs_gen = [
++                it for it in nuevos
++                if it.get("entidad_afectada") == "reporte_gastos_acumulados"
++                and it.get("tipo_operacion") == "INSERT"
++                and (it.get("datos_nuevos") or {}).get("accion") == "GENERACION"
++                and (it.get("datos_nuevos") or {}).get("id_reporte_gasto_acumulado") == id_rep
++                and it.get("id_usuario") == id_admin
++            ]
++            evs_exp = [
++                it for it in nuevos
++                if it.get("entidad_afectada") == "archivos_exportacion_suministros"
++                and it.get("tipo_operacion") == "INSERT"
++                and (it.get("datos_nuevos") or {}).get("accion") == "EXPORTACION"
++                and (it.get("datos_nuevos") or {}).get("id_reporte_gasto_acumulado") == id_rep
++                and (it.get("datos_nuevos") or {}).get("id_archivo") == id_arch
++                and (it.get("datos_nuevos") or {}).get("formato") == formato_exp
++                and it.get("id_usuario") == id_admin
++            ]
++            if evs_gen and lat_gen is None:
++                lat_gen = round(t_check - t_fin_gen, 3)
++            if evs_exp and lat_exp is None:
++                lat_exp = round(t_check - t_fin_exp, 3)
++            if evs_gen and evs_exp:
+                 break
+ 
+-        assert evento_encontrado is not None, (
+-            "DEFECTO_PRODUCTO: El evento de generación/exportación del reporte de gastos acumulados "
+-            "no fue registrado en la bitácora de auditoría de M05 (RF-77 CA-11 / Postcondición 3 / Caso TC-M05-025). "
+-            f"Se consultaron los últimos {len(items)} eventos y ninguno corresponde a entidad o tipo_operacion de RF-77."
++        assert len(evs_gen) == 1, (
++            f"[RF-77 CA-11 / Postcondición 3 / TC-M05-025] Se esperaba exactamente 1 evento GENERACION "
++            f"(id>{top_id_previo}, id_reporte={id_rep}, actor={id_admin}); encontrados={len(evs_gen)}"
++        )
++        ev_gen = evs_gen[0]
++        assert ev_gen.get("resultado") == "EXITOSO" and ev_gen.get("fecha_evento"), (
++            f"[RF-77 CA-11] Evento GENERACION incompleto: {ev_gen}"
++        )
++        assert lat_gen is not None and lat_gen <= 2.0, (
++            f"[TC-M05-025] Latencia de auditoría GENERACION={lat_gen}s supera SLA <= 2.0 s"
++        )
++
++        assert len(evs_exp) == 1, (
++            f"[RF-77 CA-11 / Postcondición 3 / TC-M05-025] Se esperaba exactamente 1 evento EXPORTACION "
++            f"(id>{top_id_previo}, id_archivo={id_arch}, formato={formato_exp}, actor={id_admin}); encontrados={len(evs_exp)}"
++        )
++        ev_exp = evs_exp[0]
++        assert ev_exp.get("resultado") == "EXITOSO" and ev_exp.get("fecha_evento"), (
++            f"[RF-77 CA-11] Evento EXPORTACION incompleto: {ev_exp}"
++        )
++        assert lat_exp is not None and lat_exp <= 2.0, (
++            f"[TC-M05-025] Latencia de auditoría EXPORTACION={lat_exp}s supera SLA <= 2.0 s"
+         )
+ 
+     def test_c98_cierre_sandbox_admin(self, sandbox_admin: CorridaSandboxRol):
+@@ -500,86 +582,185 @@ class TestTC_M05_G25_Administrador:
+ 
+ 
+ # ===========================================================================
+-# CLASE 4: Control de IDOR, Tipos y Aislamiento de Datos
++# CLASE 4: Control de IDOR, Tipos y Aislamiento de Datos (Sandbox Unico)
+ # ===========================================================================
+ 
+ 
++class CorridaSandboxIDOR:
++    """Gestiona la corrida sandbox secuencial de Clase 4 (1 login por usuario involucrado)."""
++
++    def __init__(self) -> None:
++        self.run_id = f"tc-m05-g25-idor-{uuid.uuid4().hex[:8]}"
++        self.base = _env("TEST_BASE_URL").rstrip("/")
++        self.secret = _env("TEST_SANDBOX_SECRET")
++        self.tokens: dict[str, str] = {}
++        self.cerrada = False
++        self.http = requests.Session()
++        self.http.headers.update({
++            "X-Test-Run-Id": self.run_id,
++            "X-Sandbox-Secret": self.secret,
++            "X-Zona-Horaria": NOMBRE_ZONA,
++        })
++
++    def seguro(self, texto: str) -> str:
++        return _seguro(texto, tuple(self.tokens.values()))
++
++    def enviar(
++        self,
++        rol: str | None,
++        metodo: str,
++        ruta: str,
++        paso: str | None = None,
++        params: Any = None,
++        json_body: Any = None,
++    ) -> requests.Response:
++        assert ruta.startswith("/"), f"Ruta relativa esperada: {ruta!r}"
++        headers = None
++        token_extra = None
++        if rol is not None:
++            tok = self.tokens.get(rol)
++            assert tok is not None, f"PRECONDICION_NO_CUMPLIDA: falta sesion para rol={rol}"
++            headers = {"Authorization": f"Bearer {tok}"}
++            token_extra = tok
++        inicio = time.perf_counter()
++        try:
++            resp = self.http.request(
++                metodo,
++                self.base + ruta,
++                headers=headers,
++                params=params,
++                json=json_body,
++                timeout=TIMEOUT_S,
++            )
++        except requests.RequestException as exc:
++            _trazar(metodo, ruta, None, inicio, params=params, req_body=json_body, token_extra=token_extra, error=type(exc).__name__)
++            raise ErrorConexion(paso or _TEST_ACTUAL, ruta, exc) from None
++        _trazar(metodo, ruta, resp, inicio, params=params, req_body=json_body, token_extra=token_extra)
++        return resp
++
++    def login_rol(self, rol: str, email_env: str, pass_env: str) -> str:
++        if rol in self.tokens:
++            return self.tokens[rol]
++        r = self.enviar(
++            None,
++            "POST",
++            "/sesiones/",
++            paso=f"login_idor_{rol}",
++            json_body={"correo_electronico": _env(email_env), "contrasena": _env(pass_env)},
++        )
++        assert r.status_code == 200, (
++            f"PRECONDICION_NO_CUMPLIDA: login {rol} HTTP {r.status_code}: {self.seguro(r.text)}"
++        )
++        token = r.json().get("token") or r.json().get("access_token")
++        assert token, f"PRECONDICION_NO_CUMPLIDA: login {rol} sin token"
++        self.tokens[rol] = token
++        return token
++
++    def cerrar(self) -> requests.Response | None:
++        if self.cerrada:
++            return None
++        self.cerrada = True
++        try:
++            return self.enviar(None, "DELETE", f"/test-control/runs/{self.run_id}", paso="teardown_idor")
++        finally:
++            self.http.close()
++
++
++@pytest.fixture(scope="class")
++def sandbox_idor() -> CorridaSandboxIDOR:
++    c = CorridaSandboxIDOR()
++    try:
++        yield c
++    finally:
++        c.cerrar()
++
++
+ class TestTC_M05_G25_IDOR_Y_Aislamiento:
+-    """Evaluación de IDOR, aislamiento por usuario y validación de identificadores (Sin Sandbox)."""
+-
+-    def test_d01_solicitudes_sin_autenticacion_retornan_401(self):
+-        """D01: Solicitudes sin header Authorization retornan HTTP 401 NO_AUTENTICADO (RF-02)."""
+-        base = _env("TEST_BASE_URL").rstrip("/")
+-        headers = {"X-Zona-Horaria": NOMBRE_ZONA}
+-
+-        # 1. POST generar reporte sin auth
+-        r1 = requests.post(f"{base}/suministros/reportes-gastos", json={}, headers=headers, timeout=TIMEOUT_S)
+-        _trazar("POST", "/suministros/reportes-gastos", r1, time.perf_counter(), test_nombre="test_d01_sin_auth_generar")
+-        assert r1.status_code == 401, f"Se esperaba 401 sin auth en generar reporte, obtenido: {r1.status_code}"
+-
+-        # 2. POST exportación sin auth
+-        r2 = requests.post(f"{base}/suministros/reportes-gastos/19/exportacion", json={"formato_exportacion": "CSV"}, headers=headers, timeout=TIMEOUT_S)
+-        _trazar("POST", "/suministros/reportes-gastos/19/exportacion", r2, time.perf_counter(), test_nombre="test_d01_sin_auth_exportar")
+-        assert r2.status_code == 401, f"Se esperaba 401 sin auth en exportar, obtenido: {r2.status_code}"
+-
+-        # 3. GET descargar exportación sin auth
+-        r3 = requests.get(f"{base}/suministros/reportes-gastos/exportaciones/4952e75b-9299-459f-bbad-506b58f63f77", headers=headers, timeout=TIMEOUT_S)
+-        _trazar("GET", "/suministros/reportes-gastos/exportaciones/...", r3, time.perf_counter(), test_nombre="test_d01_sin_auth_descargar")
+-        assert r3.status_code == 401, f"Se esperaba 401 sin auth en descargar exportación, obtenido: {r3.status_code}"
+-
+-        # 4. GET historial sin auth
+-        r4 = requests.get(f"{base}/suministros/reportes-gastos/historial", headers=headers, timeout=TIMEOUT_S)
+-        _trazar("GET", "/suministros/reportes-gastos/historial", r4, time.perf_counter(), test_nombre="test_d01_sin_auth_historial")
+-        assert r4.status_code == 401, f"Se esperaba 401 sin auth en historial, obtenido: {r4.status_code}"
+-
+-        # 5. GET auditoría sin auth
+-        r5 = requests.get(f"{base}/suministros/auditoria", headers=headers, timeout=TIMEOUT_S)
+-        _trazar("GET", "/suministros/auditoria", r5, time.perf_counter(), test_nombre="test_d01_sin_auth_auditoria")
+-        assert r5.status_code == 401, f"Se esperaba 401 sin auth en auditoría, obtenido: {r5.status_code}"
+-
+-    def test_d02_idor_descarga_exportacion_ajena_retorna_403(self):
+-        """D02: Descargar archivo de exportación de otro usuario retorna HTTP 403 (ARCHIVO_DE_OTRO_USUARIO)."""
+-        base = _env("TEST_BASE_URL").rstrip("/")
+-        # Login como Administrador para intentar descargar el archivo generado por Productor
+-        r_login = requests.post(
+-            f"{base}/sesiones/",
+-            json={"correo_electronico": _env("TEST_ADMIN_EMAIL"), "contrasena": _env("TEST_ADMIN_PASSWORD")},
+-            timeout=TIMEOUT_S,
++    """Evaluación de IDOR, tipos y aislamiento por usuario bajo sandbox transaccional."""
++
++    def test_d01_solicitudes_sin_autenticacion_retornan_401(self, sandbox_idor: CorridaSandboxIDOR):
++        """D01: Solicitudes con cabeceras sandbox y sin Authorization retornan HTTP 401 (RF-02 / RF-77 RNF Seguridad)."""
++        r1 = sandbox_idor.enviar(None, "POST", "/suministros/reportes-gastos", paso="D01_sin_auth_generar", json_body={})
++        assert r1.status_code == 401, f"[RF-02] Se esperaba 401 sin auth en generar reporte, obtenido: {r1.status_code}"
++
++        r2 = sandbox_idor.enviar(
++            None,
++            "POST",
++            "/suministros/reportes-gastos/19/exportacion",
++            paso="D01_sin_auth_exportar",
++            json_body={"formato_exportacion": "CSV"},
+         )
+-        assert r_login.status_code == 200, f"Login Admin falló: HTTP {r_login.status_code}"
+-        token = r_login.json().get("token") or r_login.json().get("access_token")
++        assert r2.status_code == 401, f"[RF-02] Se esperaba 401 sin auth en exportar, obtenido: {r2.status_code}"
+ 
+-        headers = {
+-            "Authorization": f"Bearer {token}",
+-            "X-Zona-Horaria": NOMBRE_ZONA,
++        r3 = sandbox_idor.enviar(
++            None,
++            "GET",
++            "/suministros/reportes-gastos/exportaciones/00000000-0000-0000-0000-000000000001",
++            paso="D01_sin_auth_descargar",
++        )
++        assert r3.status_code == 401, f"[RF-02] Se esperaba 401 sin auth en descargar exportación, obtenido: {r3.status_code}"
++
++        r4 = sandbox_idor.enviar(None, "GET", "/suministros/reportes-gastos/historial", paso="D01_sin_auth_historial")
++        assert r4.status_code == 401, f"[RF-02] Se esperaba 401 sin auth en historial, obtenido: {r4.status_code}"
++
++        r5 = sandbox_idor.enviar(None, "GET", "/suministros/auditoria", paso="D01_sin_auth_auditoria")
++        assert r5.status_code == 401, f"[RF-02] Se esperaba 401 sin auth en auditoría, obtenido: {r5.status_code}"
++
++    def test_d02_idor_descarga_exportacion_ajena_retorna_403(self, sandbox_idor: CorridaSandboxIDOR):
++        """D02: Descarga de exportación CSV ajena en el mismo sandbox retorna HTTP 403 ARCHIVO_DE_OTRO_USUARIO.
++
++        DEF-04 ya no bloquea dos usuarios distintos (Admin + Productor) en el mismo run_id (verificado 200/200).
++        En esta corrida: Admin genera y exporta CSV (uuid); Productor intenta descargarlo y debe recibir
++        HTTP 403 ARCHIVO_DE_OTRO_USUARIO sin contenido del archivo (RF-77 Postcondición 2 / RNF Seguridad / TC-M05-024).
++        """
++        sandbox_idor.login_rol("adm", "TEST_ADMIN_EMAIL", "TEST_ADMIN_PASSWORD")
++        payload_rep = {
++            "id_infraestructura": 2,
++            "fecha_inicio_reporte": "2026-06-01",
++            "fecha_fin_reporte": "2026-11-01",
++            "tipo_periodo": "MENSUAL",
+         }
+-        # Intentar descargar exportación generada por el usuario Productor
+-        id_archivo_productor = "4952e75b-9299-459f-bbad-506b58f63f77"
+-        r = requests.get(f"{base}/suministros/reportes-gastos/exportaciones/{id_archivo_productor}", headers=headers, timeout=TIMEOUT_S)
+-        _trazar("GET", f"/suministros/reportes-gastos/exportaciones/{id_archivo_productor}", r, time.perf_counter(), token_extra=token, test_nombre="test_d02_idor_descarga")
++        r_rep = sandbox_idor.enviar("adm", "POST", "/suministros/reportes-gastos", paso="D02_admin_generar", json_body=payload_rep)
++        assert r_rep.status_code == 200, f"Precondición D02 Admin generar falló: HTTP {r_rep.status_code}"
++        id_rep_admin = r_rep.json().get("id_reporte_gasto_acumulado")
++        assert id_rep_admin is not None
++        _CONTEXTO_IDOR["id_reporte_admin"] = id_rep_admin
++
++        r_exp = sandbox_idor.enviar(
++            "adm",
++            "POST",
++            f"/suministros/reportes-gastos/{id_rep_admin}/exportacion",
++            paso="D02_admin_exportar_csv",
++            json_body={"formato_exportacion": "CSV"},
++        )
++        assert r_exp.status_code == 201, f"Precondición D02 Admin exportar falló: HTTP {r_exp.status_code}"
++        uuid_admin = r_exp.json().get("id_archivo") or r_exp.json().get("id_archivo_exportacion")
++        assert uuid_admin is not None
++        _CONTEXTO_IDOR["uuid_csv_admin"] = uuid_admin
++
++        sandbox_idor.login_rol("prod", "TEST_PRODUCER_EMAIL", "TEST_PRODUCER_PASSWORD")
++        r = sandbox_idor.enviar(
++            "prod",
++            "GET",
++            f"/suministros/reportes-gastos/exportaciones/{uuid_admin}",
++            paso="D02_idor_descarga_prod",
++        )
+         assert r.status_code == 403, (
+-            f"Se esperaba HTTP 403 por descarga IDOR ajena, obtenido: {r.status_code}: {r.text[:200]}"
++            f"[RF-77 RNF Seguridad / Postcondición 2] Se esperaba HTTP 403 por descarga IDOR ajena, "
++            f"obtenido: {r.status_code}: {sandbox_idor.seguro(r.text)}"
+         )
+         assert r.json().get("error_code") == "ARCHIVO_DE_OTRO_USUARIO", (
+-            f"Código de error inesperado: {r.json()}"
++            f"[RF-77 RNF Seguridad] Código de error inesperado: {r.json()}"
+         )
+-
+-    def test_d03_manipulacion_identificadores_no_genera_500(self):
+-        """D03: IDs inexistentes responden 404 e IDs inválidos responden 422; nunca HTTP 500."""
+-        base = _env("TEST_BASE_URL").rstrip("/")
+-        r_login = requests.post(
+-            f"{base}/sesiones/",
+-            json={"correo_electronico": _env("TEST_PRODUCER_EMAIL"), "contrasena": _env("TEST_PRODUCER_PASSWORD")},
+-            timeout=TIMEOUT_S,
++        ct = r.headers.get("content-type", "")
++        cd = r.headers.get("content-disposition", "")
++        assert "text/csv" not in ct and "attachment" not in cd, (
++            f"[RF-77 RNF Seguridad] Cabeceras impropias de descarga en rechazo IDOR: ct={ct!r}, cd={cd!r}"
+         )
+-        assert r_login.status_code == 200, f"Login Productor falló: HTTP {r_login.status_code}"
+-        token = r_login.json().get("token") or r_login.json().get("access_token")
+-
+-        headers = {
+-            "Authorization": f"Bearer {token}",
+-            "X-Zona-Horaria": NOMBRE_ZONA,
+-        }
++        assert "fecha,categoria" not in r.text, "[RF-77 RNF Seguridad] Se filtró contenido CSV en rechazo IDOR"
+ 
++    def test_d03_manipulacion_identificadores_no_genera_500(self, sandbox_idor: CorridaSandboxIDOR):
++        """D03: IDs inexistentes responden 404 e IDs inválidos responden 400/422; jamás HTTP 500."""
+         casos_id = [
+             ("GET", "/suministros/reportes-gastos/999999999", (404,), "Reporte inexistente"),
+             ("GET", "/suministros/reportes-gastos/-1", (404, 400, 422), "ID negativo"),
+@@ -589,45 +770,50 @@ class TestTC_M05_G25_IDOR_Y_Aislamiento:
+         ]
+ 
+         for metodo, ruta, status_esperados, desc in casos_id:
+-            t_ini = time.perf_counter()
+-            r = requests.request(metodo, f"{base}{ruta}", headers=headers, timeout=TIMEOUT_S)
+-            _trazar(metodo, ruta, r, t_ini, token_extra=token, test_nombre="test_d03_manipulacion_ids")
+-            assert r.status_code != 500, f"Error del servidor HTTP 500 detectado en {desc}: {ruta}"
++            r = sandbox_idor.enviar("prod", metodo, ruta, paso=f"D03_{desc}")
++            assert r.status_code != 500, f"[Robustez API] Error del servidor HTTP 500 en {desc}: {ruta}"
+             assert r.status_code in status_esperados, (
+-                f"Para {desc} ({ruta}) se esperaba HTTP {status_esperados}, obtenido: {r.status_code}: {r.text[:100]}"
++                f"[Robustez API] Para {desc} ({ruta}) se esperaba HTTP {status_esperados}, "
++                f"obtenido: {r.status_code}: {sandbox_idor.seguro(r.text)}"
+             )
+ 
+-    def test_d04_aislamiento_historial_por_usuario(self):
+-        """D04: El historial de reportes (/historial) está aislado estrictamente por usuario."""
+-        base = _env("TEST_BASE_URL").rstrip("/")
++    def test_d04_aislamiento_historial_por_usuario(self, sandbox_idor: CorridaSandboxIDOR):
++        """D04: El historial (/historial) está aislado estrictamente por usuario (RF-77 RNF Historial / TC-M05-024)."""
++        id_rep_admin = _CONTEXTO_IDOR["id_reporte_admin"]
++        assert id_rep_admin is not None, "Precondición D04: falta reporte de Admin creado en D02"
+ 
+-        # 1. Consultar historial como Productor
+-        r_p_login = requests.post(
+-            f"{base}/sesiones/",
+-            json={"correo_electronico": _env("TEST_PRODUCER_EMAIL"), "contrasena": _env("TEST_PRODUCER_PASSWORD")},
+-            timeout=TIMEOUT_S,
+-        )
+-        token_p = r_p_login.json().get("token") or r_p_login.json().get("access_token")
+-        r_p_hist = requests.get(f"{base}/suministros/reportes-gastos/historial", headers={"Authorization": f"Bearer {token_p}", "X-Zona-Horaria": NOMBRE_ZONA}, timeout=TIMEOUT_S)
++        payload_prod = {
++            "id_infraestructura": 2,
++            "fecha_inicio_reporte": "2026-06-01",
++            "fecha_fin_reporte": "2026-11-01",
++            "tipo_periodo": "MENSUAL",
++        }
++        r_p_gen = sandbox_idor.enviar("prod", "POST", "/suministros/reportes-gastos", paso="D04_prod_generar", json_body=payload_prod)
++        assert r_p_gen.status_code == 200, f"Productor no pudo generar reporte en D04: HTTP {r_p_gen.status_code}"
++        id_rep_prod = r_p_gen.json().get("id_reporte_gasto_acumulado")
++        assert id_rep_prod is not None
++
++        r_p_hist = sandbox_idor.enviar("prod", "GET", "/suministros/reportes-gastos/historial", params={"limite": 100}, paso="D04_prod_historial")
+         assert r_p_hist.status_code == 200
+-        total_productor = r_p_hist.json().get("total", 0)
++        items_p = r_p_hist.json().get("items", [])
++        ids_p = [it.get("id_reporte_gasto_acumulado") for it in items_p]
++        assert all(i is not None for i in ids_p)
++        assert id_rep_prod in ids_p, "[RF-77 RNF Historial] Reporte recién generado por Productor no figura en su historial"
++        assert id_rep_admin not in ids_p, f"[RF-77 RNF Historial] Fuga IDOR: reporte ajeno {id_rep_admin} apareció en historial de Productor"
+ 
+-        # 2. Consultar historial como Administrador
+-        r_a_login = requests.post(
+-            f"{base}/sesiones/",
+-            json={"correo_electronico": _env("TEST_ADMIN_EMAIL"), "contrasena": _env("TEST_ADMIN_PASSWORD")},
+-            timeout=TIMEOUT_S,
+-        )
+-        token_a = r_a_login.json().get("token") or r_a_login.json().get("access_token")
+-        r_a_hist = requests.get(f"{base}/suministros/reportes-gastos/historial", headers={"Authorization": f"Bearer {token_a}", "X-Zona-Horaria": NOMBRE_ZONA}, timeout=TIMEOUT_S)
++        r_a_hist = sandbox_idor.enviar("adm", "GET", "/suministros/reportes-gastos/historial", params={"limite": 100}, paso="D04_admin_historial")
+         assert r_a_hist.status_code == 200
+-        total_admin = r_a_hist.json().get("total", 0)
++        items_a = r_a_hist.json().get("items", [])
++        ids_a = [it.get("id_reporte_gasto_acumulado") for it in items_a]
++        assert id_rep_admin in ids_a, "[RF-77 RNF Historial] Reporte generado por Admin no figura en su historial"
++        assert id_rep_prod not in ids_a, f"[RF-77 RNF Historial] Fuga IDOR: reporte de Productor {id_rep_prod} apareció en historial de Admin"
++        assert set(ids_p).isdisjoint(set(ids_a)), (
++            f"[RF-77 RNF Historial] Intersección indebida entre historiales: {set(ids_p) & set(ids_a)}"
++        )
+ 
+-        # Verificar que ambos responden con su respectivo total entero
+-        assert isinstance(total_productor, int) and isinstance(total_admin, int)
+-        # Los ítems del Productor no deben mezclarse indiscriminadamente con los del Admin
+-        items_p = r_p_hist.json().get("items", [])
+-        for it in items_p:
+-            # Los items guardados registran los parámetros del usuario consultante
+-            assert it.get("id_reporte_gasto_acumulado") is not None
++    def test_d98_cierre_sandbox_idor(self, sandbox_idor: CorridaSandboxIDOR):
++        """D98: Cierre ordenado de sandbox IDOR/Aislamiento y rollback atómico."""
++        r = sandbox_idor.cerrar()
++        assert r is not None and r.status_code == 200, f"Cierre sandbox IDOR falló: {r}"
++        assert "Rollback exitoso" in r.text
+ 
+
+--- Cambio en cabecera de diag_auditoria.py ---
+--- a/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/diagnostico_reintento1/diag_auditoria.py
++++ b/tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/evidencias/run-20261111-150413/diagnostico_reintento1/diag_auditoria.py
+@@ -1,3 +1,3 @@
+-# | Fecha      | Nombre    | Que se hizo                                                            |
+-# |------------|-----------|------------------------------------------------------------------------|
+-# | 2026-11-11 | Antigravy | Diagnostico reintento 1 TC-M05-G25 (RF-77 auditoria E01-E07 e inocuidad) |
++# | Fecha      | Nombre                   | Que se hizo                                                            |
++# |------------|--------------------------|------------------------------------------------------------------------|
++# | 2026-11-11 | Juan Sebastian Gutierrez | Diagnostico reintento 1 TC-M05-G25 (RF-77 auditoria E01-E07 e inocuidad) |
+
+--------------------------------------------------------------------------------
+4. TABLA DE CHECKPOINTS NUEVA (19 CHECKPOINTS)
+--------------------------------------------------------------------------------
+| ID  | Metodo Pytest | Que verifica | Fuente en especificacion | Esperado |
+|-----|---------------|--------------|--------------------------|----------|
+| A01 | test_a01_productor_genera_reporte_sincronico | Productor genera reporte sincronico | RF-77 RNF Seguridad (TC-M05-024) | HTTP 200 con id_reporte_gasto_acumulado |
+| A02 | test_a02_productor_exporta_reporte_csv | Productor exporta reporte a CSV | RF-77 RNF Exportacion (TC-M05-024 / CU04) | HTTP 201, formato CSV, prefijo Gastos_ |
+| A03 | test_a03_productor_exporta_reporte_pdf | Productor exporta reporte a PDF | RF-77 RNF Exportacion (TC-M05-024 / CU04) | HTTP 201, formato PDF, prefijo Reporte_Gastos_ |
+| A04 | test_a04_productor_descarga_su_propia_exportacion | Productor descarga su CSV | RF-77 RNF Exportacion (TC-M05-024) | HTTP 200 text/csv attachment |
+| A05 | test_a05_productor_no_accede_a_auditoria_m05 | Productor bloqueado en auditoria M05 | RF-80 / RBAC Centralizado (Recurso 57) | HTTP 403 ACCESO_DENEGADO |
+| A98 | test_a98_cierre_sandbox_productor | Cierre sandbox Productor | Sandbox Control | HTTP 200 "Rollback exitoso" |
+| B01 | test_b01_veterinario_generar_reporte_denegado | Veterinario bloqueado en generacion | RF-77 RNF Seguridad (TC-M05-024) | HTTP 403 ACCESO_DENEGADO |
+| B02 | test_b02_veterinario_exportar_reporte_denegado | Veterinario bloqueado en exportacion | RF-77 RNF Seguridad (TC-M05-024) | HTTP 403 ACCESO_DENEGADO |
+| B03 | test_b03_veterinario_descargar_exportacion_denegado | Veterinario bloqueado en descarga | RF-77 RNF Seguridad (TC-M05-024) | HTTP 403 ACCESO_DENEGADO |
+| B04 | test_b04_veterinario_acceder_auditoria_denegado | Veterinario bloqueado en auditoria | RF-80 / RBAC Centralizado | HTTP 403 ACCESO_DENEGADO |
+| B98 | test_b98_cierre_sandbox_veterinario | Cierre sandbox Veterinario | Sandbox Control | HTTP 200 "Rollback exitoso" |
+| C01 | test_c01_admin_genera_y_exporta_reporte | Base top_id + Admin genera y exporta CSV | RF-77 RNF Seguridad (TC-M05-024) | HTTP 200 gen, HTTP 201 export CSV |
+| C02 | test_c02_verificacion_auditoria_ca11_postcondicion3 | 1 evento GENERACION + 1 EXPORTACION (id > top_id_previo, actor Admin, fecha_evento, <= 2 s) | RF-77 CA-11 / Postcondicion 3 / TC-M05-025 | Polling 0/1/2 s: exactamente 1+1 eventos con resultado EXITOSO y latencia <= 2.0 s |
+| C98 | test_c98_cierre_sandbox_admin | Cierre sandbox Admin | Sandbox Control | HTTP 200 "Rollback exitoso" |
+| D01 | test_d01_solicitudes_sin_autenticacion_retornan_401 | Endpoints sin Authorization con cabeceras sandbox | RF-02 / RF-77 RNF Seguridad | HTTP 401 en los 5 endpoints |
+| D02 | test_d02_idor_descarga_exportacion_ajena_retorna_403 | Admin exporta CSV en sandbox y Productor intenta descargarlo en mismo run_id (DEF-04 no aplica) | RF-77 Postcondicion 2 / RNF Seguridad / TC-M05-024 | HTTP 403 ARCHIVO_DE_OTRO_USUARIO, sin headers/contenido CSV |
+| D03 | test_d03_manipulacion_identificadores_no_genera_500 | IDs inexistentes/invalidos en sandbox Productor | Guia de Pruebas / Robustez API | HTTP 404/400/422; nunca 500 |
+| D04 | test_d04_aislamiento_historial_por_usuario | Productor genera reporte y cruza /historial con Admin en mismo sandbox | RF-77 RNF Historial / TC-M05-024 | Propio presente, ajeno ausente e interseccion vacia |
+| D98 | test_d98_cierre_sandbox_idor | Cierre sandbox Clase 4 | Sandbox Control | HTTP 200 "Rollback exitoso" |
+
+--------------------------------------------------------------------------------
+5. SALIDA DE VERIFICACION ESTATICA (SIN RED)
+--------------------------------------------------------------------------------
+1) python -m py_compile:
+   exit=0
+   stdout= stderr=
+
+2) PowerShell Parser::ParseFile (ejecutar_tc_m05_g25.ps1):
+   ps1_parse_errors=0;ps1_tokens_count=1406
+
+3) pytest --collect-only -q test_tc_m05_g25.py (exit=0):
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Productor::test_a01_productor_genera_reporte_sincronico
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Productor::test_a02_productor_exporta_reporte_csv
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Productor::test_a03_productor_exporta_reporte_pdf
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Productor::test_a04_productor_descarga_su_propia_exportacion
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Productor::test_a05_productor_no_accede_a_auditoria_m05
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Productor::test_a98_cierre_sandbox_productor
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Veterinario::test_b01_veterinario_generar_reporte_denegado
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Veterinario::test_b02_veterinario_exportar_reporte_denegado
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Veterinario::test_b03_veterinario_descargar_exportacion_denegado
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Veterinario::test_b04_veterinario_acceder_auditoria_denegado
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Veterinario::test_b98_cierre_sandbox_veterinario
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Administrador::test_c01_admin_genera_y_exporta_reporte
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Administrador::test_c02_verificacion_auditoria_ca11_postcondicion3
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_Administrador::test_c98_cierre_sandbox_admin
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_IDOR_Y_Aislamiento::test_d01_solicitudes_sin_autenticacion_retornan_401
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_IDOR_Y_Aislamiento::test_d02_idor_descarga_exportacion_ajena_retorna_403
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_IDOR_Y_Aislamiento::test_d03_manipulacion_identificadores_no_genera_500
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_IDOR_Y_Aislamiento::test_d04_aislamiento_historial_por_usuario
+tests/Test_Testing/Test_Modulo5/RF-77/TC-M05-G25/test_tc_m05_g25.py::TestTC_M05_G25_IDOR_Y_Aislamiento::test_d98_cierre_sandbox_idor
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Juansegutt\Integrador\sgpmp-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+19 tests collected in 0.29s
+
+--------------------------------------------------------------------------------
+6. ESCANEO DE SECRETOS DEL INFORME (PATRONES DESDE .env.test)
+--------------------------------------------------------------------------------
+- admin_password: no encontrado
+- admin_password_tail: no encontrado
+- producer_password: no encontrado
+- producer_password_tail: no encontrado
+- vet_password: no encontrado
+- vet_password_tail: no encontrado
+- sandbox_secret: no encontrado
+- sandbox_secret_last20: no encontrado
+- jwt_prefix: encontrado (exclusivamente en git diff literal de los patrones del escaner y linea eliminada)
