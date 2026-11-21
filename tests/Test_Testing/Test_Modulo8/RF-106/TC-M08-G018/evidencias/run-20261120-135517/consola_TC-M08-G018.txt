@@ -1,0 +1,302 @@
+﻿newman
+
+TC-M08-G018
+
+Root Z00 Login Veterinario
+  POST https://www.api.inmero.co/api-sgpmp-test/sesiones/ [200 OK, 833B, 858ms]
+  -
+  | 'PRE|Z00|login Veterinario HTTP 200|req=8869c526-05f4-
+  | 48c4-a441-9d887a3eb54b'
+  | 'PRE|FECHAS|hoy=2026-11-20 hace12m=2025-11-20 hace24m=
+  | 2024-11-20 hace24m1d=2024-11-19 futuro30=2026-12-20'
+  -
+
+Root Z01 Perfil Veterinario
+  GET https://www.api.inmero.co/api-sgpmp-test/usuarios/me [200 OK, 938B, 131ms]
+  -
+  | 'PRE|Z01|id_usuario=97 nombre_rol=Veterinario|req=23f7
+  | 04c9-f423-4c59-87ef-ea0efc0a893f'
+  -
+
+Root T00 Linea base historial
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885 [200 OK, 14.44kB, 270ms]
+  -
+  | 'PRE|T00|HTTP 200 predicciones=24 eventos=3 retroalime
+  | ntaciones=4 pendientes=20 tvco=25 estado=ACTIVO|req=a2
+  | 5ba605-78e4-4241-b8ba-07c7b92b7ce3'
+  | 'OBS|OBS-NOMBRES|esperado=-|obtenido=claves=activo,cor
+  | respondencias,eventos_sanitarios,fuentes_no_disponible
+  | s,grupos,mensaje,metadatos,modo_visualizacion,pendient
+  | es,predicciones,rango_fechas_aplicado,retroalimentacio
+  | nes,tvco,ventana_correspondencia_horas filtros_aplicad
+  | os=false activo_seleccionado=false tvco_tipo=object me
+  | tadatos=total_conflictos,total_eventos_sanitarios,tota
+  | l_inferencias,total_pendientes,total_retroalimentacion
+  | es tvco_claves=excluidas_sin_retroalimentacion,porcent
+  | aje,tasa_error,texto,tvco_denominador,tvco_excluidas_c
+  | onflicto|estado=OBSERVACION|req=a25ba605-78e4-4241-b8b
+  | a-07c7b92b7ce3'
+  | 'OBS|OBS-VENTANA|esperado=-|obtenido=ventana_correspon
+  | dencia_horas=12|estado=OBSERVACION|req=a25ba605-78e4-4
+  | 241-b8ba-07c7b92b7ce3'
+  | 'OBS|OBS-DATOS|esperado=-|obtenido=eventos_sanitarios=
+  | 3 retroalimentaciones=4 (linea base completa: CP-11 co
+  | mpara predicciones, eventos y retroalimentaciones)|est
+  | ado=OBSERVACION|req=a25ba605-78e4-4241-b8ba-07c7b92b7c
+  | e3'
+  | 'OBS|OBS-TIMESTAMP|esperado=-|obtenido=primera predicc
+  | ion fecha=2026-07-01T11:34:36.477639+00:00|estado=OBSE
+  | RVACION|req=a25ba605-78e4-4241-b8ba-07c7b92b7ce3'
+  | 'OBS|OBS-FUENTES|esperado=-|obtenido=fuentes_no_dispon
+  | ibles=[]|estado=OBSERVACION|req=a25ba605-78e4-4241-b8b
+  | a-07c7b92b7ce3'
+  -
+
+Root T00a Linea base auditoria M04
+  GET https://www.api.inmero.co/api-sgpmp-test/prediccion/auditoria?pagina=1&por_pagina=1 [200 OK, 1.4kB, 297ms]
+  -
+  | 'OBS|OBS-AUD-T00|esperado=-|obtenido=HTTP 200 total=23
+  | 92 primer_id_evento=1210c817-2fbd-41e3-9299-af4f37ea44
+  | 00|estado=OBSERVACION|req=8ec41829-0d93-4e86-a419-d038
+  | 045872c3'
+  -
+
+Root CP-01 Rango de 12 meses explicito
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885?fecha_inicio=2025-11-20&fecha_fin=2026-11-20 [200 OK, 14.44kB, 215ms]
+  Pass  CP-01 12 meses explicitos: 200 con los datos del rango (RF-106 Entradas; RF-67) || esperado: 200; rango_fechas_aplicado=2025-11-20..2026-11-20; >=1 prediccion y todas dentro del rango || obtenido: HTTP 200 rango={"fecha_inicio":"2025-11-20","fecha_fin":"2026-11-20"} predicciones=24 fuera_de_rango=0 total_inferencias=24 || req: 2cb61bd1-9f2f-46b4-a96b-c4243173ec59
+  -
+  | 'CP|CP-01|esperado=200; rango_fechas_aplicado=2025-11-
+  | 20..2026-11-20; >=1 prediccion y todas dentro del rang
+  | o|obtenido=HTTP 200 rango={"fecha_inicio":"2025-11-20"
+  | ,"fecha_fin":"2026-11-20"} predicciones=24 fuera_de_ra
+  | ngo=0 total_inferencias=24|estado=OK|req=2cb61bd1-9f2f
+  | -46b4-a96b-c4243173ec59'
+  -
+
+Root CP-02 Inicio posterior al fin
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885?fecha_inicio=2026-10-01&fecha_fin=2026-09-01 [400 Bad Request, 708B, 215ms]
+  Pass  CP-02 fecha_inicio > fecha_fin: 400 sin datos (RF-67 E3; openapi de TEST) || esperado: 400 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: aaff7939-38bb-4975-90db-b99941b2a74c
+  -
+  | 'CP|CP-02|esperado=400 sin datos|obtenido=HTTP 400 err
+  | or_code=VAL_ENTRADA sin_datos=true|estado=OK|req=aaff7
+  | 939-38bb-4975-90db-b99941b2a74c'
+  | 'OBS|OBS-TEXTO-CP02|esperado=-|obtenido=message=La fec
+  | ha de inicio no puede ser posterior a la fecha de fin.
+  | |estado=OBSERVACION|req=aaff7939-38bb-4975-90db-b99941
+  | b2a74c'
+  -
+
+Root OBS-03 Fecha fin futura
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885?fecha_inicio=2025-11-20&fecha_fin=2026-12-20 [200 OK, 14.44kB, 180ms]
+  -
+  | 'OBS|OBS-03|esperado=-|obtenido=fecha_fin=hoy+30: HTTP
+  |  200 error_code=- rango={"fecha_inicio":"2025-11-20","
+  | fecha_fin":"2026-12-20"} (RF-106 no define fechas futu
+  | ras; RF-67 Integridad temporal es de otro endpoint)|es
+  | tado=OBSERVACION|req=c470e439-bcba-4d22-a312-c24f8e4d1
+  | d2f'
+  -
+
+Root CP-04 Sin fechas
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885 [200 OK, 14.44kB, 183ms]
+  Pass  CP-04 Sin fechas: 200 con hoy - 12 meses a hoy (RF-106 Entradas; valores por defecto del Swagger) || esperado: 200; rango_fechas_aplicado=2025-11-20..2026-11-20 || obtenido: HTTP 200 rango={"fecha_inicio":"2025-11-20","fecha_fin":"2026-11-20"} || req: 91184c14-722d-4c2a-a3ab-79bc3ecdb8a4
+  -
+  | 'CP|CP-04|esperado=200; rango_fechas_aplicado=2025-11-
+  | 20..2026-11-20|obtenido=HTTP 200 rango={"fecha_inicio"
+  | :"2025-11-20","fecha_fin":"2026-11-20"}|estado=OK|req=
+  | 91184c14-722d-4c2a-a3ab-79bc3ecdb8a4'
+  -
+
+Root CP-05 Activo inexistente
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/999999 [404 Not Found, 661B, 140ms]
+  Pass  CP-05 Activo inexistente: 404 sin datos (RF-67 E2; Swagger: inexistente -> 404) || esperado: 404 sin datos || obtenido: HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true || req: 43e6e9e1-e131-45a9-8c65-9c387cc0575a
+  -
+  | 'CP|CP-05|esperado=404 sin datos|obtenido=HTTP 404 err
+  | or_code=ACTIVO_INEXISTENTE sin_datos=true|estado=OK|re
+  | q=43e6e9e1-e131-45a9-8c65-9c387cc0575a'
+  | 'OBS|OBS-TEXTO-CP05|esperado=-|obtenido=message=El ani
+  | mal o lote no existe.|estado=OBSERVACION|req=43e6e9e1-
+  | e131-45a9-8c65-9c387cc0575a'
+  -
+
+Root CP-06a Id no numerico
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/abc [400 Bad Request, 690B, 120ms]
+  Pass  CP-06a id='abc': rechazo de validacion 400 o 422 sin datos (RF-106 Entradas; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: a245eb28-f287-424a-9203-8df947a55795
+  -
+  | 'CP|CP-06a|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=a245eb28-f287-424a-9203-8df947a55795'
+  -
+
+Root CP-06b Id negativo
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/-1 [404 Not Found, 661B, 154ms]
+  Pass  CP-06b id=-1: rechazo 400, 404 o 422 sin datos (RF-106 Entradas; openapi publica 400, 404 y 422) || esperado: 400, 404 o 422 sin datos || obtenido: HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true || req: b055817b-6a72-47c6-b4aa-080e432e08cf
+  -
+  | 'CP|CP-06b|esperado=400, 404 o 422 sin datos|obtenido=
+  | HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true|
+  | estado=OK|req=b055817b-6a72-47c6-b4aa-080e432e08cf'
+  -
+
+Root CP-07a Nivel de riesgo 4
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885?nivel_riesgo=4 [400 Bad Request, 732B, 224ms]
+  Pass  CP-07a nivel_riesgo=4: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: be60e315-8647-45c3-9f5a-278553741707
+  -
+  | 'CP|CP-07a|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=be60e315-8647-45c3-9f5a-278553741707'
+  -
+
+Root CP-07b Nivel de riesgo -1
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885?nivel_riesgo=-1 [400 Bad Request, 732B, 117ms]
+  Pass  CP-07b nivel_riesgo=-1: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: 6e2b1ce6-4d59-4af1-b460-1d4b70baf1c3
+  -
+  | 'CP|CP-07b|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=6e2b1ce6-4d59-4af1-b460-1d4b70baf1c3'
+  -
+
+Root CP-08 Activo de finca no asignada
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/2556 [403 Forbidden, 678B, 135ms]
+  Pass  CP-08 Activo de una finca no asignada al Veterinario: 403 sin datos (Swagger: otra finca -> 403; RF-67 alcance) || esperado: 403 sin datos || obtenido: HTTP 403 error_code=FINCA_NO_AUTORIZADA sin_datos=true || req: 802f9020-aae2-4b55-9f27-a793df396277
+  -
+  | 'CP|CP-08|esperado=403 sin datos|obtenido=HTTP 403 err
+  | or_code=FINCA_NO_AUTORIZADA sin_datos=true|estado=OK|r
+  | eq=802f9020-aae2-4b55-9f27-a793df396277'
+  | 'OBS|OBS-TEXTO-CP08|esperado=-|obtenido=message=No tie
+  | nes permisos para esta finca.|estado=OBSERVACION|req=8
+  | 02f9020-aae2-4b55-9f27-a793df396277'
+  -
+
+Root CP-09a Rango de 24 meses exactos
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885?fecha_inicio=2024-11-20&fecha_fin=2026-11-20 [200 OK, 14.44kB, 150ms]
+  Pass  CP-09a Rango de 24 meses exactos: 200 (RF-106 Restriccion 2) || esperado: 200; rango_fechas_aplicado=2024-11-20..2026-11-20 || obtenido: HTTP 200 error_code=- rango={"fecha_inicio":"2024-11-20","fecha_fin":"2026-11-20"} || req: 474518e2-19e8-4a91-8f02-d4cd7caa8e1e
+  -
+  | 'CP|CP-09a|esperado=200; rango_fechas_aplicado=2024-11
+  | -20..2026-11-20|obtenido=HTTP 200 error_code=- rango={
+  | "fecha_inicio":"2024-11-20","fecha_fin":"2026-11-20"}|
+  | estado=OK|req=474518e2-19e8-4a91-8f02-d4cd7caa8e1e'
+  -
+
+Root CP-09b Rango de 24 meses mas 1 dia
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885?fecha_inicio=2024-11-19&fecha_fin=2026-11-20 [200 OK, 14.44kB, 182ms]
+  1. CP-09b Rango de 24 meses + 1 dia: 400 sin datos (RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400) || esperado: 400 sin datos || obtenido: HTTP 200 error_code=- sin_datos=false desde=2024-11-19 || req: 2cd3235e-1813-4645-b496-ebf873ef867b
+  -
+  | 'CP|CP-09b|esperado=400 sin datos|obtenido=HTTP 200 er
+  | ror_code=- sin_datos=false desde=2024-11-19|estado=FAL
+  | LA|req=2cd3235e-1813-4645-b496-ebf873ef867b'
+  -
+
+Root CP-10 Activo dado de baja
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/2946 [422 Unprocessable Entity, 775B, 221ms]
+  Pass  CP-10 Activo dado de baja: 422 ACTIVO_NO_VIGENTE sin datos (RF-106 Precondicion 2; Swagger: dado de baja -> 422; lanzamiento v7) || esperado: 422 ACTIVO_NO_VIGENTE sin datos || obtenido: HTTP 422 error_code=ACTIVO_NO_VIGENTE sin_datos=true || req: 05579337-675c-4ed7-9179-a0626a4863ec
+  -
+  | 'CP|CP-10|esperado=422 ACTIVO_NO_VIGENTE sin datos|obt
+  | enido=HTTP 422 error_code=ACTIVO_NO_VIGENTE sin_datos=
+  | true|estado=OK|req=05579337-675c-4ed7-9179-a0626a4863e
+  | c'
+  | 'OBS|OBS-TEXTO-CP10|esperado=-|obtenido=message=El his
+  | torial predictivo solo se muestra para animales activo
+  | s o en tratamiento.|estado=OBSERVACION|req=05579337-67
+  | 5c-4ed7-9179-a0626a4863ec'
+  -
+
+Root Z50 Login Productor
+  POST https://www.api.inmero.co/api-sgpmp-test/sesiones/ [200 OK, 950B, 523ms]
+  -
+  | 'OBS|OBS-P-LOGIN|esperado=-|obtenido=login Productor H
+  | TTP 200|estado=OBSERVACION|req=5c37976a-00eb-444f-b7b8
+  | -ea5850b7867b'
+  -
+
+Root OBS-P Historial con Productor
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885 [403 Forbidden, 615B, 211ms]
+  -
+  | 'OBS|OBS-P|esperado=-|obtenido=Productor (TC-M08-048, 
+  | observacion por API): HTTP 403 error_code=ACCESO_DENEG
+  | ADO con_probabilidades=false (esperado por RF-106 Rest
+  | riccion 1 y CA-6: 403)|estado=OBSERVACION|req=3e311fd7
+  | -01d3-49bd-8b1c-32fb19685405'
+  -
+
+Root T99 Historial final
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885 [200 OK, 14.44kB, 182ms]
+  Pass  CP-11 Solo lectura: el historial final es igual a la linea base (RF-106 Restriccion 3 y Postcondicion 3) || esperado: HTTP 200 y mismo contenido que T00 (linea base con >=1 prediccion, >=1 evento y >=1 retroalimentacion) || obtenido: HTTP 200 iguales=true final={"metadatos":{"total_inferencias":24,"total_eventos_sanitarios":3,"total_retroalimentaciones":4,"total_pendientes":20,"total_conflictos":0},"predicciones":["11e12f40-37f7-4793-a744-b843fe391546","2363c367-bdc5-4680-9c88-6d5d67b78b0f","2895a389-03bf-42b8-a83b-e6cc69f486cd","31e7239e-699a-4a3a-94b1-6cd7835cf260","32985675-9bbf-46ae-a37d-dc1833155627","50e68201-2a59-4699-9c4a-db825c9ebc49","511a6d66-a862-4822-bf47-2634333531b3","5dbe4510-af8e-4ea7-8688-7efa0751800d","6e0d4f0f-98eb-46f0-9bb1-52fb8085e32d","7c215bf1-fbe3-4d94-97ac-454cb4d6eb19","7d597a54-2d05-43d6-a12b-ad8a7c8ac4ff","86ebfac8-fe7c-4aa1-bd58-210eaa1398ed","8f7c7542-4d94-4679-ac0f-807141e19980","98c7697c-0cb8-403c-9421-07679e59cac8","997b8cda-b608-4bb3-a7d2-ea37cf12b944","ac952c1d-5574-4223-92ab-2df8a8ac9e32","b36ac73c-3902-4214-b2d4-3ca7070566bb","cb261b4f-071e-4cfb-afcf-8846fae738be","d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e","d929c162-d834-4d8c-b130-a05c88b40694","f056f99d-78bf-478d-86f0-5b2ee1a70873","f7fea6d3-9bc1-49de-a88e-3be75f399b87","f80c05d9-59d9-4b7e-9786-c3794979cc77","fb07d478-2993-45a0-8636-02e62fd22c82"],"eventos":["2684","2685","2686"],"retroalimentaciones":["2895a389-03bf-42b8-a83b-e6cc69f486cd:INCORRECTO:2026-11-20T15:08:51.871170+00:00","32985675-9bbf-46ae-a37d-dc1833155627:CORRECTO:2026-11-20T15:08:50.886096+00:00","6e0d4f0f-98eb-46f0-9bb1-52fb8085e32d:PARCIAL:2026-11-20T15:08:52.864219+00:00","f80c05d9-59d9-4b7e-9786-c3794979cc77:SIN_EVENTO:2026-11-20T15:08:53.934786+00:00"],"pendientes_total":20,"tvco":25} || req: 2d848e0a-a1e0-42e0-8769-b155dd12c887
+  -
+  | 'CP|CP-11|esperado=HTTP 200 y mismo contenido que T00 
+  | (linea base con >=1 prediccion, >=1 evento y >=1 retro
+  | alimentacion)|obtenido=HTTP 200 iguales=true final={"m
+  | etadatos":{"total_inferencias":24,"total_eventos_sanit
+  | arios":3,"total_retroalimentaciones":4,"total_pendient
+  | es":20,"total_conflictos":0},"predicciones":["11e12f40
+  | -37f7-4793-a744-b843fe391546","2363c367-bdc5-4680-9c88
+  | -6d5d67b78b0f","2895a389-03bf-42b8-a83b-e6cc69f486cd",
+  | "31e7239e-699a-4a3a-94b1-6cd7835cf260","32985675-9bbf-
+  | 46ae-a37d-dc1833155627","50e68201-2a59-4699-9c4a-db825
+  | c9ebc49","511a6d66-a862-4822-bf47-2634333531b3","5dbe4
+  | 510-af8e-4ea7-8688-7efa0751800d","6e0d4f0f-98eb-46f0-9
+  | bb1-52fb8085e32d","7c215bf1-fbe3-4d94-97ac-454cb4d6eb1
+  | 9","7d597a54-2d05-43d6-a12b-ad8a7c8ac4ff","86ebfac8-fe
+  | 7c-4aa1-bd58-210eaa1398ed","8f7c7542-4d94-4679-ac0f-80
+  | 7141e19980","98c7697c-0cb8-403c-9421-07679e59cac8","99
+  | 7b8cda-b608-4bb3-a7d2-ea37cf12b944","ac952c1d-5574-422
+  | 3-92ab-2df8a8ac9e32","b36ac73c-3902-4214-b2d4-3ca70705
+  | 66bb","cb261b4f-071e-4cfb-afcf-8846fae738be","d1f3cc43
+  | -3bf9-4492-a5b9-ec0cc5025d7e","d929c162-d834-4d8c-b130
+  | -a05c88b40694","f056f99d-78bf-478d-86f0-5b2ee1a70873",
+  | "f7fea6d3-9bc1-49de-a88e-3be75f399b87","f80c05d9-59d9-
+  | 4b7e-9786-c3794979cc77","fb07d478-2993-45a0-8636-02e62
+  | fd22c82"],"eventos":["2684","2685","2686"],"retroalime
+  | ntaciones":["2895a389-03bf-42b8-a83b-e6cc69f486cd:INCO
+  | RRECTO:2026-11-20T15:08:51.871170+00:00","32985675-9bb
+  | f-46ae-a37d-dc1833155627:CORRECTO:2026-11-20T15:08:50.
+  | 886096+00:00","6e0d4f0f-98eb-46f0-9bb1-52fb8085e32d:PA
+  | RCIAL:2026-11-20T15:08:52.864219+00:00","f80c05d9-59d9
+  | -4b7e-9786-c3794979cc77:SIN_EVENTO:2026-11-20T15:08:53
+  | .934786+00:00"],"pendientes_total":20,"tvco":25}|estad
+  | o=OK|req=2d848e0a-a1e0-42e0-8769-b155dd12c887'
+  -
+
+Root T99a Auditoria M04 final
+  GET https://www.api.inmero.co/api-sgpmp-test/prediccion/auditoria?pagina=1&por_pagina=1 [200 OK, 1.4kB, 162ms]
+  -
+  | 'OBS|OBS-AUD-T99|esperado=-|obtenido=antes=200|2392|12
+  | 10c817-2fbd-41e3-9299-af4f37ea4400 despues=200|2392|12
+  | 10c817-2fbd-41e3-9299-af4f37ea4400 (RF-106 no exige au
+  | ditar la consulta; RF-67 paso 7 es de otro endpoint)|e
+  | stado=OBSERVACION|req=9fe0a54a-596f-4b5e-874a-30404705
+  | a3d5'
+  -
+
+Root Z99 Cierre del sandbox
+  DELETE https://www.api.inmero.co/api-sgpmp-test/test-control/runs/qa-m08-g018-20261120-135517 [200 OK, 447B, 116ms]
+  -
+  | 'CIERRE|200|Rollback exitoso|req=dbb1badb-4ad7-4cf5-a0
+  | ff-3ccaaa8208b7'
+  -
+
+----------------------------------------------------------------------
+|                         |            executed |             failed |
+--------------------------+---------------------+---------------------
+|              iterations |                   1 |                  0 |
+--------------------------+---------------------+---------------------
+|                requests |                  22 |                  0 |
+--------------------------+---------------------+---------------------
+|            test-scripts |                  22 |                  0 |
+--------------------------+---------------------+---------------------
+|      prerequest-scripts |                  23 |                  0 |
+--------------------------+---------------------+---------------------
+|              assertions |                  13 |                  1 |
+----------------------------------------------------------------------
+| total run duration: 6.9s                                           |
+----------------------------------------------------------------------
+| total data received: 103.77kB (approx)                             |
+----------------------------------------------------------------------
+| average response time: 226ms [min: 116ms, max: 858ms, s.d.: 162ms] |
+----------------------------------------------------------------------
+
+  #  failure         detail                                                                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                                  
+ 1.  AssertionError  CP-09b Rango de 24 meses + 1 dia: 400 sin datos (RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400) || esperado: 400 sin datos || obtenido: HTTP 200 error_code=- sin_datos=false desde=2024-11-19 || req: 2cd3235e-1813-4645-b496-ebf873ef867b 
+                     expected 200 to deeply equal 400                                                                                                                                                                                                                             
+                     at assertion:0 in test-script                                                                                                                                                                                                                                
+                     inside "CP-09b Rango de 24 meses mas 1 dia"                                                                                                                                                                                                                  

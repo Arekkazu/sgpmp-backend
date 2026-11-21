@@ -1,0 +1,14 @@
+Pedido al DBA (claude/PEDIDO_DBA_M08.md) - estado en TEST por punto. Puntos 5, 6, 16 y 17 no se verifican por API.
+PUNTO|1|NO_CUMPLE|fases=0 candidatas_activas=0 (ver SONDA|A_FASES)|req=464897ee-5bdb-46fa-88b5-2a2b053d1233
+PUNTO|2|NO_CUMPLE|eventos_en_historial=0 ["DIAGNOSTICO:NO_ESTA","CONTROL_PREVENTIVO:NO_ESTA","TRATAMIENTO:NO_ESTA"]|req=1f82c256-8319-4c53-b851-29c23b570ac0
+PUNTO|3|NO_VERIFICABLE|sanitarios=0 con_hora_distinta_de_00:00=0 fechas=[]|req=74c43522-fa25-4ff1-b499-38d3289a74e8
+PUNTO|4|CUMPLE|activo 957: HTTP 403 FINCA_NO_AUTORIZADA con_datos=false|req=41c403fa-3a3b-4742-8e47-4cf66b040558
+PUNTO|7|CUMPLE|total=24 (pedido: las 14 originales siguen) faltan_de_las_citadas=[]|req=44fea364-1b97-4a2e-9840-c170c4c302a6
+PUNTO|8|NO_VERIFICABLE|la cuenta de Veterinario no lista usuarios; indicio: inferencias con 2 o mas valoraciones=[]|req=e8128068-00b4-44e3-a103-dc92e1ffe922
+PUNTO|9|NO_CUMPLE|valoraciones=["32985675:SIN_VALORACION(esperada CORRECTO)","2895a389:SIN_VALORACION(esperada INCORRECTO)","6e0d4f0f:SIN_VALORACION(esperada PARCIAL)","f80c05d9:SIN_VALORACION(esperada SIN_EVENTO)"] deben_quedar_sin_valorar=["511a6d66:sin_valorar","997b8cda:sin_valorar","5dbe4510:sin_valorar"]|req=1f82c256-8319-4c53-b851-29c23b570ac0
+PUNTO|10|NO_CUMPLE|no hay activos EN_TRATAMIENTO en la finca|req=09404649-590d-442b-b471-8b681a2dc171
+PUNTO|11|NO_CUMPLE|no hay activos de baja o cerrados en la finca|req=09404649-590d-442b-b471-8b681a2dc171
+PUNTO|12|PARCIAL|claves=[] (la ventana tambien sale en SONDA|A_VENTANA)|req=1f2614dd-1150-4bd7-9c40-a0d8117ab3ef
+PUNTO|13|NO_VERIFICABLE|inferencias con mas de una valoracion=[] (opcional: conflicto en 32985675)|req=e8128068-00b4-44e3-a103-dc92e1ffe922
+PUNTO|14|NO_CUMPLE|511a6d66 tiene_alerta_generada=false id_alerta=null|req=44fea364-1b97-4a2e-9840-c170c4c302a6
+PUNTO|15|NO_CUMPLE|inferencias_mas_de_12m=0 mas_de_24m=0 (limite 200 de la consulta: no alcanzado)|req=44fea364-1b97-4a2e-9840-c170c4c302a6

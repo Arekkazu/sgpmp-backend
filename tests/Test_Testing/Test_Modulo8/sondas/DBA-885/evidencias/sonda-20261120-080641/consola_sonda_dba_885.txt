@@ -1,0 +1,208 @@
+﻿newman
+
+M08-sonda-DBA-885
+
+Root D00 Login Veterinario
+  POST https://www.api.inmero.co/api-sgpmp-test/sesiones/ [200 OK, 959B, 925ms]
+  -
+  | 'SONDA|LOGIN_VET|HTTP 200|req=4a451fd1-d45e-40ab-928c-
+  | dac07eff35be'
+  -
+
+Root D01 Perfil Veterinario
+  GET https://www.api.inmero.co/api-sgpmp-test/usuarios/me [200 OK, 946B, 197ms]
+  -
+  | 'SONDA|PERFIL_VET|HTTP 200 id_usuario=97 nombre_rol=Ve
+  | terinario|req=b301716a-c4b7-4796-b3a2-6e0f5ea521f9'
+  -
+
+Root D02 Fincas del Veterinario
+  GET https://www.api.inmero.co/api-sgpmp-test/reportes/opciones/finca [200 OK, 516B, 223ms]
+  -
+  | 'SONDA|FINCAS_VET|HTTP 200 fincas=[84,184]|req=c74495b
+  | 7-1816-4311-af42-5ff50d633e7e'
+  -
+
+Root D03 Ficha del activo 885
+  GET https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/885 [200 OK, 1.21kB, 219ms]
+  -
+  | 'SONDA|A_FICHA|HTTP 200 error_code=- identificador=QA-
+  | G88-266-IND-001 estado=ACTIVO id_finca=null id_especie
+  | =220 tipo=INDIVIDUAL fecha_creacion=2026-10-24T16:30:1
+  | 5.864955Z|req=5865d13f-9d21-49c5-a999-8db641478e25'
+  -
+
+Root D04 Fases del activo 885
+  GET https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/885/fases [200 OK, 464B, 206ms]
+  -
+  | 'SONDA|A_FASES|HTTP 200 error_code=- total=0 crudo={"i
+  | d_activo_biologico":885,"fases":[]}|req=464897ee-5bdb-
+  | 46fa-88b5-2a2b053d1233'
+  | 'PUNTO|1|NO_CUMPLE|fases=0 candidatas_activas=0 (ver S
+  | ONDA|A_FASES)|req=464897ee-5bdb-46fa-88b5-2a2b053d1233
+  | '
+  -
+
+Root D05 Eventos M02 del activo 885
+  GET https://www.api.inmero.co/api-sgpmp-test/activos-biologicos/885/eventos [200 OK, 476B, 238ms]
+  -
+  | 'SONDA|A_EVENTOS_M02|HTTP 200 total=0 sanitarios=0 det
+  | alle=[]|req=74c43522-fa25-4ff1-b499-38d3289a74e8'
+  | 'PUNTO|3|NO_VERIFICABLE|sanitarios=0 con_hora_distinta
+  | _de_00:00=0 fechas=[]|req=74c43522-fa25-4ff1-b499-38d3
+  | 289a74e8'
+  -
+
+Root D06 Inferencias del activo 885 (RF-66)
+  GET https://www.api.inmero.co/api-sgpmp-test/prediccion/inferencias?id_activo_biologico=885&limite=200&incluir_sombra=true [200 OK, 23.59kB, 320ms]
+  -
+  | 'SONDA|A_INFERENCIAS|HTTP 200 error_code=- total=24 mo
+  | do_sombra=0 mas_antigua=2026-07-01T11:34:36.477Z mas_r
+  | eciente=2026-10-28T00:06:22.000Z mas_de_12m=0 mas_de_2
+  | 4m=0 con_alerta=0|req=44fea364-1b97-4a2e-9840-c170c4c3
+  | 02a6'
+  | 'SONDA|A_INFERENCIAS_ESPERADAS|{"32985675":"2026-10-20
+  | T22:06:22Z n3","d1f3cc43":"2026-10-24T19:06:22Z n1","f
+  | 056f99d":"2026-10-26T21:06:22Z n0","511a6d66":"2026-10
+  | -28T00:06:22Z n3","2895a389":"2026-10-12T23:06:22Z n3"
+  | ,"6e0d4f0f":"2026-10-11T01:06:22Z n2","f80c05d9":"2026
+  | -10-18T00:06:22Z n2","997b8cda":"2026-10-26T01:06:22Z 
+  | n2","5dbe4510":"2026-10-23T23:06:22Z n2"}|req=44fea364
+  | -1b97-4a2e-9840-c170c4c302a6'
+  | 'PUNTO|7|CUMPLE|total=24 (pedido: las 14 originales si
+  | guen) faltan_de_las_citadas=[]|req=44fea364-1b97-4a2e-
+  | 9840-c170c4c302a6'
+  | 'PUNTO|14|NO_CUMPLE|511a6d66 tiene_alerta_generada=fal
+  | se id_alerta=null|req=44fea364-1b97-4a2e-9840-c170c4c3
+  | 02a6'
+  | 'PUNTO|15|NO_CUMPLE|inferencias_mas_de_12m=0 mas_de_24
+  | m=0 (limite 200 de la consulta: no alcanzado)|req=44fe
+  | a364-1b97-4a2e-9840-c170c4c302a6'
+  -
+
+Root D07 Historial predictivo del 885 (12 meses)
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885 [200 OK, 10.7kB, 185ms]
+  -
+  | 'SONDA|A_HISTORIAL|HTTP 200 error_code=- rango={"fecha
+  | _inicio":"2025-11-20","fecha_fin":"2026-11-20"} predic
+  | ciones=24 eventos=0 retros=0 pendientes=24 ventana_h=1
+  | 2 tvco={"porcentaje":null,"texto":"Sin datos suficient
+  | es para calcular","tvco_denominador":0,"tvco_excluidas
+  | _conflicto":0,"excluidas_sin_retroalimentacion":24,"ta
+  | sa_error":null} metadatos={"total_inferencias":24,"tot
+  | al_eventos_sanitarios":0,"total_retroalimentaciones":0
+  | ,"total_pendientes":24,"total_conflictos":0} fuentes_n
+  | o_disponibles=[]|req=1f82c256-8319-4c53-b851-29c23b570
+  | ac0'
+  | 'SONDA|A_HISTORIAL_EVENTOS|[]|req=1f82c256-8319-4c53-b
+  | 851-29c23b570ac0'
+  | 'SONDA|A_HISTORIAL_RETROS|[]|req=1f82c256-8319-4c53-b8
+  | 51-29c23b570ac0'
+  | 'PUNTO|2|NO_CUMPLE|eventos_en_historial=0 ["DIAGNOSTIC
+  | O:NO_ESTA","CONTROL_PREVENTIVO:NO_ESTA","TRATAMIENTO:N
+  | O_ESTA"]|req=1f82c256-8319-4c53-b851-29c23b570ac0'
+  | 'PUNTO|9|NO_CUMPLE|valoraciones=["32985675:SIN_VALORAC
+  | ION(esperada CORRECTO)","2895a389:SIN_VALORACION(esper
+  | ada INCORRECTO)","6e0d4f0f:SIN_VALORACION(esperada PAR
+  | CIAL)","f80c05d9:SIN_VALORACION(esperada SIN_EVENTO)"]
+  |  deben_quedar_sin_valorar=["511a6d66:sin_valorar","997
+  | b8cda:sin_valorar","5dbe4510:sin_valorar"]|req=1f82c25
+  | 6-8319-4c53-b851-29c23b570ac0'
+  | 'SONDA|A_VENTANA|ventana_correspondencia_horas=12|req=
+  | 1f82c256-8319-4c53-b851-29c23b570ac0'
+  -
+
+Root D08 Historial predictivo del 885 (24 meses)
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/885?fecha_inicio=2024-11-20&fecha_fin=2026-11-20 [200 OK, 10.7kB, 143ms]
+  -
+  | 'SONDA|A_HISTORIAL_24M|HTTP 200 error_code=- prediccio
+  | nes=24 mas_antigua=2026-07-01T11:34:36.477Z|req=76d991
+  | 6d-7079-443a-b63a-f1cb9b8d263a'
+  -
+
+Root D09 Historial RF-67 con alertas (24 meses)
+  GET https://www.api.inmero.co/api-sgpmp-test/prediccion/historial/885?fecha_inicio=2024-11-20&fecha_fin=2026-11-20&incluir_alertas=true [200 OK, 18.83kB, 206ms]
+  -
+  | 'SONDA|A_HISTORIAL_RF67|HTTP 200 error_code=- total_pa
+  | gina=24 hay_mas=false por_tipo={"INFERENCIA":24}|req=d
+  | a8d644d-10a8-48b2-b3e1-62f54433f757'
+  -
+
+Root D10 Bandeja de evaluadas del 885
+  GET https://www.api.inmero.co/api-sgpmp-test/prediccion/retroalimentacion/bandeja?id_activo_biologico=885&estado_evaluacion=EVALUADO&desde=2024-11-20T05:00:00Z&por_pagina=100 [400 Bad Request, 648B, 206ms]
+  -
+  | 'SONDA|A_BANDEJA_EVALUADAS|HTTP 400 error_code=RANGO_F
+  | ECHAS_EXCESIVO total=undefined detalle=[]|req=e8128068
+  | -00b4-44e3-a103-dc92e1ffe922'
+  | 'PUNTO|13|NO_VERIFICABLE|inferencias con mas de una va
+  | loracion=[] (opcional: conflicto en 32985675)|req=e812
+  | 8068-00b4-44e3-a103-dc92e1ffe922'
+  | 'PUNTO|8|NO_VERIFICABLE|la cuenta de Veterinario no li
+  | sta usuarios; indicio: inferencias con 2 o mas valorac
+  | iones=[]|req=e8128068-00b4-44e3-a103-dc92e1ffe922'
+  -
+
+Root D11 Activos de la finca del 885
+  GET https://www.api.inmero.co/api-sgpmp-test/activos-biologicos?id_finca=&page_size=100&pagina=1 [400 Bad Request, 657B, 220ms]
+  -
+  | 'SONDA|FINCA_A|HTTP 400 finca= total_registros=undefin
+  | ed total_paginas=undefined estados={} candidatos=[]|re
+  | q=09404649-590d-442b-b471-8b681a2dc171'
+  | 'PUNTO|10|NO_CUMPLE|no hay activos EN_TRATAMIENTO en l
+  | a finca|req=09404649-590d-442b-b471-8b681a2dc171'
+  | 'PUNTO|11|NO_CUMPLE|no hay activos de baja o cerrados 
+  | en la finca|req=09404649-590d-442b-b471-8b681a2dc171'
+  | 'Using "postman.setNextRequest" is deprecated. Use "pm
+  | .execution.setNextRequest()" instead.'
+  -
+
+Attempting to set next request to D13 Historial del activo de otra finca
+
+Root D13 Historial del activo de otra finca
+  GET https://www.api.inmero.co/api-sgpmp-test/historial-predictivo/957 [403 Forbidden, 656B, 179ms]
+  -
+  | 'SONDA|OTRA_FINCA|HTTP 403 error_code=FINCA_NO_AUTORIZ
+  | ADA con_datos=false|req=41c403fa-3a3b-4742-8e47-4cf66b
+  | 040558'
+  | 'PUNTO|4|CUMPLE|activo 957: HTTP 403 FINCA_NO_AUTORIZA
+  | DA con_datos=false|req=41c403fa-3a3b-4742-8e47-4cf66b0
+  | 40558'
+  -
+
+Root D14 Parametros de configuracion
+  GET https://www.api.inmero.co/api-sgpmp-test/configuracion/parametros [403 Forbidden, 610B, 118ms]
+  -
+  | 'SONDA|CONFIG|HTTP 403 error_code=ACCESO_DENEGADO clav
+  | es_relevantes=[]|req=1f2614dd-1150-4bd7-9c40-a0d8117ab
+  | 3ef'
+  | 'PUNTO|12|PARCIAL|claves=[] (la ventana tambien sale e
+  | n SONDA|A_VENTANA)|req=1f2614dd-1150-4bd7-9c40-a0d8117
+  | ab3ef'
+  -
+
+Root Z99 Cierre del sandbox
+  DELETE https://www.api.inmero.co/api-sgpmp-test/test-control/runs/qa-m08-sonda-dba885-20261120-080641 [200 OK, 455B, 112ms]
+  -
+  | 'CIERRE|200|Rollback exitoso|req=c8df7f1c-6122-4b04-81
+  | f8-26be598e63a1'
+  -
+
+----------------------------------------------------------------------
+|                         |            executed |             failed |
+--------------------------+---------------------+---------------------
+|              iterations |                   1 |                  0 |
+--------------------------+---------------------+---------------------
+|                requests |                  15 |                  0 |
+--------------------------+---------------------+---------------------
+|            test-scripts |                  15 |                  0 |
+--------------------------+---------------------+---------------------
+|      prerequest-scripts |                  16 |                  0 |
+--------------------------+---------------------+---------------------
+|              assertions |                   0 |                  0 |
+----------------------------------------------------------------------
+| total run duration: 5s                                             |
+----------------------------------------------------------------------
+| total data received: 64.85kB (approx)                              |
+----------------------------------------------------------------------
+| average response time: 246ms [min: 112ms, max: 925ms, s.d.: 187ms] |
+----------------------------------------------------------------------

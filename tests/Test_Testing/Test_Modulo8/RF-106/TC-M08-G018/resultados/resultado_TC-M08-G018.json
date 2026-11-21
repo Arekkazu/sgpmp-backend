@@ -1,0 +1,223 @@
+{
+  "tc": "TC-M08-G018",
+  "reintento": 0,
+  "summary": {
+    "total": 13,
+    "ok": 12,
+    "falla": 1,
+    "veredicto": "Rechazado"
+  },
+  "checkpoints": [
+    {
+      "paso": "CP-01 12 meses explicitos: 200 con los datos del rango (RF-106 Entradas; RF-67)",
+      "caso": "TC-M08-047",
+      "esperado": "200; rango_fechas_aplicado=2025-11-20..2026-11-20; >=1 prediccion y todas dentro del rango",
+      "fuente": "RF-106 Entradas; RF-67",
+      "obtenido": "HTTP 200 rango={\"fecha_inicio\":\"2025-11-20\",\"fecha_fin\":\"2026-11-20\"} predicciones=24 fuera_de_rango=0 total_inferencias=24",
+      "estado": "OK",
+      "x_request_id": "2cb61bd1-9f2f-46b4-a96b-c4243173ec59"
+    },
+    {
+      "paso": "CP-02 fecha_inicio > fecha_fin: 400 sin datos (RF-67 E3; openapi de TEST)",
+      "caso": "TC-M08-047",
+      "esperado": "400 sin datos",
+      "fuente": "RF-67 E3; openapi de TEST",
+      "obtenido": "HTTP 400 error_code=VAL_ENTRADA sin_datos=true",
+      "estado": "OK",
+      "x_request_id": "aaff7939-38bb-4975-90db-b99941b2a74c"
+    },
+    {
+      "paso": "CP-04 Sin fechas: 200 con hoy - 12 meses a hoy (RF-106 Entradas; valores por defecto del Swagger)",
+      "caso": "TC-M08-047",
+      "esperado": "200; rango_fechas_aplicado=2025-11-20..2026-11-20",
+      "fuente": "RF-106 Entradas; valores por defecto del Swagger",
+      "obtenido": "HTTP 200 rango={\"fecha_inicio\":\"2025-11-20\",\"fecha_fin\":\"2026-11-20\"}",
+      "estado": "OK",
+      "x_request_id": "91184c14-722d-4c2a-a3ab-79bc3ecdb8a4"
+    },
+    {
+      "paso": "CP-05 Activo inexistente: 404 sin datos (RF-67 E2; Swagger: inexistente -> 404)",
+      "caso": "TC-M08-047",
+      "esperado": "404 sin datos",
+      "fuente": "RF-67 E2; Swagger: inexistente -> 404",
+      "obtenido": "HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true",
+      "estado": "OK",
+      "x_request_id": "43e6e9e1-e131-45a9-8c65-9c387cc0575a"
+    },
+    {
+      "paso": "CP-06a id='abc': rechazo de validacion 400 o 422 sin datos (RF-106 Entradas; openapi publica 400 y 422)",
+      "caso": "TC-M08-047",
+      "esperado": "400 o 422 sin datos",
+      "fuente": "RF-106 Entradas; openapi publica 400 y 422",
+      "obtenido": "HTTP 400 error_code=VAL_ENTRADA sin_datos=true",
+      "estado": "OK",
+      "x_request_id": "a245eb28-f287-424a-9203-8df947a55795"
+    },
+    {
+      "paso": "CP-06b id=-1: rechazo 400, 404 o 422 sin datos (RF-106 Entradas; openapi publica 400, 404 y 422)",
+      "caso": "TC-M08-047",
+      "esperado": "400, 404 o 422 sin datos",
+      "fuente": "RF-106 Entradas; openapi publica 400, 404 y 422",
+      "obtenido": "HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true",
+      "estado": "OK",
+      "x_request_id": "b055817b-6a72-47c6-b4aa-080e432e08cf"
+    },
+    {
+      "paso": "CP-07a nivel_riesgo=4: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422)",
+      "caso": "TC-M08-047",
+      "esperado": "400 o 422 sin datos",
+      "fuente": "RF-106 Entradas: 0 a 3; openapi publica 400 y 422",
+      "obtenido": "HTTP 400 error_code=VAL_ENTRADA sin_datos=true",
+      "estado": "OK",
+      "x_request_id": "be60e315-8647-45c3-9f5a-278553741707"
+    },
+    {
+      "paso": "CP-07b nivel_riesgo=-1: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422)",
+      "caso": "TC-M08-047",
+      "esperado": "400 o 422 sin datos",
+      "fuente": "RF-106 Entradas: 0 a 3; openapi publica 400 y 422",
+      "obtenido": "HTTP 400 error_code=VAL_ENTRADA sin_datos=true",
+      "estado": "OK",
+      "x_request_id": "6e2b1ce6-4d59-4af1-b460-1d4b70baf1c3"
+    },
+    {
+      "paso": "CP-08 Activo de una finca no asignada al Veterinario: 403 sin datos (Swagger: otra finca -> 403; RF-67 alcance)",
+      "caso": "TC-M08-047",
+      "esperado": "403 sin datos",
+      "fuente": "Swagger: otra finca -> 403; RF-67 alcance",
+      "obtenido": "HTTP 403 error_code=FINCA_NO_AUTORIZADA sin_datos=true",
+      "estado": "OK",
+      "x_request_id": "802f9020-aae2-4b55-9f27-a793df396277"
+    },
+    {
+      "paso": "CP-09a Rango de 24 meses exactos: 200 (RF-106 Restriccion 2)",
+      "caso": "TC-M08-047",
+      "esperado": "200; rango_fechas_aplicado=2024-11-20..2026-11-20",
+      "fuente": "RF-106 Restriccion 2",
+      "obtenido": "HTTP 200 error_code=- rango={\"fecha_inicio\":\"2024-11-20\",\"fecha_fin\":\"2026-11-20\"}",
+      "estado": "OK",
+      "x_request_id": "474518e2-19e8-4a91-8f02-d4cd7caa8e1e"
+    },
+    {
+      "paso": "CP-09b Rango de 24 meses + 1 dia: 400 sin datos (RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400)",
+      "caso": "TC-M08-047",
+      "esperado": "400 sin datos",
+      "fuente": "RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400",
+      "obtenido": "HTTP 200 error_code=- sin_datos=false desde=2024-11-19",
+      "estado": "FALLA",
+      "x_request_id": "2cd3235e-1813-4645-b496-ebf873ef867b"
+    },
+    {
+      "paso": "CP-10 Activo dado de baja: 422 ACTIVO_NO_VIGENTE sin datos (RF-106 Precondicion 2; Swagger: dado de baja -> 422; lanzamiento v7)",
+      "caso": "TC-M08-047",
+      "esperado": "422 ACTIVO_NO_VIGENTE sin datos",
+      "fuente": "RF-106 Precondicion 2; Swagger: dado de baja -> 422; lanzamiento v7",
+      "obtenido": "HTTP 422 error_code=ACTIVO_NO_VIGENTE sin_datos=true",
+      "estado": "OK",
+      "x_request_id": "05579337-675c-4ed7-9179-a0626a4863ec"
+    },
+    {
+      "paso": "CP-11 Solo lectura: el historial final es igual a la linea base (RF-106 Restriccion 3 y Postcondicion 3)",
+      "caso": "TC-M08-059",
+      "esperado": "HTTP 200 y mismo contenido que T00 (linea base con >=1 prediccion, >=1 evento y >=1 retroalimentacion)",
+      "fuente": "RF-106 Restriccion 3 y Postcondicion 3",
+      "obtenido": "HTTP 200 iguales=true final={\"metadatos\":{\"total_inferencias\":24,\"total_eventos_sanitarios\":3,\"total_retroalimentaciones\":4,\"total_pendientes\":20,\"total_conflictos\":0},\"predicciones\":[\"11e12f40-37f7-4793-a744-b843fe391546\",\"2363c367-bdc5-4680-9c88-6d5d67b78b0f\",\"2895a389-03bf-42b8-a83b-e6cc69f486cd\",\"31e7239e-699a-4a3a-94b1-6cd7835cf260\",\"32985675-9bbf-46ae-a37d-dc1833155627\",\"50e68201-2a59-4699-9c4a-db825c9ebc49\",\"511a6d66-a862-4822-bf47-2634333531b3\",\"5dbe4510-af8e-4ea7-8688-7efa0751800d\",\"6e0d4f0f-98eb-46f0-9bb1-52fb8085e32d\",\"7c215bf1-fbe3-4d94-97ac-454cb4d6eb19\",\"7d597a54-2d05-43d6-a12b-ad8a7c8ac4ff\",\"86ebfac8-fe7c-4aa1-bd58-210eaa1398ed\",\"8f7c7542-4d94-4679-ac0f-807141e19980\",\"98c7697c-0cb8-403c-9421-07679e59cac8\",\"997b8cda-b608-4bb3-a7d2-ea37cf12b944\",\"ac952c1d-5574-4223-92ab-2df8a8ac9e32\",\"b36ac73c-3902-4214-b2d4-3ca7070566bb\",\"cb261b4f-071e-4cfb-afcf-8846fae738be\",\"d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e\",\"d929c162-d834-4d8c-b130-a05c88b40694\",\"f056f99d-78bf-478d-86f0-5b2ee1a70873\",\"f7fea6d3-9bc1-49de-a88e-3be75f399b87\",\"f80c05d9-59d9-4b7e-9786-c3794979cc77\",\"fb07d478-2993-45a0-8636-02e62fd22c82\"],\"eventos\":[\"2684\",\"2685\",\"2686\"],\"retroalimentaciones\":[\"2895a389-03bf-42b8-a83b-e6cc69f486cd:INCORRECTO:2026-11-20T15:08:51.871170+00:00\",\"32985675-9bbf-46ae-a37d-dc1833155627:CORRECTO:2026-11-20T15:08:50.886096+00:00\",\"6e0d4f0f-98eb-46f0-9bb1-52fb8085e32d:PARCIAL:2026-11-20T15:08:52.864219+00:00\",\"f80c05d9-59d9-4b7e-9786-c3794979cc77:SIN_EVENTO:2026-11-20T15:08:53.934786+00:00\"],\"pendientes_total\":20,\"tvco\":25}",
+      "estado": "OK",
+      "x_request_id": "2d848e0a-a1e0-42e0-8769-b155dd12c887"
+    }
+  ],
+  "observaciones": [
+    {
+      "id": "OBS-NOMBRES",
+      "obtenido": "claves=activo,correspondencias,eventos_sanitarios,fuentes_no_disponibles,grupos,mensaje,metadatos,modo_visualizacion,pendientes,predicciones,rango_fechas_aplicado,retroalimentaciones,tvco,ventana_correspondencia_horas filtros_aplicados=false activo_seleccionado=false tvco_tipo=object metadatos=total_conflictos,total_eventos_sanitarios,total_inferencias,total_pendientes,total_retroalimentaciones tvco_claves=excluidas_sin_retroalimentacion,porcentaje,tasa_error,texto,tvco_denominador,tvco_excluidas_conflicto",
+      "x_request_id": "a25ba605-78e4-4241-b8ba-07c7b92b7ce3"
+    },
+    {
+      "id": "OBS-VENTANA",
+      "obtenido": "ventana_correspondencia_horas=12",
+      "x_request_id": "a25ba605-78e4-4241-b8ba-07c7b92b7ce3"
+    },
+    {
+      "id": "OBS-DATOS",
+      "obtenido": "eventos_sanitarios=3 retroalimentaciones=4 (linea base completa: CP-11 compara predicciones, eventos y retroalimentaciones)",
+      "x_request_id": "a25ba605-78e4-4241-b8ba-07c7b92b7ce3"
+    },
+    {
+      "id": "OBS-TIMESTAMP",
+      "obtenido": "primera prediccion fecha=2026-07-01T11:34:36.477639+00:00",
+      "x_request_id": "a25ba605-78e4-4241-b8ba-07c7b92b7ce3"
+    },
+    {
+      "id": "OBS-FUENTES",
+      "obtenido": "fuentes_no_disponibles=[]",
+      "x_request_id": "a25ba605-78e4-4241-b8ba-07c7b92b7ce3"
+    },
+    {
+      "id": "OBS-AUD-T00",
+      "obtenido": "HTTP 200 total=2392 primer_id_evento=1210c817-2fbd-41e3-9299-af4f37ea4400",
+      "x_request_id": "8ec41829-0d93-4e86-a419-d038045872c3"
+    },
+    {
+      "id": "OBS-TEXTO-CP02",
+      "obtenido": "message=La fecha de inicio no puede ser posterior a la fecha de fin.",
+      "x_request_id": "aaff7939-38bb-4975-90db-b99941b2a74c"
+    },
+    {
+      "id": "OBS-03",
+      "obtenido": "fecha_fin=hoy+30: HTTP 200 error_code=- rango={\"fecha_inicio\":\"2025-11-20\",\"fecha_fin\":\"2026-12-20\"} (RF-106 no define fechas futuras; RF-67 Integridad temporal es de otro endpoint)",
+      "x_request_id": "c470e439-bcba-4d22-a312-c24f8e4d1d2f"
+    },
+    {
+      "id": "OBS-TEXTO-CP05",
+      "obtenido": "message=El animal o lote no existe.",
+      "x_request_id": "43e6e9e1-e131-45a9-8c65-9c387cc0575a"
+    },
+    {
+      "id": "OBS-TEXTO-CP08",
+      "obtenido": "message=No tienes permisos para esta finca.",
+      "x_request_id": "802f9020-aae2-4b55-9f27-a793df396277"
+    },
+    {
+      "id": "OBS-TEXTO-CP10",
+      "obtenido": "message=El historial predictivo solo se muestra para animales activos o en tratamiento.",
+      "x_request_id": "05579337-675c-4ed7-9179-a0626a4863ec"
+    },
+    {
+      "id": "OBS-P-LOGIN",
+      "obtenido": "login Productor HTTP 200",
+      "x_request_id": "5c37976a-00eb-444f-b7b8-ea5850b7867b"
+    },
+    {
+      "id": "OBS-P",
+      "obtenido": "Productor (TC-M08-048, observacion por API): HTTP 403 error_code=ACCESO_DENEGADO con_probabilidades=false (esperado por RF-106 Restriccion 1 y CA-6: 403)",
+      "x_request_id": "3e311fd7-01d3-49bd-8b1c-32fb19685405"
+    },
+    {
+      "id": "OBS-AUD-T99",
+      "obtenido": "antes=200|2392|1210c817-2fbd-41e3-9299-af4f37ea4400 despues=200|2392|1210c817-2fbd-41e3-9299-af4f37ea4400 (RF-106 no exige auditar la consulta; RF-67 paso 7 es de otro endpoint)",
+      "x_request_id": "9fe0a54a-596f-4b5e-874a-30404705a3d5"
+    }
+  ],
+  "retirados": [],
+  "runs": [
+    {
+      "run_id": "qa-m08-g018-20261120-135517",
+      "rollback": "CIERRE|200|Rollback exitoso|req=dbb1badb-4ad7-4cf5-a0ff-3ccaaa8208b7"
+    }
+  ],
+  "precondiciones": [
+    "PRE|Z00|login Veterinario HTTP 200|req=8869c526-05f4-48c4-a441-9d887a3eb54b",
+    "PRE|FECHAS|hoy=2026-11-20 hace12m=2025-11-20 hace24m=2024-11-20 hace24m1d=2024-11-19 futuro30=2026-12-20",
+    "PRE|Z01|id_usuario=97 nombre_rol=Veterinario|req=23f704c9-f423-4c59-87ef-ea0efc0a893f",
+    "PRE|T00|HTTP 200 predicciones=24 eventos=3 retroalimentaciones=4 pendientes=20 tvco=25 estado=ACTIVO|req=a25ba605-78e4-4241-b8ba-07c7b92b7ce3"
+  ],
+  "origen": {
+    "herramienta": "Newman + htmlextra; JSON derivado del mismo staging con convertir_json_g018.py",
+    "sha256": {
+      "trazas_TC-M08-G018.txt": "476F84CA0D8F0021CFBBD21AFD952779907BF1676421AE7B61723FE72A23D3E4",
+      "checkpoints_TC-M08-G018.txt": "8D24A87CDE2F15E3E24AB9CE3F3E910FC75C97AD3CB8CDEA9777B4E7727C70C8",
+      "resumen_TC-M08-G018.txt": "734C319011E479B7854069FC7D6CEF2F0AACA57095F85D0691783F07A1BD29A9",
+      "resultado_TC-M08-G018.html": "FA9021CE8587ED53BA60FEB30E1F78395CC3D4F3D8D6172E29E59A2260D3727D"
+    }
+  }
+}

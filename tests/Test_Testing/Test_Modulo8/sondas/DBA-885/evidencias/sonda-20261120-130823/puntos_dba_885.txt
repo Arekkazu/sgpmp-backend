@@ -1,0 +1,14 @@
+Pedido al DBA (claude/PEDIDO_DBA_M08.md) - estado en TEST por punto. Puntos 5, 6, 16 y 17 no se verifican por API.
+PUNTO|1|REVISAR_CRUDO|fases=1 candidatas_activas=1 (ver SONDA|A_FASES)|req=ed6e9ed5-6faf-4819-ac32-c367590f4623
+PUNTO|2|CUMPLE|eventos_en_historial=3 ["DIAGNOSTICO:id=undefined tipo=DIAGNOSTICO dif_vs_d1f3cc43=600min(esperado 600)","CONTROL_PREVENTIVO:id=undefined tipo=CONTROL_PREVENTIVO dif_vs_f056f99d=30min(esperado 30)","TRATAMIENTO:id=undefined tipo=TRATAMIENTO dif_vs_511a6d66=1200min(esperado 1200)"]|req=2d01749b-e908-4556-9dae-331b91fbb2ce
+PUNTO|3|CUMPLE|sanitarios=3 con_hora_distinta_de_00:00=3 fechas=["2026-10-28T20:06:22Z","2026-10-26T21:36:22Z","2026-10-25T05:06:22Z"]|req=94302406-dccf-441f-a303-f0799084e816
+PUNTO|4|CUMPLE|activo 2556: HTTP 403 FINCA_NO_AUTORIZADA con_datos=false|req=abb6d2d9-0941-4a79-9629-fc0c2f1869e2
+PUNTO|7|CUMPLE|total=24 (pedido: las 14 originales siguen) faltan_de_las_citadas=[]|req=8bcf9440-47ad-43e6-a211-55d21f3a252d
+PUNTO|8|NO_VERIFICABLE|la cuenta de Veterinario no lista usuarios; indicio: inferencias con 2 o mas valoraciones=[]|req=124cf869-ee16-4284-a349-157d286a160e
+PUNTO|9|CUMPLE|valoraciones=["32985675:CORRECTO/juan veterinario Prueba OK","2895a389:INCORRECTO/juan veterinario Prueba OK","6e0d4f0f:PARCIAL/juan veterinario Prueba OK","f80c05d9:SIN_EVENTO/juan veterinario Prueba OK"] deben_quedar_sin_valorar=["511a6d66:sin_valorar","997b8cda:sin_valorar","5dbe4510:sin_valorar"]|req=2d01749b-e908-4556-9dae-331b91fbb2ce
+PUNTO|10|CUMPLE|EN_TRATAMIENTO con 2 o mas inferencias=[{"id":2945,"estado":"EN_TRATAMIENTO","http":200,"inferencias":2,"no_sombra":0}] todos=[{"id":2945,"estado":"EN_TRATAMIENTO","http":200,"inferencias":2,"no_sombra":0}]|req=5fa6ffad-90ce-4d5c-a3c0-41d337aee3ec
+PUNTO|11|CUMPLE|no vigentes con 2 o mas inferencias=[{"id":2946,"estado":"BAJA","http":200,"inferencias":2,"no_sombra":0}] todos=[{"id":2946,"estado":"BAJA","http":200,"inferencias":2,"no_sombra":0}]|req=5fa6ffad-90ce-4d5c-a3c0-41d337aee3ec
+PUNTO|12|PARCIAL|claves=[] (la ventana tambien sale en SONDA|A_VENTANA)|req=0303babc-cfd8-429a-9bb1-a46b321032ea
+PUNTO|13|NO_CUMPLE|inferencias con mas de una valoracion=[] (opcional: conflicto en 32985675)|req=124cf869-ee16-4284-a349-157d286a160e
+PUNTO|14|NO_CUMPLE|511a6d66 tiene_alerta_generada=false id_alerta=null|req=8bcf9440-47ad-43e6-a211-55d21f3a252d
+PUNTO|15|NO_CUMPLE|inferencias_mas_de_12m=0 mas_de_24m=0 (limite 200 de la consulta: no alcanzado)|req=8bcf9440-47ad-43e6-a211-55d21f3a252d

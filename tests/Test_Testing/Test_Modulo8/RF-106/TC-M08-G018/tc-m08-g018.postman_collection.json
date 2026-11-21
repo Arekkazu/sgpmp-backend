@@ -1,0 +1,1384 @@
+{
+  "info": {
+    "name": "TC-M08-G018",
+    "description": "| 2026-11-19 | Juan Sebastian Gutierrez | Colección de TC-M08-G018 (TC-M08-047 y TC-M08-059, RF-106): validaciones de GET /historial-predictivo y solo lectura. Diseño en evidencias/DISENO_TC-M08-G018.md |\n| 2026-11-19 | Juan Sebastian Gutierrez | v2 (ronda 1 parcial): T00 solo exige predicciones; CP-10 retirado por falta de un activo dado de baja en las fincas del Veterinario |\n| 2026-11-20 | Juan Sebastian Gutierrez | v3 (corrida oficial de la ronda 1): CP-10 con id_activo_baja; la linea base exige eventos y retroalimentaciones; 13 checkpoints |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Cabeceras de sandbox y zona horaria en TODA petición (sandbox transaccional, X-Zona-Horaria del Swagger)",
+          "pm.request.headers.upsert({key: 'X-Test-Run-Id', value: pm.environment.get('run_id')});",
+          "pm.request.headers.upsert({key: 'X-Sandbox-Secret', value: pm.environment.get('sandbox_secret')});",
+          "pm.request.headers.upsert({key: 'X-Zona-Horaria', value: 'America/Bogota'});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "hoy",
+      "value": ""
+    },
+    {
+      "key": "hace12m",
+      "value": ""
+    },
+    {
+      "key": "hace24m",
+      "value": ""
+    },
+    {
+      "key": "hace24m1d",
+      "value": ""
+    },
+    {
+      "key": "futuro30",
+      "value": ""
+    },
+    {
+      "key": "snap_t00",
+      "value": ""
+    },
+    {
+      "key": "aud_t00",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Z00 Login Veterinario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{correo_vet}}\", \"contrasena\": \"{{contrasena_vet}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Fechas de calendario en Bogotá (UTC-5, sin horario de verano). Se calculan una vez por corrida.",
+              "const n = new Date(Date.now() - 5 * 3600 * 1000);",
+              "const y = n.getUTCFullYear(), m = n.getUTCMonth(), d = n.getUTCDate();",
+              "const f = (yy, mm, dd) => new Date(Date.UTC(yy, mm, dd)).toISOString().slice(0, 10);",
+              "pm.collectionVariables.set('hoy', f(y, m, d));",
+              "pm.collectionVariables.set('hace12m', f(y - 1, m, d));",
+              "pm.collectionVariables.set('hace24m', f(y - 2, m, d));",
+              "pm.collectionVariables.set('hace24m1d', f(y - 2, m, d - 1));",
+              "pm.collectionVariables.set('futuro30', f(y, m, d + 30));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "if (pm.response.code === 200 && b.token) {",
+              "  pm.collectionVariables.set('token_vet', b.token);",
+              "  console.log('PRE|Z00|login Veterinario HTTP 200|req=' + rid);",
+              "  console.log('PRE|FECHAS|hoy=' + pm.collectionVariables.get('hoy') + ' hace12m=' + pm.collectionVariables.get('hace12m') +",
+              "    ' hace24m=' + pm.collectionVariables.get('hace24m') + ' hace24m1d=' + pm.collectionVariables.get('hace24m1d') +",
+              "    ' futuro30=' + pm.collectionVariables.get('futuro30'));",
+              "} else {",
+              "  console.log('ABORT|Z00|login Veterinario HTTP ' + pm.response.code + ' error_code=' + ec + '|req=' + rid);",
+              "  postman.setNextRequest('Z99 Cierre del sandbox');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Z01 Perfil Veterinario",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "if (pm.response.code === 200 && b.nombre_rol === 'Veterinario') {",
+              "  console.log('PRE|Z01|id_usuario=' + b.id_usuario + ' nombre_rol=' + b.nombre_rol + '|req=' + rid);",
+              "} else {",
+              "  console.log('ABORT|Z01|perfil HTTP ' + pm.response.code + ' nombre_rol=' + (b.nombre_rol || '-') + '|req=' + rid);",
+              "  postman.setNextRequest('Z99 Cierre del sandbox');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "T00 Linea base historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "const p = (b.predicciones || []).length, e = (b.eventos_sanitarios || []).length, r = (b.retroalimentaciones || []).length;",
+              "if (pm.response.code === 200 && p >= 1 && e >= 1 && r >= 1) {",
+              "  pm.collectionVariables.set('snap_t00', snap(b));",
+              "  console.log('PRE|T00|HTTP 200 predicciones=' + p + ' eventos=' + e + ' retroalimentaciones=' + r +",
+              "    ' pendientes=' + (b.pendientes ? b.pendientes.total : '-') + ' tvco=' + (b.tvco ? b.tvco.porcentaje : '-') +",
+              "    ' estado=' + (b.activo ? b.activo.estado : '-') + '|req=' + rid);",
+              "  obs('OBS-NOMBRES', 'claves=' + Object.keys(b).sort().join(',') + ' filtros_aplicados=' + ('filtros_aplicados' in b) +",
+              "    ' activo_seleccionado=' + ('activo_seleccionado' in b) + ' tvco_tipo=' + typeof b.tvco +",
+              "    ' metadatos=' + (b.metadatos ? Object.keys(b.metadatos).sort().join(',') : '-') +",
+              "    ' tvco_claves=' + (b.tvco && typeof b.tvco === 'object' ? Object.keys(b.tvco).sort().join(',') : '-'));",
+              "  obs('OBS-VENTANA', 'ventana_correspondencia_horas=' + b.ventana_correspondencia_horas);",
+              "  obs('OBS-DATOS', 'eventos_sanitarios=' + e + ' retroalimentaciones=' + r + ' (linea base completa: CP-11 compara predicciones, eventos y retroalimentaciones)');",
+              "  obs('OBS-TIMESTAMP', 'primera prediccion fecha=' + (b.predicciones[0] ? b.predicciones[0].fecha : '-'));",
+              "  obs('OBS-FUENTES', 'fuentes_no_disponibles=' + JSON.stringify(b.fuentes_no_disponibles));",
+              "} else {",
+              "  console.log('ABORT|T00|HTTP ' + pm.response.code + ' error_code=' + ec + ' predicciones=' + p + ' eventos=' + e +",
+              "    ' retroalimentaciones=' + r + ' (el activo A necesita al menos una prediccion, un evento sanitario y una retroalimentacion; sin ellos CP-11 tendria cobertura parcial)|req=' + rid);",
+              "  postman.setNextRequest('Z99 Cierre del sandbox');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "T00a Linea base auditoria M04",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/prediccion/auditoria?pagina=1&por_pagina=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "const primero = (b.items && b.items[0]) ? b.items[0].id_evento : '-';",
+              "pm.collectionVariables.set('aud_t00', pm.response.code + '|' + b.total + '|' + primero);",
+              "obs('OBS-AUD-T00', 'HTTP ' + pm.response.code + ' total=' + b.total + ' primer_id_evento=' + primero);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-01 Rango de 12 meses explicito",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}?fecha_inicio={{hace12m}}&fecha_fin={{hoy}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "const ini = pm.collectionVariables.get('hace12m'), fin = pm.collectionVariables.get('hoy');",
+              "const pred = b.predicciones || [];",
+              "const fuera = pred.filter(x => bogota(x.fecha) < ini || bogota(x.fecha) > fin);",
+              "cp('CP-01', '12 meses explicitos: 200 con los datos del rango (RF-106 Entradas; RF-67)',",
+              "  '200; rango_fechas_aplicado=' + ini + '..' + fin + '; >=1 prediccion y todas dentro del rango',",
+              "  () => 'HTTP ' + pm.response.code + ' rango=' + JSON.stringify(b.rango_fechas_aplicado) + ' predicciones=' + pred.length +",
+              "        ' fuera_de_rango=' + fuera.length + ' total_inferencias=' + (b.metadatos ? b.metadatos.total_inferencias : '-'),",
+              "  () => {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    pm.expect(b.rango_fechas_aplicado).to.eql({fecha_inicio: ini, fecha_fin: fin});",
+              "    pm.expect(pred.length).to.be.at.least(1);",
+              "    pm.expect(fuera.length).to.eql(0);",
+              "  });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-02 Inicio posterior al fin",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}?fecha_inicio=2026-10-01&fecha_fin=2026-09-01"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-02', 'fecha_inicio > fecha_fin: 400 sin datos (RF-67 E3; openapi de TEST)', '400 sin datos',",
+              "  () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,",
+              "  () => { pm.expect(pm.response.code).to.eql(400); pm.expect(sinDatos).to.eql(true); });",
+              "obs('OBS-TEXTO-CP02', 'message=' + (b.message || '-'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OBS-03 Fecha fin futura",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}?fecha_inicio={{hace12m}}&fecha_fin={{futuro30}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "obs('OBS-03', 'fecha_fin=hoy+30: HTTP ' + pm.response.code + ' error_code=' + ec + ' rango=' +",
+              "  JSON.stringify(b.rango_fechas_aplicado || null) + ' (RF-106 no define fechas futuras; RF-67 Integridad temporal es de otro endpoint)');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-04 Sin fechas",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "const ini = pm.collectionVariables.get('hace12m'), fin = pm.collectionVariables.get('hoy');",
+              "cp('CP-04', 'Sin fechas: 200 con hoy - 12 meses a hoy (RF-106 Entradas; valores por defecto del Swagger)',",
+              "  '200; rango_fechas_aplicado=' + ini + '..' + fin,",
+              "  () => 'HTTP ' + pm.response.code + ' rango=' + JSON.stringify(b.rango_fechas_aplicado),",
+              "  () => { pm.expect(pm.response.code).to.eql(200); pm.expect(b.rango_fechas_aplicado).to.eql({fecha_inicio: ini, fecha_fin: fin}); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-05 Activo inexistente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/999999"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-05', 'Activo inexistente: 404 sin datos (RF-67 E2; Swagger: inexistente -> 404)', '404 sin datos',",
+              "  () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,",
+              "  () => { pm.expect(pm.response.code).to.eql(404); pm.expect(sinDatos).to.eql(true); });",
+              "obs('OBS-TEXTO-CP05', 'message=' + (b.message || '-'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-06a Id no numerico",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/abc"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-06a', \"id='abc': rechazo de validacion 400 o 422 sin datos (RF-106 Entradas; openapi publica 400 y 422)\",",
+              "  '400 o 422 sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,",
+              "  () => { pm.expect([400, 422]).to.include(pm.response.code); pm.expect(sinDatos).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-06b Id negativo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/-1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-06b', 'id=-1: rechazo 400, 404 o 422 sin datos (RF-106 Entradas; openapi publica 400, 404 y 422)',",
+              "  '400, 404 o 422 sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,",
+              "  () => { pm.expect([400, 404, 422]).to.include(pm.response.code); pm.expect(sinDatos).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-07a Nivel de riesgo 4",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}?nivel_riesgo=4"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-07a', 'nivel_riesgo=4: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422)',",
+              "  '400 o 422 sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,",
+              "  () => { pm.expect([400, 422]).to.include(pm.response.code); pm.expect(sinDatos).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-07b Nivel de riesgo -1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}?nivel_riesgo=-1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-07b', 'nivel_riesgo=-1: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422)',",
+              "  '400 o 422 sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,",
+              "  () => { pm.expect([400, 422]).to.include(pm.response.code); pm.expect(sinDatos).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-08 Activo de finca no asignada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_otra_finca}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-08', 'Activo de una finca no asignada al Veterinario: 403 sin datos (Swagger: otra finca -> 403; RF-67 alcance)',",
+              "  '403 sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,",
+              "  () => { pm.expect(pm.response.code).to.eql(403); pm.expect(sinDatos).to.eql(true); });",
+              "obs('OBS-TEXTO-CP08', 'message=' + (b.message || '-'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-09a Rango de 24 meses exactos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}?fecha_inicio={{hace24m}}&fecha_fin={{hoy}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "const ini = pm.collectionVariables.get('hace24m'), fin = pm.collectionVariables.get('hoy');",
+              "cp('CP-09a', 'Rango de 24 meses exactos: 200 (RF-106 Restriccion 2)', '200; rango_fechas_aplicado=' + ini + '..' + fin,",
+              "  () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' rango=' + JSON.stringify(b.rango_fechas_aplicado || null),",
+              "  () => { pm.expect(pm.response.code).to.eql(200); pm.expect(b.rango_fechas_aplicado).to.eql({fecha_inicio: ini, fecha_fin: fin}); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-09b Rango de 24 meses mas 1 dia",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}?fecha_inicio={{hace24m1d}}&fecha_fin={{hoy}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-09b', 'Rango de 24 meses + 1 dia: 400 sin datos (RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400)',",
+              "  '400 sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos +",
+              "  ' desde=' + pm.collectionVariables.get('hace24m1d'),",
+              "  () => { pm.expect(pm.response.code).to.eql(400); pm.expect(sinDatos).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CP-10 Activo dado de baja",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_baja}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "cp('CP-10', 'Activo dado de baja: 422 ACTIVO_NO_VIGENTE sin datos (RF-106 Precondicion 2; Swagger: dado de baja -> 422; lanzamiento v7)',",
+              "  '422 ACTIVO_NO_VIGENTE sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,",
+              "  () => { pm.expect(pm.response.code).to.eql(422); pm.expect(ec).to.eql('ACTIVO_NO_VIGENTE'); pm.expect(sinDatos).to.eql(true); });",
+              "obs('OBS-TEXTO-CP10', 'message=' + (b.message || '-'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Z50 Login Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{correo_productor}}\", \"contrasena\": \"{{contrasena_productor}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "if (pm.response.code === 200 && b.token) { pm.collectionVariables.set('token_productor', b.token); }",
+              "obs('OBS-P-LOGIN', 'login Productor HTTP ' + pm.response.code);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OBS-P Historial con Productor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "obs('OBS-P', 'Productor (TC-M08-048, observacion por API): HTTP ' + pm.response.code + ' error_code=' + ec +",
+              "  ' con_probabilidades=' + !sinDatos + ' (esperado por RF-106 Restriccion 1 y CA-6: 403)');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "T99 Historial final",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "const antes = pm.collectionVariables.get('snap_t00'), ahora = snap(b);",
+              "const base = JSON.parse(antes || '{}');",
+              "cp('CP-11', 'Solo lectura: el historial final es igual a la linea base (RF-106 Restriccion 3 y Postcondicion 3)',",
+              "  'HTTP 200 y mismo contenido que T00 (linea base con >=1 prediccion, >=1 evento y >=1 retroalimentacion)',",
+              "  () => 'HTTP ' + pm.response.code + ' iguales=' + (antes === ahora) + ' final=' + ahora,",
+              "  () => { pm.expect(pm.response.code).to.eql(200);",
+              "          pm.expect((base.predicciones || []).length).to.be.at.least(1);",
+              "          pm.expect((base.eventos || []).length).to.be.at.least(1);",
+              "          pm.expect((base.retroalimentaciones || []).length).to.be.at.least(1);",
+              "          pm.expect(ahora).to.eql(antes); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "T99a Auditoria M04 final",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/prediccion/auditoria?pagina=1&por_pagina=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "const primero = (b.items && b.items[0]) ? b.items[0].id_evento : '-';",
+              "obs('OBS-AUD-T99', 'antes=' + pm.collectionVariables.get('aud_t00') + ' despues=' + pm.response.code + '|' + b.total + '|' + primero +",
+              "  ' (RF-106 no exige auditar la consulta; RF-67 paso 7 es de otro endpoint)');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Z99 Cierre del sandbox",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
+              "function log(tipo, id, esperado, obtenido, estado) {",
+              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
+              "}",
+              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
+              "  let ok = false;",
+              "  const obtenido = obtenidoFn();",
+              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
+              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
+              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
+              "}",
+              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
+              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
+              "function snap(x) {",
+              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
+              "  return JSON.stringify({",
+              "    metadatos: x.metadatos || null,",
+              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
+              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
+              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
+              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
+              "    tvco: x.tvco ? x.tvco.porcentaje : null",
+              "  });",
+              "}",
+              "console.log('CIERRE|' + pm.response.code + '|' + (b.status || '-') + '|req=' + rid);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

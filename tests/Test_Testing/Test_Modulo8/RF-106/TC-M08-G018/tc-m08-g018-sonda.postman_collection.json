@@ -1,0 +1,570 @@
+{
+  "info": {
+    "name": "TC-M08-G018-sonda",
+    "description": "| 2026-11-19 | Juan Sebastian Gutierrez | Sonda de solo lectura de TC-M08-G018: estado del activo A por fuente y candidatos para CP-08 y CP-10. Sin checkpoints. |\n| 2026-11-19 | Juan Sebastian Gutierrez | S03b: historial del activo de otra finca (403 esperado para CP-08) |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Cabeceras de sandbox y zona horaria en TODA petición (sandbox transaccional, X-Zona-Horaria del Swagger)",
+          "pm.request.headers.upsert({key: 'X-Test-Run-Id', value: pm.environment.get('run_id')});",
+          "pm.request.headers.upsert({key: 'X-Sandbox-Secret', value: pm.environment.get('sandbox_secret')});",
+          "pm.request.headers.upsert({key: 'X-Zona-Horaria', value: 'America/Bogota'});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "hoy",
+      "value": ""
+    },
+    {
+      "key": "hace12m",
+      "value": ""
+    },
+    {
+      "key": "desde_iso",
+      "value": ""
+    },
+    {
+      "key": "fincas_vet",
+      "value": ""
+    },
+    {
+      "key": "idx_finca",
+      "value": ""
+    },
+    {
+      "key": "finca_actual",
+      "value": ""
+    },
+    {
+      "key": "bajas",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "S00 Login Veterinario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{correo_vet}}\", \"contrasena\": \"{{contrasena_vet}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const n = new Date(Date.now() - 5 * 3600 * 1000);",
+              "const y = n.getUTCFullYear(), m = n.getUTCMonth(), d = n.getUTCDate();",
+              "const f = (yy, mm, dd) => new Date(Date.UTC(yy, mm, dd)).toISOString().slice(0, 10);",
+              "pm.collectionVariables.set('hoy', f(y, m, d));",
+              "pm.collectionVariables.set('hace12m', f(y - 1, m, d));",
+              "pm.collectionVariables.set('desde_iso', f(y - 1, m, d) + 'T05:00:00Z');",
+              "pm.collectionVariables.set('idx_finca', '0');",
+              "pm.collectionVariables.set('bajas', '[]');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "if (pm.response.code === 200 && b.token) { pm.collectionVariables.set('token_vet', b.token); s('LOGIN_VET', 'HTTP 200'); }",
+              "else { console.log('ABORT|S00|login Veterinario HTTP ' + pm.response.code + ' error_code=' + ec + '|req=' + rid); postman.setNextRequest('S99 Cierre del sandbox'); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S01 Perfil Veterinario",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "s('PERFIL_VET', 'HTTP ' + pm.response.code + ' id_usuario=' + b.id_usuario + ' nombre_rol=' + b.nombre_rol);",
+              "if (pm.response.code !== 200 || b.nombre_rol !== 'Veterinario') { console.log('ABORT|S01|rol=' + (b.nombre_rol || '-') + '|req=' + rid); postman.setNextRequest('S99 Cierre del sandbox'); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S02 Fincas del Veterinario",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/reportes/opciones/finca"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "const fincas = Array.isArray(b) ? b.map(x => Number(x.valor)) : [];",
+              "pm.collectionVariables.set('fincas_vet', JSON.stringify(fincas));",
+              "s('FINCAS_VET', 'HTTP ' + pm.response.code + ' fincas=' + JSON.stringify(Array.isArray(b) ? b.map(x => x.valor + ':' + x.etiqueta) : b));",
+              "if (fincas.length === 0) { console.log('ABORT|S02|el Veterinario no tiene fincas visibles|req=' + rid); postman.setNextRequest('S99 Cierre del sandbox'); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S03 Historial predictivo del activo A",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "s('A_HISTORIAL', 'HTTP ' + pm.response.code + ' error_code=' + ec + ' rango=' + JSON.stringify(b.rango_fechas_aplicado || null) +",
+              "  ' predicciones=' + (b.predicciones || []).length + ' eventos_sanitarios=' + (b.eventos_sanitarios || []).length +",
+              "  ' retroalimentaciones=' + (b.retroalimentaciones || []).length + ' pendientes=' + (b.pendientes ? b.pendientes.total : '-') +",
+              "  ' estado=' + (b.activo ? b.activo.estado : '-') + ' fuentes_no_disponibles=' + JSON.stringify(b.fuentes_no_disponibles || null));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S03b Historial del activo de otra finca",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/historial-predictivo/{{id_activo_otra_finca}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "s('OTRA_FINCA_HISTORIAL', 'HTTP ' + pm.response.code + ' error_code=' + ec +",
+              "  ' con_datos=' + Object.prototype.hasOwnProperty.call(b, 'predicciones'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S04 Ficha del activo A",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "s('A_FICHA', 'HTTP ' + pm.response.code + ' identificador=' + b.identificador + ' nombre_estado=' + b.nombre_estado +",
+              "  ' id_finca=' + b.id_finca + ' id_especie=' + b.id_especie + ' tipo=' + b.tipo);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S05 Eventos M02 del activo A",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "const ev = b.eventos || [];",
+              "const san = ev.filter(e => e.sanitario);",
+              "s('A_EVENTOS_M02', 'HTTP ' + pm.response.code + ' total=' + b.total + ' sanitarios=' + san.length +",
+              "  ' detalle=' + JSON.stringify(san.slice(0, 10).map(e => e.id_eventos + '@' + e.fecha)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S06 Valoraciones M04 del activo A (bandeja)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/prediccion/retroalimentacion/bandeja?id_activo_biologico={{id_activo_a}}&estado_evaluacion=EVALUADO&desde={{desde_iso}}&por_pagina=100"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "const it = b.items || [];",
+              "s('A_BANDEJA_EVALUADAS', 'HTTP ' + pm.response.code + ' error_code=' + ec + ' total=' + b.total +",
+              "  ' numero_evaluaciones=' + it.reduce((a, x) => a + (x.numero_evaluaciones || 0), 0) +",
+              "  ' detalle=' + JSON.stringify(it.slice(0, 10).map(x => String(x.id_resultado_inferencia).slice(0, 8) + ':' + x.numero_evaluaciones)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S07 Historial RF-67 del activo A",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/prediccion/historial/{{id_activo_a}}?fecha_inicio={{hace12m}}&fecha_fin={{hoy}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "const tipos = {}; (b.eventos || []).forEach(e => { tipos[e.tipo_evento] = (tipos[e.tipo_evento] || 0) + 1; });",
+              "s('A_HISTORIAL_RF67', 'HTTP ' + pm.response.code + ' error_code=' + ec + ' total_pagina=' + b.total_pagina +",
+              "  ' hay_mas=' + !!b.cursor_siguiente + ' por_tipo=' + JSON.stringify(tipos));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S08 Activos por finca del Veterinario",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos?id_finca={{finca_actual}}&page_size=100&pagina=1"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const fincas = JSON.parse(pm.collectionVariables.get('fincas_vet') || '[]');",
+              "pm.collectionVariables.set('finca_actual', String(fincas[Number(pm.collectionVariables.get('idx_finca'))]));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "const fincas = JSON.parse(pm.collectionVariables.get('fincas_vet'));",
+              "const i = Number(pm.collectionVariables.get('idx_finca'));",
+              "const reg = b.registros || [];",
+              "const noVig = reg.filter(a => !VIGENTES.includes(a.nombre_estado) && !PROHIBIDOS.includes(a.id_activo_biologico));",
+              "const bajas = JSON.parse(pm.collectionVariables.get('bajas')).concat(noVig.map(a => a.id_activo_biologico + ':' + a.nombre_estado + ':finca' + a.id_finca));",
+              "pm.collectionVariables.set('bajas', JSON.stringify(bajas));",
+              "s('FINCA_' + fincas[i], 'HTTP ' + pm.response.code + ' total_registros=' + b.total_registros + ' total_paginas=' + b.total_paginas +",
+              "  ' estados=' + JSON.stringify(reg.reduce((o, a) => { o[a.nombre_estado] = (o[a.nombre_estado] || 0) + 1; return o; }, {})) +",
+              "  ' no_vigentes=' + JSON.stringify(noVig.slice(0, 15).map(a => a.id_activo_biologico + ':' + a.nombre_estado)));",
+              "if (i + 1 < fincas.length) { pm.collectionVariables.set('idx_finca', String(i + 1)); postman.setNextRequest('S08 Activos por finca del Veterinario'); }",
+              "else { s('CANDIDATOS_BAJA', JSON.stringify(bajas.slice(0, 20))); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S09 Login Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{correo_productor}}\", \"contrasena\": \"{{contrasena_productor}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "if (pm.response.code === 200 && b.token) { pm.collectionVariables.set('token_productor', b.token); }",
+              "s('LOGIN_PRODUCTOR', 'HTTP ' + pm.response.code);",
+              "if (pm.response.code !== 200) { postman.setNextRequest('S99 Cierre del sandbox'); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S10 Activos del Productor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos?page_size=100&pagina=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "const fincasVet = JSON.parse(pm.collectionVariables.get('fincas_vet'));",
+              "const reg = b.registros || [];",
+              "const fuera = reg.filter(a => !fincasVet.includes(a.id_finca) && !PROHIBIDOS.includes(a.id_activo_biologico));",
+              "s('PRODUCTOR_ACTIVOS', 'HTTP ' + pm.response.code + ' total_registros=' + b.total_registros + ' total_paginas=' + b.total_paginas +",
+              "  ' fincas=' + JSON.stringify([...new Set(reg.map(a => a.id_finca))]));",
+              "s('CANDIDATOS_OTRA_FINCA', JSON.stringify(fuera.slice(0, 20).map(a => a.id_activo_biologico + ':' + a.nombre_estado + ':finca' + a.id_finca)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "S99 Cierre del sandbox",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const ec = (b && b.error_code) ? b.error_code : '-';",
+              "function s(clave, texto) { console.log('SONDA|' + clave + '|' + texto + '|req=' + rid); }",
+              "const PROHIBIDOS = [930, 900, 901, 825];",
+              "const VIGENTES = ['ACTIVO', 'EN_TRATAMIENTO'];",
+              "console.log('CIERRE|' + pm.response.code + '|' + (b.status || '-') + '|req=' + rid);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
