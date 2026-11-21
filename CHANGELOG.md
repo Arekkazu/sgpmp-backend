@@ -1,3 +1,33 @@
+## [1.4.0-rc.85](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.84...v1.4.0-rc.85) (2026-11-21)
+
+### Bug Fixes
+
+* **rf103-mod8:** el semaforo de areas sale solo de las alertas activas ([4fe2374](https://github.com/Arekkazu/sgpmp-backend/commit/4fe23749645ce6cbb0ff8fba5669bb7ad89f58b9))
+* **rf103-mod8:** el widget del valor del inventario le muestra al Productor el valor de su finca ([8455a95](https://github.com/Arekkazu/sgpmp-backend/commit/8455a9538437481018ac636a21c079e177492bb4)), closes [#1196](https://github.com/Arekkazu/sgpmp-backend/issues/1196)
+* **rf103-mod8:** los widgets técnicos de IoT quedan solo para el Ingeniero de Campo y el Administrador ([6032d26](https://github.com/Arekkazu/sgpmp-backend/commit/6032d264b34b05ca910eb90ab17a6e8a69f3b616)), closes [#1195](https://github.com/Arekkazu/sgpmp-backend/issues/1195)
+* **rf104-mod8:** fuentes incrustadas en el PDF de reportes ([ab7ce02](https://github.com/Arekkazu/sgpmp-backend/commit/ab7ce02113f0c43f101b36618b4ba72b4a5be788))
+* **rf104-mod8:** PDF de reportes etiquetado, con idioma y titulo visible en el lector ([ce73413](https://github.com/Arekkazu/sgpmp-backend/commit/ce734133979a738de72c83d4a80332c3318f71d3))
+* **rf105-mod8:** agrupacion visual de avisos por tipo, nivel y activo ([175fd57](https://github.com/Arekkazu/sgpmp-backend/commit/175fd5798ffb9afaa909241f1bdb21ddef8d8e5c))
+* **rf105-mod8:** avisos de conversion alimenticia y de auditoria sin jerga tecnica ([9b958e0](https://github.com/Arekkazu/sgpmp-backend/commit/9b958e0e9a096cfcb30280465fbcc096f79c29c9))
+* **rf105-mod8:** la bandeja de notificaciones trae 50 por página cuando no se envía tamano ([c3e0b4d](https://github.com/Arekkazu/sgpmp-backend/commit/c3e0b4d217502ead640eaadc3f4e04f91202c420)), closes [#1198](https://github.com/Arekkazu/sgpmp-backend/issues/1198)
+* **rf105-mod8:** la notificación de otro usuario responde 403 con el mensaje del RF ([1315f45](https://github.com/Arekkazu/sgpmp-backend/commit/1315f450ec36b19849f10fd28cf4f8ba758780e0)), closes [#1199](https://github.com/Arekkazu/sgpmp-backend/issues/1199)
+* **rf106-mod8:** la bandeja de retroalimentacion trae la prediccion pedida desde el historial (INC-M08-390-G023) ([ee68a7c](https://github.com/Arekkazu/sgpmp-backend/commit/ee68a7c68a0a9635be509a726f290ac1833dcef5))
+* **rf106-mod8:** pendientes del historial con el criterio de la bandeja de retroalimentacion ([655bc00](https://github.com/Arekkazu/sgpmp-backend/commit/655bc00af9005ab325bb5be602140046c3b74a54))
+
+## [1.4.0-rc.84](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.83...v1.4.0-rc.84) (2026-11-21)
+
+### Bug Fixes
+
+* **rf106-mod8:** el historial predictivo cuenta los 24 meses por calendario (INC-M08-386-G018) ([37a88c6](https://github.com/Arekkazu/sgpmp-backend/commit/37a88c65ba536b8708bfb42419e67bc7d3585ece))
+* **rf106-mod8:** la bandeja de retroalimentacion trae la prediccion pedida desde el historial (INC-M08-390-G023) ([7d65770](https://github.com/Arekkazu/sgpmp-backend/commit/7d6577058148b14eae13b699a491f4ce95aca370))
+* **rf107-mod8:** la prevalidacion del cierre dice cuantos activos revaluara (INC-M08-393-G028) ([0f0ec90](https://github.com/Arekkazu/sgpmp-backend/commit/0f0ec90a14cb9e0fb795d5cd5c0d6b54a7703cd6))
+
+## [1.4.0-rc.83](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.82...v1.4.0-rc.83) (2026-11-21)
+
+### Bug Fixes
+
+* **ci:** triar falsos positivos de Bearer que bloqueaban el gate SAST en dev ([528a03f](https://github.com/Arekkazu/sgpmp-backend/commit/528a03ff1a1bd05b503d0f1a424dc7c52e948ac5))
+
 ## [1.4.0-rc.82](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.81...v1.4.0-rc.82) (2026-11-20)
 
 ### Bug Fixes

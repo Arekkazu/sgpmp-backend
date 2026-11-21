@@ -2,6 +2,7 @@
 # |------------|----------|---------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: la bandeja falsa recibe el filtro nuevo |
 # | 2026-11-19 | Arekkazu | M8-05 RF-105: el ejemplo de aviso de cuenta ya no es el inicio de sesión |
+# | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: la notificación ajena responde 403 |
 """Pruebas unitarias del servicio central y la bandeja RF-14."""
 from datetime import datetime, timezone
 import pytest
@@ -14,7 +15,7 @@ from src.identity_access.application.use_cases.notificaciones.marcar_notificacio
 )
 from src.identity_access.domain.entities.notificacion import Notificacion
 from src.shared import notificacion_service as service_module
-from src.shared.errors import NotFoundError
+from src.shared.errors import AuthorizationError, NotFoundError
 from src.shared.notificacion_service import NotificacionService
 
 
@@ -169,6 +170,9 @@ class BandejaRepoFake:
             None,
         )
 
+    def existe_interna(self, id_notificacion):
+        return any(n.id_notificacion == id_notificacion for n in self.notificaciones)
+
     def guardar(self, notificacion):
         self.guardada = notificacion
 
@@ -216,7 +220,12 @@ def test_marcar_leida_es_idempotente_y_no_permite_notificacion_ajena() -> None:
     assert repetido.es_leido is True
     assert db.commits == 2
 
-    with pytest.raises(NotFoundError) as error:
+    # INC-M08-383-G014: la de otro usuario se rechaza con 403 (RF-105 restricción 4); la que no existe, 404.
+    with pytest.raises(AuthorizationError) as error:
         caso.execute(2, 7)
+    assert error.value.code == "NOTIFICACION_AJENA"
+
+    with pytest.raises(NotFoundError) as error:
+        caso.execute(99, 7)
 
     assert error.value.code == "NOTIFICACION_NO_ENCONTRADA"

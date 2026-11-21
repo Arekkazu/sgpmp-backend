@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                                          |
+# |------------|--------------|----------------------------------------------------------------------|
+# | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: la notificación ajena responde 403          |
 """Integración RF-14: generación central y bandeja de notificaciones."""
 from __future__ import annotations
 
@@ -114,9 +117,10 @@ def test_bandeja_filtra_canal_propietario_y_marca_lectura(
     assert marcada.json()["es_leido"] is True
     assert client.patch(f"/notificaciones/{pendiente}/leida").status_code == 200
 
+    # INC-M08-383-G014 (RF-105 restricción 4): la de otro usuario se rechaza con 403 y su mensaje.
     ajena_respuesta = client.patch(f"/notificaciones/{ajena}/leida")
-    assert ajena_respuesta.status_code == 404
-    assert ajena_respuesta.json()["error_code"] == "NOTIFICACION_NO_ENCONTRADA"
+    assert ajena_respuesta.status_code == 403
+    assert ajena_respuesta.json()["error_code"] == "NOTIFICACION_AJENA"
 
     correo_respuesta = client.patch(f"/notificaciones/{solo_correo}/leida")
     assert correo_respuesta.status_code == 404

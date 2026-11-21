@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                |
 # |------------|----------|------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: datos de un widget con las opciones del usuario |
+# | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: el valor del inventario se acota a las fincas permitidas |
 """Caso de uso: datos de un widget del dashboard para la finca activa (RF-103).
 
 Cada widget se pide por separado: si uno falla o tarda, los demás siguen (CA-5, CA-8, CA-9). El
@@ -254,9 +255,9 @@ class ObtenerDatosWidgetUseCase:
         filas = self.datos.conversion(id_finca, parametros["especies"] or None)
         return Resultado({"especies": filas}, sin_datos=not filas)
 
-    def _valor_inventario(self, id_finca, parametros, **_) -> Resultado:
+    def _valor_inventario(self, id_finca, parametros, permitidas, **_) -> Resultado:
         # El inventario es lo vivo: sin bajas, cierres ni lo ya cosechado por completo.
-        vivos = [f for f in self.datos.activos_valorados(id_finca)
+        vivos = [f for f in self.datos.activos_valorados(id_finca, permitidas)
                  if f["estado"] not in ("BAJA", "CERRADO") and not f["cosechado_completamente"]]
         razonable = sum((f["valor_razonable_neto"] or 0 for f in vivos if not f["valorado_por_costo"]), Decimal(0))
         costo = sum((f["valor_contable_por_costo"] or 0 for f in vivos if f["valorado_por_costo"]), Decimal(0))

@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación, filtros de bandeja, entrega y purga  |
 # | 2026-11-18 | Arekkazu | M08 RF-105: preferencias de canal y ventana de agrupación configurable |
+# | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: notificación ajena → 403 con el mensaje del RF |
 """Puerto del sistema de notificaciones (capa de dominio).
 
 Operaciones de comando y consulta para notificaciones y dispositivos FCM,
@@ -191,6 +192,14 @@ class NotificacionRepository(ABC):
         id_usuario: int,
     ) -> Optional[Notificacion]:
         """Obtiene una notificación interna si pertenece al usuario."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def existe_interna(self, id_notificacion: int) -> bool:
+        """Si existe una notificación interna con ese id, sea de quien sea.
+
+        Solo responde sí o no: sirve para distinguir una notificación ajena (403) de una inexistente (404)
+        sin leer nada de su contenido (RF-105 restricción 4)."""
         raise NotImplementedError
 
     @abstractmethod

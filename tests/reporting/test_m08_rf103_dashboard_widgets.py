@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: opciones de widget, semáforo, alcance y fallo aislado    |
+# | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: el valor del inventario recibe las fincas permitidas |
 """RF-103 — widgets del dashboard: opciones configurables, regla del semáforo y datos por widget.
 
 Sin BD: el caso de uso se prueba con repositorios falsos; las consultas SQL tienen su propia prueba
@@ -108,8 +109,8 @@ class DatosFake:
         self.llamadas["lecturas"] = (id_finca, id_area)
         return [dict(f) for f in self.respuestas.get("lecturas", [])]
 
-    def activos_valorados(self, id_finca):
-        self.llamadas["activos_valorados"] = (id_finca,)
+    def activos_valorados(self, id_finca, fincas_permitidas):
+        self.llamadas["activos_valorados"] = (id_finca, fincas_permitidas)
         return self.respuestas.get("activos_valorados", [])
 
     def precios_por_vencer(self, dias, limite):
@@ -317,6 +318,25 @@ def test_valor_del_inventario_solo_cuenta_lo_vivo_y_separa_por_metodo():
 
     assert resultado.datos == {"vista": "POR_METODO", "valor_total": 1500.0, "activos": 2, "moneda": "COP",
                                "valor_razonable": 1000.0, "valor_costo": 500.0}
+
+
+def test_valor_del_inventario_se_consulta_con_las_fincas_del_usuario():
+    """INC-M08-380-G002: la consulta corre como sistema; el alcance lo pone la lista de fincas."""
+    datos = DatosFake(activos_valorados=[_valorado()])
+    _use_case(datos=datos, permitidas=(3, 4)).execute("valor_inventario", 3, PRODUCTOR, AHORA)
+    assert datos.llamadas["activos_valorados"] == (3, [3, 4])
+
+
+def test_valor_del_inventario_sin_finca_activa_usa_todas_las_fincas_permitidas():
+    datos = DatosFake(activos_valorados=[_valorado()])
+    _use_case(datos=datos, permitidas=(3, 4)).execute("valor_inventario", None, CONTADOR, AHORA)
+    assert datos.llamadas["activos_valorados"] == (None, [3, 4])
+
+
+def test_valor_del_inventario_con_alcance_global_no_acota():
+    datos = DatosFake(activos_valorados=[_valorado()])
+    _use_case(datos=datos, permitidas=None).execute("valor_inventario", None, CONTADOR, AHORA)
+    assert datos.llamadas["activos_valorados"] == (None, None)
 
 
 def test_opciones_ofrecen_las_areas_de_la_finca_activa():

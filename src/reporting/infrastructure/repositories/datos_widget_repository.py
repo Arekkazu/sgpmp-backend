@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                               |
 # |------------|----------|-----------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: consultas de solo lectura de los widgets        |
+# | 2026-11-20 | Arekkazu | QA-M08 CU01 H-02 RF-103: el semáforo sale solo de alertas activas, no del riesgo de la inferencia |
+# | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: valor del inventario leído como sistema y acotado a las fincas del usuario |
 """Implementación SQLAlchemy de :class:`DatosWidgetRepository` (RF-103).
 
 Lo que ya calcula otro módulo se reutiliza tal cual para que el dashboard muestre lo mismo que la
@@ -29,6 +31,7 @@ from src.prediction.infrastructure.repositories.bandeja_retroalimentacion_reposi
 )
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.reporting.domain.repositories.datos_widget_repository import DatosWidgetRepository, Fila
+from src.shared.database import como_sistema
 from src.shared.nombre_activo import nombre_activo_sql
 from src.telemetry.application.use_cases.monitoreo.obtener_dashboard_use_case import ObtenerDashboardUseCase
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
@@ -112,13 +115,13 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
                 WHERE {_ALERTA_VIGENTE} AND a.tipo_alerta <> 'TECNICA'
                 GROUP BY a.id_infraestructura
             ), inferencias AS (
-                SELECT ab.id_infraestructura,
-                       count(*) FILTER (WHERE ri.nivel_riesgo = 3) AS criticas,
-                       count(*) FILTER (WHERE ri.nivel_riesgo IN (1, 2)) AS advertencias
+                -- Una predicción reciente solo dice que el área tiene datos: el color sale de las alertas
+                -- activas de RF-57 y RF-66 (las de M04 son PREDICCION_PATOLOGIA en modulo3.alertas), no del
+                -- nivel de riesgo de la última inferencia (QA M08 CU01 H-02).
+                SELECT DISTINCT ab.id_infraestructura
                 FROM modulo2.activos_biologicos ab
                 JOIN areas ar ON ar.id_infraestructura = ab.id_infraestructura
                 {_ULTIMA_INFERENCIA}
-                GROUP BY ab.id_infraestructura
             ), sensores AS (
                 SELECT saa.id_infraestructura, count(*) AS total,
                        count(*) FILTER (WHERE ed.estado_actual::text IN {_DISPOSITIVO_CAIDO}) AS caidos
@@ -130,8 +133,8 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
                 GROUP BY saa.id_infraestructura
             )
             SELECT ar.id_infraestructura, ar.nombre,
-                   COALESCE(al.criticas, 0) + COALESCE(inf.criticas, 0) AS criticas,
-                   COALESCE(al.advertencias, 0) + COALESCE(inf.advertencias, 0) AS advertencias,
+                   COALESCE(al.criticas, 0) AS criticas,
+                   COALESCE(al.advertencias, 0) AS advertencias,
                    (inf.id_infraestructura IS NULL AND COALESCE(se.total, 0) = COALESCE(se.caidos, 0)) AS sin_datos
             FROM areas ar
             LEFT JOIN alertas al ON al.id_infraestructura = ar.id_infraestructura
@@ -311,9 +314,17 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
 
     # --- Finanzas e integración contable ---------------------------------------------------------
 
-    def activos_valorados(self, id_finca: Optional[int]) -> list[Fila]:
-        filas = SqlAlchemyValoracionRepository(self.db).activos_valorados()
-        return [f for f in filas if id_finca is None or f["id_finca"] == id_finca]
+    def activos_valorados(self, id_finca: Optional[int],
+                          fincas_permitidas: Optional[list[int]]) -> list[Fila]:
+        # INC-M08-380-G002: la RLS de modulo6 abre los reconocimientos y valoraciones solo a quien
+        # lee la valoración en Finanzas, y el Productor no; con su sesión el widget le daba $0. Se lee
+        # como sistema y el alcance lo pone el filtro de fincas (la regla de fn_fincas_del_usuario,
+        # que como sistema ya no aplican los joins con activos y fincas).
+        with como_sistema(self.db):
+            filas = SqlAlchemyValoracionRepository(self.db).activos_valorados()
+        return [f for f in filas
+                if (id_finca is None or f["id_finca"] == id_finca)
+                and (fincas_permitidas is None or f["id_finca"] in fincas_permitidas)]
 
     def periodos_abiertos(self, id_finca: Optional[int]) -> list[Fila]:
         return self._filas(text("""

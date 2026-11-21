@@ -65,6 +65,12 @@
     "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
   },
+  "68947f383366d5ca2f2ca6a7b3f85a8c_0": {
+    "author": "Juandks12",
+    "comment": "Falso positivo (CWE-22): misma ruta interna ya triageada en 96e3596e94352129f969751f93f76d01_* (SEG-M04-01). sha256_archivo() en firma_artefacto.py solo relee ruta_artefacto para verificar integridad; esa ruta se construye en _guardar_artefacto con id_proceso (UUID), tipo_modelo validado contra catalogo y extension fija onnx/pb, siempre dentro de MODELOS_STORAGE_PATH. Sin entrada de usuario.",
+    "false_positive": true,
+    "ignored_at": "2026-11-20T00:00:00Z"
+  },
   "76eb1351ca8c11d44211f4247fe0fb81_0": {
     "author": "mortiz-indigo",
     "comment": "Conexion SMTP realiza server.ehlo() y server.starttls() en lineas 63-65. Mitigado para desarrollo; documentado para seguimiento de migracion a SMTP_SSL.",
@@ -100,5 +106,11 @@
     "comment": "Falso positivo (CWE-210): agrofusion_dto.validar_identificacion levanta ValueError con mensaje_identificacion_invalida(tipo), que devuelve uno de dos textos constantes (pasaporte o numerico) segun el tipo de documento; el numero de identificacion no entra en el mensaje.",
     "false_positive": true,
     "ignored_at": "2026-11-10T18:00:00Z"
+  },
+  "f9d5111950ba46355d218a1a1adf6e8a_1": {
+    "author": "Juandks12",
+    "comment": "Falso positivo (CWE-210): misma ocurrencia ya triageada en f9d5111950ba46355d218a1a1adf6e8a_0; agrofusion_dto.validar_identificacion levanta ValueError con mensaje_identificacion_invalida(tipo), que devuelve uno de dos textos constantes (pasaporte o numerico). El numero de identificacion no entra en el mensaje.",
+    "false_positive": true,
+    "ignored_at": "2026-11-20T00:00:00Z"
   }
 }
