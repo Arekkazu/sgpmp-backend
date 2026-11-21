@@ -15,6 +15,7 @@
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 # | 2026-11-14 | destroyerban | INC-M06-054B-G56 RF-91: cerrar de nuevo un período cerrado responde 409, no 404; mensaje sin fecha de cierre |
 # | 2026-11-14 | destroyerban | INC-M06-93-G44 RF-87 FA-5: el período cerrado se rechaza antes de procesar eventos pendientes (sin artefactos nuevos) |
+# | 2026-11-21 | Arekkazu | INC-M08-393-G028 RF-107: la prevalidación dice cuántos activos revaluará el cierre |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -98,6 +99,9 @@ class Prevalidacion:
     activos_sin_precio: list[dict]
     lineas_sin_trazabilidad: list[dict]
     precios: list[dict] = field(default_factory=list)  # congelados (RF-87 paso 2), no se publican
+    # RF-107 8.5: el diálogo del cierre dice cuántos activos revaluará; son los que `_pasos` cuenta como
+    # procesados si el Contador no decide estimar ninguno de los que no tienen precio.
+    activos_a_revaluar: int = 0
 
     @property
     def puede_cerrar(self) -> bool:
@@ -106,7 +110,8 @@ class Prevalidacion:
     def a_dict(self) -> dict:
         return {"bloqueos": self.bloqueos, "activos_sin_precio": self.activos_sin_precio,
                 "lineas_sin_trazabilidad": self.lineas_sin_trazabilidad, "puede_cerrar": self.puede_cerrar,
-                "requiere_autorizacion": bool(self.activos_sin_precio or self.lineas_sin_trazabilidad)}
+                "requiere_autorizacion": bool(self.activos_sin_precio or self.lineas_sin_trazabilidad),
+                "activos_a_revaluar": self.activos_a_revaluar}
 
 
 class EjecutarCierrePeriodoUseCase:
@@ -190,7 +195,8 @@ class EjecutarCierrePeriodoUseCase:
         nombres = {a.id_activo_biologico: a.identificador for a in reconocidos}  # el panel nombra el activo, no su id
         for linea in sin_trazabilidad:
             linea["identificador"] = nombres.get(linea.get("id_activo_biologico"))
-        return Prevalidacion(bloqueos, sin_precio, sin_trazabilidad, precios)
+        return Prevalidacion(bloqueos, sin_precio, sin_trazabilidad, precios,
+                             activos_a_revaluar=len(reconocidos) - len(sin_precio))
 
     def _precios_congelados(self, periodo: Periodo, reconocidos: list[DatosActivo], dia) -> list[dict]:
         """RF-87 paso 2 / CA-1: el precio por especie del cierre en curso; sin cierre, el que se congelaría ahora.
