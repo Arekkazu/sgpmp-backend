@@ -3,6 +3,7 @@
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación, filtros de bandeja, entrega y purga  |
 # | 2026-11-18 | Arekkazu | M08 RF-105: escalamiento, auditoría de cada notificación, preferencias y ventana de M09 |
 # | 2026-11-19 | Arekkazu | M8-05 RF-105: agrupa avisos repetidos sin atender y saca de la bandeja los inicios de sesión |
+# | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: notificación ajena → 403 con el mensaje del RF |
 """Implementación SQLAlchemy del puerto de dominio :class:`NotificacionRepository`.
 
 Traduce el estado de envío de texto al enum ``EnumEstadoEnvio`` de la columna y
@@ -28,6 +29,7 @@ from sqlalchemy import case, func, text
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.notificacion import Notificacion
+from src.shared.database import como_sistema
 from src.identity_access.domain.repositories.notificacion_repository import (
     EntregaPendiente,
     FiltroBandeja,
@@ -464,6 +466,16 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             return None
         orm, tipo_evento, modulo = fila
         return self._a_entidad(orm, tipo_evento, modulo)
+
+    def existe_interna(self, id_notificacion: int) -> bool:
+        # La RLS solo deja ver las propias: se pregunta como sistema y solo se devuelve si existe.
+        with como_sistema(self.db):
+            return self.db.query(
+                self.db.query(Notificaciones.id_notificacion)
+                .filter(Notificaciones.id_notificacion == id_notificacion,
+                        Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO)
+                .exists()
+            ).scalar()
 
     def guardar(self, notificacion: Notificacion) -> None:
         orm = (
