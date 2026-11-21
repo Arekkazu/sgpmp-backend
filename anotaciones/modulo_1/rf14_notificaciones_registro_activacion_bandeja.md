@@ -21,7 +21,7 @@
 Parámetros:
 
 - `pagina` (1 por defecto).
-- `tamano` (20 por defecto, máximo 50).
+- `tamano` (50 por defecto y máximo, RF-105 reglas 7 y 10).
 - `solo_no_leidas` (`false` por defecto).
 
 Retorna `total`, `no_leidas`, los datos de paginación y los items ordenados

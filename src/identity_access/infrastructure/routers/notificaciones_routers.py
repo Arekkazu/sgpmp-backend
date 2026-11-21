@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: filtros de la bandeja, atender y descartar notificaciones |
 # | 2026-11-18 | Arekkazu | M08 RF-105 R6: preferencias de canal del usuario |
+# | 2026-11-21 | destroyerban | INC-M08-382-G013 RF-105: sin tamano la bandeja trae 50 por página |
 """Router de la bandeja de notificaciones internas del usuario (RF-14, RF-105)."""
 from typing import Literal, Optional
 
@@ -9,6 +10,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.notificaciones.listar_notificaciones_use_case import (
+    TAMANO_PAGINA_BANDEJA,
     ListarNotificacionesUseCase,
 )
 from src.identity_access.application.use_cases.notificaciones.marcar_notificacion_leida_use_case import (
@@ -55,7 +57,8 @@ ModuloFiltro = Literal["cuentas", "activos", "telemetria", "prediccion", "sumini
 )
 def listar_notificaciones(
     pagina: int = Query(1, ge=1),
-    tamano: int = Query(20, ge=1, le=50),
+    tamano: int = Query(TAMANO_PAGINA_BANDEJA, ge=1, le=TAMANO_PAGINA_BANDEJA,
+                        description="Notificaciones por página: 50 por defecto y como máximo"),
     solo_no_leidas: bool = Query(False),
     nivel: Optional[NivelFiltro] = Query(None),
     estado: Optional[EstadoFiltro] = Query(None, description="Sin estado: nuevas y leídas (panel principal)"),
