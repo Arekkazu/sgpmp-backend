@@ -1,7 +1,6 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
-# | 2026-11-21 | Arekkazu | INC-M08-390-G023 RF-106: la predicción pedida desde el historial entra siempre a la bandeja |
 """Bandeja de retroalimentación clínica (RF-72): qué inferencias puede evaluar el veterinario.
 
 El motor emite una inferencia por animal cada pocos minutos, así que la bandeja no lista todas:
@@ -32,8 +31,6 @@ class FiltrosBandejaRetroalimentacion:
     estado_evaluacion: Optional[str] = None
     nivel_riesgo: Optional[int] = None
     id_activo_biologico: Optional[int] = None
-    #: RF-106 CA-4: la predicción elegida en el historial predictivo entra aunque no cumpla la regla de arriba.
-    id_resultado_inferencia: Optional[uuid.UUID] = None
     pagina: int = 1
     por_pagina: int = 25
 
