@@ -7,6 +7,8 @@
 (carpeta "TC-M07-G024 - Estructura del envelope (CA-1)"), con el reporte HTML completo en
 `RF-97-Verificacion-Live/resultados/resultado_live_rf97.html`. Este archivo extrae la parte
 específica de G024 para que quede evidencia también en esta carpeta.
+**Re-ejecutado 2026-11-20** filtrando solo esta carpeta con Newman, reporte propio en
+`resultados/resultado_TC-M07-G024.html`/`.json` (8/8 aserciones, mismo resultado).
 
 ## Petición real
 

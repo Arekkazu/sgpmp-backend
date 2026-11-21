@@ -5,6 +5,8 @@
 **Evidencia completa:** colección compartida
 `RF-97-Verificacion-Live/tc_m07_rf97_live.postman_collection.json` (carpeta "TC-M07-G026 -
 Summary (CA-8)"), reporte HTML en `RF-97-Verificacion-Live/resultados/resultado_live_rf97.html`.
+**Re-ejecutado 2026-11-20** filtrando solo esta carpeta con Newman, reporte propio en
+`resultados/resultado_TC-M07-G026.html`/`.json` (6/6 aserciones, mismo resultado).
 
 ## Petición real
 

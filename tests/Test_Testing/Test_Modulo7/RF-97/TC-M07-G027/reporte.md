@@ -6,6 +6,8 @@
 `RF-97-Verificacion-Live/tc_m07_rf97_live.postman_collection.json` (carpeta "TC-M07-G027 - Rango
 y periodos (negativos)"), reporte HTML en
 `RF-97-Verificacion-Live/resultados/resultado_live_rf97.html`.
+**Re-ejecutado 2026-11-20** filtrando solo esta carpeta con Newman, reporte propio en
+`resultados/resultado_TC-M07-G027.html`/`.json` (4/4 aserciones, mismo resultado).
 
 ## Casos ejecutados contra NIT real 901444215
 
