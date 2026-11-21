@@ -1,0 +1,32 @@
+SONDA|LOGIN_VET|HTTP 200|req=4a451fd1-d45e-40ab-928c-dac07eff35be
+SONDA|PERFIL_VET|HTTP 200 id_usuario=97 nombre_rol=Veterinario|req=b301716a-c4b7-4796-b3a2-6e0f5ea521f9
+SONDA|FINCAS_VET|HTTP 200 fincas=[84,184]|req=c74495b7-1816-4311-af42-5ff50d633e7e
+SONDA|A_FICHA|HTTP 200 error_code=- identificador=QA-G88-266-IND-001 estado=ACTIVO id_finca=null id_especie=220 tipo=INDIVIDUAL fecha_creacion=2026-10-24T16:30:15.864955Z|req=5865d13f-9d21-49c5-a999-8db641478e25
+SONDA|A_FASES|HTTP 200 error_code=- total=0 crudo={"id_activo_biologico":885,"fases":[]}|req=464897ee-5bdb-46fa-88b5-2a2b053d1233
+PUNTO|1|NO_CUMPLE|fases=0 candidatas_activas=0 (ver SONDA|A_FASES)|req=464897ee-5bdb-46fa-88b5-2a2b053d1233
+SONDA|A_EVENTOS_M02|HTTP 200 total=0 sanitarios=0 detalle=[]|req=74c43522-fa25-4ff1-b499-38d3289a74e8
+PUNTO|3|NO_VERIFICABLE|sanitarios=0 con_hora_distinta_de_00:00=0 fechas=[]|req=74c43522-fa25-4ff1-b499-38d3289a74e8
+SONDA|A_INFERENCIAS|HTTP 200 error_code=- total=24 modo_sombra=0 mas_antigua=2026-07-01T11:34:36.477Z mas_reciente=2026-10-28T00:06:22.000Z mas_de_12m=0 mas_de_24m=0 con_alerta=0|req=44fea364-1b97-4a2e-9840-c170c4c302a6
+SONDA|A_INFERENCIAS_ESPERADAS|{"32985675":"2026-10-20T22:06:22Z n3","d1f3cc43":"2026-10-24T19:06:22Z n1","f056f99d":"2026-10-26T21:06:22Z n0","511a6d66":"2026-10-28T00:06:22Z n3","2895a389":"2026-10-12T23:06:22Z n3","6e0d4f0f":"2026-10-11T01:06:22Z n2","f80c05d9":"2026-10-18T00:06:22Z n2","997b8cda":"2026-10-26T01:06:22Z n2","5dbe4510":"2026-10-23T23:06:22Z n2"}|req=44fea364-1b97-4a2e-9840-c170c4c302a6
+PUNTO|7|CUMPLE|total=24 (pedido: las 14 originales siguen) faltan_de_las_citadas=[]|req=44fea364-1b97-4a2e-9840-c170c4c302a6
+PUNTO|14|NO_CUMPLE|511a6d66 tiene_alerta_generada=false id_alerta=null|req=44fea364-1b97-4a2e-9840-c170c4c302a6
+PUNTO|15|NO_CUMPLE|inferencias_mas_de_12m=0 mas_de_24m=0 (limite 200 de la consulta: no alcanzado)|req=44fea364-1b97-4a2e-9840-c170c4c302a6
+SONDA|A_HISTORIAL|HTTP 200 error_code=- rango={"fecha_inicio":"2025-11-20","fecha_fin":"2026-11-20"} predicciones=24 eventos=0 retros=0 pendientes=24 ventana_h=12 tvco={"porcentaje":null,"texto":"Sin datos suficientes para calcular","tvco_denominador":0,"tvco_excluidas_conflicto":0,"excluidas_sin_retroalimentacion":24,"tasa_error":null} metadatos={"total_inferencias":24,"total_eventos_sanitarios":0,"total_retroalimentaciones":0,"total_pendientes":24,"total_conflictos":0} fuentes_no_disponibles=[]|req=1f82c256-8319-4c53-b851-29c23b570ac0
+SONDA|A_HISTORIAL_EVENTOS|[]|req=1f82c256-8319-4c53-b851-29c23b570ac0
+SONDA|A_HISTORIAL_RETROS|[]|req=1f82c256-8319-4c53-b851-29c23b570ac0
+PUNTO|2|NO_CUMPLE|eventos_en_historial=0 ["DIAGNOSTICO:NO_ESTA","CONTROL_PREVENTIVO:NO_ESTA","TRATAMIENTO:NO_ESTA"]|req=1f82c256-8319-4c53-b851-29c23b570ac0
+PUNTO|9|NO_CUMPLE|valoraciones=["32985675:SIN_VALORACION(esperada CORRECTO)","2895a389:SIN_VALORACION(esperada INCORRECTO)","6e0d4f0f:SIN_VALORACION(esperada PARCIAL)","f80c05d9:SIN_VALORACION(esperada SIN_EVENTO)"] deben_quedar_sin_valorar=["511a6d66:sin_valorar","997b8cda:sin_valorar","5dbe4510:sin_valorar"]|req=1f82c256-8319-4c53-b851-29c23b570ac0
+SONDA|A_VENTANA|ventana_correspondencia_horas=12|req=1f82c256-8319-4c53-b851-29c23b570ac0
+SONDA|A_HISTORIAL_24M|HTTP 200 error_code=- predicciones=24 mas_antigua=2026-07-01T11:34:36.477Z|req=76d9916d-7079-443a-b63a-f1cb9b8d263a
+SONDA|A_HISTORIAL_RF67|HTTP 200 error_code=- total_pagina=24 hay_mas=false por_tipo={"INFERENCIA":24}|req=da8d644d-10a8-48b2-b3e1-62f54433f757
+SONDA|A_BANDEJA_EVALUADAS|HTTP 400 error_code=RANGO_FECHAS_EXCESIVO total=undefined detalle=[]|req=e8128068-00b4-44e3-a103-dc92e1ffe922
+PUNTO|13|NO_VERIFICABLE|inferencias con mas de una valoracion=[] (opcional: conflicto en 32985675)|req=e8128068-00b4-44e3-a103-dc92e1ffe922
+PUNTO|8|NO_VERIFICABLE|la cuenta de Veterinario no lista usuarios; indicio: inferencias con 2 o mas valoraciones=[]|req=e8128068-00b4-44e3-a103-dc92e1ffe922
+SONDA|FINCA_A|HTTP 400 finca= total_registros=undefined total_paginas=undefined estados={} candidatos=[]|req=09404649-590d-442b-b471-8b681a2dc171
+PUNTO|10|NO_CUMPLE|no hay activos EN_TRATAMIENTO en la finca|req=09404649-590d-442b-b471-8b681a2dc171
+PUNTO|11|NO_CUMPLE|no hay activos de baja o cerrados en la finca|req=09404649-590d-442b-b471-8b681a2dc171
+SONDA|OTRA_FINCA|HTTP 403 error_code=FINCA_NO_AUTORIZADA con_datos=false|req=41c403fa-3a3b-4742-8e47-4cf66b040558
+PUNTO|4|CUMPLE|activo 957: HTTP 403 FINCA_NO_AUTORIZADA con_datos=false|req=41c403fa-3a3b-4742-8e47-4cf66b040558
+SONDA|CONFIG|HTTP 403 error_code=ACCESO_DENEGADO claves_relevantes=[]|req=1f2614dd-1150-4bd7-9c40-a0d8117ab3ef
+PUNTO|12|PARCIAL|claves=[] (la ventana tambien sale en SONDA|A_VENTANA)|req=1f2614dd-1150-4bd7-9c40-a0d8117ab3ef
+CIERRE|200|Rollback exitoso|req=c8df7f1c-6122-4b04-81f8-26be598e63a1
