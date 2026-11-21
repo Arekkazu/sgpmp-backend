@@ -35,19 +35,20 @@ function validar(valor,modelo,ruta){
 }
 const sim=simuladorG038({auditoriaInicial:2,avisosInicial:2,conAviso:true});
 async function comprobar(metodo,ruta,body,esError=false){
-  const z=await sim.fetcher(sim.api+ruta,{method:metodo,headers:{'X-Test-Run-Id':'RUN-G038-V1-20261117-000000'},...(body?{body:JSON.stringify(body)}:{})});
+  const z=await sim.fetcher(sim.api+ruta,{method:metodo,headers:metodo==='POST'&&ruta==='/sesiones/'?{}:{'X-Test-Run-Id':'RUN-G038-V3-20261117-000000','X-Sandbox-Secret':'LOCAL'},...(body?{body:JSON.stringify(body)}:{})});
   const valor=await z.json();const esquema=esError?actual.error_respuesta.cuerpo:actual.rutas.find(x=>x.metodo===metodo&&x.ruta===ruta.split('?')[0].replace(/\/\d+\/activar$/,'/{id}/activar'))?.respuesta;
   assert(esquema,`${metodo} ${ruta}`);validar(valor,esquema,`${metodo} ${ruta}`);return valor;
 }
-await comprobar('POST','/sesiones/');
+await comprobar('POST','/sesiones/',{correo_electronico:'local@example.invalid',contrasena:'LOCAL'});
 await comprobar('GET','/sesiones/me/permisos');
 await comprobar('GET','/integracion/anexos');
 await comprobar('GET','/integracion/contratos');
+await comprobar('GET','/configuracion/parametros-integracion-contable');
 const baseAuditoria=await comprobar('GET','/integracion/auditoria?tipo_evento=CONTRATO_ACTIVADO');
-const creado=await comprobar('POST','/integracion/contratos',{contrato_version:'4.0',tipo_cambio:'MAJOR',id_mapeo_anexo_aaef:2,periodo_gracia_dias:90});
+const creado=await comprobar('POST','/integracion/contratos',{contrato_version:'6.0',tipo_cambio:'MAJOR',fecha_vigencia:'2030-12-31',id_mapeo_anexo_aaef:2,mapeadores:['COMPRAS']});
 await comprobar('POST',`/integracion/contratos/${creado.id_version_contrato_aaef}/activar`);
 const auditoria=await comprobar('GET','/integracion/auditoria?tipo_evento=CONTRATO_ACTIVADO');
-await comprobar('GET','/notificaciones');
+await comprobar('GET','/notificaciones?pagina=1&tamano=50&modulo=integracion&nivel=CRITICA');
 await comprobar('POST','/integracion/contratos/13/activar',undefined,true);
 assert(auditoria.items.length>0);
 for(const x of auditoria.items)assert.match(x.id_evento_integracion,/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -56,5 +57,5 @@ assert.throws(()=>validar({...auditoria,items:[{...auditoria.items[0],id_evento_
 console.log('OK T3 todas las rutas; falla con ID numérico anterior');
 const idsBase=new Set(baseAuditoria.items.map(x=>x.id_evento_integracion));
 assert(idsBase.has(idViejo));
-assert(auditoria.items.some(x=>!idsBase.has(x.id_evento_integracion)&&x.version_contrato==='4.0'));
+assert(auditoria.items.some(x=>!idsBase.has(x.id_evento_integracion)&&x.version_contrato==='6.0'));
 console.log('OK T4 comparación de línea base con UUID');

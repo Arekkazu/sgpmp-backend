@@ -15,3 +15,4 @@ export function instrumentar(v,m,lecturas=[],p='respuesta',{estricto=false,extra
 export function validarLecturas(v,metodo,ruta,opciones={}){const e=esquema(metodo,ruta);if(!e)throw Error(`RUTA_FUERA_CONTRATO_${metodo}_${ruta}`);return instrumentar(v,e.respuesta,[], 'respuesta',opciones);}
 function forma(v,m){if(typeof m==='string')return m.split('|').some(t=>tipo(v,t));if(Array.isArray(m))return Array.isArray(v)&&v.every(x=>forma(x,m[0]));return !!v&&typeof v==='object'&&!Array.isArray(v)&&Object.entries(m).every(([k,t])=>Object.hasOwn(v,k)&&forma(v[k],t));}
 export function validarError(v){return forma(v,contrato.error_respuesta.cuerpo);}
+export function validarSolicitud(metodo,ruta,v){const e=esquema(metodo,ruta);return Boolean(e?.solicitud)&&forma(v,e.solicitud);}

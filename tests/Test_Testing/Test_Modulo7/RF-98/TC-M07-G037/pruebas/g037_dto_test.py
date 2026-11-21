@@ -14,7 +14,7 @@ from src.accounting_integration.infrastructure.dto.m07_dto import (  # noqa: E40
 )
 
 
-def cuerpo(version="4.0", gracia=30):
+def cuerpo(version="6.0", gracia=30):
     return dict(contrato_version=version, tipo_cambio="MAJOR",
                 fecha_vigencia=date.today() + timedelta(days=400),
                 id_mapeo_anexo_aaef=2, mapeadores=["COMPRAS"],
@@ -29,11 +29,13 @@ def test_formato_invalido(version):
 
 def test_gracia_registro():
     with pytest.raises(ValidationError):
-        RegistrarContratoDTO(**cuerpo(gracia=29))
+        RegistrarContratoDTO(**cuerpo(gracia=0))
+    assert RegistrarContratoDTO(**cuerpo(gracia=29)).periodo_gracia_dias == 29
     assert RegistrarContratoDTO(**cuerpo(gracia=30)).periodo_gracia_dias == 30
 
 
 def test_gracia_deprecacion():
     with pytest.raises(ValidationError):
-        DeprecarContratoDTO(dias_gracia=29)
+        DeprecarContratoDTO(dias_gracia=0)
+    assert DeprecarContratoDTO(dias_gracia=29).dias_gracia == 29
     assert DeprecarContratoDTO(dias_gracia=30).dias_gracia == 30

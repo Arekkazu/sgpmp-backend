@@ -1,17 +1,170 @@
 {
-  "integrales": 12,
+  "integrales": 16,
   "escenarios": [
-    {"id":"a_conforme","inyectar":false,"barajar":false,"esperado":["APROBADO","APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
-    {"id":"b_inyectado","inyectar":true,"barajar":false,"esperado":["APROBADO","APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
-    {"id":"c_barajado","inyectar":false,"barajar":true,"esperado":["APROBADO","APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
-    {"id":"d_inyectado_barajado","inyectar":true,"barajar":true,"esperado":["APROBADO","APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
-    {"id":"e_sin_revision","sinRevision":true,"esperado":["APROBADO","APROBADO","NO_CONCLUYENTE","RECHAZADO","APROBADO"],"oficial":false},
-    {"id":"f_sin_permisos","sinPermisos":true,"esperado":["NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE"],"oficial":false},
-    {"id":"g_revision_rechazada","rechazarRevision":true,"esperado":["APROBADO","APROBADO","RECHAZADO","RECHAZADO","APROBADO"],"oficial":true},
-    {"id":"h_sin_aprobado","sinAprobado":true,"esperado":["NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE","NO_CONCLUYENTE"],"oficial":false},
-    {"id":"i_rollback_fallido","rollbackFallido":true,"esperado":["APROBADO","APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":false},
-    {"id":"j_01_fallido","fallar01":true,"esperado":["RECHAZADO","APROBADO","APROBADO","RECHAZADO","APROBADO"],"oficial":true},
-    {"id":"k_frontal_404","frontal404":true,"esperado":["APROBADO","APROBADO","APROBADO","RECHAZADO","NO_CONCLUYENTE"],"oficial":false,"problemaTecnico":true},
-    {"id":"l_ui_accion_incorrecta","accionIncorrecta":true,"esperado":["APROBADO","APROBADO","APROBADO","RECHAZADO","RECHAZADO"],"oficial":true}
+    {
+      "id": "a_conforme_v2",
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "b_mappers_val_entrada",
+      "mappersValEntrada": true,
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "c_activar_habilitado_cupo_lleno",
+      "activarHabilitado": true,
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "d_activar_deshabilitado_con_motivo",
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "e_sin_anexo_revision",
+      "sinRevision": true,
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "NO_CONCLUYENTE",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "f_cupo_libre",
+      "cupoLibre": true,
+      "esperado": ["APROBADO", "APROBADO", "APROBADO", "APROBADO", "APROBADO"],
+      "oficial": true
+    },
+    {
+      "id": "f_menos_vigentes",
+      "menosVigentes": true,
+      "esperado": ["APROBADO", "APROBADO", "APROBADO", "APROBADO", "NO_CONCLUYENTE"],
+      "oficial": false
+    },
+    {
+      "id": "f_sin_aprobado",
+      "sinAprobado": true,
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "g_login_invalido",
+      "loginInvalido": true,
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "h_rollback_fallido",
+      "rollbackFallido": true,
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "i_ui_accion_incorrecta",
+      "accionIncorrecta": true,
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "j_front_404",
+      "frontal404": true,
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "k_revision_rechazada",
+      "rechazarRevision": true,
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "l_borrador_creado_en_run",
+      "sinBorrador": true,
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "g_lectura_sin_sandbox",
+      "esperado": ["APROBADO", "APROBADO", "APROBADO", "APROBADO", "RECHAZADO"],
+      "oficial": true
+    },
+    {
+      "id": "h_concurrencia",
+      "demoraSandboxMs": 15,
+      "esperado": ["APROBADO", "APROBADO", "APROBADO", "APROBADO", "APROBADO"],
+      "oficial": true
+    }
   ]
 }

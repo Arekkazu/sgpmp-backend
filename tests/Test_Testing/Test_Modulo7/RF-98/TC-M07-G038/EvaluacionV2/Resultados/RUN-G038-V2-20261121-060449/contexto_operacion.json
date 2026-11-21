@@ -1,0 +1,28 @@
+{
+  "grupo": "G038",
+  "version": 2,
+  "intento": 3,
+  "run_id": "RUN-G038-V2-20261121-060449",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G038-V2-20261121",
+  "casos": [
+    "TC-M07-09",
+    "TC-M07-10",
+    "TC-M07-11",
+    "TC-M07-12"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M07-09",
+      "TC-M07-10",
+      "TC-M07-11",
+      "TC-M07-12"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 del grupo completo tras la corrección informada de INC-M07-G038-01. Datos base preparados el 2026-11-21 con autorización del responsable QA (4.0 con vigencia 2030-12-31; 2.1 INACTIVO; 3.0 única vigente). Ejecutor V2 con bandeja filtrada y aviso nuevo o agrupado (ORD-G038-010/011). Ensayo Windows: verificar.mjs OK, 18 escenarios, RED 0. g038.mjs 346324b897b4abea170a01e523be0e9506c66f61d5190229175e6692d72299aa.",
+    "incumplimientos_previos": "V1 OFICIAL RUN-G038-V1-20261118-092544 (AUT-G038-V1-R2-20261118): 09, 10 y 12 APROBADO; 11 RECHAZADO MEDIA por INC-M07-G038-01: la activación manual bloqueada (422 CONTRATO_NO_VALIDO) no avisaba al Administrador con el motivo (RF-98 CA-5).",
+    "correcciones_informadas": "0553cefd (#1168, INC-M07-374-G38) en origin/test: gestionar_contratos_use_case.activar llama a _avisar_bloqueo cuando la activación manual falla con BusinessRuleError (evento CONTRATO_ACTIVACION_BLOQUEADA y alerta ALERTA_INTEGRACION_CONTABLE con el motivo).",
+    "resultado_esperado": "11: 422 CONTRATO_NO_VALIDO, la 3.9 sigue PENDIENTE y aparece en la bandeja del Administrador un aviso ALERTA_INTEGRACION_CONTABLE (nuevo o agrupado) con la versión y el motivo. 09: MAJOR libre ACTIVO y la 3.0 DEPRECADO con inactivación a +gracia de M09 y eventos. 12: 422 LIMITE_VERSIONES_EXCEDIDO con la versión a retirar y sin cambios. 10: MINOR libre ACTIVO, la 3.0 sigue ACTIVO, dos vigentes."
+  },
+  "version_anterior": 1
+}

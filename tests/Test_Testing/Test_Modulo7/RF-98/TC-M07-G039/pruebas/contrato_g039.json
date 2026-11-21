@@ -1,6 +1,6 @@
 {
   "version": "ORD-G039-001",
-  "fuente": "RF-98 v1.2, matriz G039 y rutas de c?digo local; sin consulta a TEST",
+  "fuente": "RF-98 v1.2, matriz G039 y rutas de c?digo local revisadas para V2; sin TEST",
   "error_respuesta": {
     "cuerpo": {
       "error_code": "string",
@@ -59,6 +59,7 @@
           "tipo_cambio": "string",
           "id_mapeo_anexo_aaef": "integer|null",
           "periodo_gracia_dias": "integer|null",
+          "descripcion": "string|null",
           "fecha_activacion": "datetime|null",
           "fecha_deprecacion": "datetime|null",
           "fecha_inactivacion": "datetime|null",
@@ -117,9 +118,8 @@
             "severidad": "string",
             "id_usuario": "integer|null",
             "fecha_evento": "datetime",
-            "json_detalle": {
-              "estado": "string"
-            }
+            "json_detalle": "object|null",
+            "codigo_resultado": "string|null"
           }
         ],
         "pagina": "integer",
@@ -139,7 +139,12 @@
             "tipo_evento": "integer",
             "mensaje": "string",
             "fecha_envio": "datetime",
-            "es_leido": "boolean"
+            "es_leido": "boolean",
+            "nivel": "string",
+            "estado": "string",
+            "modulo": "string|null|undefined",
+            "ocurrencias": "integer",
+            "fecha_ultima_ocurrencia": "datetime|null"
           }
         ],
         "pagina": "integer",
@@ -147,19 +152,45 @@
         "total": "integer",
         "no_leidas": "integer"
       },
-      "cita": "src/identity_access/infrastructure/routers/notificaciones_routers.py:27-54; src/identity_access/infrastructure/schema/notificacion_schema.py:7-34"
+      "cita": "src/identity_access/infrastructure/routers/notificaciones_routers.py:56-63; src/identity_access/infrastructure/schema/notificacion_schema.py:14-34; src/identity_access/infrastructure/repositories/notificacion_repository.py:137-146,175-186,430-448",
+      "parametros": {
+        "pagina": "integer >= 1",
+        "tamano": "integer 1..50",
+        "modulo": "integracion",
+        "nivel": "CRITICA"
+      }
     },
     {
       "metodo": "PATCH",
       "ruta": "/integracion/contratos/{id}",
-      "respuesta": {},
-      "cita": "src/accounting_integration/infrastructure/routers/m07_router.py:211-237; ruta ausente"
+      "respuesta": {
+        "id_version_contrato_aaef": "integer",
+        "contrato_version": "string",
+        "estado": "string"
+      },
+      "cita": "src/accounting_integration/infrastructure/routers/m07_router.py:231-243; src/accounting_integration/infrastructure/dto/m07_dto.py:118-127"
     },
     {
       "metodo": "PUT",
       "ruta": "/integracion/contratos/{id}",
-      "respuesta": {},
-      "cita": "src/accounting_integration/infrastructure/routers/m07_router.py:211-237; ruta ausente"
+      "respuesta": {
+        "id_version_contrato_aaef": "integer",
+        "contrato_version": "string",
+        "estado": "string"
+      },
+      "cita": "src/accounting_integration/infrastructure/routers/m07_router.py:231-243; src/accounting_integration/infrastructure/dto/m07_dto.py:118-127"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-integracion-contable",
+      "respuesta": [
+        {
+          "nombre": "string",
+          "valor": "number|string|null",
+          "fuente": "string"
+        }
+      ],
+      "cita": "src/configuration/infrastructure/routers/parametros_integracion_contable_router.py:33-49; src/configuration/infrastructure/schema/parametros_alertas_schema.py:9-19"
     }
   ],
   "justificaciones_tipos": {
@@ -219,6 +250,12 @@
     "ERROR.error_code": "src/shared/error_handlers.py:40-68,306-332",
     "ERROR.message": "src/shared/error_handlers.py:40-68,306-332",
     "ERROR.fields": "src/shared/error_handlers.py:40-68,306-332",
-    "ERROR.timestamp": "src/shared/error_handlers.py:40-68,306-332"
+    "ERROR.timestamp": "src/shared/error_handlers.py:40-68,306-332",
+    "GET /integracion/auditoria.items[].codigo_resultado": "src/accounting_integration/domain/entities/evento_integracion.py:40-64",
+    "GET /integracion/auditoria.items[].json_detalle": "src/accounting_integration/domain/entities/evento_integracion.py:40-64",
+    "GET /notificaciones.items[].ocurrencias": "src/identity_access/infrastructure/schema/notificacion_schema.py:14-34",
+    "GET /notificaciones.items[].fecha_ultima_ocurrencia": "src/identity_access/infrastructure/schema/notificacion_schema.py:14-34",
+    "GET /configuracion/parametros-integracion-contable[].valor": "src/configuration/infrastructure/schema/parametros_alertas_schema.py:9-19",
+    "GET /notificaciones.items[].modulo": "src/identity_access/infrastructure/schema/notificacion_schema.py:14-34"
   }
 }

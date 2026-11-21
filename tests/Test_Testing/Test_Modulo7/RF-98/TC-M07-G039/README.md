@@ -1,41 +1,35 @@
-# TC-M07-G039 — preparación ORD-G039-005
+# TC-M07-G039 - reevaluacion V2 local (ORD-G039-010)
 
-Estado: automatización local preparada para revisión QA. Sin acceso a TEST, sin RUN oficial ni veredicto de producto. Casos TC-M07-13 a TC-M07-16, RF-98 v1.2. El ejecutor único es `g039.mjs`; la colección única es `G039.postman_collection.json` y contiene tres lecturas. Cypress no aplica.
+Estado: preparacion local. No se accedio a TEST, no se creo RUN oficial y no hay veredicto de producto. Casos TC-M07-13, 14, 15 y 16; RF-98 v1.2. Correcciones informadas: 04bddac4 y 20b5f701.
 
-## Flujo
+## Inventario
 
-El preflight lee permisos, anexos y contratos. Bloquea si falta un permiso, no hay exactamente una ACTIVO, hay más de dos vigentes, existe una PENDIENTE con `fecha_vigencia` alcanzada en UTC, anexo APROBADO, mapeadores no vacíos y cupo libre, o una DEPRECADO con `fecha_inactivacion` alcanzada. Las PENDIENTE vencidas sin cupo aparecen como observación no bloqueante `PENDIENTE_VENCIDA_SIN_CUPO` con sus ids. La ausencia de DEPRECADO, PENDIENTE o INACTIVO afecta solo al subcaso que la necesita. Las versiones se eligen en vivo por estado e id menor y se guardan en `resultado.json`.
+- Ejecutor canonico: g039.mjs.
+- Coleccion Newman vigente: G039.postman_collection.json (tres lecturas dentro del sandbox).
+- Cypress: no aplica a la matriz del grupo; no hay spec ni config.
+- Contrato de respuestas y citas: lib/contrato.mjs y pruebas/contrato_g039.json.
+- Simulador y validaciones locales: pruebas/simulador_g039.mjs, escenarios_g039.mjs/json, contrato_cruzado.test.mjs, g039_local.test.mjs, g039_dto_test.py y verificar.mjs.
+- Lanzador Newman: pruebas/newman_hijo.mjs.
+- Evidencia historica V1: Resultados/RUN-G039-V1-20261118-161622, solo lectura. Sin duplicados activos ni archivos de legado fuera de esa evidencia.
 
-Orden: 14 (activar DEPRECADO, activar ACTIVO, deprecar PENDIENTE), 15 (PATCH y PUT de ACTIVO), 13 (deprecar ACTIVO con 90 días si sigue activa), 16 (activar y deprecar INACTIVO). No se registra ninguna versión. Se conservan los oráculos originales: 14 exige rechazo 4xx, invariancia, WARNING nuevo y aviso nuevo; 15 exige `MODIFICACION_NO_PERMITIDA` e invariancia; 13 exige DEPRECADO, 90 días por instante y auditoría; 16 exige `REACTIVACION_NO_PERMITIDA` e invariancia. El código de cada rechazo de 14 se conserva en las observaciones. El rollback se verifica por igualdad de la firma completa con la base.
+Fuentes de codigo consultadas en lectura: src/accounting_integration/application/use_cases/contratos/gestionar_contratos_use_case.py; src/accounting_integration/infrastructure/routers/m07_router.py; src/accounting_integration/infrastructure/dto/m07_dto.py; src/accounting_integration/domain/entities/contrato.py y evento_integracion.py; src/accounting_integration/infrastructure/repositories/contrato_repository.py y auditoria_integracion_repository.py; src/accounting_integration/infrastructure/adapters/alerta_administrador_adapter.py; src/identity_access/infrastructure/repositories/notificacion_repository.py y schema/notificacion_schema.py; src/configuration/infrastructure/routers/parametros_integracion_contable_router.py. Se leyo la fila TC-M07-G039 de Casos_Prueba(Modulo7Agrup).csv y RF-98 en Especificacion-Requerimientos-Modulo7.md.
 
-Presupuesto: 70 solicitudes y 600 segundos, en serie. El conforme simulado usa **49 solicitudes**, incluidas tres lecturas Newman, DELETE y lectura poscierre. Los 15 escenarios se ejecutan solo contra loopback.
+## Flujo V2
 
-## Validación local
+CAPACIDADES: reevaluar/reintentar, version 2. dirRun escribe exclusivamente en EvaluacionV2/Resultados/RUN-G039-V2-<timestamp>. El contexto exige version_anterior=1. El login se hace antes del RUN, con correo_electronico y contrasena, sin cabeceras de sandbox.
 
-```powershell
-node g039.mjs --comprobar
-node --check g039.mjs
-node --check pruebas/simulador_g039.mjs
-node --check pruebas/escenarios_g039.mjs
-node --check pruebas/verificar.mjs
-node pruebas/g039_local.test.mjs
-node pruebas/contrato_cruzado.test.mjs
-node pruebas/escenarios_g039.mjs
-node pruebas/verificar.mjs
-```
+El preflight se ejecuta dentro del RUN y bloquea escrituras si no hay una unica vigente ACTIVO, PENDIENTE e INACTIVO, permisos de contratos R/U (acciones 2/3) y auditoria R (accion 2), gracia minima M09 <=90, alguna PENDIENTE vencida activable o aviso tipo 41 con menos de 11 minutos. Si bloquea, se ejecuta DELETE y se informa NO_CONCLUYENTE.
+
+Orden: 14 repeticion (activar ACTIVO), lectura inmediata de bandeja y comprobacion de aviso nuevo o agrupado; 14 salto (deprecar PENDIENTE); 15 PATCH/PUT sobre ACTIVO con descripcion valida; 13 deprecar ACTIVO con 90 dias; 14 retroceso (activar ese DEPRECADO); 16 activar y deprecar INACTIVO. Cada rechazo se coteja con un evento WARNING nuevo por UUID y con el listado intacto. El aviso de CA-27 se exige al primer rechazo segun D3; los posteriores se observan bajo antispam. Los eventos y avisos pueden persistir fuera del sandbox. DELETE y lectura publica poscierre verifican la firma de contratos.
+
+Limites: 70 solicitudes, 600 segundos, timeout por solicitud 120 segundos, peticiones en serie, sin reintentos de escritura. El conforme local usa 58 solicitudes, incluidas tres lecturas Newman, DELETE y lectura poscierre. El simulador conserva eventos y avisos fuera del sandbox y modela antispam y agrupacion. Hay 18 escenarios locales; la auditoria usa la primera pagina filtrada (ordenada por fecha descendente) y compara UUID nuevos.
+
+## Validacion local
+
+node --check para los .mjs, node g039.mjs --comprobar, node g039.mjs --capacidades, node pruebas/g039_local.test.mjs, node pruebas/contrato_cruzado.test.mjs, node pruebas/escenarios_g039.mjs, Pydantic con pytest y node pruebas/verificar.mjs. El verificador conserva pasos 1-10 y RED; los pasos que requieren spawn pueden devolver EPERM por el sandbox y se informan como SANDBOX.
 
 ## SHA-256
 
-| Archivo | SHA-256 |
-|---|---|
-| `g039.mjs` | `78e66da8d655318eb6b3a06c2c704d150701a8fc156f3b4c9207bc216ef2a7c5` |
-| `pruebas/verificar.mjs` | `5b69deae4ec5cc7ffb0a48fdbb74c1640c763a56d3647a639a3acffde836f320` |
-| `pruebas/simulador_g039.mjs` | `3484d6f1ff0946de92a8731de13ddaefe985b6c2a9908d67e94f45d87aec3b2a` |
-| `pruebas/escenarios_g039.mjs` | `6397427ffcb781204adbc512e65aae10fb77f119f6c64a4bccd02e5fc0dad76e` |
-| `pruebas/escenarios_g039.json` | `fa07356fbebdb9d323fb23a713812105f0c1af8d805b68ff9cd6df9df43167d1` |
-| `pruebas/contrato_cruzado.test.mjs` | `3f4d19bfae0894431ba80a276a007787c27a3d6ff4b16f48faa375a0004b5dbb` |
-| `pruebas/g039_dto_test.py` | `c5400673775323dbbdd85b899478e8f663993105986b50b8ce16a65485dea21a` |
+SHA-256 esperado de `g039.mjs`: `075929afc224ece83dae362eb8b0f25e1e83e6e3d653bbaf8bddac4a7e2f3cb1`
 
-SHA-256 esperado de `g039.mjs`: `78e66da8d655318eb6b3a06c2c704d150701a8fc156f3b4c9207bc216ef2a7c5`
-
-SHA-256 esperado de `verificar.mjs`: `5b69deae4ec5cc7ffb0a48fdbb74c1640c763a56d3647a639a3acffde836f320`
+SHA-256 esperado de `verificar.mjs`: `5503fb83b1461e5f5b0bd1c57217b77ecf1e7cb258a1d0c6ae6acd91ed1b8be7`

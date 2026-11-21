@@ -1,152 +1,70 @@
 {
   "escenarios": [
     {
-      "id": "a_conforme",
-      "opciones": {
-        "auditoriaInicial": 250
-      },
-      "esperado": [
-        "APROBADO",
-        "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO"
-      ],
-      "oficial": true
-    },
-    {
-      "id": "b_inyectado",
-      "opciones": {
-        "inyectado": true
-      },
-      "esperado": [
-        "APROBADO",
-        "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO"
-      ],
-      "oficial": true
-    },
-    {
-      "id": "c_barajado",
-      "opciones": {
-        "barajado": true
-      },
-      "esperado": [
-        "APROBADO",
-        "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO"
-      ],
-      "oficial": true
-    },
-    {
-      "id": "d_warning_y_aviso",
-      "opciones": {
-        "warningYAviso": true,
-        "avisosInicial": 850,
-        "auditoriaInicial": 250
-      },
+      "id": "conforme",
+      "opciones": {},
       "esperado": [
         "APROBADO",
         "APROBADO",
-        "RECHAZADO",
-        "RECHAZADO"
-      ],
-      "oficial": true
-    },
-    {
-      "id": "e_modificacion_rechazada",
-      "opciones": {
-        "modificacionRechazada": true
-      },
-      "esperado": [
         "APROBADO",
-        "RECHAZADO",
-        "APROBADO",
-        "RECHAZADO"
-      ],
-      "oficial": true
-    },
-    {
-      "id": "f_reactivacion_correcta",
-      "opciones": {
-        "reactivacionCorrecta": true
-      },
-      "esperado": [
-        "APROBADO",
-        "RECHAZADO",
-        "RECHAZADO",
         "APROBADO"
       ],
       "oficial": true
     },
     {
-      "id": "g_transicion_aceptada",
+      "id": "14_sin_warning",
       "opciones": {
-        "transicionAceptada": true
+        "sinWarning14": true
       },
       "esperado": [
         "APROBADO",
         "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO"
+        "APROBADO",
+        "APROBADO"
       ],
       "oficial": true
     },
     {
-      "id": "h_deprecacion_fechas_mal",
+      "id": "14_sin_aviso",
       "opciones": {
-        "fechasMal": true
-      },
-      "esperado": [
-        "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO"
-      ],
-      "oficial": true
-    },
-    {
-      "id": "i_sin_inactivo",
-      "opciones": {
-        "sinInactivo": true
+        "sinAviso14": true
       },
       "esperado": [
         "APROBADO",
         "RECHAZADO",
-        "RECHAZADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "aviso_agrupado",
+      "opciones": {
+        "avisoAgrupado": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "antispam_previo",
+      "opciones": {
+        "avisosTipo41Previo": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
         "NO_CONCLUYENTE"
       ],
       "oficial": false
     },
     {
-      "id": "j_sin_activo",
-      "opciones": {
-        "sinActivo": true
-      },
-      "esperado": [
-        "NO_CONCLUYENTE",
-        "NO_CONCLUYENTE",
-        "NO_CONCLUYENTE",
-        "NO_CONCLUYENTE"
-      ],
-      "oficial": false
-    },
-    {
-      "id": "k_rollback_fallido",
-      "opciones": {
-        "rollbackFallido": true
-      },
-      "esperado": [
-        "APROBADO",
-        "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO"
-      ],
-      "oficial": false
-    },
-    {
-      "id": "l_sin_permisos",
+      "id": "sin_permisos",
       "opciones": {
         "sinPermisos": true
       },
@@ -159,9 +77,87 @@
       "oficial": false
     },
     {
-      "id": "m_vigencia_vencida",
+      "id": "15_404",
       "opciones": {
-        "vigenciaVencida": true
+        "modificacion404": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "15_modifica",
+      "opciones": {
+        "modifica15": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "16_codigo_incorrecto",
+      "opciones": {
+        "contratoNoValido16": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "16_reactiva",
+      "opciones": {
+        "reactiva16": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "RECHAZADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "13_fechas_mal",
+      "opciones": {
+        "fechasMal": true
+      },
+      "esperado": [
+        "RECHAZADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": true
+    },
+    {
+      "id": "sin_deprecado_13",
+      "opciones": {
+        "sinDeprecado13": true
+      },
+      "esperado": [
+        "RECHAZADO",
+        "NO_CONCLUYENTE",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "dos_vigentes",
+      "opciones": {
+        "dosVigentes": true
       },
       "esperado": [
         "NO_CONCLUYENTE",
@@ -172,26 +168,67 @@
       "oficial": false
     },
     {
-      "id": "n_base_con_version_ajena",
+      "id": "rollback_fallido",
       "opciones": {
-        "baseConVersionAjena": true
+        "rollbackFallido": true
       },
       "esperado": [
         "APROBADO",
-        "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO"
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "delete_503",
+      "opciones": {
+        "delete503": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "delete_404",
+      "opciones": {
+        "delete404": true
+      },
+      "esperado": [
+        "APROBADO",
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
       ],
       "oficial": true
     },
     {
-      "id": "o_vencida_cupo_lleno",
-      "opciones": {},
+      "id": "login_invalido",
+      "opciones": {
+        "loginInvalido": true
+      },
+      "esperado": [
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE",
+        "NO_CONCLUYENTE"
+      ],
+      "oficial": false
+    },
+    {
+      "id": "privacidad",
+      "opciones": {
+        "privacidad": true
+      },
       "esperado": [
         "APROBADO",
-        "RECHAZADO",
-        "RECHAZADO",
-        "RECHAZADO"
+        "APROBADO",
+        "APROBADO",
+        "APROBADO"
       ],
       "oficial": true
     }
