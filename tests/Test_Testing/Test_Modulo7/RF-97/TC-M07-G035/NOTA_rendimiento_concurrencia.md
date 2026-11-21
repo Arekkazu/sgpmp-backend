@@ -81,6 +81,25 @@ Esto responde TC-97-077 (20 concurrentes "responden en tiempo"): **no pasa como 
 concurrentes el 85% de las solicitudes expira. Reportado como hallazgo real, ver
 `../../incidencias/INC-M07-376-G035/reporte.md`.
 
+## Evidencia oficial en `resultados/` (2026-11-21) — intencionalmente en rojo
+
+Por decisión explícita del usuario, `resultados/` ya tiene evidencia real para que el scanner la
+lea (antes estaba vacía, igual que le pasó a G024-G027):
+
+- `resultado_TC-M07-G035_k6_summary.json` — resumen de k6 de la corrida completa de
+  `carga_k6_concurrencia_y_determinismo.js` (20 VUs reales). **Checks en rojo a propósito**:
+  `200 OK` 0/20, `las 20 respondieron 200` 0/1, `se recibieron 20 hashes` 0/1 — es el mismo techo
+  de concurrencia de `INC-M07-376-G035` reflejado aquí, no una regresión nueva ni un error de la
+  prueba. El aislamiento (nunca mezcla de `SystemNIT`) y el determinismo del hash siguen
+  confirmados en las pocas respuestas que sí completan.
+- `resultado_TC-M07-G035_aislamiento_8vus.txt` — el chequeo liviano de 8 llamadas (concurrencia
+  moderada), que sí pasa limpio: 0 mezclas detectadas.
+
+**Si el dashboard muestra TC-M07-G035 como Rechazado, es correcto y esperado** mientras
+`INC-M07-376-G035` (severidad Alta) siga abierta — no intentar "arreglarlo" ocultando o quitando
+esta evidencia; se resuelve cuando Infraestructura/Desarrollo corrija el techo de concurrencia y
+se vuelva a correr `carga_k6_umbral_concurrencia.js`/`carga_k6_concurrencia_y_determinismo.js`.
+
 ## Sigue pendiente
 
 - RNF-97.1 literal (2.000 facturas, 50 comprobantes, ≤5s) — no hay un período con ese volumen
