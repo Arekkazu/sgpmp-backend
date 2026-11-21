@@ -9,6 +9,9 @@
 específica de G024 para que quede evidencia también en esta carpeta.
 **Re-ejecutado 2026-11-20** filtrando solo esta carpeta con Newman, reporte propio en
 `resultados/resultado_TC-M07-G024.html`/`.json` (8/8 aserciones, mismo resultado).
+**2026-11-21:** se agregó `tc_m07_g024.postman_collection.json` en esta misma carpeta — copia
+propia y autocontenida (incluye el login) de la carpeta de la colección compartida, para no
+depender de un archivo en otra carpeta. Verificado que corre sola con el mismo resultado (8/8).
 
 ## Petición real
 

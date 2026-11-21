@@ -1,0 +1,90 @@
+{
+  "info": {
+    "name": "TC-M07-G027 - Rango y periodos (negativos)",
+    "description": "Copia propia, autocontenida, de la carpeta 'TC-M07-G027 - Rango y periodos (negativos)' de la colección compartida RF-97-Verificacion-Live/tc_m07_rf97_live.postman_collection.json. Incluye el login (precondición) para poder correrse sola. Verificación en vivo RF-97 contra TEST. NIT 901444215, período 627 (oct 2026).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "contador_correo", "value": "contador@pecuaria.co"},
+    {"key": "contador_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la clave real del roster del equipo. Nunca commitear el valor real."},
+    {"key": "token_contador", "value": ""},
+    {"key": "nit", "value": "901444215"},
+    {"key": "desde_oct", "value": "2026-10-01"},
+    {"key": "hasta_oct", "value": "2026-10-31"}
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones - Login",
+      "item": [
+        {
+          "name": "Login Contador",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"{{contador_correo}}\",\"contrasena\":\"{{contador_pass}}\"}"},
+            "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('login 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('token_contador', body.token);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G027 - Rango y periodos (negativos)",
+      "item": [
+        {
+          "name": "CA-2: desde a mitad de mes -> RANGO_NO_ALINEADO",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde=2026-10-05&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "2026-10-05"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('422 con RANGO_NO_ALINEADO', () => {",
+            "  pm.response.to.have.status(422);",
+            "  pm.expect(pm.response.json().error_code).to.eql('RANGO_NO_ALINEADO');",
+            "});"
+          ]}}]
+        },
+        {
+          "name": "CA-3: rango con un periodo abierto al final -> PERIODO_NO_CERRADO",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta=2026-11-30",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "2026-11-30"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('422 con RANGO_NO_ALINEADO o PERIODO_NO_CERRADO (noviembre no es periodo mensual cerrado de este titular)', () => {",
+            "  pm.response.to.have.status(422);",
+            "  pm.expect(['RANGO_NO_ALINEADO', 'PERIODO_NO_CERRADO']).to.include(pm.response.json().error_code);",
+            "});"
+          ]}}]
+        },
+        {
+          "name": "Rango invertido (desde > hasta) -> 400, nunca 500",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{hasta_oct}}&hasta={{desde_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{hasta_oct}}"}, {"key": "hasta", "value": "{{desde_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('400 PARAMETROS_INVALIDOS, no 500', () => {",
+            "  pm.response.to.have.status(400);",
+            "  pm.expect(pm.response.json().error_code).to.eql('PARAMETROS_INVALIDOS');",
+            "});"
+          ]}}]
+        }
+      ]
+    }
+  ]
+}
