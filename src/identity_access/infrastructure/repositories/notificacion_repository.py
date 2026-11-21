@@ -3,6 +3,7 @@
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación, filtros de bandeja, entrega y purga  |
 # | 2026-11-18 | Arekkazu | M08 RF-105: escalamiento, auditoría de cada notificación, preferencias y ventana de M09 |
 # | 2026-11-19 | Arekkazu | M8-05 RF-105: agrupa avisos repetidos sin atender y saca de la bandeja los inicios de sesión |
+# | 2026-11-20 | Arekkazu | QA-M08 CU03 H-01 RF-105: agrupación visual por tipo, nivel y activo; leer o cerrar alcanza al grupo |
 """Implementación SQLAlchemy del puerto de dominio :class:`NotificacionRepository`.
 
 Traduce el estado de envío de texto al enum ``EnumEstadoEnvio`` de la columna y
@@ -24,8 +25,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from sqlalchemy import case, func, text
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, case, func, or_, text, tuple_
+from sqlalchemy.orm import Session, aliased
 
 from src.identity_access.domain.entities.notificacion import Notificacion
 from src.identity_access.domain.repositories.notificacion_repository import (
@@ -402,6 +403,26 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         self.db.add(dispositivo)
         self.db.flush()
 
+    @staticmethod
+    def _del_mismo_grupo(otra, evento_otra):
+        """RF-105 R7: mismo tipo de evento, mismo nivel y mismo activo; sin activo, el mismo texto hace de activo
+        (avisos del contrato o de un período). Siempre entre avisos activos (nuevos o leídos) del mismo usuario."""
+        return and_(
+            otra.id_usuario == Notificaciones.id_usuario,
+            otra.id_notificacion_canal == ID_CANAL_INTERNO,
+            otra.estado.in_((NUEVA, LEIDA)),
+            evento_otra.tipo_evento == Eventos.tipo_evento,
+            func.coalesce(otra.nivel, INFORMATIVA) == func.coalesce(Notificaciones.nivel, INFORMATIVA),
+            or_(otra.id_activo_biologico == Notificaciones.id_activo_biologico,
+                and_(otra.id_activo_biologico.is_(None), Notificaciones.id_activo_biologico.is_(None),
+                     otra.mensaje == Notificaciones.mensaje)),
+        )
+
+    def _grupo(self):
+        otra, evento = aliased(Notificaciones), aliased(Eventos)
+        return otra, evento, self.db.query(otra).join(evento, otra.id_evento == evento.id_evento).filter(
+            self._del_mismo_grupo(otra, evento))
+
     def _query_internas(self, id_usuario: int, filtro: Optional[FiltroBandeja] = None):
         query = (
             self.db.query(Notificaciones, Eventos.tipo_evento, Eventos.modulo)
@@ -419,6 +440,13 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             query = query.filter(Notificaciones.estado == NUEVA, Notificaciones.es_leido.is_(False))
         query = query.filter(Notificaciones.estado == filtro.estado if filtro.estado
                              else Notificaciones.estado.in_((NUEVA, LEIDA)))
+        if filtro.estado in (None, NUEVA, LEIDA):
+            # Agrupación visual (RF-105 R7, CA-13): de cada grupo activo solo se ve el aviso más reciente, con las
+            # ocurrencias de todo el grupo. Atendidas y descartadas son historial y se ven una por una.
+            otra, _, grupo = self._grupo()
+            query = query.filter(~grupo.filter(
+                tuple_(otra.fecha_envio, otra.id_notificacion)
+                > tuple_(Notificaciones.fecha_envio, Notificaciones.id_notificacion)).exists())
         if filtro.nivel:
             query = query.filter(Notificaciones.nivel == filtro.nivel)
         if filtro.modulo:
@@ -434,8 +462,11 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         offset: int,
         limit: int,
     ) -> list[Notificacion]:
+        otra, _, grupo = self._grupo()
+        total_grupo = grupo.with_entities(func.coalesce(func.sum(otra.ocurrencias), 0)).scalar_subquery()
         filas = (
             self._query_internas(id_usuario, filtro)
+            .add_columns(total_grupo)
             .order_by(
                 _ORDEN_NIVEL,
                 Notificaciones.fecha_envio.desc(),
@@ -445,7 +476,13 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             .limit(limit)
             .all()
         )
-        return [self._a_entidad(orm, tipo_evento, modulo) for orm, tipo_evento, modulo in filas]
+        salida = []
+        for orm, tipo_evento, modulo, total in filas:
+            entidad = self._a_entidad(orm, tipo_evento, modulo)
+            if orm.estado in (NUEVA, LEIDA) and total:
+                entidad.ocurrencias = int(total)
+            salida.append(entidad)
+        return salida
 
     def contar_internas(self, id_usuario: int, filtro: FiltroBandeja) -> int:
         return self._query_internas(id_usuario, filtro).count()
@@ -478,21 +515,45 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         if orm is None:
             return
         anterior = orm.estado
-        orm.es_leido = notificacion.es_leido
-        orm.estado = notificacion.estado
-        orm.accion_documentada = notificacion.accion_documentada
-        orm.fecha_lectura = notificacion.fecha_lectura
-        orm.fecha_atencion = notificacion.fecha_atencion
-        orm.fecha_descarte = notificacion.fecha_descarte
+        # Lo que se hace sobre el aviso visible de un grupo alcanza a los que agrupa (RF-105 R7): si no,
+        # al leer, atender o descartar el visible reaparecería el siguiente del grupo.
+        afectadas = [orm]
+        if anterior in (NUEVA, LEIDA) and anterior != notificacion.estado:
+            evento = self.db.query(Eventos).filter(Eventos.id_evento == orm.id_evento).first()
+            if evento is not None:
+                otra = aliased(Notificaciones)
+                afectadas += (self.db.query(otra)
+                              .join(Eventos, otra.id_evento == Eventos.id_evento)
+                              .filter(otra.id_notificacion != orm.id_notificacion,
+                                      otra.id_usuario == orm.id_usuario,
+                                      otra.id_notificacion_canal == ID_CANAL_INTERNO,
+                                      otra.estado.in_((NUEVA, LEIDA)),
+                                      Eventos.tipo_evento == evento.tipo_evento,
+                                      func.coalesce(otra.nivel, INFORMATIVA) == (orm.nivel or INFORMATIVA),
+                                      otra.id_activo_biologico == orm.id_activo_biologico
+                                      if orm.id_activo_biologico is not None
+                                      else and_(otra.id_activo_biologico.is_(None), otra.mensaje == orm.mensaje))
+                              .with_for_update(of=otra)
+                              .all())
+        estados_previos = {fila.id_notificacion: fila.estado for fila in afectadas}
+        for fila in afectadas:
+            fila.es_leido = notificacion.es_leido
+            fila.estado = notificacion.estado
+            fila.accion_documentada = notificacion.accion_documentada
+            # La cabeza toma la fecha de lectura de la entidad; las agrupadas conservan la suya si ya la tenían.
+            fila.fecha_lectura = notificacion.fecha_lectura if fila is orm else (fila.fecha_lectura or notificacion.fecha_lectura)
+            fila.fecha_atencion = notificacion.fecha_atencion
+            fila.fecha_descarte = notificacion.fecha_descarte
         try:
             self.db.flush()
         except Exception as exc:
             raise_from_db_error(exc)
-        if anterior != notificacion.estado:
-            self._auditar(notificacion.id_usuario, {
-                "accion": notificacion.estado, "id_notificacion": notificacion.id_notificacion,
-                "nivel": notificacion.nivel, "estado_anterior": anterior,
-                "accion_documentada": notificacion.accion_documentada})
+        for fila in afectadas:
+            if estados_previos[fila.id_notificacion] != notificacion.estado:
+                self._auditar(notificacion.id_usuario, {
+                    "accion": notificacion.estado, "id_notificacion": fila.id_notificacion,
+                    "nivel": notificacion.nivel, "estado_anterior": estados_previos[fila.id_notificacion],
+                    "accion_documentada": notificacion.accion_documentada})
 
     def marcar_todas_leidas(self, id_usuario: int) -> int:
         filtro = (Notificaciones.id_usuario == id_usuario, Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
