@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-20 | Arekkazu | QA-M08 CU03 H-03 RF-105: aviso de inconsistencia sin códigos internos |
 """RF-52 E5: alerta CRITICAL al administrador cuando la reconciliación encuentra
 filas del historial RF-46 sin su registro en la bitácora.
 
@@ -70,9 +73,9 @@ class NotificarInconsistenciaAuditoriaUseCase:
                 tipo_evento=TIPO_INCONSISTENCIA_AUDITORIA_M02,
             )
             mensaje = (
-                f'Inconsistencia de auditoría en Activos Biológicos: {len(inconsistencias)} registros '
-                'del historial no tienen su registro en la bitácora. Revise los eventos '
-                'INCONSISTENCIA_RF46_RF52 y cree el registro correctivo que corresponda.'
+                f'Activos biológicos: {len(inconsistencias)} cambio(s) del historial de los animales no '
+                'quedaron en la bitácora de auditoría. Revisa «Auditoría y Trazabilidad» en Activos '
+                'biológicos y registra la corrección que corresponda.'
             )
             for id_usuario in destinatarios:
                 self.notificaciones_repo.registrar(

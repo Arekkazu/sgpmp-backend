@@ -3,6 +3,7 @@
 # | 2026-11-08 | Arekkazu | INC-M05-259-G07 / INC-M05-264-G31: reintentos del batch ICA y del costeo directo |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-74/80: el cálculo automático va firmado por el usuario de servicio |
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: verificar que finalizar conserva el corte manual y no repite su aviso. |
+# | 2026-11-20 | Arekkazu | QA-M08 CU03 H-03 RF-105: el aviso de fallos habla de animales, sin jerga técnica |
 """Reintentos de M05 sin base de datos.
 
 - INC-M05-259-G07 (RF-74 E5): un error de BD traducido a 500 es fallo técnico (se reintenta y queda
@@ -96,7 +97,7 @@ def test_finalizar_conserva_los_encolados_por_limite_y_avisa_los_fallos():
 
     assert (final.estado.value, final.cantidad_fallidos, final.cantidad_activos_pendientes) == ("COMPLETADO", 1, 1)
     [(_, (_recurso, _accion, _tipo, mensaje, detalle))] = avisos
-    assert "1 activo(s)" in mensaje and detalle["fallos"] == [fallo]
+    assert "1 animal(es)" in mensaje and "ICA" in mensaje and detalle["fallos"] == [fallo]
 
 
 @pytest.mark.parametrize("corte_manual", [False, True])
