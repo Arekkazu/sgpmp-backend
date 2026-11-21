@@ -1,3 +1,9 @@
+## [1.4.0-rc.83](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.82...v1.4.0-rc.83) (2026-11-21)
+
+### Bug Fixes
+
+* **ci:** triar falsos positivos de Bearer que bloqueaban el gate SAST en dev ([528a03f](https://github.com/Arekkazu/sgpmp-backend/commit/528a03ff1a1bd05b503d0f1a424dc7c52e948ac5))
+
 ## [1.4.0-rc.82](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.81...v1.4.0-rc.82) (2026-11-20)
 
 ### Bug Fixes
