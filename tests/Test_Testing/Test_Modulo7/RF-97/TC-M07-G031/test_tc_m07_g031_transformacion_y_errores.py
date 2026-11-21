@@ -3,35 +3,29 @@ TC-M07-G031 (RF-97 Fase 3 y 4, FA-4, FA-7, FA-10, RNF-97.5, CU-08) -
 "Transformación y errores sin salida parcial." Agrupa TC-97-048 a
 TC-97-053.
 
-Construido 2026-11-18 contra el código real
-(consultar_aaef_use_case.py, gateway_aaef.py).
+Construido 2026-11-18, actualizado 2026-11-20 tras el merge de
+origin/dev (PR #1202, TC-M07-380/381 por LuisfNarvaez01).
 
-HALLAZGO (el detalle del Mapper/documento se pierde al traducir el
-error): cuando un Mapper lanza `AaefError`, el campo `detalle` (que
-incluye `{"mapper": MAPPER_COMPRAS, "documento": document_id}`) NO se
-transfiere a `BusinessRuleError` -- solo pasan `code`, `message` y
-`field`. El cliente recibe el código y un mensaje de texto (que a veces
-menciona el id del costo dentro del propio texto), pero NUNCA un campo
-estructurado "Mapper" o "DocumentId" separado como pide RNF-96.4/FA-4.
+ARREGLADO (TC-M07-381): el hallazgo "el detalle del Mapper/documento se
+pierde al traducir el error" ya se corrigió. `ConsultarAaefUseCase.execute()`
+ahora pasa `detalle=exc.detalle or None` al construir `BusinessRuleError`
+-- el cliente SÍ recibe `{"mapper": ..., "documento"/"id_registro_costo": ...}`
+estructurado, no solo en el texto del mensaje.
 
-HALLAZGO (no existe ERROR_DATOS_FINANCIEROS ni ERROR_INTERNO_RF97): grep
-exhaustivo en `accounting_integration/` -- ninguno de esos dos códigos
-aparece. Una falla real de M06 a mitad de la recolección (ej. error de
-BD en `fuente.comprobantes()` tras ya haber llamado
-`fuente.costos_factura()`) cae en el `except Exception` genérico de
-`gateway_aaef.atender()`, que audita "SOLICITUD_RECHAZADA" con código
-"ERROR_INTERNO" (no "ERROR_INTERNO_RF97") y re-lanza la excepción
-original sin envolverla en un error de negocio legible.
-
-NO VERIFICABLE AQUÍ: cortar la conexión a M06 entre la lectura de
-facturas y la de comprobantes (Toxiproxy) no está disponible en este
-hilo; se confirma por lectura de código que, si ocurriera, caería en el
-mismo `except Exception` genérico de arriba (no hay ningún manejo
-diferenciado "a mitad de la recolección").
+ARREGLADO (TC-M07-380): el hallazgo "no existen ERROR_DATOS_FINANCIEROS ni
+ERROR_INTERNO_RF97" ya se corrigió. El propio `consultar_aaef_use_case.py`
+(no el gateway) ahora distingue las tres fases:
+  - `_financieros()` envuelve cualquier falla al leer M06 en
+    `InfrastructureError(code="ERROR_DATOS_FINANCIEROS")`.
+  - El `except Exception` genérico de la Fase 5-7 envuelve lo inesperado en
+    `InfrastructureError(code="ERROR_INTERNO_RF97")`.
+  - Un `AppError` ya tipado (404/403/422) se re-lanza tal cual.
+El manejo ya no vive en el `except Exception` genérico de `gateway_aaef.py`
+-- ese gateway solo autentica/audita; la distinción de fases es del caso de
+uso, que es donde corresponde (Fase 3 vs. Fase 5-7).
 
 Código bajo prueba:
     src/accounting_integration/application/use_cases/exportacion/consultar_aaef_use_case.py
-    src/accounting_integration/infrastructure/gateway_aaef.py
 
 Cómo se prueba: pytest de unidad.
 
@@ -57,7 +51,7 @@ from src.accounting_integration.application.use_cases.exportacion.consultar_aaef
 )
 from src.accounting_integration.domain.entities.contrato import VersionContrato
 from src.accounting_integration.domain.services.aaef import MAPPER_COMPRAS, CostoFactura, Periodo, SistemaOrigen, Titular
-from src.shared.errors import BusinessRuleError
+from src.shared.errors import BusinessRuleError, InfrastructureError
 
 D = Decimal
 REPO_ROOT = Path(__file__).resolve().parents[5]
@@ -70,7 +64,8 @@ def _caso_de_uso_con_costo_incompleto():
     fuente.fincas_titular.return_value = set()
     fuente.fincas_usuario.return_value = set()
     fuente.periodos.return_value = [Periodo(datetime.date(2026, 10, 1), datetime.date(2026, 10, 31), "CERRADO")]
-    fuente.lineas_sin_trazabilidad.return_value = 0
+    fuente.lineas_sin_trazabilidad.return_value = []
+    fuente.linetypes_catalogados.return_value = (frozenset(), frozenset())
     fuente.costos_factura.return_value = [CostoFactura(
         4485, None, "Concentrados La Pradera S.A.S.", "CP", "1187", datetime.date(2026, 10, 8),
         datetime.date(2026, 11, 7), "ALIMENTO", D("380000"), "158405", "F2",
@@ -92,39 +87,52 @@ class TestSubCasoFalloDeMapperDevuelveBusinessRuleErrorSinSalidaParcial:
         assert exc_info.value.status_code == 422
         assert exc_info.value.code == "MAPPER_FALLIDO"
 
-    def test_el_detalle_mapper_documento_no_llega_al_businessruleerror_hallazgo(self):
+    def test_el_detalle_mapper_y_costo_ahora_si_llega_al_businessruleerror_arreglado(self):
+        """ARREGLADO (TC-M07-381): el detalle estructurado ya viaja en el error del cliente,
+        no solo en el texto del mensaje."""
         uc = _caso_de_uso_con_costo_incompleto()
         with pytest.raises(BusinessRuleError) as exc_info:
             uc.execute(SolicitudAaef("901444215", datetime.date(2026, 10, 1), datetime.date(2026, 10, 31),
                                      1, "contador@pecuaria.co"))
-        pytest.fail(
-            "HALLAZGO: BusinessRuleError solo expone code/message/field -- el 'detalle' real "
-            f"de la excepcion original ({{'mapper': 'COMPRAS', ...}}) se pierde al traducirla. "
-            f"El cliente recibe field='{exc_info.value.field}', nunca un 'Mapper' estructurado "
-            "como pide RNF-96.4."
-        )
+        assert exc_info.value.detalle is not None
+        assert exc_info.value.detalle["mapper"] == "COMPRAS"
+        assert exc_info.value.detalle["id_registro_costo"] == 4485
 
 
-class TestSubCasoNoExistenLosCodigosErrorDatosFinancierosNiErrorInternoRf97HallazgoGrave:
-    def test_grep_exhaustivo_de_ambos_codigos_en_accounting_integration(self):
-        archivos_con_codigo = [
-            p for p in (REPO_ROOT / 'src/accounting_integration').rglob('*.py')
-            if 'ERROR_DATOS_FINANCIEROS' in p.read_text(encoding='utf-8', errors='ignore')
-            or 'ERROR_INTERNO_RF97' in p.read_text(encoding='utf-8', errors='ignore')
-        ]
-        pytest.fail(
-            "HALLAZGO GRAVE: ni 'ERROR_DATOS_FINANCIEROS' ni 'ERROR_INTERNO_RF97' aparecen en "
-            "ningun archivo de src/accounting_integration/ -- una falla real de M06 o un error "
-            "inesperado caen en el 'except Exception' generico de gateway_aaef.atender(), que "
-            "audita con el codigo 'ERROR_INTERNO' (sin el sufijo RF97) y relanza la excepcion "
-            "original sin envolverla en ninguno de los dos codigos de la ficha."
-        ) if not archivos_con_codigo else None
-
-    def test_el_except_exception_generico_del_gateway_es_el_unico_manejo_real(self):
-        archivo = REPO_ROOT / 'src/accounting_integration/infrastructure/gateway_aaef.py'
+class TestSubCasoErrorDatosFinancierosYErrorInternoRf97Arreglado:
+    def test_ambos_codigos_ya_existen_en_consultar_aaef_use_case(self):
+        archivo = REPO_ROOT / (
+            'src/accounting_integration/application/use_cases/exportacion/consultar_aaef_use_case.py')
         texto = archivo.read_text(encoding='utf-8')
-        assert 'except Exception:' in texto
-        assert '"ERROR_INTERNO"' in texto
+        assert 'ERROR_DATOS_FINANCIEROS' in texto
+        assert 'ERROR_INTERNO_RF97' in texto
+
+    def test_una_falla_al_leer_m06_se_envuelve_en_error_datos_financieros(self):
+        uc = _caso_de_uso_con_costo_incompleto()
+        uc.fuente.costos_factura.side_effect = RuntimeError("BD de M06 caida")
+        with pytest.raises(InfrastructureError) as exc_info:
+            uc.execute(SolicitudAaef("901444215", datetime.date(2026, 10, 1), datetime.date(2026, 10, 31),
+                                     1, "contador@pecuaria.co"))
+        assert exc_info.value.code == "ERROR_DATOS_FINANCIEROS"
+
+    def test_un_error_inesperado_de_fase_5_a_7_se_envuelve_en_error_interno_rf97(self):
+        uc = _caso_de_uso_con_costo_incompleto()
+        uc.limite_bytes = "no-es-un-entero"  # rompe controlar_tamano() con un TypeError inesperado
+        uc.fuente.costos_factura.return_value = []  # sin costo incompleto, para llegar hasta esa fase
+        with pytest.raises(InfrastructureError) as exc_info:
+            uc.execute(SolicitudAaef("901444215", datetime.date(2026, 10, 1), datetime.date(2026, 10, 31),
+                                     1, "contador@pecuaria.co"))
+        assert exc_info.value.code == "ERROR_INTERNO_RF97"
+
+    def test_la_distincion_de_fases_vive_en_el_caso_de_uso_no_en_el_gateway_arreglado(self):
+        """ARREGLADO: el manejo diferenciado (Fase 3 vs. Fase 5-7) ya no depende de un
+        'except Exception' generico en gateway_aaef.py -- vive en consultar_aaef_use_case.py,
+        que es la capa que conoce en que fase esta cada llamada."""
+        archivo = REPO_ROOT / (
+            'src/accounting_integration/application/use_cases/exportacion/consultar_aaef_use_case.py')
+        texto = archivo.read_text(encoding='utf-8')
+        assert 'def _financieros(' in texto  # envuelve Fase 3 (lectura de M06)
+        assert 'except Exception as exc:  # RF-97 FA-10' in texto  # envuelve Fase 5-7
 
 
 class TestSubCasoFormatoDeRespuestaDeErrorConfirmadoCorrectoEstructuralmente:

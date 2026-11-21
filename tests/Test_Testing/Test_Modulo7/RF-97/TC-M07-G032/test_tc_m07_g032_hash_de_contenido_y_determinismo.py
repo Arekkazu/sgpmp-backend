@@ -6,9 +6,17 @@ Construido 2026-11-18 contra el código real
 (nic41.py::hash_sha256, aaef.py::hash_contenido/construir_envelope,
 gateway_aaef.py).
 
+ARREGLADO (2026-11-19, TC-M07-382, LuisfNarvaez01, PR #1190/#1202, merge
+de origin/dev 2026-11-20): el hallazgo original de este TC ("hash_sha256()
+no normaliza Unicode -- NFC y NFD dan hashes distintos") ya se corrigió.
+`aaef.py` agrega `normalizar_nfc()`, aplicado dentro de `hash_contenido()`
+y `construir_envelope()` antes de serializar -- `hash_sha256()` en sí
+(compartido con M06) no cambió, la normalización se añadió en la capa de
+RF-97 que lo llama.
+
 Código bajo prueba:
-    src/financial_valuation/domain/services/nic41.py (hash_sha256)
-    src/accounting_integration/domain/services/aaef.py (hash_contenido, construir_envelope, truncar2)
+    src/financial_valuation/domain/services/nic41.py (hash_sha256, sin cambios)
+    src/accounting_integration/domain/services/aaef.py (normalizar_nfc, hash_contenido, construir_envelope, truncar2)
     src/accounting_integration/infrastructure/gateway_aaef.py (registro en RF-102)
 
 Cómo se prueba: pytest de unidad -- recalcula el hash de forma
@@ -32,11 +40,20 @@ import unicodedata
 from decimal import Decimal
 from pathlib import Path
 
-from src.accounting_integration.domain.services.aaef import CostoFactura, hash_contenido, mapear_compras
+from src.accounting_integration.domain.services.aaef import (
+    CostoFactura,
+    SistemaOrigen,
+    Titular,
+    construir_envelope,
+    hash_contenido,
+    mapear_compras,
+)
 from src.financial_valuation.domain.services.nic41 import truncar2
 
 D = Decimal
 REPO_ROOT = Path(__file__).resolve().parents[5]
+SISTEMA = SistemaOrigen(system_id="SGPMP", system_name="SIGAB", environment="TEST")
+TITULAR_PRUEBA = Titular("901444215", "Hacienda Qa Mseis S.A.S.")
 
 
 def _recalcular_independiente(contenido: object) -> str:
@@ -80,25 +97,27 @@ class TestSubCasoCerosFinalesConfirmadoCorrectoGraciasATruncar2:
         assert hash_contenido(doc_a) == hash_contenido(doc_b)
 
 
-class TestSubCasoNormalizacionUnicodeNoExisteHallazgo:
-    def test_dos_textos_visualmente_iguales_con_distinta_composicion_nfc_nfd_dan_hashes_distintos(self):
-        """HALLAZGO: hash_sha256() no normaliza Unicode (ningun unicodedata.normalize() en
-        el pipeline real) -- dos razones sociales visualmente identicas pero compuestas de
-        forma distinta (NFC: 'é' como un solo caracter U+00E9; NFD: 'e' + tilde combinante
-        U+0065 U+0301) producen documentos JSON distintos byte a byte, y por lo tanto hashes
-        SHA-256 distintos, aunque un humano los lea igual."""
+class TestSubCasoNormalizacionUnicodeArreglada:
+    def test_dos_textos_visualmente_iguales_con_distinta_composicion_nfc_nfd_ya_dan_el_mismo_hash(self):
+        """ARREGLADO (TC-M07-382): dos razones sociales visualmente identicas pero compuestas
+        de forma distinta (NFC: 'é' como un solo caracter U+00E9; NFD: 'e' + tilde combinante
+        U+0065 U+0301) ahora producen el MISMO hash -- hash_contenido() normaliza todo el
+        texto a NFC antes de serializar."""
         nfc = unicodedata.normalize("NFC", "Peña")
         nfd = unicodedata.normalize("NFD", "Peña")
-        assert nfc != nfd  # confirma que son, en efecto, secuencias de bytes distintas
+        assert nfc != nfd  # confirma que, como bytes crudos, siguen siendo secuencias distintas
         doc_nfc = mapear_compras([_costo(tercero_razon_social=f"Agropecuaria {nfc} S.A.S.")])
         doc_nfd = mapear_compras([_costo(tercero_razon_social=f"Agropecuaria {nfd} S.A.S.")])
-        import pytest
-        pytest.fail(
-            f"HALLAZGO: hash NFC={hash_contenido(doc_nfc)[:12]}... vs NFD="
-            f"{hash_contenido(doc_nfd)[:12]}... -- distintos, aunque ambos textos se vean "
-            "identicos para un humano. No existe ninguna normalizacion Unicode en el "
-            "pipeline de hash real."
-        ) if hash_contenido(doc_nfc) != hash_contenido(doc_nfd) else None
+        assert hash_contenido(doc_nfc) == hash_contenido(doc_nfd)
+
+    def test_el_texto_normalizado_queda_tambien_en_el_envelope_no_solo_en_el_hash(self):
+        """construir_envelope() aplica la misma normalizar_nfc() al nombre y al Description,
+        asi que lo que se hashea es exactamente lo que el envelope entrega."""
+        doc = mapear_compras([_costo(tercero_razon_social=f"Agropecuaria {unicodedata.normalize('NFD', 'Peña')} S.A.S.")])
+        envelope = construir_envelope(TITULAR_PRUEBA, datetime.date(2026, 10, 1), datetime.date(2026, 10, 31),
+                                      SISTEMA, "contador@pecuaria.co", datetime.date(2026, 11, 20), doc, [])
+        nombre_en_envelope = envelope["invoices"][0]["ThirdParty"]["Name"]
+        assert nombre_en_envelope == unicodedata.normalize("NFC", nombre_en_envelope)
 
 
 class TestSubCasoMetadataNoAfectaElHashYUnCentavoSiConfirmadoCorrecto:
