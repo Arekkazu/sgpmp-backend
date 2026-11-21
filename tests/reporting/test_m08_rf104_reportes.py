@@ -2,6 +2,7 @@
 # |------------|----------|---------------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: filtros, permisos, períodos, armado, Excel/PDF, partes y ciclo de vida |
 # | 2026-11-19 | Arekkazu | M08 RF-104: plantillas V1.1, indicadores, parámetros y encabezado del animal |
+# | 2026-11-20 | Arekkazu | A11Y-M08 TC-DIS-288 RF-104: PDF etiquetado, con idioma y título |
 """RF-104 — reportes: validación, ciclo de la solicitud, contenido de los reportes, archivos y casos de uso.
 
 Sin BD: la fuente, el repositorio y los avisos son dobles en memoria. Las consultas SQL tienen su prueba de
@@ -321,6 +322,25 @@ def test_pdf_es_valido_y_formatea_como_en_colombia():
     assert pdf.startswith(b"%PDF") and len(pdf) > 1000
     assert texto_celda(Decimal("1639000"), MONEDA) == "$ 1.639.000,00"
     assert texto_celda(date(2026, 11, 18), FECHA) == "18/11/2026"
+
+
+def test_pdf_etiquetado_con_idioma_y_titulo(tmp_path):
+    """TC-DIS-288: idioma, título en la ventana del lector y árbol de etiquetas; el encabezado de la tabla que se
+    repite en otra página es decoración (5 TH: 2 del resumen y 3 del detalle, aunque el detalle ocupe dos páginas)."""
+    import re
+    from PIL import Image as Imagen
+
+    logo = tmp_path / "logo.png"
+    Imagen.new("RGB", (20, 10), "green").save(logo)
+    pdf = RenderizadorReportes().renderizar(_contenido(filas=30), PDF, str(logo)).decode("latin1")
+
+    assert "/Lang (es-CO)" in pdf and "/DisplayDocTitle true" in pdf and "/Title (Prueba)" in pdf
+    assert "/StructTreeRoot" in pdf and re.search(r"/Marked\s+true", pdf) and "/Tabs /S" in pdf
+    for rol in ("Document", "H1", "H2", "H3", "P", "Figure", "Table", "TR"):
+        assert re.search(rf"/S\s*/{rol}\b", pdf), rol
+    assert "(Logo de la finca)" in pdf and "/Scope /Column" in pdf
+    assert len(re.findall(r"/S\s*/TH\b", pdf)) == 5
+    assert len(re.findall(r"/S\s*/TD\b", pdf)) == 2 + 30 * 3
 
 
 def test_plantilla_v11_parametros_indicadores_y_finca_del_animal():
