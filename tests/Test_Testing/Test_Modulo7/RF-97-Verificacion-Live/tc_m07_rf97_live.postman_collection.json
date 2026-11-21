@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M07-RF97-Live",
-    "description": "Verificación en vivo RF-97 (M07) contra TEST. TC-M07-G024 a G035. NIT 901444215, períodos 626 (sep 2026) y 627 (oct 2026), contrato real v2.1 (solo Mapper Compras).",
+    "description": "Verificación en vivo RF-97 (M07) contra TEST. TC-M07-G024 a G035. NIT 901444215, períodos 626 (sep 2026) y 627 (oct 2026), contrato real v3.0 desde 2026-11-18/21 (antes v2.1; solo Mapper Compras en ambos).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -226,7 +226,7 @@
       "name": "TC-M07-G030 - Fuentes segun version de contrato",
       "item": [
         {
-          "name": "Con el contrato real v2.1 (solo Compras) nunca aparece 06 aunque haya comprobante",
+          "name": "Con el contrato real v3.0 (solo Compras) nunca aparece 06 aunque haya comprobante",
           "request": {
             "method": "GET",
             "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
@@ -239,8 +239,8 @@
             "pm.test(\"CA-5: todos los documentos son Type.Code 02 (sabemos que el periodo 627 SI tiene 1 comprobante NIC41 real -- confirmado via GET /finanzas/periodos/627/comprobantes -- y no aparece aqui)\", () => {",
             "  body.invoices.forEach(d => pm.expect(d.Header.Type.Code).to.eql('02'));",
             "});",
-            "pm.test('X-Version-Contrato-AAEF confirma 2.1 (equivalente real de v3.0: solo Compras)', () => {",
-            "  pm.expect(pm.response.headers.get('X-Version-Contrato-AAEF')).to.eql('2.1');",
+            "pm.test('X-Version-Contrato-AAEF confirma 3.0 real (activado 2026-11-18, solo Compras)', () => {",
+            "  pm.expect(pm.response.headers.get('X-Version-Contrato-AAEF')).to.eql('3.0');",
             "});",
             "pm.test(\"nunca aparece Type.Code 01, 03, 04 ni 05\", () => {",
             "  body.invoices.forEach(d => pm.expect(['01','03','04','05']).to.not.include(d.Header.Type.Code));",
@@ -277,12 +277,12 @@
           "request": {
             "method": "GET",
             "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
-            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/901458732?desde=2026-10-01&hasta=2026-10-31",
-                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "901458732"],
-                    "query": [{"key": "desde", "value": "2026-10-01"}, {"key": "hasta", "value": "2026-10-31"}]}
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/900000002?desde=2026-11-01&hasta=2026-11-30",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "900000002"],
+                    "query": [{"key": "desde", "value": "2026-11-01"}, {"key": "hasta", "value": "2026-11-30"}]}
           },
           "event": [{"listen": "test", "script": {"exec": [
-            "pm.test('200 con envelope valido vacio (titular 901458732, periodo 253, confirmado sin costos FACTURA_COMPRA)', () => {",
+            "pm.test('200 con envelope valido vacio (titular 900000002, periodo 219, confirmado sin costos FACTURA_COMPRA -- reemplaza a 901458732/253, que el 2026-11-21 empezo a dar 403 ALCANCE_INSUFICIENTE por cambios de otro QA en las fincas del titular)', () => {",
             "  pm.response.to.have.status(200);",
             "  const body = pm.response.json();",
             "  pm.expect(body.invoices).to.eql([]);",

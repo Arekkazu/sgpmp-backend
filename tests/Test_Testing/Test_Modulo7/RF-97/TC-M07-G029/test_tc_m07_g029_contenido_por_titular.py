@@ -81,6 +81,7 @@ class TestSubCasoAislamientoEntreTitularesConfirmadoCorrecto:
         fuente.lineas_sin_trazabilidad.return_value = 0
         fuente.costos_factura.return_value = []
         fuente.comprobantes.return_value = []
+        fuente.linetypes_catalogados.return_value = (frozenset(), frozenset())
         contratos = MagicMock()
         contratos.listar_contratos.return_value = [VersionContrato(1, "2.1", "MINOR", datetime.date(2026, 1, 1), 1,
                                                                     [MAPPER_COMPRAS], estado="ACTIVO")]

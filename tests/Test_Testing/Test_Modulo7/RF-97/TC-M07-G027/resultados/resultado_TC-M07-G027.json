@@ -1,0 +1,3094 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "122581fc-ca0d-4290-a509-eea13af416fb",
+        "name": "0. Precondiciones - Login",
+        "item": [
+          {
+            "id": "4e3d6c38-e25c-4382-a256-de36bdaf292f",
+            "name": "Login Contador",
+            "request": {
+              "url": {
+                "path": [
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\"correo_electronico\":\"{{contador_correo}}\",\"contrasena\":\"{{contador_pass}}\"}"
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "f3250428-35c3-45b1-a032-fe2b4032fdc7",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('login 200', () => pm.response.to.have.status(200));",
+                    "const body = pm.response.json();",
+                    "pm.collectionVariables.set('token_contador', body.token);"
+                  ],
+                  "_lastExecutionId": "0fe9cd14-ddd3-4401-bc81-5bf28ff74a78"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "0332c25b-d131-466e-b994-138512db5e01",
+        "name": "TC-M07-G024 - Estructura del envelope (CA-1)",
+        "item": [
+          {
+            "id": "17d52159-59ec-4ca3-a865-cf979f57b460",
+            "name": "Vista previa octubre - 4 secciones exactas",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "b52de861-338a-4e91-b158-aa11e4892c63",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                    "pm.test('X-Content-SHA256 header presente', () => pm.expect(pm.response.headers.get('X-Content-SHA256')).to.not.be.null);",
+                    "pm.test('X-Version-Contrato-AAEF header presente', () => pm.expect(pm.response.headers.get('X-Version-Contrato-AAEF')).to.not.be.null);",
+                    "const body = pm.response.json();",
+                    "const claves = Object.keys(body).sort();",
+                    "pm.test('exactamente las 4 secciones: metadata, summary, invoices, transactions', () => {",
+                    "  pm.expect(claves).to.eql(['invoices', 'metadata', 'summary', 'transactions']);",
+                    "});",
+                    "pm.test('transactions es siempre lista vacia', () => pm.expect(body.transactions).to.eql([]));",
+                    "pm.test('metadata tiene las claves exactas sensibles a mayusculas de 5.4', () => {",
+                    "  pm.expect(Object.keys(body.metadata).sort()).to.eql(['ExchangeId','GeneratedAt','GeneratedBy','RequestedPeriod','SourceSystem','StandardVersion']);",
+                    "});",
+                    "pm.collectionVariables.set('envelope_oct', JSON.stringify(body));"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "0d1c1143-50a8-4704-8566-356d4b1d6e2c",
+            "name": "Verificar tildes y enes se conservan sin corrupcion",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "a7a22f2b-db28-45f5-813b-adb1034be03a",
+                  "type": "text/javascript",
+                  "exec": [
+                    "const body = pm.response.json();",
+                    "const desc = body.invoices[0].Lines[0].Description;",
+                    "pm.test('Description contiene o literal, sin caracteres corruptos tipo Ã³', () => {",
+                    "  pm.expect(desc).to.include('biológico');",
+                    "  pm.expect(desc).to.not.include('Ã');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "0ad2f641-c609-4c46-82c7-72635869514a",
+        "name": "TC-M07-G025 - Metadata (CA-4)",
+        "item": [
+          {
+            "id": "98e4e174-e9e4-4dd3-870e-f9b50129b6dd",
+            "name": "ExchangeId formato real AF-SIGAB-AAAA-MM-NNNNNNN",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "e07a43b9-5d36-49b6-80e3-15bb9d115bdb",
+                  "type": "text/javascript",
+                  "exec": [
+                    "const body = pm.response.json();",
+                    "pm.test('HALLAZGO: ExchangeId NO sigue SGPMP-{NIT}-{desde}-{hasta}-{nonce} de la ficha -- el real es AF-SIGAB-{AAAA-MM}-{nonce de 7 digitos} (confirmado 2026-11-14, exigido por SIGCON)', () => {",
+                    "  pm.expect(body.metadata.ExchangeId).to.match(/^AF-SIGAB-\\d{4}-\\d{2}-\\d{7}$/);",
+                    "  pm.expect(body.metadata.ExchangeId).to.not.match(/^SGPMP-/);",
+                    "});",
+                    "pm.test('GeneratedAt es YYYY-MM-DD sin hora', () => pm.expect(body.metadata.GeneratedAt).to.match(/^\\d{4}-\\d{2}-\\d{2}$/));",
+                    "pm.test('StandardVersion es el texto 1.0, no el numero 1', () => pm.expect(body.metadata.StandardVersion).to.eql('1.0'));",
+                    "pm.test('RequestedPeriod.From/To coinciden con lo consultado', () => {",
+                    "  pm.expect(body.metadata.RequestedPeriod.From).to.eql(pm.collectionVariables.get('desde_oct'));",
+                    "  pm.expect(body.metadata.RequestedPeriod.To).to.eql(pm.collectionVariables.get('hasta_oct'));",
+                    "});",
+                    "pm.test('SourceSystem.SystemNIT igual al nit solicitado', () => pm.expect(body.metadata.SourceSystem.SystemNIT).to.eql(pm.collectionVariables.get('nit')));",
+                    "pm.test('GeneratedBy es el correo del usuario que consulta', () => pm.expect(body.metadata.GeneratedBy).to.eql(pm.collectionVariables.get('contador_correo')));",
+                    "pm.test('HALLAZGO: SourceSystem.Environment dice DEV aunque el request es a TEST (config del contenedor)', () => {",
+                    "  pm.expect(body.metadata.SourceSystem.Environment).to.eql('DEV');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "fa53b543-3788-45ac-b91e-77197f557963",
+            "name": "El nonce cambia entre dos consultas del mismo rango",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "11c231ee-d152-4381-ad33-8717c223204b",
+                  "type": "text/javascript",
+                  "exec": [
+                    "const anterior = JSON.parse(pm.collectionVariables.get('envelope_oct') || '{}');",
+                    "const actual = pm.response.json();",
+                    "pm.test('ExchangeId cambia entre dos consultas (nonce no es fijo)', () => {",
+                    "  if (anterior.metadata) pm.expect(actual.metadata.ExchangeId).to.not.eql(anterior.metadata.ExchangeId);",
+                    "});",
+                    "pm.test('el hash de contenido es el mismo aunque el ExchangeId cambie (CA-9)', () => {",
+                    "  pm.expect(pm.response.headers.get('X-Content-SHA256')).to.not.be.null;",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "59c668fa-b7d7-46ed-bd7d-94d1332da2f2",
+        "name": "TC-M07-G026 - Summary (CA-8)",
+        "item": [
+          {
+            "id": "d350ed50-a3f8-43c8-b1f8-c8182b39ea51",
+            "name": "Summary cuadra con los documentos reales de octubre",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "d71bc780-5f05-43e8-b7ac-4f55f2ea4c1d",
+                  "type": "text/javascript",
+                  "exec": [
+                    "const body = pm.response.json();",
+                    "pm.test('TotalDocuments = TotalInvoices = cantidad real de invoices (3)', () => {",
+                    "  pm.expect(body.summary.TotalDocuments).to.eql(body.invoices.length);",
+                    "  pm.expect(body.summary.TotalInvoices).to.eql(body.invoices.length);",
+                    "  pm.expect(body.invoices.length).to.eql(3);",
+                    "});",
+                    "pm.test('TotalTransactions siempre 0', () => pm.expect(body.summary.TotalTransactions).to.eql(0));",
+                    "pm.test('TotalGrossAmount = suma real de Subtotal (740000)', () => {",
+                    "  const suma = body.invoices.reduce((acc, d) => acc + d.Totals.Subtotal, 0);",
+                    "  pm.expect(body.summary.TotalGrossAmount).to.eql(suma);",
+                    "  pm.expect(suma).to.eql(740000);",
+                    "});",
+                    "pm.test('TotalNet = TotalGrossAmount (RF-96 fija TotalPayment=Subtotal)', () => {",
+                    "  pm.expect(body.summary.TotalNet).to.eql(body.summary.TotalGrossAmount);",
+                    "});",
+                    "pm.test('Currency es COP', () => pm.expect(body.summary.Currency).to.eql('COP'));"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "33e1de05-fadd-4df7-8751-d0c38339dd26",
+        "name": "TC-M07-G027 - Rango y periodos (negativos)",
+        "item": [
+          {
+            "id": "7b7ccdf9-297e-4748-84b6-5729b78db7d1",
+            "name": "CA-2: desde a mitad de mes -> RANGO_NO_ALINEADO",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-10-05"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "409f929e-ba9c-4d12-90a9-83b99cdbe5a4",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('422 con RANGO_NO_ALINEADO', () => {",
+                    "  pm.response.to.have.status(422);",
+                    "  pm.expect(pm.response.json().error_code).to.eql('RANGO_NO_ALINEADO');",
+                    "});"
+                  ],
+                  "_lastExecutionId": "c52573e3-62f1-4380-a779-7fd70ac12df2"
+                }
+              }
+            ]
+          },
+          {
+            "id": "43e1bef7-2b4c-4762-af6b-5d1460964a02",
+            "name": "CA-3: rango con un periodo abierto al final -> PERIODO_NO_CERRADO",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-11-30"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "5c95ec16-1078-457b-856b-5181899343d9",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('422 con RANGO_NO_ALINEADO o PERIODO_NO_CERRADO (noviembre no es periodo mensual cerrado de este titular)', () => {",
+                    "  pm.response.to.have.status(422);",
+                    "  pm.expect(['RANGO_NO_ALINEADO', 'PERIODO_NO_CERRADO']).to.include(pm.response.json().error_code);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "2b1caea9-1e03-4813-802d-0644ddf7c62f"
+                }
+              }
+            ]
+          },
+          {
+            "id": "9aefec3c-8a4a-4f3d-a93c-ef87c4ca86ff",
+            "name": "Rango invertido (desde > hasta) -> 400, nunca 500",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{hasta_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{desde_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "20470258-0197-436d-b9c6-86a4658065db",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('400 PARAMETROS_INVALIDOS, no 500', () => {",
+                    "  pm.response.to.have.status(400);",
+                    "  pm.expect(pm.response.json().error_code).to.eql('PARAMETROS_INVALIDOS');",
+                    "});"
+                  ],
+                  "_lastExecutionId": "17ab4dd3-3761-4300-9a31-b1dbc0623710"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "16e6caa1-105c-4a7a-909e-3d170c8a33c0",
+        "name": "TC-M07-G030 - Fuentes segun version de contrato",
+        "item": [
+          {
+            "id": "45ee25f5-eebb-4b6d-8c18-a656b99cc9aa",
+            "name": "Con el contrato real v3.0 (solo Compras) nunca aparece 06 aunque haya comprobante",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "{{nit}}"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "55125495-0a75-4039-a582-7489b23686e1",
+                  "type": "text/javascript",
+                  "exec": [
+                    "const body = pm.response.json();",
+                    "pm.test(\"CA-5: todos los documentos son Type.Code 02 (sabemos que el periodo 627 SI tiene 1 comprobante NIC41 real -- confirmado via GET /finanzas/periodos/627/comprobantes -- y no aparece aqui)\", () => {",
+                    "  body.invoices.forEach(d => pm.expect(d.Header.Type.Code).to.eql('02'));",
+                    "});",
+                    "pm.test('X-Version-Contrato-AAEF confirma 3.0 real (activado 2026-11-18, solo Compras)', () => {",
+                    "  pm.expect(pm.response.headers.get('X-Version-Contrato-AAEF')).to.eql('3.0');",
+                    "});",
+                    "pm.test(\"nunca aparece Type.Code 01, 03, 04 ni 05\", () => {",
+                    "  body.invoices.forEach(d => pm.expect(['01','03','04','05']).to.not.include(d.Header.Type.Code));",
+                    "});",
+                    "pm.test('invoices ordenados por DocumentId ascendente', () => {",
+                    "  const ids = body.invoices.map(d => d.Header.DocumentId);",
+                    "  pm.expect(ids).to.eql([...ids].sort());",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "3ddd4dc2-b0d6-42f3-a8fe-50e88412047f",
+            "name": "CA-13/FA-6: titular sin ningun contrato utilizable (NIT fuera de alcance del Contador)",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "900000999"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "8d5bf193-0c8c-428e-82a8-44400878f849",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('titular inexistente da 404 TITULAR_NO_ENCONTRADO, no CONTRATO_NO_ACTIVO (el chequeo de titular corre primero)', () => {",
+                    "  pm.response.to.have.status(404);",
+                    "  pm.expect(pm.response.json().error_code).to.eql('TITULAR_NO_ENCONTRADO');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "f3d8829c-98b7-4c9e-81f9-554961059828",
+        "name": "TC-M07-G033 - Tamano y rango vacio",
+        "item": [
+          {
+            "id": "af7a0c01-987e-4f5e-829b-71ce40bbc66c",
+            "name": "CA-11/FA-8: rango cerrado sin datos -> envelope valido vacio",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "900000002"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-11-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-11-30"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "0b7358ac-1a62-4425-a4b8-7b6778802cc8",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('200 con envelope valido vacio (titular 900000002, periodo 219, confirmado sin costos FACTURA_COMPRA -- reemplaza a 901458732/253, que el 2026-11-21 empezo a dar 403 ALCANCE_INSUFICIENTE por cambios de otro QA en las fincas del titular)', () => {",
+                    "  pm.response.to.have.status(200);",
+                    "  const body = pm.response.json();",
+                    "  pm.expect(body.invoices).to.eql([]);",
+                    "  pm.expect(body.summary.TotalDocuments).to.eql(0);",
+                    "});",
+                    "pm.test('el hash de un envelope vacio no es null', () => pm.expect(pm.response.headers.get('X-Content-SHA256')).to.not.be.null);"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "82c25be6-c6db-48f4-a20b-e39265821977",
+        "name": "TC-M07-G034 - Seguridad (alcance y validacion de entrada)",
+        "item": [
+          {
+            "id": "93ed22ec-5205-4e57-9588-b42104e9cb6e",
+            "name": "El acceso a fincas otorgado por el DBA ya no da 403 (confirma el permiso, no el rango)",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "901333217"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-11-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-11-30"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "5226d1ad-e5af-49ff-8875-dd9af4c2647b",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('CONFIRMADO (2026-11-17): ya no da 403 ALCANCE_INSUFICIENTE tras el acceso otorgado por el DBA -- 200 con el periodo real 622 (nov) de este titular', () => {",
+                    "  pm.response.to.have.status(200);",
+                    "  pm.expect(pm.response.json().summary).to.not.be.undefined;",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "5428d53f-d277-4256-a77b-682a5c7100e2",
+            "name": "Inyeccion SQL/JSON en el NIT -> rechazo controlado (ValidationError), no 500",
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "vista-previa",
+                  "productores",
+                  "' OR '1'='1"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "{{desde_oct}}"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "{{hasta_oct}}"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_contador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "4713b251-cdff-4c18-8671-c51ddbe91625",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('nunca 500 ante un NIT con payload de inyeccion', () => pm.expect(pm.response.code).to.not.eql(500));",
+                    "pm.test('codigo 400/404/422 controlado', () => pm.expect([400,404,422]).to.include(pm.response.code));"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "contador@pecuaria.co",
+        "key": "contador_correo"
+      },
+      {
+        "description": {
+          "content": "Reemplazar localmente con la clave real del roster del equipo. Nunca commitear el valor real.",
+          "type": "text/plain"
+        },
+        "type": "any",
+        "value": "__NO_COMMITEAR__",
+        "key": "contador_pass"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_contador"
+      },
+      {
+        "type": "any",
+        "value": "901444215",
+        "key": "nit"
+      },
+      {
+        "type": "any",
+        "value": "2026-10-01",
+        "key": "desde_oct"
+      },
+      {
+        "type": "any",
+        "value": "2026-10-31",
+        "key": "hasta_oct"
+      },
+      {
+        "type": "any",
+        "value": "2026-09-01",
+        "key": "desde_sep"
+      },
+      {
+        "type": "any",
+        "value": "2026-09-30",
+        "key": "hasta_sep"
+      }
+    ],
+    "info": {
+      "_postman_id": "3f13a2d1-985b-44fc-88df-08da4b5a5117",
+      "name": "TC-M07-RF97-Live",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Verificación en vivo RF-97 (M07) contra TEST. TC-M07-G024 a G035. NIT 901444215, períodos 626 (sep 2026) y 627 (oct 2026), contrato real v3.0 desde 2026-11-18/21 (antes v2.1; solo Mapper Compras en ambos).",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "676f6641-f5fa-4b87-8e36-665444ed3f73",
+    "values": [
+      {
+        "type": "any",
+        "value": "__NO_COMMITEAR__",
+        "key": "contador_pass"
+      }
+    ]
+  },
+  "globals": {
+    "id": "23b54174-b1c9-494f-aecf-3bcbca3c8ed4",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 286.5,
+      "responseMin": 139,
+      "responseMax": 713,
+      "responseSd": 246.26560864237624,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1795226802830,
+      "completed": 1795226804321
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 4,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "11375831-a7da-45fe-bf5c-4f9e00fab438",
+          "httpRequestId": "9d5338e6-9627-4e3d-8afc-3d9340655e74"
+        },
+        "item": {
+          "id": "4e3d6c38-e25c-4382-a256-de36bdaf292f",
+          "name": "Login Contador",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\":\"{{contador_correo}}\",\"contrasena\":\"{{contador_pass}}\"}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f3250428-35c3-45b1-a032-fe2b4032fdc7",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('login 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('token_contador', body.token);"
+                ],
+                "_lastExecutionId": "0fe9cd14-ddd3-4401-bc81-5bf28ff74a78"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "347ca846-2e60-4300-9c5b-2f4d123727b5",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "70",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"correo_electronico\":\"contador@pecuaria.co\",\"contrasena\":\"__NO_COMMITEAR__\"}"
+          }
+        },
+        "response": {
+          "id": "f32257ba-f7da-412e-898c-33d6ff03d6cd",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "404"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:06:40 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=aYwj8f9WeQlWxTNtcbsZWEXZ8PeQObmXaBdpF-4iuz8; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "28e1d8ba-bac9-4982-addf-528424aca4e6"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              49,
+              73,
+              105,
+              119,
+              105,
+              97,
+              110,
+              82,
+              112,
+              73,
+              106,
+              111,
+              105,
+              79,
+              84,
+              69,
+              53,
+              77,
+              106,
+              89,
+              105,
+              76,
+              67,
+              74,
+              121,
+              98,
+              50,
+              119,
+              105,
+              79,
+              106,
+              85,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              53,
+              78,
+              84,
+              73,
+              49,
+              78,
+              84,
+              89,
+              119,
+              77,
+              83,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              107,
+              49,
+              77,
+              106,
+              73,
+              50,
+              79,
+              68,
+              65,
+              120,
+              102,
+              81,
+              46,
+              86,
+              110,
+              95,
+              51,
+              107,
+              51,
+              50,
+              105,
+              45,
+              95,
+              48,
+              100,
+              121,
+              95,
+              50,
+              122,
+              101,
+              48,
+              65,
+              114,
+              72,
+              69,
+              98,
+              101,
+              65,
+              70,
+              80,
+              117,
+              79,
+              81,
+              89,
+              56,
+              69,
+              89,
+              76,
+              70,
+              57,
+              99,
+              116,
+              110,
+              74,
+              56,
+              119,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 713,
+          "responseSize": 404
+        },
+        "id": "4e3d6c38-e25c-4382-a256-de36bdaf292f",
+        "assertions": [
+          {
+            "assertion": "login 200",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "eb6f6dad-75c2-4bc0-96c7-d0b8db0d7239",
+          "length": 4,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "49f6f5d7-3d38-47e1-8d14-33436fcbddc2"
+        },
+        "item": {
+          "id": "7b7ccdf9-297e-4748-84b6-5729b78db7d1",
+          "name": "CA-2: desde a mitad de mes -> RANGO_NO_ALINEADO",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "vista-previa",
+                "productores",
+                "{{nit}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-05"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hasta_oct}}"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "409f929e-ba9c-4d12-90a9-83b99cdbe5a4",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 con RANGO_NO_ALINEADO', () => {",
+                  "  pm.response.to.have.status(422);",
+                  "  pm.expect(pm.response.json().error_code).to.eql('RANGO_NO_ALINEADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "c52573e3-62f1-4380-a779-7fd70ac12df2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "vista-previa",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-10-05"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [REDACTED_JWT]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "6b69227d-3971-4db1-839d-0b5a667ff468",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=aYwj8f9WeQlWxTNtcbsZWEXZ8PeQObmXaBdpF-4iuz8",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "7652ac84-86cd-408f-9690-6684688f3410",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "432"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:06:40 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "24880967-645a-4b7d-b97b-c4543efb13f5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              82,
+              65,
+              78,
+              71,
+              79,
+              95,
+              78,
+              79,
+              95,
+              65,
+              76,
+              73,
+              78,
+              69,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              114,
+              97,
+              110,
+              103,
+              111,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              101,
+              109,
+              112,
+              101,
+              122,
+              97,
+              114,
+              32,
+              101,
+              108,
+              32,
+              112,
+              114,
+              105,
+              109,
+              101,
+              114,
+              32,
+              100,
+              195,
+              173,
+              97,
+              32,
+              121,
+              32,
+              116,
+              101,
+              114,
+              109,
+              105,
+              110,
+              97,
+              114,
+              32,
+              101,
+              108,
+              32,
+              195,
+              186,
+              108,
+              116,
+              105,
+              109,
+              111,
+              32,
+              100,
+              195,
+              173,
+              97,
+              32,
+              100,
+              101,
+              32,
+              112,
+              101,
+              114,
+              195,
+              173,
+              111,
+              100,
+              111,
+              115,
+              32,
+              99,
+              111,
+              110,
+              116,
+              97,
+              98,
+              108,
+              101,
+              115,
+              46,
+              32,
+              82,
+              97,
+              110,
+              103,
+              111,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              32,
+              109,
+              195,
+              161,
+              115,
+              32,
+              99,
+              101,
+              114,
+              99,
+              97,
+              110,
+              111,
+              58,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              32,
+              97,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              51,
+              49,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              100,
+              101,
+              115,
+              100,
+              101,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              100,
+              101,
+              115,
+              100,
+              101,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              114,
+              97,
+              110,
+              103,
+              111,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              101,
+              109,
+              112,
+              101,
+              122,
+              97,
+              114,
+              32,
+              101,
+              108,
+              32,
+              112,
+              114,
+              105,
+              109,
+              101,
+              114,
+              32,
+              100,
+              195,
+              173,
+              97,
+              32,
+              121,
+              32,
+              116,
+              101,
+              114,
+              109,
+              105,
+              110,
+              97,
+              114,
+              32,
+              101,
+              108,
+              32,
+              195,
+              186,
+              108,
+              116,
+              105,
+              109,
+              111,
+              32,
+              100,
+              195,
+              173,
+              97,
+              32,
+              100,
+              101,
+              32,
+              112,
+              101,
+              114,
+              195,
+              173,
+              111,
+              100,
+              111,
+              115,
+              32,
+              99,
+              111,
+              110,
+              116,
+              97,
+              98,
+              108,
+              101,
+              115,
+              46,
+              32,
+              82,
+              97,
+              110,
+              103,
+              111,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              32,
+              109,
+              195,
+              161,
+              115,
+              32,
+              99,
+              101,
+              114,
+              99,
+              97,
+              110,
+              111,
+              58,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              32,
+              97,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              51,
+              49,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              48,
+              54,
+              58,
+              52,
+              49,
+              46,
+              53,
+              54,
+              56,
+              49,
+              53,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 149,
+          "responseSize": 432
+        },
+        "id": "7b7ccdf9-297e-4748-84b6-5729b78db7d1",
+        "assertions": [
+          {
+            "assertion": "422 con RANGO_NO_ALINEADO",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "e14fb40b-79fa-447c-81e4-f7384becb7fd",
+          "length": 4,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "06a3103c-93ca-4e7d-9d11-af94f0de5f15"
+        },
+        "item": {
+          "id": "43e1bef7-2b4c-4762-af6b-5d1460964a02",
+          "name": "CA-3: rango con un periodo abierto al final -> PERIODO_NO_CERRADO",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "vista-previa",
+                "productores",
+                "{{nit}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{desde_oct}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-11-30"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "5c95ec16-1078-457b-856b-5181899343d9",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 con RANGO_NO_ALINEADO o PERIODO_NO_CERRADO (noviembre no es periodo mensual cerrado de este titular)', () => {",
+                  "  pm.response.to.have.status(422);",
+                  "  pm.expect(['RANGO_NO_ALINEADO', 'PERIODO_NO_CERRADO']).to.include(pm.response.json().error_code);",
+                  "});"
+                ],
+                "_lastExecutionId": "2b1caea9-1e03-4813-802d-0644ddf7c62f"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "vista-previa",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-10-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-11-30"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [REDACTED_JWT]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "55e4546a-1ea1-4219-97ce-60adc07f1dd8",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=aYwj8f9WeQlWxTNtcbsZWEXZ8PeQObmXaBdpF-4iuz8",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "76c218a1-1ae2-4f54-8711-5b501c3d0139",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "202"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:06:41 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "11f323d5-ef20-43ad-af16-cbbdfab7e74f"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              80,
+              69,
+              82,
+              73,
+              79,
+              68,
+              79,
+              95,
+              78,
+              79,
+              95,
+              67,
+              69,
+              82,
+              82,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              101,
+              114,
+              195,
+              173,
+              111,
+              100,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              32,
+              110,
+              111,
+              32,
+              101,
+              115,
+              116,
+              195,
+              161,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              111,
+              108,
+              111,
+              32,
+              115,
+              101,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              110,
+              32,
+              99,
+              111,
+              110,
+              115,
+              117,
+              108,
+              116,
+              97,
+              114,
+              32,
+              112,
+              101,
+              114,
+              195,
+              173,
+              111,
+              100,
+              111,
+              115,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              115,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              48,
+              54,
+              58,
+              52,
+              49,
+              46,
+              56,
+              48,
+              52,
+              48,
+              51,
+              57,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 145,
+          "responseSize": 202
+        },
+        "id": "43e1bef7-2b4c-4762-af6b-5d1460964a02",
+        "assertions": [
+          {
+            "assertion": "422 con RANGO_NO_ALINEADO o PERIODO_NO_CERRADO (noviembre no es periodo mensual cerrado de este titular)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "4e72e429-9a6a-4b38-90e3-86ff895a377d",
+          "length": 4,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "22a5c132-f2fb-488e-a7e9-53a3e3e922c1"
+        },
+        "item": {
+          "id": "9aefec3c-8a4a-4f3d-a93c-ef87c4ca86ff",
+          "name": "Rango invertido (desde > hasta) -> 400, nunca 500",
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "vista-previa",
+                "productores",
+                "{{nit}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{hasta_oct}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{desde_oct}}"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "20470258-0197-436d-b9c6-86a4658065db",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 PARAMETROS_INVALIDOS, no 500', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().error_code).to.eql('PARAMETROS_INVALIDOS');",
+                  "});"
+                ],
+                "_lastExecutionId": "17ab4dd3-3761-4300-9a31-b1dbc0623710"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "vista-previa",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-10-31"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-01"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [REDACTED_JWT]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "abb87180-35d0-433a-a33f-5d32835a4f9a",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=aYwj8f9WeQlWxTNtcbsZWEXZ8PeQObmXaBdpF-4iuz8",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "fd9b7c7e-975b-42c5-84ad-5862e92ba17e",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "279"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:06:41 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "18f056b9-ce2b-48ab-8deb-d831bffe0e68"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              80,
+              65,
+              82,
+              65,
+              77,
+              69,
+              84,
+              82,
+              79,
+              83,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              79,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              32,
+              194,
+              171,
+              104,
+              97,
+              115,
+              116,
+              97,
+              194,
+              187,
+              32,
+              110,
+              111,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              32,
+              115,
+              101,
+              114,
+              32,
+              97,
+              110,
+              116,
+              101,
+              114,
+              105,
+              111,
+              114,
+              32,
+              97,
+              32,
+              108,
+              97,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              32,
+              194,
+              171,
+              100,
+              101,
+              115,
+              100,
+              101,
+              194,
+              187,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              104,
+              97,
+              115,
+              116,
+              97,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              104,
+              97,
+              115,
+              116,
+              97,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              32,
+              194,
+              171,
+              104,
+              97,
+              115,
+              116,
+              97,
+              194,
+              187,
+              32,
+              110,
+              111,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              32,
+              115,
+              101,
+              114,
+              32,
+              97,
+              110,
+              116,
+              101,
+              114,
+              105,
+              111,
+              114,
+              32,
+              97,
+              32,
+              108,
+              97,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              32,
+              194,
+              171,
+              100,
+              101,
+              115,
+              100,
+              101,
+              194,
+              187,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              48,
+              54,
+              58,
+              52,
+              50,
+              46,
+              48,
+              50,
+              55,
+              50,
+              56,
+              55,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 139,
+          "responseSize": 279
+        },
+        "id": "9aefec3c-8a4a-4f3d-a93c-ef87c4ca86ff",
+        "assertions": [
+          {
+            "assertion": "400 PARAMETROS_INVALIDOS, no 500",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1317
+    },
+    "failures": [],
+    "error": null
+  }
+}

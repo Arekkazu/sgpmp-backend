@@ -51,6 +51,61 @@ Es la misma generación real, solo cambia cómo se autentica.
 - Un NIT con payload de inyección (`' OR '1'='1`) nunca llega a 500 — lo rechaza el propio patrón
   de FastAPI (`Path(pattern=...)`) antes de tocar cualquier lógica de negocio.
 
+## Actualización 2026-11-21 — contrato real ya es v3.0, no v2.1
+
+Reejecución completa (35/35 en verde). Cambios del entorno desde el 2026-11-18:
+
+- **El contrato activo real ahora es literalmente v3.0** (`id_version_contrato_aaef=18`,
+  activado 2026-11-18, mapeadores=["COMPRAS"]) — ya no es "v2.1 como equivalente funcional
+  de v3.0", es la versión exacta que describe la ficha. v2.1 quedó DEPRECADO el mismo día. Se
+  actualizó la colección (`X-Version-Contrato-AAEF` esperado ahora es `3.0`).
+- **Sigue sin existir ningún contrato con el Mapper Comprobante NIC41** (todas las versiones
+  visibles, incluidas varias `PENDIENTE` de otros QA -- 3.1, 3.9, 4.0, 5.0, 8.1, 8.2 -- solo
+  tienen `mapeadores=["COMPRAS"]`). El feature flag `M07_COMPROBANTE_NIC41_HABILITADO` sigue
+  aparentemente apagado en TEST.
+- **Titular 901458732 (período 253) empezó a dar 403 `ALCANCE_INSUFICIENTE`** donde antes daba
+  200 con 0 documentos -- no es un hallazgo nuestro: es deriva del entorno compartido (otro QA
+  modificó las fincas de ese titular). Se reemplazó por NIT `900000002` (período 219) para el
+  caso de envelope vacío (TC-M07-G033).
+- **`SourceSystem.Environment` sigue reportando `"DEV"` en TEST** (Issue 4 de nuestro reporte de
+  bugs) -- no se tocó en este release.
+
+### G019 — hallazgo de configuración real en TEST (comodín de la matriz contable)
+
+`GET /finanzas/configuracion` (titular cualquiera, matriz compartida) muestra que las únicas
+entradas `tipo_hecho=CONSUMO_INSUMO`/`sentido=UNICO` (las que define `linetypes_catalogados()`
+para el catálogo de Compras) tienen `subtipo_costo=null` -- son entradas **comodín** que, por el
+propio diseño de `_exigir_catalogo()` (`None in catalogados` → pasa), dejan pasar **cualquier**
+`subtipo_costo` (`ALIMENTO`/`MEDICAMENTO`/`MANO_OBRA`/`VETERINARIO`) sin excepción. No hay ninguna
+fila específica por subtipo para `CONSUMO_INSUMO`/`UNICO` en TEST.
+
+**Consecuencia:** el fix de G019 (confirmado correcto por unidad contra el código real) nunca
+puede bloquear nada en la práctica en TEST mientras la matriz tenga este comodín -- no es un
+defecto del código, es una configuración de datos que deja la validación dormida.
+
+**Control registrado en vivo (2026-11-20/21, con autorización explícita del usuario):** costo
+`id_registro_costo=4589` (titular 901444215, activo 2550, `subtipo_costo=MEDICAMENTO`,
+`COMPRA_PROVEEDOR`, factura `QA-CTRL-G019-01`) registrado sin ningún error en el período 628
+(noviembre 2026, **ABIERTO**) -- confirma que M06 (RF-90) lo acepta sin objeciones. **No se pudo
+completar la prueba hasta la exportación AAEF** porque eso exige el período **cerrado**, y cerrar
+el período 628 completo (todo noviembre de este titular) es una acción mayor que el usuario no
+autorizó en esta sesión. Queda pendiente: cerrar ese período (o esperar a que se cierre solo) y
+reconsultar `vista-previa` para confirmar en la respuesta real que el costo 4589 sale como `02`
+sin `LINETYPE_NO_CATALOGADO`.
+
+### Intento de reproducir en vivo los otros 4 bugs ya arreglados en `dev` (G016, G028, G031, G032)
+
+Se buscó, sin escribir nada, algún dato real ya existente en TEST que ejercitara alguno de los
+escenarios de error (comprobante con neto negativo, una falla real de lectura de M06). No se
+encontró ninguno entre los titulares accesibles (incluido el nuevo `901333217` "Agropecuaria Aaef
+QA S.A.S.", con 2 facturas limpias sin errores). Confirmar estos 4 arreglos en vivo requeriría:
+(a) que el DBA cree un registro de costo o comprobante deliberadamente inválido para este fin, o
+(b) escribir uno nosotros mismos (acción de escritura mayor -- para el comprobante negativo
+implicaría manipular un cierre real; para la falla de M06, inyección de fallos de
+infraestructura). Mientras tanto, los 4 quedan confirmados contra el código real de `dev` por
+pytest (ver RF-96/TC-M07-G016, RF-97/TC-M07-G028/G031/G032), que es el mismo código que ya
+resuelve correctamente las versiones de contrato en TEST.
+
 ## Lo que esta colección NO cubre (requiere otra vía)
 
 - **v3.1 real con el Mapper `06` activo** — sigue bloqueado por el límite de 2 versiones vigentes

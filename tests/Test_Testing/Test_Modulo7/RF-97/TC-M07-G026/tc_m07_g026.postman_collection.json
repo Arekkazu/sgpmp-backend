@@ -1,0 +1,70 @@
+{
+  "info": {
+    "name": "TC-M07-G026 - Summary (CA-8)",
+    "description": "Copia propia, autocontenida, de la carpeta 'TC-M07-G026 - Summary (CA-8)' de la colección compartida RF-97-Verificacion-Live/tc_m07_rf97_live.postman_collection.json. Incluye el login (precondición) para poder correrse sola. Verificación en vivo RF-97 contra TEST. NIT 901444215, período 627 (oct 2026).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "contador_correo", "value": "contador@pecuaria.co"},
+    {"key": "contador_pass", "value": "__NO_COMMITEAR__", "description": "Reemplazar localmente con la clave real del roster del equipo. Nunca commitear el valor real."},
+    {"key": "token_contador", "value": ""},
+    {"key": "nit", "value": "901444215"},
+    {"key": "desde_oct", "value": "2026-10-01"},
+    {"key": "hasta_oct", "value": "2026-10-31"}
+  ],
+  "item": [
+    {
+      "name": "0. Precondiciones - Login",
+      "item": [
+        {
+          "name": "Login Contador",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"{{contador_correo}}\",\"contrasena\":\"{{contador_pass}}\"}"},
+            "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('login 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('token_contador', body.token);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "TC-M07-G026 - Summary (CA-8)",
+      "item": [
+        {
+          "name": "Summary cuadra con los documentos reales de octubre",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_contador}}"}],
+            "url": {"raw": "{{base_url}}/integracion/aaef/vista-previa/productores/{{nit}}?desde={{desde_oct}}&hasta={{hasta_oct}}",
+                    "host": ["{{base_url}}"], "path": ["integracion", "aaef", "vista-previa", "productores", "{{nit}}"],
+                    "query": [{"key": "desde", "value": "{{desde_oct}}"}, {"key": "hasta", "value": "{{hasta_oct}}"}]}
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "const body = pm.response.json();",
+            "pm.test('TotalDocuments = TotalInvoices = cantidad real de invoices (3)', () => {",
+            "  pm.expect(body.summary.TotalDocuments).to.eql(body.invoices.length);",
+            "  pm.expect(body.summary.TotalInvoices).to.eql(body.invoices.length);",
+            "  pm.expect(body.invoices.length).to.eql(3);",
+            "});",
+            "pm.test('TotalTransactions siempre 0', () => pm.expect(body.summary.TotalTransactions).to.eql(0));",
+            "pm.test('TotalGrossAmount = suma real de Subtotal (740000)', () => {",
+            "  const suma = body.invoices.reduce((acc, d) => acc + d.Totals.Subtotal, 0);",
+            "  pm.expect(body.summary.TotalGrossAmount).to.eql(suma);",
+            "  pm.expect(suma).to.eql(740000);",
+            "});",
+            "pm.test('TotalNet = TotalGrossAmount (RF-96 fija TotalPayment=Subtotal)', () => {",
+            "  pm.expect(body.summary.TotalNet).to.eql(body.summary.TotalGrossAmount);",
+            "});",
+            "pm.test('Currency es COP', () => pm.expect(body.summary.Currency).to.eql('COP'));"
+          ]}}]
+        }
+      ]
+    }
+  ]
+}

@@ -2,20 +2,22 @@
 TC-M07-G019 (RF-96 5.2, FA-2, FA-3, CA-6, CU-07) - "Catálogo de LineType y
 forma de las cuentas." Agrupa TC-96-046 a TC-96-052.
 
-Construido 2026-11-18 contra el código real (aaef.py). El DBA confirmó
-(2026-11-17) que la matriz contable real de RF-109 tiene 67 combinaciones
-en TEST, pero no puede confirmar la existencia de una cuenta en SIGCON
-(sistema externo) -- coincide exactamente con lo que dice la ficha en
-5.2: "la existencia de la cuenta en SIGCON la valida SIGCON."
+Construido 2026-11-18, actualizado 2026-11-20 tras el merge de
+origin/dev. El DBA confirmó (2026-11-17) que la matriz contable real de
+RF-109 tiene 67 combinaciones en TEST, pero no puede confirmar la
+existencia de una cuenta en SIGCON (sistema externo) -- coincide
+exactamente con lo que dice la ficha en 5.2: "la existencia de la cuenta
+en SIGCON la valida SIGCON."
 
-HALLAZGO GRAVE (LINETYPE_NO_CATALOGADO no existe en absoluto): grep
-exhaustivo de "LineType"/"catalogo" en todo `src/` -- aparece SOLO en
-aaef.py (como pass-through literal de subtipo_costo/tipo_hecho) y en
-esquema_agrofusion.py (el modelo Pydantic que solo exige `str`, sin
-enum). No existe ninguna consulta, join ni validación contra una tabla de
-catálogo de RF-109 en el Mapper ni en ningún otro lugar de M07. Un
-LineType inexistente, nulo o inactivo simplemente se transfiere tal cual
--- CA-6 no se cumple.
+ARREGLADO (2026-11-19, TC-M07-G019, Arekkazu, PR #1190/#1202): el
+hallazgo grave de este TC ("LINETYPE_NO_CATALOGADO no existe") ya se
+corrigió. `mapear_compras()`/`mapear_comprobantes()` ahora reciben un
+`catalogo` (frozenset de subtipos/hechos con cuenta activa en la matriz
+contable, vía `fuente.linetypes_catalogados()`) y `_exigir_catalogo()`
+rechaza con `LINETYPE_NO_CATALOGADO` cualquier LineType fuera de ese
+conjunto. `catalogo=None` (el valor por defecto) sigue sin validar --
+es el caso deliberado de la autoprueba del anexo (RF-AE02 5.10, ver
+TC-M07-G023), que no tiene una BD real de la que leer el catálogo.
 
 CONFIRMADO CORRECTO (forma de la cuenta): `_cuenta()` SI rechaza valores
 vacíos, nulos o no numéricos (letras, guiones, puntos) con
@@ -34,7 +36,7 @@ documento ya construido en memoria (como en TC-M07-G018), no a través de
 una entrada real del Mapper.
 
 Código bajo prueba:
-    src/accounting_integration/domain/services/aaef.py (mapear_compras, mapear_comprobantes, _cuenta)
+    src/accounting_integration/domain/services/aaef.py (mapear_compras, mapear_comprobantes, _exigir_catalogo, _cuenta)
 
 Cómo se prueba: pytest de unidad.
 
@@ -53,6 +55,7 @@ from pathlib import Path
 
 import pytest
 
+from src.accounting_integration.domain.services import aaef
 from src.accounting_integration.domain.services.aaef import AaefError, CostoFactura, mapear_compras
 
 D = Decimal
@@ -69,19 +72,33 @@ def _costo(**kw) -> CostoFactura:
     return CostoFactura(**base)
 
 
-class TestSubCasoLinetypeNoCatalogadoNoExisteEnAbsolutoHallazgoGrave:
-    def test_no_existe_ninguna_consulta_al_catalogo_de_rf_109_en_aaef(self):
+class TestSubCasoLinetypeNoCatalogadoArreglado:
+    def test_ya_existe_la_consulta_al_catalogo_en_aaef(self):
         texto = AAEF.read_text(encoding='utf-8')
-        pytest.fail(
-            "HALLAZGO GRAVE: aaef.py no consulta ningun catalogo de RF-109 -- 'LineType' se "
-            "asigna directamente desde subtipo_costo/tipo_hecho (pass-through literal), sin "
-            "ninguna validacion de existencia ni de estado activo/inactivo. CA-6 "
-            "(LINETYPE_NO_CATALOGADO) no tiene ninguna implementacion real."
-        ) if 'catalogo' not in texto.lower() and 'LINETYPE_NO_CATALOGADO' not in texto else None
+        assert 'LINETYPE_NO_CATALOGADO' in texto
+        assert '_exigir_catalogo' in texto
 
-    def test_un_linetype_inexistente_o_vacio_se_transfiere_sin_rechazo(self):
+    def test_un_linetype_catalogado_no_se_rechaza(self):
+        costo = _costo(subtipo_costo="ALIMENTO")
+        doc = mapear_compras([costo], catalogo=frozenset({"ALIMENTO"}))[0]
+        assert doc["Lines"][0]["LineType"] == "ALIMENTO"
+
+    def test_un_linetype_no_catalogado_se_rechaza_con_linetype_no_catalogado(self):
+        """ARREGLADO: ya no se transfiere sin rechazo -- con un catalogo real que NO incluye
+        el subtipo, se bloquea con el codigo exacto que pide CA-6."""
         costo = _costo(subtipo_costo="TIPO_QUE_NO_EXISTE_EN_NINGUN_CATALOGO")
-        doc = mapear_compras([costo])[0]  # no lanza ninguna excepcion
+        with pytest.raises(AaefError) as exc_info:
+            mapear_compras([costo], catalogo=frozenset({"ALIMENTO", "VETERINARIO"}))
+        assert exc_info.value.codigo == "LINETYPE_NO_CATALOGADO"
+        assert exc_info.value.campo == "LineType"
+        assert exc_info.value.detalle["mapper"] == "COMPRAS"
+
+    def test_catalogo_none_sigue_sin_validar_caso_deliberado_de_la_autoprueba_del_anexo(self):
+        """No es un hallazgo: catalogo=None es el valor por defecto que usa
+        validar_con_datos_de_prueba() (RF-AE02 5.10, ver TC-M07-G023) porque esa autoprueba
+        no tiene una BD real de la que leer la matriz contable."""
+        costo = _costo(subtipo_costo="TIPO_QUE_NO_EXISTE_EN_NINGUN_CATALOGO")
+        doc = mapear_compras([costo], catalogo=None)[0]  # no lanza
         assert doc["Lines"][0]["LineType"] == "TIPO_QUE_NO_EXISTE_EN_NINGUN_CATALOGO"
 
 
@@ -110,7 +127,5 @@ class TestSubCasoCantidadDeElementosDistintaNoAlcanzablePorEsteCaminoDocumentaci
         """No es un hallazgo alcanzable desde la entrada real: el Mapper CONSTRUYE
         accounting_account con exactamente un `_cuenta(...)` -- no existe ningun parametro
         de CostoFactura que permita pasar una lista de 2 o mas cuentas al 02."""
-        import inspect
-        from src.accounting_integration.domain.services import aaef
         tipos = __import__('typing').get_type_hints(aaef.CostoFactura)
         assert 'cuenta_debito' in tipos and tipos['cuenta_debito'] != list

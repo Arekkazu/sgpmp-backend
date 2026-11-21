@@ -12,14 +12,12 @@ caso de CA-4 con 2 pares se construye como fixture sintética a partir de
 la MISMA estructura real (mismo codigo/especie, un segundo par agregado),
 no inventada desde cero.
 
-HALLAZGO (par con neto negativo, no solo 'cero'): el código real rechaza
-CUALQUIER valor <= 0 con MAPPER_FALLIDO ("...tiene una línea sin valor"),
-incluido un neto NEGATIVO (ej. una pérdida de valor razonable). La ficha
-(CA-4, nota de clasificación) espera un comportamiento DEFINIDO para el
-neto negativo vía "el sentido lo dan las cuentas" -- es decir, que el
-Mapper invierta cuenta_debito/cuenta_credito según el signo en vez de
-rechazar la línea. El código real no hace esa inversión: trata negativo
-igual que cero.
+ARREGLADO 2026-11-19/20 (TC-M07-G016, Arekkazu, PR #1190/#1202, merge de
+origin/dev 2026-11-20): el hallazgo original de este TC ("el código real
+rechaza un neto negativo igual que cero, sin invertir débito/crédito") ya
+se corrigió. Ahora `valor < 0` invierte `cuenta_debito`/`cuenta_credito` y
+entrega `Value` siempre positivo (CA-4: "el sentido lo dan las cuentas");
+solo `valor == 0` (ya no `<= 0`) sigue siendo `MAPPER_FALLIDO`.
 
 Código bajo prueba:
     src/accounting_integration/domain/services/aaef.py (mapear_comprobantes)
@@ -126,25 +124,23 @@ class TestSubCasoUnDocumentoPorTitularTipoHechoYEspecie:
         assert len({d["Header"]["DocumentId"] for d in documentos}) == 4
 
 
-class TestSubCasoNetoNegativoSeRechazaIgualQueCeroHallazgo:
+class TestSubCasoNetoCeroSeRechazaYNegativoSeInvierteArreglado:
     def test_neto_cero_se_rechaza_confirmado_correcto(self):
+        """El rechazo de valor == 0 se mantuvo tal cual (el cambio del fix fue en <= 0 -> == 0)."""
         comprobante = _comprobante_real_un_par()
         comprobante.lineas[0]["valor"] = "0.00"
         with pytest.raises(AaefError) as exc_info:
             mapear_comprobantes([comprobante], TITULAR)
         assert exc_info.value.codigo == "MAPPER_FALLIDO"
 
-    def test_neto_negativo_tambien_se_rechaza_en_vez_de_invertir_debito_credito(self):
-        """HALLAZGO: la ficha (CA-4) espera un comportamiento DEFINIDO para un par con
-        neto negativo -- 'el sentido lo dan las cuentas', lo que implicaria que el Mapper
-        invierte cuenta_debito/cuenta_credito segun el signo. El codigo real NO hace esa
-        inversion: cualquier valor <= 0 (negativo incluido) se rechaza igual que cero,
-        bloqueando la transformacion completa del lote (sin salida parcial)."""
+    def test_neto_negativo_ahora_invierte_debito_y_credito_arreglado(self):
+        """ARREGLADO (2026-11-19, TC-M07-G016/Arekkazu, PR #1190/#1202): un par con neto
+        negativo (ej. una pérdida de valor razonable) ya NO se rechaza -- el Mapper invierte
+        cuenta_debito/cuenta_credito y entrega Value positivo, exactamente lo que pide CA-4
+        ('el sentido lo dan las cuentas')."""
         comprobante = _comprobante_real_un_par()
         comprobante.lineas[0]["valor"] = "-50000.00"  # ej. perdida de valor razonable
-        pytest.fail(
-            "HALLAZGO: un par con neto negativo (-50000.00, simulando una perdida de valor "
-            "razonable) lanza MAPPER_FALLIDO igual que un neto cero -- el codigo real no "
-            "invierte cuenta_debito/cuenta_credito segun el signo como sugiere 'el sentido lo "
-            "dan las cuentas' de CA-4; simplemente rechaza la linea."
-        )
+        doc = mapear_comprobantes([comprobante], TITULAR)[0]
+        linea = doc["Lines"][0]
+        assert linea["Value"] == D("50000.00")  # siempre positivo
+        assert linea["accounting_account"] == ["159205", "516005"]  # invertido vs. el caso positivo (ver test de arriba)

@@ -78,6 +78,7 @@ def _caso_de_uso(mapeadores: list[str]):
         "ALIMENTO", __import__("decimal").Decimal("380000"), "158405", "activo1",
     )]
     fuente.comprobantes.return_value = []
+    fuente.linetypes_catalogados.return_value = (frozenset({"ALIMENTO"}), frozenset())
     contratos = MagicMock()
     contratos.listar_contratos.return_value = [_contrato(mapeadores)]
     uc = ConsultarAaefUseCase(fuente=fuente, contratos=contratos, sistema=SISTEMA, limite_bytes=20 * 1024 * 1024,

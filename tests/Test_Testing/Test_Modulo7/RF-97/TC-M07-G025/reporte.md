@@ -6,6 +6,11 @@ como aserciones a favor del comportamiento real, no como fallos de prueba).
 **Evidencia completa:** colección compartida
 `RF-97-Verificacion-Live/tc_m07_rf97_live.postman_collection.json` (carpeta "TC-M07-G025 -
 Metadata (CA-4)"), reporte HTML en `RF-97-Verificacion-Live/resultados/resultado_live_rf97.html`.
+**Re-ejecutado 2026-11-20** filtrando solo esta carpeta con Newman, reporte propio en
+`resultados/resultado_TC-M07-G025.html`/`.json` (10/10 aserciones, mismo resultado).
+**2026-11-21:** se agregó `tc_m07_g025.postman_collection.json` en esta misma carpeta — copia
+propia y autocontenida (incluye el login) de la carpeta de la colección compartida, para no
+depender de un archivo en otra carpeta. Verificado que corre sola con el mismo resultado (10/10).
 
 ## Petición real
 
