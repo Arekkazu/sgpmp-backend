@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-40 RF-53: audita estructura individual y lote |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita estructura rechazada fuera de transaccion de ingesta |
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: respaldar FALLA_PERSISTENCIA con correlación segura sin depender de la BD principal. |
+# | 2026-11-19 | Arekkazu | SEG-M03-03 RF-53: límite de tamaño del cuerpo en las rutas de ingesta |
 """Captura Pydantic antes del endpoint, limitada a las dos rutas escalares."""
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
@@ -20,7 +21,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from psycopg2 import Error as PostgreSQLError
 
 from src.shared.database import SessionLocal, declarar_identidad_sistema, sesion_sistema
-from src.shared.errors import AppError
+from src.shared.errors import AppError, PayloadTooLargeError
 from src.shared.error_handlers import request_validation_error_handler
 from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, TipoResultado, SeveridadLog
@@ -32,6 +33,29 @@ from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import
 logger = logging.getLogger(__name__)
 _CAMPOS = set(IngerirTelemetriaDTO.model_fields) | set(IngerirTelemetriaBatchDTO.model_fields)
 _RUTAS = {'/iot/telemetria', '/iot/telemetria/batch'}
+# SEG-M03-03: un lote de 500 lecturas o de 500 observaciones con su vector cabe holgado en 2 MB.
+LIMITE_CUERPO_BYTES = 2 * 1024 * 1024
+
+
+async def _leer_cuerpo_acotado(request: Request) -> None:
+    """Corta en cuanto el cuerpo pasa del límite, antes de parsear JSON o validar (413).
+
+    Lee por partes para no cargar en memoria un cuerpo sin ``Content-Length`` (chunked) y deja
+    el resultado en el caché de Starlette, de donde lo toma el endpoint."""
+    def rechazar():
+        raise PayloadTooLargeError(code='CUERPO_DEMASIADO_GRANDE', message=(
+            f'La solicitud supera el tamaño máximo de {LIMITE_CUERPO_BYTES // (1024 * 1024)} MB. Envíe lotes más pequeños.'))
+
+    largo = request.headers.get('content-length', '')
+    if largo.isdigit() and int(largo) > LIMITE_CUERPO_BYTES:
+        rechazar()
+    partes, total = [], 0
+    async for parte in request.stream():
+        total += len(parte)
+        if total > LIMITE_CUERPO_BYTES:
+            rechazar()
+        partes.append(parte)
+    request._body = b''.join(partes)
 
 
 def _identificadores(valor: object) -> dict:
@@ -146,6 +170,7 @@ class RutaIngestaAuditada(APIRoute):
         estructura_rf53 = self.path in _RUTAS and 'POST' in self.methods
 
         async def handler(request: Request):
+            await _leer_cuerpo_acotado(request)
             try:
                 return await original(request)
             except RequestValidationError as exc:

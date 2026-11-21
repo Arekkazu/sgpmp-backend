@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                 |
 # |------------|----------|-------------------------------------------------------------|
 # | 2026-11-13 | Arekkazu | SSO AgroFusion: la cuenta creada por SSO nace Administrador |
+# | 2026-11-16 | Arekkazu | SSO AgroFusion: la sesión falsa lleva identidad RLS          |
 """SSO AgroFusion: quien entra por primera vez desde AgroFusion queda Administrador.
 
 El rol se resuelve por ``es_protegido`` (así se identifica al Administrador en
@@ -36,6 +37,12 @@ class _Roles:
 
 
 class _Db:
+    def __init__(self):
+        self.info = {}
+
+    def in_transaction(self):
+        return False
+
     def commit(self):
         pass
 

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-86/87/109: período, configuración y línea de asiento |
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
+# | 2026-11-16 | Arekkazu | QA-M06 CU07 H-02 / CU12 H-01 RF-87/93: nombre legible del período |
 """Entidades contables de M06: período, configuración, parámetros y líneas de asiento."""
 from __future__ import annotations
 
@@ -10,7 +11,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from src.financial_valuation.domain.value_objects.nic41 import EstadoPeriodo
+from src.financial_valuation.domain.value_objects.nic41 import EstadoPeriodo, TipoCierre
+
+_MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
+          "noviembre", "diciembre")
 
 
 @dataclass(frozen=True)
@@ -22,7 +26,7 @@ class Periodo:
     fecha_fin: date
     estado: str
     fecha_cierre: Optional[datetime] = None
-    # Razón social del titular (solo la trae el listado, para distinguir los períodos por algo más que el NIT).
+    # Razón social del titular (la traen el listado y la consulta de un período; la descarga la imprime).
     razon_social: Optional[str] = None
 
     @property
@@ -31,6 +35,13 @@ class Periodo:
 
     def contiene(self, dia: date) -> bool:
         return self.fecha_inicio <= dia <= self.fecha_fin
+
+    @property
+    def nombre(self) -> str:
+        """«Noviembre de 2026»; un período trimestral o anual, por sus fechas (como lo nombra la pantalla)."""
+        if self.tipo_cierre == TipoCierre.MENSUAL.value:
+            return f"{_MESES[self.fecha_inicio.month - 1].capitalize()} de {self.fecha_inicio.year}"
+        return f"{self.fecha_inicio:%d/%m/%Y} – {self.fecha_fin:%d/%m/%Y}"
 
 
 @dataclass(frozen=True)

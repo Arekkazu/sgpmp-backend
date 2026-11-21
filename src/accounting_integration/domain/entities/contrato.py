@@ -1,6 +1,9 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-AE02: versiones del contrato AAEF, anexo y resolución de versión |
+# | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: estado antes que anexo al activar y solo una versión pendiente se modifica |
+# | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: el mínimo de gracia lo fija M09 |
+# | 2026-11-20 | Arekkazu | QA-M07 CU04 H-02 RF-98: el límite de versiones no manda a retirar una que ya está en retiro |
 """Contrato AAEF (RF-98 v1.1) y anexo de mapeo (RF-AE02 v3.0).
 
 El contrato avanza PENDIENTE → ACTIVO → DEPRECADO → INACTIVO, sin retrocesos ni saltos. Un MAJOR
@@ -14,10 +17,13 @@ from datetime import date, datetime, timedelta
 from typing import Iterable, Optional
 
 from src.accounting_integration.domain.services.aaef import MAPPERS_DISPONIBLES
+from src.configuration.domain.entities.parametro_mlops import RF98_GRACIA_DEFECTO_BASE, RF98_GRACIA_MINIMA_BASE
 from src.shared.errors import BusinessRuleError, FlowError, GoneError, NotFoundError, ValidationError
+from src.shared.fechas import fecha_usuario
 
-GRACIA_MINIMA_DIAS = 30
-GRACIA_DEFECTO_DIAS = 90
+# Valores base de RF-98; los efectivos se configuran en M09 (RNF-98.10).
+GRACIA_MINIMA_DIAS = RF98_GRACIA_MINIMA_BASE
+GRACIA_DEFECTO_DIAS = RF98_GRACIA_DEFECTO_BASE
 LIMITE_VIGENTES = 2
 _FORMATO_VERSION = re.compile(r"^(\d{1,3})\.(\d{1,3})$")
 
@@ -71,15 +77,48 @@ class VersionContrato:
     def numero(self) -> tuple[int, int]:
         return numero_version(self.contrato_version)
 
+    def exigir_activable(self) -> None:
+        """RF-98 CA-12/FA-13: el estado se valida antes que el anexo o los transformadores, para que una
+        versión inactiva responda que no se reactiva y no que le falta el anexo."""
+        self._exigir("PENDIENTE", "activar")
+
     def activar(self, ahora: datetime) -> None:
         self._exigir("PENDIENTE", "activar")
         self.estado, self.fecha_activacion = "ACTIVO", ahora
 
-    def deprecar(self, ahora: datetime, dias_gracia: int) -> None:
+    def modificar(self, *, fecha_vigencia: Optional[date] = None, id_mapeo_anexo_aaef: Optional[int] = None,
+                  mapeadores: Optional[list[str]] = None, periodo_gracia_dias: Optional[int] = None,
+                  descripcion: Optional[str] = None, minimo_dias: int = GRACIA_MINIMA_DIAS) -> None:
+        """RF-98 5.12 / CA-20 / FA-12: solo una versión PENDIENTE cambia sus datos; la versión y el tipo
+        de cambio son su identidad y no se modifican nunca."""
+        if self.estado != "PENDIENTE":
+            raise FlowError(code="MODIFICACION_NO_PERMITIDA", message=(
+                f"La versión {self.contrato_version} está {self.estado.lower()} y ya no puede modificarse."))
+        if periodo_gracia_dias is not None:
+            if self.tipo_cambio != "MAJOR":
+                raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="periodo_gracia_dias",
+                                      message="Solo una versión de cambio mayor tiene período de gracia.")
+            if periodo_gracia_dias < minimo_dias:
+                raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="periodo_gracia_dias",
+                                      message=f"El período de gracia debe ser de al menos {minimo_dias} días.")
+            self.periodo_gracia_dias = periodo_gracia_dias
+        if mapeadores is not None:
+            if not mapeadores or any(m not in MAPPERS_DISPONIBLES for m in mapeadores):
+                raise ValidationError(code="MAPPERS_INVALIDOS", field="mapeadores",
+                                      message="Indique transformadores válidos: compras y, si aplica, comprobante NIC 41.")
+            self.mapeadores = sorted(set(mapeadores))
+        if fecha_vigencia is not None:
+            self.fecha_vigencia = fecha_vigencia
+        if id_mapeo_anexo_aaef is not None:
+            self.id_mapeo_anexo_aaef = id_mapeo_anexo_aaef
+        if descripcion is not None:
+            self.descripcion = descripcion
+
+    def deprecar(self, ahora: datetime, dias_gracia: int, minimo_dias: int = GRACIA_MINIMA_DIAS) -> None:
         self._exigir("ACTIVO", "deprecar")
-        if dias_gracia < GRACIA_MINIMA_DIAS:
+        if dias_gracia < minimo_dias:
             raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="dias_gracia",
-                                  message=f"El período de gracia debe ser de al menos {GRACIA_MINIMA_DIAS} días.")
+                                  message=f"El período de gracia debe ser de al menos {minimo_dias} días.")
         self.estado, self.fecha_deprecacion = "DEPRECADO", ahora
         self.fecha_inactivacion = ahora + timedelta(days=dias_gracia)
 
@@ -130,14 +169,25 @@ def versiones_a_deprecar(contrato: VersionContrato, contratos: Iterable[VersionC
 
 
 def exigir_cupo(contrato: VersionContrato, contratos: Iterable[VersionContrato]) -> None:
-    """RF-98 5.3 / CA-29: máximo dos versiones ACTIVO o DEPRECADO; dice cuál retirar primero."""
+    """RF-98 5.3 / CA-29: máximo dos versiones ACTIVO o DEPRECADO; dice cómo se libera el cupo.
+
+    Una versión en retiro sigue contando hasta que termina su plazo, así que retirar otra no libera cupo
+    mientras haya una en retiro: entonces se informa cuándo termina ese retiro (CU04 H-02)."""
     vigentes = [c for c in contratos if c.estado in ("ACTIVO", "DEPRECADO")
                 and c.id_version_contrato_aaef != contrato.id_version_contrato_aaef]
-    if len(vigentes) >= LIMITE_VIGENTES:
-        candidata = min(vigentes, key=lambda c: (c.estado != "DEPRECADO", c.numero))
-        raise BusinessRuleError(code="LIMITE_VERSIONES_EXCEDIDO", message=(
-            f"Ya hay {len(vigentes)} versiones vigentes. Retire primero la versión {candidata.contrato_version} "
-            "antes de activar una nueva."))
+    if len(vigentes) < LIMITE_VIGENTES:
+        return
+    en_retiro = [c for c in vigentes if c.estado == "DEPRECADO"]
+    if en_retiro:
+        proxima = min(en_retiro, key=lambda c: (c.fecha_inactivacion is None, c.fecha_inactivacion or datetime.max))
+        hasta = f" hasta el {fecha_usuario(proxima.fecha_inactivacion):%d/%m/%Y}" if proxima.fecha_inactivacion else ""
+        mensaje = (f"Ya hay {len(vigentes)} versiones vigentes y la versión {proxima.contrato_version} ya está en "
+                   f"retiro{hasta}. Podrá activar una nueva versión cuando termine ese retiro.")
+    else:
+        candidata = min(vigentes, key=lambda c: c.numero)
+        mensaje = (f"Ya hay {len(vigentes)} versiones vigentes. Retire primero la versión {candidata.contrato_version}; "
+                   "podrá activar una nueva cuando termine su plazo de retiro.")
+    raise BusinessRuleError(code="LIMITE_VERSIONES_EXCEDIDO", message=mensaje)
 
 
 def resolver_version(contratos: Iterable[VersionContrato], solicitada: Optional[str]) -> VersionContrato:

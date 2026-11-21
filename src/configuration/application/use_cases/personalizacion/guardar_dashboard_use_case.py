@@ -1,9 +1,13 @@
+# | Fecha      | Nombre   | Que se hizo                                                     |
+# |------------|----------|-----------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-103: valida las opciones de cada widget y la frecuencia   |
 """Caso de uso: Guardar configuración del dashboard del usuario (PATCH RF-28).
 
 Rechaza, en el orden en que el RF enumera sus flujos alternos: perfil modificado
 durante la edición (409), widget inexistente (400), widget fuera del alcance del
 rol (403), indicador activo inexistente (400) y, ya en el dominio, límite de 12
-widgets (400), coordenadas o span inválidos (400) y solapamiento de celdas (409).
+widgets (400), coordenadas o span inválidos (400) y solapamiento de celdas (409). Las opciones de
+cada widget (RF-103) se validan contra su catálogo: opción o valor desconocido → 400.
 
 Todo se valida antes de tocar la base: una configuración inválida no puede dejar
 un cambio parcial persistido.
@@ -17,6 +21,7 @@ from src.configuration.domain.repositories.dashboard_layout_repository import Da
 from src.configuration.domain.repositories.widget_repository import WidgetRepository
 from src.configuration.infrastructure.dto.guardar_dashboard_dto import GuardarDashboardDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.reporting.domain.widgets import DEFINICIONES, validar_parametros
 from src.shared.errors import AuthorizationError, ConflictError, ValidationError
 
 
@@ -39,7 +44,7 @@ class GuardarDashboardUseCase:
 
     def execute(self, dto: GuardarDashboardDTO, usuario_actual: UsuarioActual) -> DashboardLayout:
         self._verificar_perfil_vigente(dto, usuario_actual)
-        self._verificar_catalogo(dto, usuario_actual)
+        claves = self._verificar_catalogo(dto, usuario_actual)
 
         grid = [
             WidgetConfig(
@@ -49,6 +54,7 @@ class GuardarDashboardUseCase:
                 span_columnas=w.span_columnas,
                 visible=w.visible,
                 orden=w.orden,
+                parametros=self._parametros(claves[w.id_widget], w.parametros),
             )
             for w in dto.layout_config
         ]
@@ -57,13 +63,16 @@ class GuardarDashboardUseCase:
 
         try:
             if existente is not None:
-                existente.actualizar(grid=grid, active_widget=dto.active_widget)
+                existente.actualizar(grid=grid, active_widget=dto.active_widget,
+                                     frecuencia_actualizacion=dto.frecuencia_actualizacion)
                 resultado = self.dashboard_repo.actualizar(existente)
             else:
                 nuevo = DashboardLayout.crear(
                     id_usuario=usuario_actual.id_usuario,
                     grid=grid,
                     active_widget=dto.active_widget,
+                    **({"frecuencia_actualizacion": dto.frecuencia_actualizacion}
+                       if dto.frecuencia_actualizacion is not None else {}),
                 )
                 resultado = self.dashboard_repo.guardar(nuevo)
             self.db.commit()
@@ -92,11 +101,18 @@ class GuardarDashboardUseCase:
                 field="version_perfil",
             )
 
+    @staticmethod
+    def _parametros(clave: str, parametros: dict) -> dict:
+        """Opciones validadas del widget; un widget sin opciones en el catálogo no guarda ninguna."""
+        definicion = DEFINICIONES.get(clave)
+        return validar_parametros(definicion, parametros) if definicion else {}
+
     def _verificar_catalogo(
         self,
         dto: GuardarDashboardDTO,
         usuario_actual: UsuarioActual,
-    ) -> None:
+    ) -> dict[int, str]:
+        """Valida el catálogo y devuelve la clave de cada widget del catálogo por su id."""
         catalogo = self.widget_repo.obtener_activos()
         ids_catalogo = {w.id_widget for w in catalogo}
         claves_catalogo = {w.clave for w in catalogo}
@@ -134,3 +150,4 @@ class GuardarDashboardUseCase:
                 ),
                 field="active_widget",
             )
+        return {w.id_widget: w.clave for w in catalogo}

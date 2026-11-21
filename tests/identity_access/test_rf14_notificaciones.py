@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                       |
+# |------------|----------|---------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-105: la bandeja falsa recibe el filtro nuevo |
+# | 2026-11-19 | Arekkazu | M8-05 RF-105: el ejemplo de aviso de cuenta ya no es el inicio de sesión |
 """Pruebas unitarias del servicio central y la bandeja RF-14."""
 from datetime import datetime, timezone
 import pytest
@@ -131,7 +135,7 @@ def test_push_se_despacha_antes_que_el_correo(monkeypatch) -> None:
     monkeypatch.setattr(service_module, "send_push", lambda **_datos: orden.append("push"))
 
     NotificacionService(port=port, db=DbFake()).notificar(
-        tipo_evento=3,
+        tipo_evento=6,
         id_usuario=7,
         correo_destino="ana@example.com",
     )
@@ -143,14 +147,16 @@ class BandejaRepoFake:
         self.notificaciones = notificaciones
         self.guardada = None
 
-    def listar_internas(self, id_usuario, solo_no_leidas, offset, limit):
+    def listar_internas(self, id_usuario, filtro, offset, limit):
         filas = [n for n in self.notificaciones if n.id_usuario == id_usuario]
-        if solo_no_leidas:
+        if filtro.solo_no_leidas:
             filas = [n for n in filas if not n.es_leido]
+        if filtro.nivel:
+            filas = [n for n in filas if n.nivel == filtro.nivel]
         return filas[offset : offset + limit]
 
-    def contar_internas(self, id_usuario, solo_no_leidas):
-        return len(self.listar_internas(id_usuario, solo_no_leidas, 0, 1000))
+    def contar_internas(self, id_usuario, filtro):
+        return len(self.listar_internas(id_usuario, filtro, 0, 1000))
 
     def obtener_interna(self, id_notificacion, id_usuario):
         return next(

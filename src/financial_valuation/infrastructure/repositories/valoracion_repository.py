@@ -13,6 +13,7 @@
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-83..86: las filas del período traen el id de la finca para el filtro |
 # | 2026-11-14 | destroyerban | INC-M06-361-G24 RF-85 FA-4: el historial del activo marca el cálculo consumido y da el valor actual en cero |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-85: el nombre de quien reconoció el producto sale aunque la RLS de usuarios lo oculte |
+# | 2026-11-16 | Arekkazu | QA-M06 CU03 H-01 RF-84 FA-2/FA-3: el cálculo validado por el Contador se lista como validado manualmente |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -446,7 +447,12 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                    x.precio_unitario, x.valor_razonable_bruto,
                    x.costo_transporte + x.costo_comisiones + x.costo_impuestos_transaccion + x.otros_costos_disposicion
                        AS costos_venta,
-                   x.valor_neto, x.metodo_costo::text AS metodo_costo, x.estado::text AS estado, x.tiene_valor_estimado,
+                   x.valor_neto, x.metodo_costo::text AS metodo_costo,
+                   -- CU03 H-01: el estado guardado sigue CALCULADO (es base de mediciones); el listado lo distingue
+                   CASE WHEN x.json_metodo_costo ? 'validacion_valor_no_positivo' THEN 'VALIDADO_MANUALMENTE'
+                        ELSE x.estado::text END AS estado,
+                   x.json_metodo_costo->'validacion_valor_no_positivo'->>'justificacion' AS justificacion_validacion,
+                   x.tiene_valor_estimado,
                    COALESCE((x.json_metodo_costo->>'es_producto')::boolean, false) AS es_producto, x.fecha_calculo
             FROM modulo6.calculos_valor_razonable x {_JOIN_ACTIVO}
             WHERE x.id_periodo_contable = :p ORDER BY x.fecha_calculo DESC, x.id_calculo_valor_razonable DESC""",

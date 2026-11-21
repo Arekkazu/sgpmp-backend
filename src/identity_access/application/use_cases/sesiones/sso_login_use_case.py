@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                   |
 # |------------|----------|---------------------------------------------------------------|
 # | 2026-11-13 | Arekkazu | SSO AgroFusion: la cuenta creada por SSO nace Administrador   |
+# | 2026-11-16 | Arekkazu | SSO AgroFusion: el alta del Administrador no choca con la RLS |
 """Caso de uso: inicio de sesión vía SSO de AgroFusion (Mecanismo A).
 
 Verifica un token de handoff RS256 emitido por AgroFusion y, según si el
@@ -30,6 +31,7 @@ from src.identity_access.domain.repositories.sso_provider_port import SsoProvide
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.infrastructure.dto.usuario_dto import SsoLoginDTO
+from src.shared.database import como_sistema, declarar_identidad_si_anonima
 from src.shared.errors import AuthenticationError
 
 # modulo1.tipos_eventos — ver anotaciones/modulo_1/gaps_bd_sso_agrofusion.md
@@ -169,6 +171,11 @@ class SsoLoginUseCase:
         multi-tenant, así que no hay un rol por finca que asignarle. Mientras
         la cuenta siga en PENDIENTE_DATOS, RBAC no hace efectivos sus permisos.
         El Administrador se identifica por ``es_protegido``, no por ``id_rol``.
+
+        El alta corre como el usuario de servicio: la RLS de ``modulo1.usuarios``
+        no deja que un anónimo cree a alguien con rol protegido (eso protege el
+        registro público). Lo demás —cuenta, evento, sesión— sigue como el
+        usuario nuevo, igual que en el registro.
         """
         try:
             id_rol_administrador = next(r.id_rol for r in self.roles_repo.listar() if r.es_protegido)
@@ -178,7 +185,9 @@ class SsoLoginUseCase:
                 contrasena=contrasena_inutilizable,
                 id_rol=id_rol_administrador,
             )
-            usuario = self.usuarios_repo.guardar(usuario)
+            with como_sistema(self.db):
+                usuario = self.usuarios_repo.guardar(usuario)
+            declarar_identidad_si_anonima(self.db, usuario.id_usuario)
 
             # Se crea directo en PENDIENTE_DATOS (sin token de activación: no
             # aplica un flujo de verificación por correo aquí) para no pasar

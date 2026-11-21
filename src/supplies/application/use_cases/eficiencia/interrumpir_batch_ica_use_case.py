@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | INC-M05-511 RF-74: al arrancar se interrumpen las corridas del batch ICA que quedaron huérfanas |
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: separar causa y motivo y emitir un aviso tras confirmar el corte. |
+# | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 """Caso de uso: interrumpir una corrida del batch ICA en curso (RF-74, FA-12).
 
 Marca la ejecución ``INTERRUMPIDO`` y preserva la cola. Los workers de la corrida en
@@ -38,7 +39,7 @@ class InterrumpirBatchICAUseCase:
             self.notificador.a_roles(
                 ("Administrador", "Productor"),
                 "BATCH_ICA_INTERRUMPIDO",
-                "El proceso batch de cálculo de CA fue interrumpido manualmente. "
+                "El proceso batch de cálculo del ICA fue interrumpido manualmente. "
                 "El procesamiento pendiente puede retomarse en la siguiente ejecución.",
                 {"id_ejecucion": id_ejecucion, "causa_interrupcion": ejecucion.causa_interrupcion},
             )
@@ -53,7 +54,7 @@ class InterrumpirBatchICAUseCase:
             if ejecucion is None:
                 raise NotFoundError(
                     code="EJECUCION_NO_ENCONTRADA",
-                    message=f"La ejecución de batch ICA con ID {id_ejecucion} no existe.",
+                    message="La ejecución del cálculo del ICA no existe.",
                     field="id_ejecucion",
                 )
             ejecucion.interrumpir(
