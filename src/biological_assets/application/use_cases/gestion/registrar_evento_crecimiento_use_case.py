@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-14 | Arekkazu | QA-M06 RF-40: guarda la fecha recortada a ahora (reloj del usuario adelantado) |
 """Caso de uso: registro de mediciones de crecimiento (RF-40)."""
 
 from __future__ import annotations
@@ -103,7 +106,7 @@ class RegistrarEventoCrecimientoUseCase:
             )
 
         fecha = dto.fecha or datetime.now(timezone.utc)
-        validar_fecha_evento(fecha, activo, self.evento_repo)
+        fecha = validar_fecha_evento(fecha, activo, self.evento_repo)
 
         # FA-07 (CU06): tipo_agregacion prohibido para activos INDIVIDUAL
         if activo.tipo == 'INDIVIDUAL' and dto.tipo_agregacion is not None:

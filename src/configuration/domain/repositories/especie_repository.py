@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-21 RF-15: puerto listar_areas_ocupadas (RFC-012) |
 """Puerto de persistencia del agregado ``Especie`` (capa de dominio).
 
 Define el contrato que la capa de aplicación usa para leer y guardar especies,
@@ -13,6 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from src.configuration.domain.entities.especie import Especie
+from src.configuration.domain.services.capacidad_area import AreaOcupada
 from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
 
 
@@ -107,4 +111,9 @@ class EspecieRepository(ABC):
     @abstractmethod
     def contar_activos_alojados(self, id_especie: int) -> int:
         """RF-15 v1.1: activos biológicos de la especie alojados en un área y operativos."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def listar_areas_ocupadas(self, id_especie: int) -> list[AreaOcupada]:
+        """RFC-012: áreas activas donde está la especie y que alojan individuos."""
         raise NotImplementedError

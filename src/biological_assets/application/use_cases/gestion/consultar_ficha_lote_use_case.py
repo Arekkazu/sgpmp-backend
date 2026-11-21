@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #394 RF-36: estado de la densidad del lote frente al límite de su etapa o especie |
 """Caso de uso: ficha de gestión de un lote POBLACIONAL (RF-36)."""
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from src.biological_assets.domain.repositories.especie_consulta_port import Espe
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.transferencia_repository import TransferenciaRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.biological_assets.domain.services.densidad_lote import evaluar_densidad
 from src.shared.errors import NotFoundError, ValidationError
 
 _ULTIMOS_EVENTOS_FICHA = 10
@@ -69,9 +74,12 @@ class ConsultarFichaLoteUseCase:
         dp = activo.detalle_poblacional
 
         infra = self.infra_port.obtener_activa(activo.id_infraestructura)
+        # RFC-012 (DEV-23): la densidad que limita el área es el MIN de las especies
+        # presentes (la misma que define su capacidad efectiva). Antes salía de
+        # capacidad_maxima/superficie, NULL en todas las áreas.
         densidad_maxima: Optional[Decimal] = None
-        if infra and infra.capacidad_maxima and infra.superficie and infra.superficie > 0:
-            densidad_maxima = Decimal(infra.capacidad_maxima) / infra.superficie
+        if infra and infra.especies and all(e.densidad is not None for e in infra.especies):
+            densidad_maxima = min(Decimal(e.densidad) for e in infra.especies)
 
         especie = self.especie_port.obtener_activa(activo.id_especie)
 
@@ -108,4 +116,9 @@ class ConsultarFichaLoteUseCase:
             densidad_maxima=densidad_maxima,
             historial=historial.registros,
             total_registros_historial=historial.total_registros,
+            estado_densidad=evaluar_densidad(
+                cantidad=dp.cantidad_actual if dp else None, superficie=infra.superficie if infra else None,
+                densidad_especie=densidad_maxima, limite_etapa=self.infra_port.limite_etapa_del_activo(id_activo),
+                biomasa_total=dp.biomasa_total if dp else None,
+            ),
         )

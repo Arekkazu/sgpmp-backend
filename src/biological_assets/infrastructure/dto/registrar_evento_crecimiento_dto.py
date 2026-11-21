@@ -1,16 +1,19 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/crecimiento``
 (RF-40).
 """
 
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
 from pydantic import field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 # LONGITUD es como M09 (RF-16) nombra la talla; sin ella una métrica de
 # longitud de la especie nunca se podía registrar.
@@ -42,7 +45,7 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     frecuencia: Optional[str] = None
     nuevo_peso_promedio: Optional[Decimal] = None
     cantidad_medida: Optional[int] = None
-    fecha: Optional[datetime] = None
+    fecha: Optional[FechaHoraUtc] = None
     descripcion: Optional[str] = None
 
     @field_validator('tipo_medicion')

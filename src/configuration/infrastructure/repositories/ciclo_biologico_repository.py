@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
 """Implementación SQLAlchemy del puerto :class:`CicloBiologicoRepository`."""
 from __future__ import annotations
 
@@ -30,6 +33,9 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
             id_especie=orm.id_especie,
             es_activo=orm.es_activo,
             fecha_actualizacion=orm.fecha_actualizacion,
+            densidad_maxima=orm.densidad_maxima,
+            biomasa_maxima=orm.biomasa_maxima,
+            aviso_preventivo_pct=orm.aviso_preventivo_pct if orm.aviso_preventivo_pct is not None else 90,
         )
 
     def obtener_por_id(self, id_ciclo_biologico: int, *, bloquear: bool = False) -> Optional[CicloBiologico]:
@@ -85,6 +91,9 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
         orm.duracion_dias = ciclo.duracion_dias.valor
         orm.es_activo = ciclo.es_activo
         orm.fecha_actualizacion = ciclo.fecha_actualizacion
+        orm.densidad_maxima = ciclo.densidad_maxima
+        orm.biomasa_maxima = ciclo.biomasa_maxima
+        orm.aviso_preventivo_pct = ciclo.aviso_preventivo_pct
         try:
             self.db.flush()
             self.db.refresh(orm)

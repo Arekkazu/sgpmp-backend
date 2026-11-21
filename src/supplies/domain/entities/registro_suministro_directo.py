@@ -1,8 +1,13 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-78: corrección aditiva y compensación  |
 """Entidad de dominio ``RegistroSuministroDirecto`` (RF-78 — registro directo).
 
 Python puro. Representa una fila de ``modulo5.registro_suministro`` insertada
 directamente por la app para SERVICIO_VETERINARIO/INSEMINACION (o una
-CORRECCION de cualquier tipo de suministro). A diferencia de ALIMENTO/
+CORRECCION de cualquier tipo de suministro). Una CORRECCION es un ajuste que
+SUMA al acumulado (RF-78 R12/CA-8) y puede ser negativo (RNF-09): el acumulado
+del ciclo es siempre Σ ``costo_registro`` de todas las filas (R7). A diferencia de ALIMENTO/
 MEDICAMENTO (poblados por trigger desde RF-75/76, sin cálculo en Python), aquí
 no hay ningún trigger ``BEFORE INSERT`` que calcule ``costo_registro`` — lo
 calcula la entidad misma (Restricción 7 de RF-78: ``costo_registro = cantidad
@@ -41,6 +46,8 @@ class RegistroSuministroDirecto:
     motivo_correccion: Optional[str] = None
     id_registro_suministro: Optional[UUID] = None
     fecha_registro: Optional[datetime] = None
+    id_registro_rf75: Optional[UUID] = None
+    id_registro_rf76: Optional[UUID] = None
 
     @classmethod
     def crear(
@@ -93,6 +100,9 @@ class RegistroSuministroDirecto:
     ) -> "RegistroSuministroDirecto":
         """Construye un registro de ajuste (``tipo_operacion=CORRECCION``) referenciando el original.
 
+        Su ``costo_registro`` se suma al acumulado (RF-78 R12); un precio
+        negativo produce un ajuste compensatorio (RNF-09).
+
         Hereda ``id_activo_biologico``/``id_ciclo_productivo``/``id_gestion_fases``/
         ``tipo_suministro``/``unidad_medida``/``naturaleza_costo`` del original —
         una corrección no puede cambiar la identidad del suministro que ajusta.
@@ -116,6 +126,31 @@ class RegistroSuministroDirecto:
             id_registro_original=original.id_registro_suministro,
             motivo_correccion=motivo_correccion,
         )
+
+    @classmethod
+    def crear_compensacion(
+        cls,
+        *,
+        original: "RegistroSuministroDirecto",
+        costo_compensatorio: Decimal,
+        motivo_correccion: str,
+        id_idempotencia: UUID,
+    ) -> "RegistroSuministroDirecto":
+        """CORRECCION que neutraliza el costo vigente de un registro anulado (RF-75/76 → RF-78).
+
+        El costo se fija exacto (``-costo vigente``); el precio unitario es el que
+        lo explica sobre la misma cantidad, redondeado a 4 decimales.
+        """
+        correccion = cls.crear_correccion(
+            original=original,
+            cantidad_corregida=original.cantidad,
+            precio_unitario_corregido=(costo_compensatorio / original.cantidad).quantize(Decimal("0.0001")),
+            motivo_correccion=motivo_correccion,
+            id_idempotencia=id_idempotencia,
+            origen_precio=original.origen_precio,
+        )
+        correccion.costo_registro = costo_compensatorio
+        return correccion
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RegistroSuministroDirecto):

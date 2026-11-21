@@ -1,21 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-19 | Arekkazu | SEG-M03-01 RF-53: retira registrar_exito, sin llamadores (el éxito lo registra fn_ingesta_telemetria) |
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Optional
 
 
 class BitacoraIngestRepository(ABC):
-
-    @abstractmethod
-    def registrar_exito(
-        self,
-        id_telemetria: int,
-        id_sensor: int,
-        id_dispositivo_iot: int,
-        estado_calidad: str,
-        timestamp_captura: datetime,
-        gateway_id: Optional[str] = None,
-    ) -> None:
-        """Registra evento de procesamiento exitoso (DATOS_PROCESADOS)."""
 
     @abstractmethod
     def registrar_error(

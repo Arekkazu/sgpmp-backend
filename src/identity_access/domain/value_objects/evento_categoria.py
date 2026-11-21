@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-25 RF-17: tipo de evento 31 CAMBIO_VARIABLE_CRITICA (RFC-016) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: tipo de evento 32 NOTIFICACION_ALERTA |
+# | 2026-10-23 | Arekkazu | M05 RF-74..81: tipos de evento 33-38 de las notificaciones de suministros |
+# | 2026-11-08 | Arekkazu | INC-M06-299-G81 RF-14: tipos 39-41 de M06/M07; sin ellos sus avisos no se registraban |
+# | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: tipo 42 FIN_PERIODO_RETIRO del aviso de fin de retiro |
+# | 2026-11-18 | Arekkazu | M08 RF-104..106: tipos 43-46 de reportes, degradación del modelo y auditoría de notificaciones |
 """Categorías funcionales de los eventos de auditoría del Módulo 1.
 
 La categoría se deriva del tipo de evento en un único punto del dominio. De
@@ -68,6 +76,34 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     # Calibración registrada correctamente en M09 (RF-24/RF-10), SENSOR o VISION
     # según detalle.operacion.
     30: EventoCategoria.MODIFICACION,
+    # Variable ambiental marcada o desmarcada como crítica (RFC-016 B.7, RF-17).
+    31: EventoCategoria.MODIFICACION,
+    # Notificación de una alerta de RF-57 a un usuario (DEV-32): la emite un proceso
+    # automático, igual que el 28.
+    32: EventoCategoria.MODIFICACION,
+    # Notificaciones internas de M05 (migración bf404c6f1018): las emiten procesos
+    # automáticos (reportes, historial, provisión a M06, batch ICA), igual que el 32.
+    33: EventoCategoria.MODIFICACION,
+    34: EventoCategoria.MODIFICACION,
+    35: EventoCategoria.MODIFICACION,
+    36: EventoCategoria.MODIFICACION,
+    37: EventoCategoria.MODIFICACION,
+    38: EventoCategoria.MODIFICACION,
+    # Avisos del módulo financiero (migración c4d81e6f2a95) y de la integración contable
+    # (94b14a6931d6): cierre de período, alertas NIC 41 y alertas de integración. Los emiten
+    # procesos automáticos, igual que los de M05.
+    39: EventoCategoria.MODIFICACION,
+    40: EventoCategoria.MODIFICACION,
+    41: EventoCategoria.MODIFICACION,
+    # Fin del período de retiro de un medicamento (RF-76 paso 13, migración d1f3a5c7e902): lo emite
+    # el job diario o la anulación del tratamiento, igual que los avisos automáticos de M05.
+    42: EventoCategoria.MODIFICACION,
+    # M08 (migración a7c3e91f5b20): reporte generado o fallido (RF-104), degradación del modelo predictivo
+    # (RF-106) y creación o cambio de estado de una notificación (RF-105 Fase 5).
+    43: EventoCategoria.CONSULTA,
+    44: EventoCategoria.CONSULTA,
+    45: EventoCategoria.MODIFICACION,
+    46: EventoCategoria.MODIFICACION,
 }
 
 
@@ -107,6 +143,22 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     28: "INCONSISTENCIA_AUDITORIA_M02",
     29: "CALIBRACION_RECHAZADA",
     30: "CALIBRACION_EXITOSA",
+    31: "CAMBIO_VARIABLE_CRITICA",
+    32: "NOTIFICACION_ALERTA",
+    33: "REPORTE_GASTOS_GENERADO",
+    34: "REPORTE_GASTOS_FALLIDO",
+    35: "HISTORIAL_SUMINISTROS_LISTO",
+    36: "PROVISION_M06_PENDIENTE",
+    37: "ALERTA_CONVERSION_ALIMENTICIA",
+    38: "BATCH_ICA_INTERRUMPIDO",
+    39: "CIERRE_PERIODO_CONTABLE",
+    40: "ALERTA_FINANCIERA_NIC41",
+    41: "ALERTA_INTEGRACION_CONTABLE",
+    42: "FIN_PERIODO_RETIRO",
+    43: "REPORTE_GENERADO",
+    44: "REPORTE_FALLIDO",
+    45: "DEGRADACION_MODELO_PREDICTIVO",
+    46: "AUDITORIA_NOTIFICACION",
 }
 
 

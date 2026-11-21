@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-06 | Arekkazu | M07 RF-SSO02: el token M2M sale del canal de M07 (prueba propia allí) |
+# | 2026-11-13 | Arekkazu | SSO AgroFusion: el caso de uso recibe el repositorio de roles |
 """RF-02: un usuario sin fila en `cuentas` no debe tumbar el login con un 500.
 
 `verificar_estado_cuenta` recibía `None` y fallaba en `cuenta.esta_bloqueada()`.
@@ -9,13 +13,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.identity_access.application.use_cases.agrofusion.emitir_token_agrofusion_use_case import (
-    EmitirTokenAgroFusionUseCase,
-)
 from src.identity_access.application.use_cases.sesiones.login_use_case import LoginUseCase
 from src.identity_access.application.use_cases.sesiones.sso_login_use_case import SsoLoginUseCase
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO, SsoLoginDTO
-from src.shared.errors import AuthenticationError, NotFoundError
+from src.shared.errors import AuthenticationError
 
 _CORREO = "qa.sin.cuenta@example.com"
 
@@ -52,17 +53,8 @@ def test_sso_con_usuario_sin_cuenta_responde_401() -> None:
     sso = SimpleNamespace(verificar=lambda _t: SimpleNamespace(email=_CORREO))
     use_case = SsoLoginUseCase(
         sso_provider=sso, usuarios_repo=_Usuarios(True), cuentas_repo=_SinCuenta(),
-        sesiones_repo=None, eventos_repo=None, db=None,
+        sesiones_repo=None, eventos_repo=None, roles_repo=None, db=None,
     )
     with pytest.raises(AuthenticationError):
         use_case.execute(SsoLoginDTO(sso_token="t"), ip="127.0.0.1", user_agent="test")
 
-
-def test_agrofusion_con_usuario_sin_cuenta_responde_404() -> None:
-    use_case = EmitirTokenAgroFusionUseCase(
-        usuarios_repo=_Usuarios(True), cuentas_repo=_SinCuenta(),
-        sesiones_repo=None, eventos_repo=None, db=None,
-    )
-    with pytest.raises(NotFoundError) as exc:
-        use_case.execute(_CORREO, ip="127.0.0.1", user_agent="test")
-    assert exc.value.code == "USUARIO_NO_ENCONTRADO"

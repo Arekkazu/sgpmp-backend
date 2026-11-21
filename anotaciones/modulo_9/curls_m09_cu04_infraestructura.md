@@ -362,3 +362,52 @@ Errores posibles:
 - El control de concurrencia (FA-14) requiere enviar `fecha_actualizacion` con el valor exacto obtenido de la última lectura. Un timestamp desactualizado retorna `412`.
 - Tipos de área válidos (enum DB): `galpon`, `corral`, `potrero`, `estanque`, `invernadero`.
 - Para probar con Swagger: `http://localhost:8000/docs` → secciones "Configuración - Parámetros Operativos", "Configuración - Fincas", "Configuración - Infraestructura Productiva".
+
+---
+
+## DEV-10 — Propagar `tipo_modelo_asignado` al Gateway Edge (RF-20, D-06)
+
+Al **crear** un área con `tipo_modelo_asignado` o al **cambiarlo** con
+`PATCH /configuracion/infraestructuras/{id}`, después del commit se envía a los Gateway Edge
+del área por el broker con `origen: "tipo_modelo"` (BRK-05 de `BROKER-MQTT-SGPMP`:
+`tipo_comando = TIPO_MODELO_ASIGNADO`, confirmación `ACK_TIPO_MODELO`). El nodo reinicia su
+módulo de procesamiento con el esquema nuevo y conserva la calibración activa.
+
+- **Gateway del área:** los Gateway Edge activos instalados en el área o que atienden un
+  dispositivo activo de ella. Se buscan como el usuario de servicio (`modulo9` tiene RLS forzada).
+- **No se envía** si el área no tiene Gateway (un área recién creada todavía no tiene
+  dispositivos), si se quita el modelo (`null`) o si el PATCH no cambia el modelo (editar el
+  nombre no reinicia el nodo).
+- **La respuesta HTTP del área no cambia:** el área ya quedó guardada. El resultado de cada
+  Gateway queda en la bitácora IoT.
+
+Comando enviado a cada Gateway:
+
+```json
+{
+  "origen": "tipo_modelo",
+  "serial": "DISPOSITIVOCAMARONERA41",
+  "id_infraestructura": 19,
+  "tipo_modelo_asignado": "MODELO_ACUICULTURA"
+}
+```
+
+### Ver el resultado en la bitácora IoT
+
+Un evento `PROPAGACION_TIPO_MODELO_EDGE` por Gateway, sobre la entidad `DISPOSITIVO` (id del
+Gateway), con `componente_origen = RF20`:
+
+```bash
+curl -s "http://localhost:8000/iot/auditoria?tipo_evento=PROPAGACION_TIPO_MODELO_EDGE&entidad_afectada_id=38" \
+  -H "Authorization: Bearer <TOKEN_ADMIN>"
+```
+
+| Veredicto del broker | `resultado` | `severidad_log` |
+|---|---|---|
+| `APLICADA` (llegó `ACK_TIPO_MODELO`) | `EXITOSO` | `INFO` |
+| `PENDIENTE` (Gateway desconectado, no se publicó) | `ADVERTENCIA` | `WARNING` |
+| `SIN_INTEGRACION` (el ambiente no tiene broker) | `ADVERTENCIA` | `WARNING` |
+| `NO_CONF` (sin ACK, broker caído o error HTTP) | `FALLIDO` | `ERROR` |
+
+`accion_detallada`: `serial`, `id_infraestructura`, `estado`, `tipo_modelo_asignado`,
+`publicado`, `ack_tipo_modelo`, `mensaje` (con la causa si falló) y `duracion_ms`.

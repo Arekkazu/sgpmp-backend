@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                     |
+# |------------|----------|-----------------------------------------------------------------|
+# | 2026-11-02 | Arekkazu | RFC-021 RF-110: registra AristaTransmisionModel                  |
 from .especie_model import EspecieModel
 from .ciclo_biologico_model import CicloBiologicoModel
 from .patologia_model import PatologiaModel
@@ -28,3 +31,4 @@ from .preferencia_idioma_model import PreferenciaIdiomaModel
 from .plantilla_model import PlantillaModel
 from .aplicacion_plantilla_model import AplicacionPlantillaModel
 from .auditoria_plantilla_model import AuditoriaPlantillaModel
+from .arista_transmision_model import AristaTransmisionModel

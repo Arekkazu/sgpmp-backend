@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-06 | Arekkazu | RFC-019 D-19.6: activación idempotente para las cuentas creadas por AgroFusion |
 """Entidad de dominio ``Cuenta`` del contexto de identidad y acceso.
 
 Representa el estado operativo y de seguridad de la cuenta de un usuario
@@ -99,6 +102,12 @@ class Cuenta:
         self.fecha_verificacion = ahora
         self.token_activacion_actual = None
         self.fecha_cambio_estado = ahora
+
+    def conservar_token_m2m(self, token_hash: str) -> None:
+        """RFC-019 D-19.6: la cuenta ya activa guarda el hash del token que AgroFusion usará en
+        ``ACTIVATE_ACCOUNT``; vale 24 h desde la activación (``fecha_cambio_estado``)."""
+        self.token_activacion_actual = token_hash
+        self.token_usado = True
 
     def asignar_token_activacion(self, token_hash: str, ahora: datetime) -> None:
         """Asigna el hash de un nuevo token de activación (reenvío)."""

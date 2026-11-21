@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 from typing import Optional
@@ -22,12 +25,14 @@ class VersionModeloAdapter(VersionModeloPort):
         ).fetchone()
         return row[0] if row else None
 
-    def obtener_llave(self, id_version: int) -> Optional[tuple[str, Optional[str], Optional[str]]]:
+    def obtener_llave(
+        self, id_version: int
+    ) -> Optional[tuple[str, Optional[str], Optional[str], Optional[int]]]:
         row = self._db.execute(
             text(
-                "SELECT estado_version::text, tipo_modelo::text, componente "
+                "SELECT estado_version::text, tipo_modelo::text, componente, id_activo_biologico "
                 "FROM modulo4.versiones_modelos WHERE id_version_modelo = :id"
             ),
             {"id": id_version},
         ).fetchone()
-        return (row[0], row[1], row[2]) if row else None
+        return (row[0], row[1], row[2], row[3]) if row else None

@@ -1,9 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para aplicar una plantilla a una especie destino (RF-32)."""
 from __future__ import annotations
 
-import datetime
-
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 
 class AplicarPlantillaDTO(BaseDTO):
@@ -18,4 +20,4 @@ class AplicarPlantillaDTO(BaseDTO):
     """
 
     id_especie_destino: int
-    fecha_actualizacion_especie_destino: datetime.datetime | None
+    fecha_actualizacion_especie_destino: FechaHoraUtc | None

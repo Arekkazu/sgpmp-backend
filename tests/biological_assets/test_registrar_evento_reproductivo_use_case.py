@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-42: la restricción de LOTE (POBLACIONAL) en eventos reproductivos sí se aplica.
 
 El use case comparaba ``activo.tipo == 'LOTE'``, valor que ``TipoActivo`` nunca
@@ -83,6 +86,9 @@ class InfraPortFake:
     """id_infraestructura -> id_finca fijo: 1->1, 2->2 (para simular fincas distintas)."""
 
     _FINCA_POR_INFRA = {1: 1, 2: 2}
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
     def obtener_activa(self, id_infraestructura: int):
         id_finca = self._FINCA_POR_INFRA.get(id_infraestructura)

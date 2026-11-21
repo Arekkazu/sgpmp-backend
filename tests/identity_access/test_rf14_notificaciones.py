@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo                                       |
+# |------------|----------|---------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-105: la bandeja falsa recibe el filtro nuevo |
+# | 2026-11-19 | Arekkazu | M8-05 RF-105: el ejemplo de aviso de cuenta ya no es el inicio de sesión |
+# | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: la notificación ajena responde 403 |
 """Pruebas unitarias del servicio central y la bandeja RF-14."""
 from datetime import datetime, timezone
 import pytest
@@ -10,7 +15,7 @@ from src.identity_access.application.use_cases.notificaciones.marcar_notificacio
 )
 from src.identity_access.domain.entities.notificacion import Notificacion
 from src.shared import notificacion_service as service_module
-from src.shared.errors import NotFoundError
+from src.shared.errors import AuthorizationError, NotFoundError
 from src.shared.notificacion_service import NotificacionService
 
 
@@ -131,7 +136,7 @@ def test_push_se_despacha_antes_que_el_correo(monkeypatch) -> None:
     monkeypatch.setattr(service_module, "send_push", lambda **_datos: orden.append("push"))
 
     NotificacionService(port=port, db=DbFake()).notificar(
-        tipo_evento=3,
+        tipo_evento=6,
         id_usuario=7,
         correo_destino="ana@example.com",
     )
@@ -143,14 +148,16 @@ class BandejaRepoFake:
         self.notificaciones = notificaciones
         self.guardada = None
 
-    def listar_internas(self, id_usuario, solo_no_leidas, offset, limit):
+    def listar_internas(self, id_usuario, filtro, offset, limit):
         filas = [n for n in self.notificaciones if n.id_usuario == id_usuario]
-        if solo_no_leidas:
+        if filtro.solo_no_leidas:
             filas = [n for n in filas if not n.es_leido]
+        if filtro.nivel:
+            filas = [n for n in filas if n.nivel == filtro.nivel]
         return filas[offset : offset + limit]
 
-    def contar_internas(self, id_usuario, solo_no_leidas):
-        return len(self.listar_internas(id_usuario, solo_no_leidas, 0, 1000))
+    def contar_internas(self, id_usuario, filtro):
+        return len(self.listar_internas(id_usuario, filtro, 0, 1000))
 
     def obtener_interna(self, id_notificacion, id_usuario):
         return next(
@@ -162,6 +169,9 @@ class BandejaRepoFake:
             ),
             None,
         )
+
+    def existe_interna(self, id_notificacion):
+        return any(n.id_notificacion == id_notificacion for n in self.notificaciones)
 
     def guardar(self, notificacion):
         self.guardada = notificacion
@@ -210,7 +220,12 @@ def test_marcar_leida_es_idempotente_y_no_permite_notificacion_ajena() -> None:
     assert repetido.es_leido is True
     assert db.commits == 2
 
-    with pytest.raises(NotFoundError) as error:
+    # INC-M08-383-G014: la de otro usuario se rechaza con 403 (RF-105 restricción 4); la que no existe, 404.
+    with pytest.raises(AuthorizationError) as error:
         caso.execute(2, 7)
+    assert error.value.code == "NOTIFICACION_AJENA"
+
+    with pytest.raises(NotFoundError) as error:
+        caso.execute(99, 7)
 
     assert error.value.code == "NOTIFICACION_NO_ENCONTRADA"

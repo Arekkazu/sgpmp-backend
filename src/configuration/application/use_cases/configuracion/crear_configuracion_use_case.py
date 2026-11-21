@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-27 RF-60/18: valida cadena en creacion         |
 """Caso de uso: Crear parámetros operativos globales (POST RF-18).
 
 Solo se permite si no existe ninguna configuración activa (FA-13).
@@ -17,6 +20,7 @@ from src.configuration.domain.value_objects.heartbeat import Heartbeat
 from src.configuration.infrastructure.dto.crear_configuracion_dto import CrearConfiguracionDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import ConflictError
+from .validar_cadena_heartbeat import validar_cadena_heartbeat
 
 
 class CrearConfiguracionUseCase:
@@ -28,13 +32,16 @@ class CrearConfiguracionUseCase:
         config_repo: ConfiguracionGlobalRepository,
         auditoria_repo: AuditoriaConfigRepository,
         iot_port: IotNotificacionPort,
+        parametros_repo,
     ) -> None:
         self.db = db
         self.config_repo = config_repo
         self.auditoria_repo = auditoria_repo
         self.iot_port = iot_port
+        self.parametros_repo = parametros_repo
 
     def execute(self, dto: CrearConfiguracionDTO, usuario_actual: UsuarioActual) -> ConfiguracionGlobal:
+        self.parametros_repo.bloquear_configuracion()
         existente = self.config_repo.obtener_activo()
         if existente is not None:
             raise ConflictError(
@@ -47,6 +54,8 @@ class CrearConfiguracionUseCase:
 
         frecuencia = FrecuenciaMuestreo(dto.frecuencia_muestreo)
         heartbeat = Heartbeat(dto.heartbeat)
+        ConfiguracionGlobal._validar_coherencia(frecuencia, heartbeat)
+        validar_cadena_heartbeat(self.parametros_repo, frecuencia.valor, heartbeat.valor)
 
         config = ConfiguracionGlobal.crear(
             frecuencia_muestreo=frecuencia,

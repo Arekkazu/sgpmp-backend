@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | USAB-M04 T-18 RF-73: nombre del usuario actor además del id |
+# | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
 from __future__ import annotations
 
 import uuid
@@ -23,9 +27,13 @@ class EventoAuditoriaM04Response(BaseDTO):
     severidad_evento: str
     origen_registro: str
     id_usuario: Optional[int] = None
+    # T-18: la auditoría y el historial del modelo mostraban "Usuario 900".
+    nombre_usuario: Optional[str] = None
     id_sistema: Optional[str] = None
     id_referencia: Optional[str] = None
     entidad_referencia: Optional[str] = None
+    # AJF-13: nombre legible de la referencia (código del animal, nombre de la versión…).
+    nombre_referencia: Optional[str] = None
     resultado_operacion: Optional[str] = None
     codigo_error: Optional[str] = None
     descripcion_error: Optional[str] = None

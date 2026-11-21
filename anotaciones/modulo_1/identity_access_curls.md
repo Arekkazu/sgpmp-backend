@@ -218,7 +218,8 @@ curl -s -X POST http://localhost:8000/usuarios/me/fcm-token \
 
 ### Consultar bandeja de notificaciones internas
 ```bash
-curl -s -X GET "http://localhost:8000/notificaciones?pagina=1&tamano=20" \
+# Sin tamano trae 50 por página (el máximo); tamano=51 o pagina=0 → 400 VAL_ENTRADA
+curl -s -X GET "http://localhost:8000/notificaciones?pagina=1" \
   -H "Authorization: Bearer <TOKEN>" | jq
 
 # Solo las pendientes de lectura

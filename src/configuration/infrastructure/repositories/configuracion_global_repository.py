@@ -34,6 +34,7 @@ class SqlAlchemyConfiguracionGlobalRepository(ConfiguracionGlobalRepository):
         orm = (
             self.db.query(ConfiguracionGlobalModel)
             .filter(ConfiguracionGlobalModel.es_activo.is_(True))
+            .populate_existing()
             .first()
         )
         return self._a_entidad(orm) if orm else None

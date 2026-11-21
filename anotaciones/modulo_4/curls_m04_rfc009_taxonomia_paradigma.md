@@ -65,8 +65,8 @@ Errores posibles (nuevos o cambiados):
 - `422` `TIPO_MODELO_INVALIDO` — incluye los 4 valores viejos (`ESPECIES_PEQUEÑAS`…)
 - `422` `UMBRAL_SCORE_ANOMALIA_FUERA_RANGO` — POBLACIONAL sin `umbral_score_anomalia` o fuera de 0–1
 - `422` `UMBRALES_REQUERIDOS` — INDIVIDUAL/META sin `umbral_riesgo_alto` o `umbral_alerta_critica`
-- `422` `VERSION_MODELO_INCOMPATIBLE` — la versión vinculada es de otra llave (`tipo_modelo`, `componente`) (RF-65 4.e)
-- `412` `MODELO_NO_ACTIVO` / `404` `VERSION_MODELO_NO_ENCONTRADA` — sin cambios, ahora también por componente
+- `409` `VERSION_MODELO_INCOMPATIBLE` — la versión vinculada es de otra llave (`tipo_modelo`, `componente`) (RF-65 4.e, E5; antes 422, DEV-33)
+- `409` `MODELO_NO_ACTIVO` (RF-65 E2; antes 412, DEV-33) / `404` `VERSION_MODELO_NO_ENCONTRADA` — ahora también por componente
 - `400` `VAL_ENTRADA` — clave de `versiones_activas_por_componente` que no es un componente
 
 ---

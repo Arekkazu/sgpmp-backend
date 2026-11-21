@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: devolver el ID asignado al evento para asociar sus avisos. |
 """Implementación SQLAlchemy del puerto de dominio :class:`EventoRepository`.
 
 Mapea filas de la tabla ``eventos`` a la entidad :class:`Evento` y recalcula el
@@ -285,7 +288,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         id_sesion: Optional[int] = None,
         descripcion: Optional[str] = None,
         modulo: str = "MODULO1",
-    ) -> None:
+    ) -> int:
         # El hash SHA-256 cubre los campos clave del evento para detectar
         # modificaciones posteriores en la tabla de auditoría.
         try:
@@ -348,6 +351,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
             )
             self.db.add(evento)
             self.db.flush()
+            return evento.id_evento
         except Exception as exc:
             # FA "Fallo de persistencia obligatoria": la auditoría es obligatoria,
             # así que el caso de uso revierte la acción principal. Aquí se traduce

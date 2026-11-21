@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: snapshot de auditoría desde la entidad |
 """Caso de uso: Reactivar especie inactiva del catálogo (Flujo D — RF-15).
 
 Solo el Administrador puede reactivar. La operación se registra como
@@ -16,21 +19,6 @@ from src.configuration.domain.repositories.especie_repository import EspecieRepo
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, NotFoundError
 
-
-def _snapshot(especie: Especie) -> dict:
-    return {
-        "id_especie": especie.id_especie,
-        "nombre": especie.nombre.valor,
-        "descripcion": especie.descripcion,
-        "densidad_maxima_por_especie": (
-            str(especie.densidad_maxima_por_especie)
-            if especie.densidad_maxima_por_especie is not None
-            else None
-        ),
-        "es_activo": especie.es_activo,
-        "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
-        "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
-    }
 
 
 class ReactivarEspecieUseCase:
@@ -60,7 +48,7 @@ class ReactivarEspecieUseCase:
                 message="La especie ya se encuentra activa.",
             )
 
-        snapshot_anterior = _snapshot(especie)
+        snapshot_anterior = especie._snapshot()
 
         especie.activar()
         especie.fecha_actualizacion = datetime.now(timezone.utc)
@@ -72,7 +60,7 @@ class ReactivarEspecieUseCase:
                 id_usuario=usuario_actual.id_usuario,
                 tipo_operacion="UPDATE",
                 valores_anteriores=snapshot_anterior,
-                valores_nuevos=_snapshot(especie_actualizada),
+                valores_nuevos=especie_actualizada._snapshot(),
             )
             self.db.commit()
         except Exception:

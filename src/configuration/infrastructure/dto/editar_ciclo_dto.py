@@ -1,14 +1,17 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para editar una etapa del ciclo productivo (Flujo B — RF-16).
 
 Incluye ``fecha_actualizacion`` para control de concurrencia optimista (FA-07).
 """
-from datetime import datetime
 from typing import Optional
 import re
 
 from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 _NOMBRE_ETAPA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ0-9 \-()]*$")
 
@@ -21,7 +24,7 @@ class EditarCicloDTO(BaseDTO):
     nombre: str
     descripcion: Optional[str] = None
     duracion_dias: int
-    fecha_actualizacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[FechaHoraUtc] = None
 
     @field_validator("nombre")
     @classmethod

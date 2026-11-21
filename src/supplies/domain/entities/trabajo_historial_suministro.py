@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: exportación sin CSV en la ejecución |
 """Entidades del motor async de historial de suministros (RF-81 / CU-04).
 
 Analogía con el motor batch ICA (RF-74) y con ``trabajo_reporte_gasto.py``
@@ -48,7 +51,7 @@ class EjecucionHistorialSuministro:
         self.resultado_json = resultado_json
 
     def completar_exportacion(
-        self, *, hora_fin: datetime, total_registros: int, contenido_csv: str, nombre_archivo: str
+        self, *, hora_fin: datetime, total_registros: int, contenido_csv: Optional[str], nombre_archivo: str
     ) -> None:
         self.estado = EstadoTrabajoAsync.COMPLETADO
         self.hora_fin = hora_fin

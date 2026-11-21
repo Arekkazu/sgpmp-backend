@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-02 | Arekkazu | AJF-01 RF-46: historial con alertas IoT, cambios de riesgo, diagnósticos clínicos y contagio alto |
 """Filtros de ``GET /activos-biologicos/{id_activo}/historial`` (RF-46)."""
 
 from __future__ import annotations
@@ -12,6 +15,8 @@ from src.shared.base_dto import BaseDTO
 _CATEGORIAS_VALIDAS = {
     'ESTADO', 'FASE', 'EVENTO_BIOLOGICO', 'CRECIMIENTO',
     'SANITARIO', 'REPRODUCTIVO', 'PRODUCTIVO', 'BAJA', 'TRANSFERENCIA',
+    # AJF-01: eventos de telemetría (M03) y predicción (M04) del activo.
+    'ALERTA_IOT', 'PREDICCION', 'DIAGNOSTICO_CLINICO', 'CONTAGIO',
 }
 
 
@@ -19,7 +24,8 @@ class ConsultarHistorialDTO(BaseDTO):
     """Filtros del historial del activo.
 
     ``categoria_evento``: ``ESTADO`` | ``FASE`` | ``EVENTO_BIOLOGICO`` | ``CRECIMIENTO`` |
-    ``SANITARIO`` | ``REPRODUCTIVO`` | ``PRODUCTIVO`` | ``BAJA`` | ``TRANSFERENCIA``.
+    ``SANITARIO`` | ``REPRODUCTIVO`` | ``PRODUCTIVO`` | ``BAJA`` | ``TRANSFERENCIA`` |
+    ``ALERTA_IOT`` | ``PREDICCION`` | ``DIAGNOSTICO_CLINICO`` | ``CONTAGIO``.
     """
     # fecha_inicio > fecha_fin lo rechaza ConsultarHistorialUseCase: RF-46 E-03 pide 422,
     # y un model_validator de Pydantic saldría como 400.

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                             |
+# |------------|----------|---------------------------------------------------------|
+# | 2026-10-30 | Arekkazu | RF-66: especie del activo para el resultado del motor IA |
 """Adaptador real de acceso a activos biológicos para ``prediction`` (RF-25).
 
 Sustituye al ``ActivoBiologicoStubAdapter``: valida que el activo exista y que
@@ -5,6 +8,8 @@ pertenezca a una finca dentro del alcance del usuario (o que el rol sea global),
 cerrando el IDOR del historial diagnóstico.
 """
 from __future__ import annotations
+
+from typing import Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -37,3 +42,9 @@ class ActivoBiologicoM02Adapter(ActivoBiologicoPort):
             return True
         ids_fincas = alcance.listar_ids_fincas_permitidas(id_usuario, id_rol)
         return ids_fincas is not None and fila.id_finca in ids_fincas
+
+    def obtener_especie(self, id_activo: int) -> Optional[int]:
+        return self._db.execute(
+            text("SELECT id_especie FROM modulo2.activos_biologicos WHERE id_activo_biologico = :id"),
+            {"id": id_activo},
+        ).scalar()

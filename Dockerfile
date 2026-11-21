@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: preparar el directorio del respaldo durable para el usuario no privilegiado. |
 FROM python:3.13-slim
 
 WORKDIR /app
@@ -48,11 +51,14 @@ COPY . .
 # almacenamiento de modelos dejarian de funcionar despues del despliegue, sin
 # ningun error en el build que lo anticipe. Hacer explicito lo que ya ocurria
 # es todo el cambio; no hay migracion de permisos que ejecutar.
-RUN useradd --create-home --uid 1000 appuser
+RUN useradd --create-home --uid 1000 appuser \
+    && mkdir -p /app/storage/auditoria_iot \
+    && chown 1000:1000 /app/storage/auditoria_iot
 # `USER 1000` y no `USER appuser`: DL3066 exige el UID numerico en la
 # directiva, no solo en useradd. El usuario sigue existiendo en /etc/passwd,
 # asi que `id` y las herramientas que resuelven el nombre siguen funcionando
 # igual (verificado dentro del contenedor: uid=1000(appuser) gid=1000(appuser)).
+ENV IOT_AUDITORIA_RESPALDO_PATH=/app/storage/auditoria_iot/fallas.sqlite3
 USER 1000
 
 EXPOSE 8000
