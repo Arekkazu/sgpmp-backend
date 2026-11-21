@@ -2,10 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
 # | 2026-11-03 | Claude   | RF-72: página e indicadores en una sola consulta |
-# | 2026-11-21 | Arekkazu | INC-M08-390-G023 RF-106: la predicción pedida desde el historial entra siempre a la bandeja |
 from __future__ import annotations
 
-import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -51,7 +49,7 @@ class ConsultarBandejaRetroalimentacionUseCase:
         self, *, ids_fincas: Optional[list[int]], id_usuario: int, estado_evaluacion: Optional[str] = None,
         nivel_riesgo: Optional[int] = None, id_activo_biologico: Optional[int] = None,
         desde: Optional[datetime] = None, hasta: Optional[datetime] = None, pagina: int = 1,
-        por_pagina: int = 25, ahora: Optional[datetime] = None, id_resultado_inferencia: Optional[uuid.UUID] = None,
+        por_pagina: int = 25, ahora: Optional[datetime] = None,
     ) -> PaginaBandejaRetroalimentacion:
         if estado_evaluacion is not None and estado_evaluacion not in ESTADOS_EVALUACION:
             raise ValidationError(
@@ -83,8 +81,7 @@ class ConsultarBandejaRetroalimentacionUseCase:
         filtros = FiltrosBandejaRetroalimentacion(
             ids_fincas=ids_fincas, desde=desde, hasta=hasta, ahora=ahora, ventana_dias=int(ventana),
             id_usuario=id_usuario, estado_evaluacion=estado_evaluacion, nivel_riesgo=nivel_riesgo,
-            id_activo_biologico=id_activo_biologico, id_resultado_inferencia=id_resultado_inferencia, pagina=pagina,
-            por_pagina=por_pagina,
+            id_activo_biologico=id_activo_biologico, pagina=pagina, por_pagina=por_pagina,
         )
         items, total, indicadores = self._repo.consultar(filtros)
         return PaginaBandejaRetroalimentacion(
