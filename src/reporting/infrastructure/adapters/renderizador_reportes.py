@@ -2,11 +2,14 @@
 # |------------|----------|-----------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: PDF carta (ReportLab) y Excel tipado (openpyxl) de reportes |
 # | 2026-11-19 | Arekkazu | M08 RF-104 M8-12/M8-13: diseño de las plantillas V1.1, columnas sin partir palabras y fechas reales |
+# | 2026-11-20 | Arekkazu | A11Y-M08 TC-DIS-288 RF-104: PDF etiquetado, con idioma, título visible en el lector y fuentes incrustadas |
 """Render de un :class:`ContenidoReporte` a PDF o Excel (RF-104 Fase 3, CA-4, CA-11).
 
 PDF (ReportLab): tamaño carta (horizontal si la tabla es ancha), letra de 10 puntos o más y la estructura de las
 plantillas V1.1 (ver ``_pdf``); el sello del sistema y «Página N de M» en el pie de cada página y la firma del
-Contador en la valoración NIC 41.
+Contador en la valoración NIC 41. Va etiquetado (TC-DIS-288): título H1, secciones H2, subtítulos H3, textos P,
+logo Figure y cada tabla de datos TR/TH/TD; marca, línea de firma, pie y fondos de tablas son decoración. Declara
+idioma (es-CO), el lector muestra el título y no el nombre del archivo, y las fuentes van incrustadas (Vera).
 
 Excel (openpyxl): hoja «Resumen Ejecutivo» (Campo | Valor | Tipo / Unidad | Observación: encabezado, parámetros e
 indicadores; luego totales, tablas finales y advertencias) y «Datos Detallados»; la ficha del animal y el ejecutivo llevan una hoja por sección. Montos y números como NUMBER con 2
@@ -36,12 +39,15 @@ from src.reporting.domain.reportes.contenido import (
 )
 from src.reporting.domain.reportes.solicitud import EXCEL, PDF
 from src.shared.fechas import en_zona_usuario, etiqueta_zona
+from src.shared.pdf_etiquetado import ArbolEtiquetas, artefacto, etiquetado
+from src.shared.pdfa import FUENTE, FUENTE_NEGRITA, registrar_fuentes
 
 SELLO = "Generado por Sistema de Gestión Pecuaria Multiespecie — Universidad Surcolombiana"
 _TIPOS = {PDF: "application/pdf", EXCEL: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
 _EXTENSIONES = {PDF: "pdf", EXCEL: "xlsx"}
 _COLUMNAS_VERTICAL = 6
 _FUENTE = 10  # CA-11: mínimo 10 puntos
+_FUENTE_TABLA = ("FONTNAME", (0, 0), (-1, -1), FUENTE)  # la tabla declara su fuente aunque el texto vaya en párrafos
 
 
 def _miles(valor: Decimal, decimales: int) -> str:
@@ -120,15 +126,17 @@ def _anchos_pdf(t: Tabla, ancho_util: float) -> list[float]:
     todo en proporción."""
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
+    registrar_fuentes()
+
     minimos, ajustados, extras, faltantes = [], [], [], []
     for c in t.columnas:
         textos = [_texto_pdf(f.get(c.clave), c.tipo) for f in t.filas[:200]]
-        titulo = max((stringWidth(p, "Helvetica-Bold", _FUENTE) for p in _palabras(c.titulo)), default=0)
-        palabra = max((stringWidth(p, "Helvetica", _FUENTE) for x in textos for p in _palabras(x)), default=0)
+        titulo = max((stringWidth(p, FUENTE_NEGRITA, _FUENTE) for p in _palabras(c.titulo)), default=0)
+        palabra = max((stringWidth(p, FUENTE, _FUENTE) for x in textos for p in _palabras(x)), default=0)
         numerica = c.tipo in _NUMERICOS
         minimo = max(titulo, palabra if numerica else min(palabra, max(titulo, _PALABRA_TEXTO_MAXIMA))) + 2 * _PADDING \
             + _HOLGURA
-        largos = sorted(stringWidth(x, "Helvetica", _FUENTE) for x in textos)
+        largos = sorted(stringWidth(x, FUENTE, _FUENTE) for x in textos)
         tipico = largos[len(largos) // 2] if largos else 0
         minimos.append(minimo)
         # Si la tabla no cabe, una columna de texto se conforma con la palabra de su título.
@@ -150,7 +158,7 @@ def _anchos_pdf(t: Tabla, ancho_util: float) -> list[float]:
     return [a + resto for a in anchos]
 
 
-def _lienzo(sello: str):
+def _lienzo(sello: str, arbol: ArbolEtiquetas):
     from reportlab.lib import colors
     from reportlab.pdfgen import canvas
 
@@ -160,6 +168,7 @@ def _lienzo(sello: str):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self._paginas: list[dict] = []
+            self.setViewerPreference("DisplayDocTitle", "true")  # el lector muestra el título, no el nombre del archivo
 
         def showPage(self):
             self._paginas.append(dict(self.__dict__))
@@ -170,13 +179,16 @@ def _lienzo(sello: str):
             for numero, estado in enumerate(self._paginas, start=1):
                 self.__dict__.update(estado)
                 ancho, _ = self._pagesize
+                self._code.append("/Artifact BMC")  # el pie se repite en cada página: el lector no lo lee
                 self.setStrokeColor(colors.HexColor(_BORDE))
                 self.line(36, 36, ancho - 36, 36)
                 self.setFillColor(colors.HexColor(_GRIS))
-                self.setFont("Helvetica", _FUENTE)
+                self.setFont(FUENTE, _FUENTE)
                 self.drawString(36, 22, sello)
                 self.drawRightString(ancho - 36, 22, f"Página {numero} de {total}")
+                self._code.append("EMC")
                 super().showPage()
+            arbol.escribir(self)  # las páginas reales existen solo después del replay
             super().save()
 
     return _Lienzo
@@ -187,7 +199,7 @@ def _marca():
     from reportlab.lib import colors
     from reportlab.platypus import Flowable
 
-    class _Marca(Flowable):
+    class _Marca(artefacto(Flowable)):
         def wrap(self, ancho, alto):
             return ancho, 26
 
@@ -220,11 +232,11 @@ def _marca():
             c.line(10, 11, 8, 8)
             c.line(22, 11, 24, 8)
             c.restoreState()
-            c.setFont("Helvetica-Bold", 12)
+            c.setFont(FUENTE_NEGRITA, 12)
             c.setFillColor(colors.HexColor(_TINTA))
             c.drawString(30, 8, "SIGAB")
             c.setFillColor(verde)
-            c.drawString(30 + c.stringWidth("SIGAB ", "Helvetica-Bold", 12), 8, "Gestión Pecuaria Multiespecie")
+            c.drawString(30 + c.stringWidth("SIGAB ", FUENTE_NEGRITA, 12), 8, "Gestión Pecuaria Multiespecie")
 
     return _Marca()
 
@@ -241,28 +253,38 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
     ancha = max((len(t.columnas) for t in tablas), default=0) > _COLUMNAS_VERTICAL
     pagina = landscape(letter) if ancha else letter
     estilos = getSampleStyleSheet()
-    normal = ParagraphStyle("normal", parent=estilos["Normal"], fontSize=_FUENTE, leading=_FUENTE + 3,
+    registrar_fuentes()  # PDF/UA: toda fuente va incrustada (las 14 estándar, como Helvetica, no lo están)
+    normal = ParagraphStyle("normal", parent=estilos["Normal"], fontName=FUENTE, fontSize=_FUENTE, leading=_FUENTE + 3,
                             textColor=colors.HexColor(_TINTA))
     gris = ParagraphStyle("gris", parent=normal, textColor=colors.HexColor(_GRIS))
-    cabecera = ParagraphStyle("cabecera", parent=normal, fontName="Helvetica-Bold", textColor=colors.HexColor(_GRIS))
-    titulo = ParagraphStyle("titulo", parent=normal, fontName="Helvetica-Bold", fontSize=17, leading=21, spaceBefore=8,
+    cabecera = ParagraphStyle("cabecera", parent=normal, fontName=FUENTE_NEGRITA, textColor=colors.HexColor(_GRIS))
+    titulo = ParagraphStyle("titulo", parent=normal, fontName=FUENTE_NEGRITA, fontSize=17, leading=21, spaceBefore=8,
                             spaceAfter=4)
-    seccion = ParagraphStyle("seccion", parent=normal, fontName="Helvetica-Bold", fontSize=12, leading=15,
+    seccion = ParagraphStyle("seccion", parent=normal, fontName=FUENTE_NEGRITA, fontSize=12, leading=15,
                              spaceBefore=12, spaceAfter=6, keepWithNext=1)
-    subtitulo = ParagraphStyle("subtitulo", parent=normal, fontName="Helvetica-Bold", spaceBefore=6, spaceAfter=4,
+    subtitulo = ParagraphStyle("subtitulo", parent=normal, fontName=FUENTE_NEGRITA, spaceBefore=6, spaceAfter=4,
                                keepWithNext=1)
     derecha = ParagraphStyle("derecha", parent=normal, alignment=2)
     cabecera_derecha = ParagraphStyle("cabecera_derecha", parent=cabecera, alignment=2)
-    cifra = ParagraphStyle("cifra", parent=normal, fontName="Courier-Bold", fontSize=14, leading=17,
+    cifra = ParagraphStyle("cifra", parent=normal, fontName=FUENTE_NEGRITA, fontSize=14, leading=17,
                            textColor=colors.HexColor(_VERDE))
     ancho_util = pagina[0] - 72
+    arbol = ArbolEtiquetas()
+    _Parrafo = etiquetado(Paragraph)
+    roles = {titulo.name: "H1", seccion.name: "H2", subtitulo.name: "H3"}
 
-    def parrafo(texto: str, estilo=normal) -> Paragraph:
-        return Paragraph(escape(texto), estilo)
+    def parrafo(texto: str, estilo=normal, etiquetar: bool = True, marcado: bool = False) -> Paragraph:
+        """Párrafo con su etiqueta (H1/H2/H3 según el estilo, P el resto); las celdas de datos van sin etiqueta."""
+        if not etiquetar:
+            return Paragraph(escape(texto), estilo)
+        p = _Parrafo(texto if marcado else escape(texto), estilo)
+        p._etiqueta = arbol.nuevo(roles.get(estilo.name, "P"), arbol.documento)
+        return p
 
     def caja(contenido_caja, fondo: str, borde: str) -> Table:
-        recuadro = Table([[contenido_caja]], colWidths=[ancho_util], cornerRadii=[5, 5, 5, 5])
-        recuadro.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(fondo)),
+        recuadro = Table([[contenido_caja]], colWidths=[ancho_util], cornerRadii=[5, 5, 5, 5],
+                         renderCB=arbol.al_dibujar_maqueta)
+        recuadro.setStyle(TableStyle([_FUENTE_TABLA, ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(fondo)),
                                       ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor(borde)),
                                       ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
                                       ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
@@ -274,12 +296,14 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
             elementos.append(parrafo("Sin registros para los filtros elegidos.", gris))
         else:
             montos = [c.tipo in (ENTERO, NUMERO, MONEDA, PORCENTAJE) for c in t.columnas]
-            datos = [[parrafo(c.titulo, cabecera_derecha if m else cabecera) for c, m in zip(t.columnas, montos)]]
+            datos = [[parrafo(c.titulo, cabecera_derecha if m else cabecera, etiquetar=False)
+                      for c, m in zip(t.columnas, montos)]]
             datos += [[Paragraph(escape(_texto_pdf(f.get(c.clave), c.tipo)),
                                  derecha if m and not isinstance(f.get(c.clave), str) else normal)
                        for c, m in zip(t.columnas, montos)] for f in t.filas]
-            grilla = Table(datos, colWidths=_anchos_pdf(t, ancho_util), repeatRows=1)
-            grilla.setStyle(TableStyle([
+            grilla = Table(datos, colWidths=_anchos_pdf(t, ancho_util), repeatRows=1, renderCB=arbol.al_dibujar_tabla)
+            arbol.tabla(datos)
+            grilla.setStyle(TableStyle([_FUENTE_TABLA,
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(_CABECERA)),
                 ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor(_BORDE)),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -298,15 +322,16 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
         celdas = []
         for ind in contenido.indicadores:
             tarjeta = Table([[parrafo(ind.etiqueta.upper(), gris)], [parrafo(texto_celda(ind.valor, ind.tipo), cifra)]],
-                            colWidths=[ancho - 2], cornerRadii=[6, 6, 6, 6])
-            tarjeta.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor(_BORDE)),
+                            colWidths=[ancho - 2], cornerRadii=[6, 6, 6, 6], renderCB=arbol.al_dibujar_maqueta)
+            tarjeta.setStyle(TableStyle([_FUENTE_TABLA, ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor(_BORDE)),
                                          ("LEFTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, 0), 9),
                                          ("BOTTOMPADDING", (0, -1), (-1, -1), 10)]))
             celdas.append(tarjeta)
         filas = [celdas[i:i + por_fila] for i in range(0, len(celdas), por_fila)]
         filas[-1] += [""] * (por_fila - len(filas[-1]))
-        rejilla = Table(filas, colWidths=[ancho + 10] * por_fila, hAlign="LEFT")
-        rejilla.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        rejilla = Table(filas, colWidths=[ancho + 10] * por_fila, hAlign="LEFT", renderCB=arbol.al_dibujar_maqueta)
+        rejilla.setStyle(TableStyle([_FUENTE_TABLA,
+                                     ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
                                      ("VALIGN", (0, 0), (-1, -1), "TOP")]))
         return [parrafo("Resumen ejecutivo de indicadores", seccion), rejilla, Spacer(1, 8)]
 
@@ -314,9 +339,12 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
     marca: Any = _marca()
     if ruta_logo:
         try:
-            marca = Table([[marca, Image(ruta_logo, width=1.2 * inch, height=0.5 * inch, kind="proportional")]],
-                          colWidths=[ancho_util - 1.3 * inch, 1.3 * inch])
-            marca.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+            logo = etiquetado(Image)(ruta_logo, width=1.2 * inch, height=0.5 * inch, kind="proportional")
+            marca = Table([[marca, logo]], colWidths=[ancho_util - 1.3 * inch, 1.3 * inch],
+                          renderCB=arbol.al_dibujar_maqueta)
+            logo._etiqueta = arbol.nuevo("Figure", arbol.documento, alt="Logo de la finca")
+            marca.setStyle(TableStyle([_FUENTE_TABLA,
+                                       ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 0), (1, 0), "RIGHT"),
                                        ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
         except Exception:
             marca = _marca()  # un logo dañado no impide el reporte
@@ -328,26 +356,28 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
     historia.append(parrafo(" · ".join(meta), gris))
     en_fila = [(k, v) for k, v in contenido.encabezado if k in _EN_FILA]
     aparte = [(k, v) for k, v in contenido.encabezado if k not in _EN_FILA and k != "Fecha de generación"]
-    historia += [Spacer(1, 6), Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;".join(
-        f'<font color="{_GRIS}">{escape(_RENOMBRE_FILA.get(k, k))}</font> {escape(v)}' for k, v in en_fila), normal)]
+    historia += [Spacer(1, 6), parrafo("&nbsp;&nbsp;&nbsp;&nbsp;".join(
+        f'<font color="{_GRIS}">{escape(_RENOMBRE_FILA.get(k, k))}</font> {escape(v)}' for k, v in en_fila), marcado=True)]
     if aparte:
-        celdas = [Paragraph(f'<font color="{_GRIS}">{escape(k)}</font><br/>{escape(v)}', normal) for k, v in aparte]
-        recuadro = Table([celdas], colWidths=[(ancho_util - 20) / len(celdas)] * len(celdas))
-        recuadro.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        celdas = [parrafo(f'<font color="{_GRIS}">{escape(k)}</font><br/>{escape(v)}', marcado=True) for k, v in aparte]
+        recuadro = Table([celdas], colWidths=[(ancho_util - 20) / len(celdas)] * len(celdas),
+                         renderCB=arbol.al_dibujar_maqueta)
+        recuadro.setStyle(TableStyle([_FUENTE_TABLA,
+                                      ("LEFTPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
         historia += [Spacer(1, 8), caja(recuadro, _FONDO, _BORDE)]
     for texto in contenido.aclaraciones:
         historia += [Spacer(1, 8), caja(parrafo(texto, gris), _FONDO, _BORDE)]
     if contenido.parametros:
         historia.append(parrafo("Parámetros de selección", seccion))
-        lista = Table([[Paragraph(f'<font color="{_VERDE}">•</font>&nbsp;&nbsp;<font color="{_GRIS}">'
-                                  f'{escape(k)}:</font> <b>{escape(v)}</b>', normal)] for k, v in contenido.parametros],
-                      colWidths=[ancho_util])
-        lista.setStyle(TableStyle([("LINEBELOW", (0, 0), (-1, -2), 0.4, colors.HexColor(_BORDE)),
+        lista = Table([[parrafo(f'<font color="{_VERDE}">•</font>&nbsp;&nbsp;<font color="{_GRIS}">'
+                                f'{escape(k)}:</font> <b>{escape(v)}</b>', marcado=True)] for k, v in contenido.parametros],
+                      colWidths=[ancho_util], renderCB=arbol.al_dibujar_maqueta)
+        lista.setStyle(TableStyle([_FUENTE_TABLA, ("LINEBELOW", (0, 0), (-1, -2), 0.4, colors.HexColor(_BORDE)),
                                    ("LEFTPADDING", (0, 0), (-1, -1), 2), ("TOPPADDING", (0, 0), (-1, -1), 3),
                                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
         historia.append(lista)
     for aviso in contenido.advertencias:
-        historia += [Spacer(1, 8), caja(Paragraph(f"<b>Advertencia:</b> {escape(aviso)}", normal),
+        historia += [Spacer(1, 8), caja(parrafo(f"<b>Advertencia:</b> {escape(aviso)}", marcado=True),
                                         _AVISO_FONDO, _AVISO_BORDE)]
     if contenido.detalle:
         historia.append(parrafo("Análisis detallado de registros", seccion))
@@ -363,13 +393,14 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
         historia += tabla(t)
     if contenido.firma:
         historia.append(KeepTogether([
-            Spacer(1, 26), HRFlowable(width=2.4 * inch, thickness=0.8, color=colors.HexColor(_TINTA), hAlign="LEFT"),
+            Spacer(1, 26), artefacto(HRFlowable)(width=2.4 * inch, thickness=0.8, color=colors.HexColor(_TINTA), hAlign="LEFT"),
             parrafo("Firma electrónica del Contador", gris), parrafo(contenido.firma)]))
 
     salida = io.BytesIO()
     documento = SimpleDocTemplate(salida, pagesize=pagina, leftMargin=36, rightMargin=36, topMargin=30,
-                                  bottomMargin=54, title=contenido.titulo, author="SIGAB")
-    documento.build(historia, canvasmaker=partial(_lienzo(SELLO)))
+                                  bottomMargin=54, title=contenido.titulo, author="SIGAB", lang="es-CO",
+                                  initialFontName=FUENTE)
+    documento.build(historia, canvasmaker=partial(_lienzo(SELLO, arbol)))
     return salida.getvalue()
 
 
