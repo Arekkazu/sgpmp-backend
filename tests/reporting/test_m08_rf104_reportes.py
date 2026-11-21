@@ -341,6 +341,8 @@ def test_pdf_etiquetado_con_idioma_y_titulo(tmp_path):
     assert "(Logo de la finca)" in pdf and "/Scope /Column" in pdf
     assert len(re.findall(r"/S\s*/TH\b", pdf)) == 5
     assert len(re.findall(r"/S\s*/TD\b", pdf)) == 2 + 30 * 3
+    # PDF/UA exige fuentes incrustadas: ninguna de las 14 estándar (Helvetica, Courier…)
+    assert "/FontFile2" in pdf and not re.search(r"/BaseFont /(Helvetica|Courier|Times)", pdf)
 
 
 def test_plantilla_v11_parametros_indicadores_y_finca_del_animal():
@@ -368,7 +370,7 @@ def test_plantilla_v11_parametros_indicadores_y_finca_del_animal():
     tabla = Tabla("x", [Columna(f"c{i}", f"Columna {i}", MONEDA) for i in range(7)] + [Columna("t", "Identificación")],
                   [{**{f"c{i}": Decimal("2809848.5") for i in range(7)}, "t": "QA-M06-G52-SANITARIO"}])
     anchos = rr._anchos_pdf(tabla, 720)
-    cifra = stringWidth(rr._texto_pdf(Decimal("2809848.5"), MONEDA), "Helvetica", 10)
+    cifra = stringWidth(rr._texto_pdf(Decimal("2809848.5"), MONEDA), rr.FUENTE, 10)
     assert all(a - 2 * rr._PADDING >= cifra for a in anchos[:7]) and abs(sum(anchos) - 720) < 0.01
 
 
