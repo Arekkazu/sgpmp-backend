@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                               |
 # |------------|----------|-----------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: consultas de solo lectura de los widgets        |
+# | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: valor del inventario leído como sistema y acotado a las fincas del usuario |
 """Implementación SQLAlchemy de :class:`DatosWidgetRepository` (RF-103).
 
 Lo que ya calcula otro módulo se reutiliza tal cual para que el dashboard muestre lo mismo que la
@@ -29,6 +30,7 @@ from src.prediction.infrastructure.repositories.bandeja_retroalimentacion_reposi
 )
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.reporting.domain.repositories.datos_widget_repository import DatosWidgetRepository, Fila
+from src.shared.database import como_sistema
 from src.shared.nombre_activo import nombre_activo_sql
 from src.telemetry.application.use_cases.monitoreo.obtener_dashboard_use_case import ObtenerDashboardUseCase
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
@@ -311,9 +313,17 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
 
     # --- Finanzas e integración contable ---------------------------------------------------------
 
-    def activos_valorados(self, id_finca: Optional[int]) -> list[Fila]:
-        filas = SqlAlchemyValoracionRepository(self.db).activos_valorados()
-        return [f for f in filas if id_finca is None or f["id_finca"] == id_finca]
+    def activos_valorados(self, id_finca: Optional[int],
+                          fincas_permitidas: Optional[list[int]]) -> list[Fila]:
+        # INC-M08-380-G002: la RLS de modulo6 abre los reconocimientos y valoraciones solo a quien
+        # lee la valoración en Finanzas, y el Productor no; con su sesión el widget le daba $0. Se lee
+        # como sistema y el alcance lo pone el filtro de fincas (la regla de fn_fincas_del_usuario,
+        # que como sistema ya no aplican los joins con activos y fincas).
+        with como_sistema(self.db):
+            filas = SqlAlchemyValoracionRepository(self.db).activos_valorados()
+        return [f for f in filas
+                if (id_finca is None or f["id_finca"] == id_finca)
+                and (fincas_permitidas is None or f["id_finca"] in fincas_permitidas)]
 
     def periodos_abiertos(self, id_finca: Optional[int]) -> list[Fila]:
         return self._filas(text("""
