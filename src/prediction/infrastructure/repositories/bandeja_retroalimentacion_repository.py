@@ -2,7 +2,6 @@
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
 # | 2026-11-03 | Claude   | RF-72: una sola consulta para página e indicadores, filtros antes del escaneo |
-# | 2026-11-21 | Arekkazu | INC-M08-390-G023 RF-106: la predicción pedida desde el historial entra siempre a la bandeja |
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -28,8 +27,7 @@ from src.shared.db_error_translator import raise_from_db_error
 # - evaluaciones / ampliaciones: se agregan una vez y se cruzan por id, en vez de tres
 #   subconsultas por fila (cada una con su RLS).
 # - candidatas: abren un episodio de riesgo moderado o alto, generaron alerta o ya tienen una
-#   evaluación (estado_registro 'ACTIVO', como el resto de RF-72), más la que se pide por id desde el
-#   historial predictivo (RF-106 CA-4), sea cual sea su nivel, que va primero en la página. MATERIALIZED para que el
+#   evaluación (estado_registro 'ACTIVO', como el resto de RF-72). MATERIALIZED para que el
 #   planificador filtre aquí, antes de cruzar nombres: sin eso cruzaba el millón de filas de base.
 # - en_ventana: la regla de RegistrarRetroalimentacionUseCase, días completos transcurridos
 #   <= ventana_dias (EXTRACT(DAY) de la resta es lo mismo que timedelta.days), o una ampliación
@@ -80,8 +78,7 @@ _SQL = text("""
         LEFT JOIN ampliaciones am ON am.id_resultado_inferencia = b.id_resultado_inferencia
         WHERE ((b.nivel_riesgo >= 2 AND b.nivel_anterior IS DISTINCT FROM b.nivel_riesgo)
                OR b.tiene_alerta_generada
-               OR ev.id_resultado_inferencia IS NOT NULL
-               OR b.id_resultado_inferencia = CAST(:resultado AS uuid))
+               OR ev.id_resultado_inferencia IS NOT NULL)
           AND (CAST(:nivel AS int) IS NULL OR b.nivel_riesgo = CAST(:nivel AS int))
     ),
     con_estado AS (
@@ -116,16 +113,14 @@ _SQL = text("""
         SELECT bandeja.*, count(*) OVER () AS total
         FROM bandeja
         WHERE (CAST(:estado AS text) IS NULL OR bandeja.estado_evaluacion = CAST(:estado AS text))
-        ORDER BY (bandeja.id_resultado_inferencia IS NOT DISTINCT FROM CAST(:resultado AS uuid)) DESC,
-                 (bandeja.estado_evaluacion = 'PENDIENTE') DESC, bandeja.fecha_inferencia DESC,
+        ORDER BY (bandeja.estado_evaluacion = 'PENDIENTE') DESC, bandeja.fecha_inferencia DESC,
                  bandeja.id_resultado_inferencia
         LIMIT :limite OFFSET :desplazamiento
     )
     SELECT ind.pendientes, ind.evaluadas, ind.vencidas, pagina.*
     FROM indicadores ind
     LEFT JOIN pagina ON true
-    ORDER BY (pagina.id_resultado_inferencia IS NOT DISTINCT FROM CAST(:resultado AS uuid)) DESC,
-             (pagina.estado_evaluacion = 'PENDIENTE') DESC, pagina.fecha_inferencia DESC,
+    ORDER BY (pagina.estado_evaluacion = 'PENDIENTE') DESC, pagina.fecha_inferencia DESC,
              pagina.id_resultado_inferencia
 """)
 
@@ -149,7 +144,6 @@ class SqlAlchemyBandejaRetroalimentacionRepository(BandejaRetroalimentacionRepos
                 "desde": filtros.desde, "hasta": filtros.hasta, "ahora": filtros.ahora,
                 "ventana": filtros.ventana_dias, "usuario": filtros.id_usuario, "fincas": filtros.ids_fincas,
                 "nivel": filtros.nivel_riesgo, "activo": filtros.id_activo_biologico,
-                "resultado": filtros.id_resultado_inferencia,
                 "estado": filtros.estado_evaluacion, "limite": filtros.por_pagina,
                 "desplazamiento": (filtros.pagina - 1) * filtros.por_pagina,
             }).mappings().all()

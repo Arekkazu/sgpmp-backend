@@ -4,7 +4,6 @@
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: POST /ampliaciones (excepción por resultado) |
 # | 2026-11-03 | Arekkazu | RF-72: GET /bandeja, inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
 # | 2026-11-18 | Arekkazu | M08 RF-106: tras registrar, avisa al Administrador si la TVCO del modelo baja del umbral |
-# | 2026-11-21 | Arekkazu | INC-M08-390-G023 RF-106: la predicción pedida desde el historial entra siempre a la bandeja |
 """Router FastAPI para retroalimentación clínica M04 (`/prediccion/retroalimentacion`).
 
 RF-72 CU-08: registro de retroalimentación clínica sobre resultados de inferencia.
@@ -18,7 +17,6 @@ Autorización RBAC:
 """
 from __future__ import annotations
 
-import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -156,9 +154,6 @@ def bandeja_retroalimentacion(
     estado_evaluacion: Optional[str] = Query(default=None, description="PENDIENTE | EVALUADO | VENTANA_VENCIDA"),
     nivel_riesgo: Optional[int] = Query(default=None, description="0 Normal, 1 Bajo, 2 Moderado, 3 Alto"),
     id_activo_biologico: Optional[int] = Query(default=None, gt=0),
-    id_resultado_inferencia: Optional[uuid.UUID] = Query(
-        default=None, description="Predicción elegida en el historial predictivo: entra y va primero aunque no sea de "
-                                  "riesgo moderado o alto (RF-106)"),
     desde: Optional[FechaHoraUtc] = Query(default=None, description="Por defecto: la ventana de M09 más 30 días"),
     hasta: Optional[FechaHoraUtc] = Query(default=None),
     pagina: int = Query(default=1),
@@ -176,7 +171,7 @@ def bandeja_retroalimentacion(
     ).execute(
         ids_fincas=fincas, id_usuario=usuario_actual.id_usuario, estado_evaluacion=estado_evaluacion,
         nivel_riesgo=nivel_riesgo, id_activo_biologico=id_activo_biologico, desde=desde, hasta=hasta,
-        pagina=pagina, por_pagina=por_pagina, id_resultado_inferencia=id_resultado_inferencia,
+        pagina=pagina, por_pagina=por_pagina,
     )
     return BandejaRetroalimentacionResponse(
         items=[InferenciaPorEvaluarResponse.from_entity(i) for i in r.items], total=r.total, pagina=r.pagina,
