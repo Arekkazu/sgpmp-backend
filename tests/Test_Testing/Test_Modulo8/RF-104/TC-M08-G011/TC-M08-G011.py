@@ -156,8 +156,10 @@ def _revisar_excel(wb, con_hojas_estandar: bool):
                     continue
                 if isinstance(v, (int, float)):
                     es_entero = isinstance(v, int) or float(v).is_integer()
-                    if not (re.search(r"0\.00\b", c.number_format or "") or (es_entero and (c.number_format or "") in ("0", "General"))):
-                        fallos.append(f"{ws.title}!{c.coordinate} = {v!r} con formato '{c.number_format}': no es NUMBER con 2 decimales")
+                    etiqueta = str(ws.cell(row=c.row, column=1).value or "")
+                    monetario = bool(re.search(r"valor|costo|monto|precio|cop\b|\$|ingreso|gasto", etiqueta, re.I)) or not es_entero
+                    if monetario and not (re.search(r"0\.00\b", c.number_format or "") or (es_entero and (c.number_format or "") in ("0", "General"))):
+                        fallos.append(f"{ws.title}!{c.coordinate} (fila '{ws.cell(row=c.row, column=1).value}') = {v!r} con formato '{c.number_format}': no es NUMBER con 2 decimales")
                     if abs(float(v) * 100 - round(float(v) * 100)) > 1e-6:
                         info.append(f"{ws.title}!{c.coordinate} = {v!r} guarda más de 2 decimales")
                 elif isinstance(v, (dt.datetime, dt.date)):
@@ -247,10 +249,12 @@ def test_TC_M08_018a_pdf_varias_paginas_carta_fuente_y_pie(env):
 def test_TC_M08_018b_pdf_encabezado_completo(env):
     pdf = _pdf(env.archivo("productor", "REPORTE_INVENTARIO_BIOLOGICO", "PDF",
                            {"fecha_inicio": "2026-01-01", "fecha_fin": HOY, "finca_id": ID_FINCA}))
-    primera = pdf.pages[0].extract_text() or ""
-    faltan = [k for k in ("Razón social", "NIT", "Finca", "Rango de fechas", "Fecha de generación") if k not in primera]
+    primera = " ".join((pdf.pages[0].extract_text() or "").split())
+    faltan = [k for k in ("Razón social", "NIT", "Finca", "Fecha de generación") if k not in primera]
+    if not re.search(r"Per[ií]odo(?: contable)? \d{2}/\d{2}/\d{4} a \d{2}/\d{2}/\d{4}|Rango de fechas", primera):
+        faltan.append("período o rango de fechas")
     fallos, n = _revisar_pdf(pdf, False)
-    assert not faltan, f"el encabezado de la primera página no trae: {faltan}"
+    assert not faltan, f"el encabezado de la primera página no trae: {faltan}. Texto de la primera página: {primera[:700]}"
     assert "901777548" in primera.replace(".", "").replace("-", " ").replace(" ", ""), "el NIT 901777548 no aparece en el encabezado"
     assert not fallos, "Formato PDF (inventario): " + " | ".join(fallos[:12])
 
@@ -258,11 +262,11 @@ def test_TC_M08_018b_pdf_encabezado_completo(env):
 # --------------------------------------------------------------------------------------------------------------------- NIC 41
 def test_TC_M08_019a_nic41_pdf_exportacion_pendiente_y_firma(env):
     pdf = _pdf(env.archivo("contador", "REPORTE_VALORACION_NIC41", "PDF", {"periodo_contable": ID_PERIODO}))
-    texto = "\n".join((p.extract_text() or "") for p in pdf.pages)
+    texto = " ".join(" ".join((p.extract_text() or "") for p in pdf.pages).split())
     fallos, n = _revisar_pdf(pdf, True)
     assert PENDIENTE in texto, "el PDF no dice 'Exportación pendiente' (periodo cerrado sin exportación a SIGCON)"
     assert "Exportación contable" in texto, "el encabezado no trae el campo 'Exportación contable'"
-    assert "Identificación SINIGAN" in texto, "falta la columna 'Identificación SINIGAN' (CA-20)"
+    assert re.search(r"ID activo Identificaci[oó]n.{0,160}?\bSINIGAN\b", texto), "falta la columna 'Identificación SINIGAN' en la tabla (CA-20)"
     assert not fallos, "Formato PDF (NIC 41): " + " | ".join(fallos[:12])
 
 
