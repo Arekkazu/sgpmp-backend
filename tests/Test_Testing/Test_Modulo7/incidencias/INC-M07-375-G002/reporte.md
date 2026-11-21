@@ -91,7 +91,11 @@ RUN: `RUN-G002-V1-20261118-095350`
 
 ### Estado
 
-INC-M07-375-G002 queda abierta y debe ser derivada a Desarrollo Backend. La causa raíz permanece como hipótesis hasta su confirmación.
+**CORREGIDA — confirmado en vivo 2026-11-20.** Commit `756a04d9` ("fix(rf95-mod7): el cuerpo de
+error trae field ademas de fields") ya está desplegado en TEST. Re-ejecución completa de
+`tc-m07-g002.json` (TC-95-005/006/007, sin necesidad de credenciales): **62/62 aserciones en
+verde**, incluidas las 6 instancias de "Contrato de error: el cuerpo trae field (RF-95 Salida)"
+que antes fallaban. Evidencia: `Resultados/resultado_TC-M07-G002_reintento1.html`/`.json`.
 
 ## Atributos personalizados de Taiga
 

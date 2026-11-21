@@ -1,0 +1,7065 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "14f7225b-ca0a-4d06-b0d2-5947e1a8f5c6",
+        "name": "TC-95-005 · Parámetros mal formados o ausentes (FA-1, CA-2)",
+        "item": [
+          {
+            "id": "f26a911b-5ca6-4358-8357-3b3f3dd62031",
+            "name": "desde con separador / (2026/09/01) — CA-2",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026/09/01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "695878d4-9f28-47bb-9e15-aad7c67074ac",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                    "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                    "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "9b686907-46fd-4e12-b96a-32a78fa7f8ef"
+                }
+              }
+            ]
+          },
+          {
+            "id": "278a99cb-caa2-492e-9f0e-f26a838b5150",
+            "name": "sin desde",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "4cc698f0-2f36-4437-a4c8-e17e62de46ab",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                    "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                    "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "2506332e-0d82-4310-b955-9cf053e98687"
+                }
+              }
+            ]
+          },
+          {
+            "id": "e961861b-bc85-49e3-977a-9cd8173cf19f",
+            "name": "sin hasta",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "74703411-9566-4708-b456-f27c76c4dbce",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                    "pm.test('indica el parámetro hasta', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('hasta'); });",
+                    "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "e8eb6b69-36a0-455c-b009-00a03b73b5dc"
+                }
+              }
+            ]
+          },
+          {
+            "id": "3f9a63b1-a90c-4489-9153-7d74ef4f22b9",
+            "name": "desde inexistente (2026-02-30)",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-02-30"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "0e598441-05d4-4177-8431-46c8f31be578",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                    "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                    "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "7452bb23-47ca-4944-bdde-b041c9cf3193"
+                }
+              }
+            ]
+          },
+          {
+            "id": "fc6a4055-72c4-46c5-a705-d9324c212b41",
+            "name": "NIT con dígito de verificación (901444215-0)",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215-0"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "86207a46-52d0-44ee-8325-106ae0d11852",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                    "pm.test('indica el parámetro nit', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('nit'); });",
+                    "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "f7901ce9-c43d-4569-b7d4-fb52b78dc2a0"
+                }
+              }
+            ]
+          },
+          {
+            "id": "c40389f4-5687-4f42-9245-e6aeec285be6",
+            "name": "NIT con letras (90144A215)",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "90144A215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "907e6331-fc82-428d-83ae-4f87e7837cc0",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                    "pm.test('indica el parámetro nit', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('nit'); });",
+                    "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "2821dbae-e06b-45cb-b922-87d60d41a44f"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "c8a56040-8662-49f4-8c81-d9852d1b4eae",
+        "name": "TC-95-006 · Credenciales en la URL (5.2, FA-2, CA-3)",
+        "item": [
+          {
+            "id": "e888066b-02fb-4f8a-8030-5115d0aaa025",
+            "name": "client_secret=x",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  },
+                  {
+                    "key": "client_secret",
+                    "value": "x"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "7520b499-9f13-4d0a-81c9-2e6ad34cd27b",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "6f5191bf-e0b1-44ea-b085-f1205e877d53"
+                }
+              }
+            ]
+          },
+          {
+            "id": "3f76d257-7418-467d-a85e-6ee3dac1581a",
+            "name": "api_key=x",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  },
+                  {
+                    "key": "api_key",
+                    "value": "x"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "41e27f23-96d8-4058-afe7-914576ccd5d4",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "2f880bb7-2ef0-4d62-8e06-ce29bad7cd91"
+                }
+              }
+            ]
+          },
+          {
+            "id": "d839dc78-b8a3-4a0f-8bb7-3cefd2d0b1b8",
+            "name": "token=x",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  },
+                  {
+                    "key": "token",
+                    "value": "x"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "bbcda71b-9440-4252-8d42-db19ee76092a",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "fd97b44a-28d6-4514-bca9-dd7846ec0805"
+                }
+              }
+            ]
+          },
+          {
+            "id": "09756e31-8ef6-49d3-94e9-b0ba555ef9c2",
+            "name": "CLIENT_ID=x (mayúsculas)",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  },
+                  {
+                    "key": "CLIENT_ID",
+                    "value": "x"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "6ec874ef-959e-481c-9b80-3a543b83f2bb",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "e7731120-60e0-4e2f-84c7-9fb095760fd0"
+                }
+              }
+            ]
+          },
+          {
+            "id": "35538d37-07bd-4b02-bc24-d909b88f0b35",
+            "name": "credencial + NIT inválido: gana CREDENCIALES_EN_URL",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "90144A215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  },
+                  {
+                    "key": "client_secret",
+                    "value": "x"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "775772ec-9c63-4427-9e98-b6431f6c94e2",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                    "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "74c6c634-c68a-4b8f-8ea7-01820b413907"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "1e78f69f-05df-4225-864c-07d5b024f544",
+        "name": "TC-95-007 · Método y ruta (CU01 FA-01, FA-02)",
+        "item": [
+          {
+            "id": "11f8e2df-fe0b-4108-add4-cec9ec9eb668",
+            "name": "POST sobre la ruta AAEF → 405",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "8c1aa6ab-8159-4946-9f5f-f142573a8557",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 405', () => pm.response.to.have.status(405));",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "59851396-b754-499b-85f4-8e606a90ce67"
+                }
+              }
+            ]
+          },
+          {
+            "id": "56a1cfaa-0cf8-470d-8b89-b1ceada766d5",
+            "name": "DELETE sobre la ruta AAEF → 405",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productores",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "DELETE"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "565299d7-2667-42fd-b4e1-851b4a84b24d",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 405', () => pm.response.to.have.status(405));",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "fa056133-31d8-4344-bd32-0ea57f27c853"
+                }
+              }
+            ]
+          },
+          {
+            "id": "9c8d182f-5472-4bb7-9813-76cbb91bcd46",
+            "name": "ruta inexistente (/aaef/productor/{nit}) → 404",
+            "description": {
+              "content": "",
+              "type": "text/plain"
+            },
+            "request": {
+              "url": {
+                "path": [
+                  "integracion",
+                  "aaef",
+                  "productor",
+                  "901444215"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [
+                  {
+                    "key": "desde",
+                    "value": "2026-09-01"
+                  },
+                  {
+                    "key": "hasta",
+                    "value": "2026-10-31"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Accept",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "37059441-a603-453e-9a3c-aa307d9239e3",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                    "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                  ],
+                  "_lastExecutionId": "b0582568-bc51-4db6-8bd4-961f16918fc9"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      }
+    ],
+    "info": {
+      "_postman_id": "21caa45f-6574-406e-8b61-593aa015eeb1",
+      "name": "TC-M07-G002 · RF-95 · Validación de la solicitud (sin credenciales)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Casos TC-95-005, 006 y 007. La validación de forma ocurre antes de autenticar (RF-95 Fase 1), por eso no requiere token. Los valores de credenciales son ficticios.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "7c970895-1a10-4d6a-918a-afb5072126d1",
+    "values": []
+  },
+  "globals": {
+    "id": "d57d6ab1-ee2f-4d50-989e-0dbe51899210",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 62,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 169.14285714285714,
+      "responseMin": 123,
+      "responseMax": 481,
+      "responseSd": 88.74510621747554,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1795227052802,
+      "completed": 1795227056123
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 14,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "2d545a00-c90f-4a71-9ecd-050b6f852833",
+          "httpRequestId": "61cac240-3591-4cea-a5c6-3b90b53044cf"
+        },
+        "item": {
+          "id": "f26a911b-5ca6-4358-8357-3b3f3dd62031",
+          "name": "desde con separador / (2026/09/01) — CA-2",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026/09/01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "695878d4-9f28-47bb-9e15-aad7c67074ac",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "9b686907-46fd-4e12-b96a-32a78fa7f8ef"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026/09/01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "7c894bb9-5073-4ff3-8eb3-3b143f3924b5",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "163f92bd-25fa-4556-b440-8aae49fd9cbf",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "351"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:50 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "832f5270-81d4-4cfc-a4e1-883fcbfdbff1"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              80,
+              65,
+              82,
+              65,
+              77,
+              69,
+              84,
+              82,
+              79,
+              83,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              79,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              97,
+              114,
+              195,
+              161,
+              109,
+              101,
+              116,
+              114,
+              111,
+              32,
+              194,
+              171,
+              100,
+              101,
+              115,
+              100,
+              101,
+              194,
+              187,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              111,
+              32,
+              121,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              101,
+              108,
+              32,
+              102,
+              111,
+              114,
+              109,
+              97,
+              116,
+              111,
+              32,
+              65,
+              65,
+              65,
+              65,
+              45,
+              77,
+              77,
+              45,
+              68,
+              68,
+              44,
+              32,
+              112,
+              111,
+              114,
+              32,
+              101,
+              106,
+              101,
+              109,
+              112,
+              108,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              100,
+              101,
+              115,
+              100,
+              101,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              100,
+              101,
+              115,
+              100,
+              101,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              97,
+              114,
+              195,
+              161,
+              109,
+              101,
+              116,
+              114,
+              111,
+              32,
+              194,
+              171,
+              100,
+              101,
+              115,
+              100,
+              101,
+              194,
+              187,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              111,
+              32,
+              121,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              101,
+              108,
+              32,
+              102,
+              111,
+              114,
+              109,
+              97,
+              116,
+              111,
+              32,
+              65,
+              65,
+              65,
+              65,
+              45,
+              77,
+              77,
+              45,
+              68,
+              68,
+              44,
+              32,
+              112,
+              111,
+              114,
+              32,
+              101,
+              106,
+              101,
+              109,
+              112,
+              108,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              49,
+              46,
+              48,
+              55,
+              56,
+              55,
+              50,
+              55,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 481,
+          "responseSize": 351
+        },
+        "id": "f26a911b-5ca6-4358-8357-3b3f3dd62031",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = PARAMETROS_INVALIDOS",
+            "skipped": false
+          },
+          {
+            "assertion": "indica el parámetro desde",
+            "skipped": false
+          },
+          {
+            "assertion": "Contrato de error: el cuerpo trae field (RF-95 Salida)",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f11c3e51-f05b-4e23-b672-1b2d66273691",
+          "length": 14,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "a847749f-4376-4efa-bc33-9022ffdb400d"
+        },
+        "item": {
+          "id": "278a99cb-caa2-492e-9f0e-f26a838b5150",
+          "name": "sin desde",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "4cc698f0-2f36-4437-a4c8-e17e62de46ab",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "2506332e-0d82-4310-b955-9cf053e98687"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "d5c641ea-0015-4b18-9e90-a36f371ea758",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "694c3ce9-8434-46c0-a3af-5ac6bb4d5450",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "351"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:50 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "1be5370c-8364-4848-b2f1-b79eb0f4bae9"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              80,
+              65,
+              82,
+              65,
+              77,
+              69,
+              84,
+              82,
+              79,
+              83,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              79,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              97,
+              114,
+              195,
+              161,
+              109,
+              101,
+              116,
+              114,
+              111,
+              32,
+              194,
+              171,
+              100,
+              101,
+              115,
+              100,
+              101,
+              194,
+              187,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              111,
+              32,
+              121,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              101,
+              108,
+              32,
+              102,
+              111,
+              114,
+              109,
+              97,
+              116,
+              111,
+              32,
+              65,
+              65,
+              65,
+              65,
+              45,
+              77,
+              77,
+              45,
+              68,
+              68,
+              44,
+              32,
+              112,
+              111,
+              114,
+              32,
+              101,
+              106,
+              101,
+              109,
+              112,
+              108,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              100,
+              101,
+              115,
+              100,
+              101,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              100,
+              101,
+              115,
+              100,
+              101,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              97,
+              114,
+              195,
+              161,
+              109,
+              101,
+              116,
+              114,
+              111,
+              32,
+              194,
+              171,
+              100,
+              101,
+              115,
+              100,
+              101,
+              194,
+              187,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              111,
+              32,
+              121,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              101,
+              108,
+              32,
+              102,
+              111,
+              114,
+              109,
+              97,
+              116,
+              111,
+              32,
+              65,
+              65,
+              65,
+              65,
+              45,
+              77,
+              77,
+              45,
+              68,
+              68,
+              44,
+              32,
+              112,
+              111,
+              114,
+              32,
+              101,
+              106,
+              101,
+              109,
+              112,
+              108,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              49,
+              46,
+              51,
+              50,
+              49,
+              55,
+              48,
+              57,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 127,
+          "responseSize": 351
+        },
+        "id": "278a99cb-caa2-492e-9f0e-f26a838b5150",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = PARAMETROS_INVALIDOS",
+            "skipped": false
+          },
+          {
+            "assertion": "indica el parámetro desde",
+            "skipped": false
+          },
+          {
+            "assertion": "Contrato de error: el cuerpo trae field (RF-95 Salida)",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "12e8b156-7720-42f3-b6c1-386f5c38a541",
+          "length": 14,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "3622bacb-ddf0-46d0-99c2-9b051bec0fc2"
+        },
+        "item": {
+          "id": "e961861b-bc85-49e3-977a-9cd8173cf19f",
+          "name": "sin hasta",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "74703411-9566-4708-b456-f27c76c4dbce",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro hasta', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('hasta'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "e8eb6b69-36a0-455c-b009-00a03b73b5dc"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "b1ac8550-fce1-4a14-83a5-53ecd52fb0db",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "2e0a889f-bbc5-4261-83db-cd0adf3f8359",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "351"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:50 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "42607da3-5ec6-4c79-9f64-b60851d3ad3f"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              80,
+              65,
+              82,
+              65,
+              77,
+              69,
+              84,
+              82,
+              79,
+              83,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              79,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              97,
+              114,
+              195,
+              161,
+              109,
+              101,
+              116,
+              114,
+              111,
+              32,
+              194,
+              171,
+              104,
+              97,
+              115,
+              116,
+              97,
+              194,
+              187,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              111,
+              32,
+              121,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              101,
+              108,
+              32,
+              102,
+              111,
+              114,
+              109,
+              97,
+              116,
+              111,
+              32,
+              65,
+              65,
+              65,
+              65,
+              45,
+              77,
+              77,
+              45,
+              68,
+              68,
+              44,
+              32,
+              112,
+              111,
+              114,
+              32,
+              101,
+              106,
+              101,
+              109,
+              112,
+              108,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              104,
+              97,
+              115,
+              116,
+              97,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              104,
+              97,
+              115,
+              116,
+              97,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              97,
+              114,
+              195,
+              161,
+              109,
+              101,
+              116,
+              114,
+              111,
+              32,
+              194,
+              171,
+              104,
+              97,
+              115,
+              116,
+              97,
+              194,
+              187,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              111,
+              32,
+              121,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              101,
+              108,
+              32,
+              102,
+              111,
+              114,
+              109,
+              97,
+              116,
+              111,
+              32,
+              65,
+              65,
+              65,
+              65,
+              45,
+              77,
+              77,
+              45,
+              68,
+              68,
+              44,
+              32,
+              112,
+              111,
+              114,
+              32,
+              101,
+              106,
+              101,
+              109,
+              112,
+              108,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              49,
+              46,
+              53,
+              49,
+              52,
+              56,
+              56,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 142,
+          "responseSize": 351
+        },
+        "id": "e961861b-bc85-49e3-977a-9cd8173cf19f",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = PARAMETROS_INVALIDOS",
+            "skipped": false
+          },
+          {
+            "assertion": "indica el parámetro hasta",
+            "skipped": false
+          },
+          {
+            "assertion": "Contrato de error: el cuerpo trae field (RF-95 Salida)",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "efb1da37-6b11-413c-bc4c-055ce0f7b2e7",
+          "length": 14,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "86f3c9b6-e5c4-4c4f-844d-768c99a33b95"
+        },
+        "item": {
+          "id": "3f9a63b1-a90c-4489-9153-7d74ef4f22b9",
+          "name": "desde inexistente (2026-02-30)",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-02-30"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0e598441-05d4-4177-8431-46c8f31be578",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro desde', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('desde'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "7452bb23-47ca-4944-bdde-b041c9cf3193"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-02-30"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3521df3c-9770-403e-aafc-8bf13c4ec2b9",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "2770e146-9c75-4dc8-adb2-c4d1fb7ff487",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "351"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:50 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "8f20f9ac-1ae3-4990-8b50-683ee84c388a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              80,
+              65,
+              82,
+              65,
+              77,
+              69,
+              84,
+              82,
+              79,
+              83,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              79,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              97,
+              114,
+              195,
+              161,
+              109,
+              101,
+              116,
+              114,
+              111,
+              32,
+              194,
+              171,
+              100,
+              101,
+              115,
+              100,
+              101,
+              194,
+              187,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              111,
+              32,
+              121,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              101,
+              108,
+              32,
+              102,
+              111,
+              114,
+              109,
+              97,
+              116,
+              111,
+              32,
+              65,
+              65,
+              65,
+              65,
+              45,
+              77,
+              77,
+              45,
+              68,
+              68,
+              44,
+              32,
+              112,
+              111,
+              114,
+              32,
+              101,
+              106,
+              101,
+              109,
+              112,
+              108,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              100,
+              101,
+              115,
+              100,
+              101,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              100,
+              101,
+              115,
+              100,
+              101,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              112,
+              97,
+              114,
+              195,
+              161,
+              109,
+              101,
+              116,
+              114,
+              111,
+              32,
+              194,
+              171,
+              100,
+              101,
+              115,
+              100,
+              101,
+              194,
+              187,
+              32,
+              101,
+              115,
+              32,
+              111,
+              98,
+              108,
+              105,
+              103,
+              97,
+              116,
+              111,
+              114,
+              105,
+              111,
+              32,
+              121,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              101,
+              108,
+              32,
+              102,
+              111,
+              114,
+              109,
+              97,
+              116,
+              111,
+              32,
+              65,
+              65,
+              65,
+              65,
+              45,
+              77,
+              77,
+              45,
+              68,
+              68,
+              44,
+              32,
+              112,
+              111,
+              114,
+              32,
+              101,
+              106,
+              101,
+              109,
+              112,
+              108,
+              111,
+              32,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              48,
+              49,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              49,
+              46,
+              55,
+              50,
+              53,
+              52,
+              53,
+              55,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 139,
+          "responseSize": 351
+        },
+        "id": "3f9a63b1-a90c-4489-9153-7d74ef4f22b9",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = PARAMETROS_INVALIDOS",
+            "skipped": false
+          },
+          {
+            "assertion": "indica el parámetro desde",
+            "skipped": false
+          },
+          {
+            "assertion": "Contrato de error: el cuerpo trae field (RF-95 Salida)",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "24fb0c9f-8e19-4cc3-b613-18f3c5e4425e",
+          "length": 14,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "b8153866-d1c1-48a8-951a-ebaa169ed85f"
+        },
+        "item": {
+          "id": "fc6a4055-72c4-46c5-a705-d9324c212b41",
+          "name": "NIT con dígito de verificación (901444215-0)",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215-0"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "86207a46-52d0-44ee-8325-106ae0d11852",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro nit', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('nit'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "f7901ce9-c43d-4569-b7d4-fb52b78dc2a0"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215-0"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "1fc7ab63-6bde-472e-a04d-f97c3d1b379b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "d41c01c6-379f-43dc-89cd-16752a066dd0",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "275"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:50 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "dbbf01c1-2bcb-412e-a35b-78bb57e8d314"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              80,
+              65,
+              82,
+              65,
+              77,
+              69,
+              84,
+              82,
+              79,
+              83,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              79,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              78,
+              73,
+              84,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              115,
+              111,
+              108,
+              111,
+              32,
+              100,
+              195,
+              173,
+              103,
+              105,
+              116,
+              111,
+              115,
+              44,
+              32,
+              115,
+              105,
+              110,
+              32,
+              100,
+              195,
+              173,
+              103,
+              105,
+              116,
+              111,
+              32,
+              100,
+              101,
+              32,
+              118,
+              101,
+              114,
+              105,
+              102,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              110,
+              105,
+              116,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              110,
+              105,
+              116,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              78,
+              73,
+              84,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              115,
+              111,
+              108,
+              111,
+              32,
+              100,
+              195,
+              173,
+              103,
+              105,
+              116,
+              111,
+              115,
+              44,
+              32,
+              115,
+              105,
+              110,
+              32,
+              100,
+              195,
+              173,
+              103,
+              105,
+              116,
+              111,
+              32,
+              100,
+              101,
+              32,
+              118,
+              101,
+              114,
+              105,
+              102,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              49,
+              46,
+              57,
+              49,
+              55,
+              53,
+              56,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 129,
+          "responseSize": 275
+        },
+        "id": "fc6a4055-72c4-46c5-a705-d9324c212b41",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = PARAMETROS_INVALIDOS",
+            "skipped": false
+          },
+          {
+            "assertion": "indica el parámetro nit",
+            "skipped": false
+          },
+          {
+            "assertion": "Contrato de error: el cuerpo trae field (RF-95 Salida)",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "a05ce1c9-030b-4cf7-a5e7-ed82b4489eb2",
+          "length": 14,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "6b6366c6-2657-421f-9fc8-bb3d6e681f4b"
+        },
+        "item": {
+          "id": "c40389f4-5687-4f42-9245-e6aeec285be6",
+          "name": "NIT con letras (90144A215)",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "90144A215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "907e6331-fc82-428d-83ae-4f87e7837cc0",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = PARAMETROS_INVALIDOS', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('PARAMETROS_INVALIDOS'); });",
+                  "pm.test('indica el parámetro nit', () => { const j = pm.response.json(); const f = j.field || ((j.fields||[])[0]||{}).field; pm.expect(f).to.eql('nit'); });",
+                  "pm.test('Contrato de error: el cuerpo trae field (RF-95 Salida)', () => pm.expect(pm.response.json()).to.have.property('field'));",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "2821dbae-e06b-45cb-b922-87d60d41a44f"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "90144A215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "048da778-daf2-405f-a8aa-ea99f2dd82c6",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "4eae94ef-5c02-4fd1-8933-4d4a029c262e",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "275"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:51 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "b7cab0d8-00bf-4d80-a1d5-9d702961cdea"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              80,
+              65,
+              82,
+              65,
+              77,
+              69,
+              84,
+              82,
+              79,
+              83,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              79,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              78,
+              73,
+              84,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              115,
+              111,
+              108,
+              111,
+              32,
+              100,
+              195,
+              173,
+              103,
+              105,
+              116,
+              111,
+              115,
+              44,
+              32,
+              115,
+              105,
+              110,
+              32,
+              100,
+              195,
+              173,
+              103,
+              105,
+              116,
+              111,
+              32,
+              100,
+              101,
+              32,
+              118,
+              101,
+              114,
+              105,
+              102,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              110,
+              105,
+              116,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              110,
+              105,
+              116,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              78,
+              73,
+              84,
+              32,
+              100,
+              101,
+              98,
+              101,
+              32,
+              116,
+              101,
+              110,
+              101,
+              114,
+              32,
+              115,
+              111,
+              108,
+              111,
+              32,
+              100,
+              195,
+              173,
+              103,
+              105,
+              116,
+              111,
+              115,
+              44,
+              32,
+              115,
+              105,
+              110,
+              32,
+              100,
+              195,
+              173,
+              103,
+              105,
+              116,
+              111,
+              32,
+              100,
+              101,
+              32,
+              118,
+              101,
+              114,
+              105,
+              102,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              50,
+              46,
+              48,
+              57,
+              55,
+              51,
+              51,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 173,
+          "responseSize": 275
+        },
+        "id": "c40389f4-5687-4f42-9245-e6aeec285be6",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = PARAMETROS_INVALIDOS",
+            "skipped": false
+          },
+          {
+            "assertion": "indica el parámetro nit",
+            "skipped": false
+          },
+          {
+            "assertion": "Contrato de error: el cuerpo trae field (RF-95 Salida)",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1e9f4266-a9f0-44cc-ae81-e0e173b10ef1",
+          "length": 14,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "df015eeb-7461-4cde-be08-e1d17043b5aa"
+        },
+        "item": {
+          "id": "e888066b-02fb-4f8a-8030-5115d0aaa025",
+          "name": "client_secret=x",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "x"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7520b499-9f13-4d0a-81c9-2e6ad34cd27b",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "6f5191bf-e0b1-44ea-b085-f1205e877d53"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              },
+              {
+                "key": "client_secret",
+                "value": "x"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "f30d4ef4-3089-4002-98c8-ed68d5148f78",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "64942200-bc92-44df-880d-c939b5b0866b",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "232"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:51 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "3bb00e49-f072-4d3a-8cfa-9f0dc30d6ed4"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              82,
+              69,
+              68,
+              69,
+              78,
+              67,
+              73,
+              65,
+              76,
+              69,
+              83,
+              95,
+              69,
+              78,
+              95,
+              85,
+              82,
+              76,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              100,
+              105,
+              114,
+              101,
+              99,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              111,
+              110,
+              115,
+              117,
+              108,
+              116,
+              97,
+              32,
+              110,
+              111,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              32,
+              108,
+              108,
+              101,
+              118,
+              97,
+              114,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              101,
+              115,
+              46,
+              32,
+              69,
+              110,
+              118,
+              195,
+              173,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              32,
+              101,
+              110,
+              32,
+              101,
+              108,
+              32,
+              101,
+              110,
+              99,
+              97,
+              98,
+              101,
+              122,
+              97,
+              100,
+              111,
+              32,
+              65,
+              117,
+              116,
+              104,
+              111,
+              114,
+              105,
+              122,
+              97,
+              116,
+              105,
+              111,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              50,
+              46,
+              51,
+              54,
+              55,
+              54,
+              55,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 128,
+          "responseSize": 232
+        },
+        "id": "e888066b-02fb-4f8a-8030-5115d0aaa025",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = CREDENCIALES_EN_URL",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "275c8a59-0d88-4c87-b5ca-d2c3e76d75e8",
+          "length": 14,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "6c38e2b4-9c63-48a5-b50a-d5ea7a2eeefc"
+        },
+        "item": {
+          "id": "3f76d257-7418-467d-a85e-6ee3dac1581a",
+          "name": "api_key=x",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "api_key",
+                  "value": "x"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "41e27f23-96d8-4058-afe7-914576ccd5d4",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "2f880bb7-2ef0-4d62-8e06-ce29bad7cd91"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              },
+              {
+                "key": "api_key",
+                "value": "x"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "64bfa4d0-9d05-464c-b93f-1a07d0edff27",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "0ddfd338-8649-46bb-9e3a-7238e3859f78",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "232"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:51 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "31fb80ce-1fc7-4975-99a2-7ecd7e5f57b1"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              82,
+              69,
+              68,
+              69,
+              78,
+              67,
+              73,
+              65,
+              76,
+              69,
+              83,
+              95,
+              69,
+              78,
+              95,
+              85,
+              82,
+              76,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              100,
+              105,
+              114,
+              101,
+              99,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              111,
+              110,
+              115,
+              117,
+              108,
+              116,
+              97,
+              32,
+              110,
+              111,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              32,
+              108,
+              108,
+              101,
+              118,
+              97,
+              114,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              101,
+              115,
+              46,
+              32,
+              69,
+              110,
+              118,
+              195,
+              173,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              32,
+              101,
+              110,
+              32,
+              101,
+              108,
+              32,
+              101,
+              110,
+              99,
+              97,
+              98,
+              101,
+              122,
+              97,
+              100,
+              111,
+              32,
+              65,
+              117,
+              116,
+              104,
+              111,
+              114,
+              105,
+              122,
+              97,
+              116,
+              105,
+              111,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              50,
+              46,
+              53,
+              48,
+              57,
+              49,
+              57,
+              48,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 175,
+          "responseSize": 232
+        },
+        "id": "3f76d257-7418-467d-a85e-6ee3dac1581a",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = CREDENCIALES_EN_URL",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "78dc758d-3094-4d31-945d-5a86cc3a85ca",
+          "length": 14,
+          "cycles": 1,
+          "position": 8,
+          "iteration": 0,
+          "httpRequestId": "62ab23db-4df9-4ec3-85d1-f5ad7a1c3a2c"
+        },
+        "item": {
+          "id": "d839dc78-b8a3-4a0f-8bb7-3cefd2d0b1b8",
+          "name": "token=x",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "token",
+                  "value": "x"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "bbcda71b-9440-4252-8d42-db19ee76092a",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "fd97b44a-28d6-4514-bca9-dd7846ec0805"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              },
+              {
+                "key": "token",
+                "value": "x"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "10d8fbcc-7899-4c7a-bdc1-ab33106e7b4d",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "d20d38ff-e2a3-49ea-be25-d9b1c33b5c75",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "232"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:51 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "210b9c12-b1af-4288-863f-046d35f939ab"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              82,
+              69,
+              68,
+              69,
+              78,
+              67,
+              73,
+              65,
+              76,
+              69,
+              83,
+              95,
+              69,
+              78,
+              95,
+              85,
+              82,
+              76,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              100,
+              105,
+              114,
+              101,
+              99,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              111,
+              110,
+              115,
+              117,
+              108,
+              116,
+              97,
+              32,
+              110,
+              111,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              32,
+              108,
+              108,
+              101,
+              118,
+              97,
+              114,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              101,
+              115,
+              46,
+              32,
+              69,
+              110,
+              118,
+              195,
+              173,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              32,
+              101,
+              110,
+              32,
+              101,
+              108,
+              32,
+              101,
+              110,
+              99,
+              97,
+              98,
+              101,
+              122,
+              97,
+              100,
+              111,
+              32,
+              65,
+              117,
+              116,
+              104,
+              111,
+              114,
+              105,
+              122,
+              97,
+              116,
+              105,
+              111,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              50,
+              46,
+              55,
+              51,
+              50,
+              56,
+              49,
+              49,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 123,
+          "responseSize": 232
+        },
+        "id": "d839dc78-b8a3-4a0f-8bb7-3cefd2d0b1b8",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = CREDENCIALES_EN_URL",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "222d9c84-6e87-4780-9884-d20a246f359a",
+          "length": 14,
+          "cycles": 1,
+          "position": 9,
+          "iteration": 0,
+          "httpRequestId": "8346a116-af5a-474b-a76e-b8cf761bbb7e"
+        },
+        "item": {
+          "id": "09756e31-8ef6-49d3-94e9-b0ba555ef9c2",
+          "name": "CLIENT_ID=x (mayúsculas)",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "CLIENT_ID",
+                  "value": "x"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "6ec874ef-959e-481c-9b80-3a543b83f2bb",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "e7731120-60e0-4e2f-84c7-9fb095760fd0"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              },
+              {
+                "key": "CLIENT_ID",
+                "value": "x"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "8263e454-886a-4523-8c50-710819d4c586",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "5af858d8-4bbe-45ab-bbcc-386fde5f8628",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "232"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:51 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "b3c15843-d7f4-4402-8045-00ddfb345ff4"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              82,
+              69,
+              68,
+              69,
+              78,
+              67,
+              73,
+              65,
+              76,
+              69,
+              83,
+              95,
+              69,
+              78,
+              95,
+              85,
+              82,
+              76,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              100,
+              105,
+              114,
+              101,
+              99,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              111,
+              110,
+              115,
+              117,
+              108,
+              116,
+              97,
+              32,
+              110,
+              111,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              32,
+              108,
+              108,
+              101,
+              118,
+              97,
+              114,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              101,
+              115,
+              46,
+              32,
+              69,
+              110,
+              118,
+              195,
+              173,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              32,
+              101,
+              110,
+              32,
+              101,
+              108,
+              32,
+              101,
+              110,
+              99,
+              97,
+              98,
+              101,
+              122,
+              97,
+              100,
+              111,
+              32,
+              65,
+              117,
+              116,
+              104,
+              111,
+              114,
+              105,
+              122,
+              97,
+              116,
+              105,
+              111,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              50,
+              46,
+              57,
+              51,
+              52,
+              49,
+              48,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 127,
+          "responseSize": 232
+        },
+        "id": "09756e31-8ef6-49d3-94e9-b0ba555ef9c2",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = CREDENCIALES_EN_URL",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "3adc95c4-9eb4-4ddf-8ac9-3a6fa6e27287",
+          "length": 14,
+          "cycles": 1,
+          "position": 10,
+          "iteration": 0,
+          "httpRequestId": "fa7bb80d-8842-4590-a1b5-4bdda3291e3e"
+        },
+        "item": {
+          "id": "35538d37-07bd-4b02-bc24-d909b88f0b35",
+          "name": "credencial + NIT inválido: gana CREDENCIALES_EN_URL",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "90144A215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "x"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "775772ec-9c63-4427-9e98-b6431f6c94e2",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error_code = CREDENCIALES_EN_URL', () => { const j = pm.response.json(); pm.expect(j.error_code).to.eql('CREDENCIALES_EN_URL'); });",
+                  "pm.test('mensaje legible (no vacío, sin trazas)', () => { const m = pm.response.json().message || ''; pm.expect(m.length).to.be.above(10); pm.expect(m).to.not.match(/Traceback|File \"|\\.py|SELECT /i); });",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "74c6c634-c68a-4b8f-8ea7-01820b413907"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "90144A215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              },
+              {
+                "key": "client_secret",
+                "value": "x"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "f1857291-55b2-4c76-882e-e8b5500b71cf",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "d9eb572c-a943-4349-b539-d26c9b0864e3",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "232"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:52 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "b924a310-96f4-4621-b1c8-45376b99954e"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              82,
+              69,
+              68,
+              69,
+              78,
+              67,
+              73,
+              65,
+              76,
+              69,
+              83,
+              95,
+              69,
+              78,
+              95,
+              85,
+              82,
+              76,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              100,
+              105,
+              114,
+              101,
+              99,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              111,
+              110,
+              115,
+              117,
+              108,
+              116,
+              97,
+              32,
+              110,
+              111,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              32,
+              108,
+              108,
+              101,
+              118,
+              97,
+              114,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              101,
+              115,
+              46,
+              32,
+              69,
+              110,
+              118,
+              195,
+              173,
+              101,
+              32,
+              108,
+              97,
+              32,
+              99,
+              114,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              108,
+              32,
+              101,
+              110,
+              32,
+              101,
+              108,
+              32,
+              101,
+              110,
+              99,
+              97,
+              98,
+              101,
+              122,
+              97,
+              100,
+              111,
+              32,
+              65,
+              117,
+              116,
+              104,
+              111,
+              114,
+              105,
+              122,
+              97,
+              116,
+              105,
+              111,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              50,
+              49,
+              84,
+              48,
+              50,
+              58,
+              49,
+              48,
+              58,
+              53,
+              51,
+              46,
+              49,
+              50,
+              56,
+              57,
+              49,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 165,
+          "responseSize": 232
+        },
+        "id": "35538d37-07bd-4b02-bc24-d909b88f0b35",
+        "assertions": [
+          {
+            "assertion": "HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error_code = CREDENCIALES_EN_URL",
+            "skipped": false
+          },
+          {
+            "assertion": "mensaje legible (no vacío, sin trazas)",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "44569a47-f689-4d22-85f0-ddd570649afd",
+          "length": 14,
+          "cycles": 1,
+          "position": 11,
+          "iteration": 0,
+          "httpRequestId": "6b011778-56cd-4e08-b271-a51add56f314"
+        },
+        "item": {
+          "id": "11f8e2df-fe0b-4108-add4-cec9ec9eb668",
+          "name": "POST sobre la ruta AAEF → 405",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8c1aa6ab-8159-4946-9f5f-f142573a8557",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 405', () => pm.response.to.have.status(405));",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "59851396-b754-499b-85f4-8e606a90ce67"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "42b7c316-eedf-4cb1-bfcc-f613ba2fb3d2",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "POST"
+        },
+        "response": {
+          "id": "ce9f3779-e37a-4a6d-b945-119183a496a1",
+          "status": "Method Not Allowed",
+          "code": 405,
+          "header": [
+            {
+              "key": "Allow",
+              "value": "GET"
+            },
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "31"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:52 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "a1e9fb81-bfef-4d67-8d0c-570a82cfadfe"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              101,
+              116,
+              97,
+              105,
+              108,
+              34,
+              58,
+              34,
+              77,
+              101,
+              116,
+              104,
+              111,
+              100,
+              32,
+              78,
+              111,
+              116,
+              32,
+              65,
+              108,
+              108,
+              111,
+              119,
+              101,
+              100,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 124,
+          "responseSize": 31
+        },
+        "id": "11f8e2df-fe0b-4108-add4-cec9ec9eb668",
+        "assertions": [
+          {
+            "assertion": "HTTP 405",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "6a5f2d27-7d7a-4d7b-ac00-6fb4ad093199",
+          "length": 14,
+          "cycles": 1,
+          "position": 12,
+          "iteration": 0,
+          "httpRequestId": "1f682a98-a88a-4f85-9da0-baf4ee9bb9a3"
+        },
+        "item": {
+          "id": "56a1cfaa-0cf8-470d-8b89-b1ceada766d5",
+          "name": "DELETE sobre la ruta AAEF → 405",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productores",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "565299d7-2667-42fd-b4e1-851b4a84b24d",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 405', () => pm.response.to.have.status(405));",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "fa056133-31d8-4344-bd32-0ea57f27c853"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productores",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "de646129-5d98-441c-b4ea-db6da24a9e30",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "DELETE"
+        },
+        "response": {
+          "id": "c426d2c9-db38-4446-abdf-c846cbdd1f3a",
+          "status": "Method Not Allowed",
+          "code": 405,
+          "header": [
+            {
+              "key": "Allow",
+              "value": "GET"
+            },
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "31"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:52 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "934af517-aea6-42eb-879b-1700265ecfce"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              101,
+              116,
+              97,
+              105,
+              108,
+              34,
+              58,
+              34,
+              77,
+              101,
+              116,
+              104,
+              111,
+              100,
+              32,
+              78,
+              111,
+              116,
+              32,
+              65,
+              108,
+              108,
+              111,
+              119,
+              101,
+              100,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 156,
+          "responseSize": 31
+        },
+        "id": "56a1cfaa-0cf8-470d-8b89-b1ceada766d5",
+        "assertions": [
+          {
+            "assertion": "HTTP 405",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1e688cb0-47aa-417b-842d-96607db0e9ba",
+          "length": 14,
+          "cycles": 1,
+          "position": 13,
+          "iteration": 0,
+          "httpRequestId": "f6751e5b-797c-48bc-a6ac-71c2e8685744"
+        },
+        "item": {
+          "id": "9c8d182f-5472-4bb7-9813-76cbb91bcd46",
+          "name": "ruta inexistente (/aaef/productor/{nit}) → 404",
+          "description": {
+            "content": "",
+            "type": "text/plain"
+          },
+          "request": {
+            "url": {
+              "path": [
+                "integracion",
+                "aaef",
+                "productor",
+                "901444215"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "37059441-a603-453e-9a3c-aa307d9239e3",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('trae X-Request-Id', () => pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true);"
+                ],
+                "_lastExecutionId": "b0582568-bc51-4db6-8bd4-961f16918fc9"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "integracion",
+              "aaef",
+              "productor",
+              "901444215"
+            ],
+            "host": [
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "desde",
+                "value": "2026-09-01"
+              },
+              {
+                "key": "hasta",
+                "value": "2026-10-31"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "0937de74-ca87-45e4-9ceb-95e4bdcef2eb",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "26bb4316-3fce-479c-ab3a-6cf1620e2835",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "22"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 21 Nov 2026 02:10:52 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "482c5e92-6709-4720-b60d-c7bdf2a2e38a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              101,
+              116,
+              97,
+              105,
+              108,
+              34,
+              58,
+              34,
+              78,
+              111,
+              116,
+              32,
+              70,
+              111,
+              117,
+              110,
+              100,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 179,
+          "responseSize": 22
+        },
+        "id": "9c8d182f-5472-4bb7-9813-76cbb91bcd46",
+        "assertions": [
+          {
+            "assertion": "HTTP 404",
+            "skipped": false
+          },
+          {
+            "assertion": "trae X-Request-Id",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 3198
+    },
+    "failures": [],
+    "error": null
+  }
+}
