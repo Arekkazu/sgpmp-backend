@@ -1,3 +1,11 @@
+## [1.4.0-rc.84](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.83...v1.4.0-rc.84) (2026-11-21)
+
+### Bug Fixes
+
+* **rf106-mod8:** el historial predictivo cuenta los 24 meses por calendario (INC-M08-386-G018) ([37a88c6](https://github.com/Arekkazu/sgpmp-backend/commit/37a88c65ba536b8708bfb42419e67bc7d3585ece))
+* **rf106-mod8:** la bandeja de retroalimentacion trae la prediccion pedida desde el historial (INC-M08-390-G023) ([7d65770](https://github.com/Arekkazu/sgpmp-backend/commit/7d6577058148b14eae13b699a491f4ce95aca370))
+* **rf107-mod8:** la prevalidacion del cierre dice cuantos activos revaluara (INC-M08-393-G028) ([0f0ec90](https://github.com/Arekkazu/sgpmp-backend/commit/0f0ec90a14cb9e0fb795d5cd5c0d6b54a7703cd6))
+
 ## [1.4.0-rc.83](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.82...v1.4.0-rc.83) (2026-11-21)
 
 ### Bug Fixes
