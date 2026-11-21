@@ -7,8 +7,11 @@ NOTA_rendimiento_concurrencia.md) -- esto confirma, con tráfico real, que
 solicitudes concurrentes de distintos titulares no mezclan datos entre sí
 (parte de CA-7). No modifica nada (solo lee `vista-previa`).
 
-Ejecutado 2026-11-18: 12 llamadas concurrentes (3 titulares x 4), 0.69 s
-total, 0 mezclas detectadas.
+Ejecutado 2026-11-21: 8 llamadas concurrentes (2 titulares x 4 repeticiones,
+el default de --repeticiones), 0.53 s total, 0 mezclas detectadas. (La nota
+de 2026-11-18, "12 llamadas / 3 titulares", correspondía a una corrida
+exploratoria anterior a este script -- quedó desactualizada y ya no
+describe lo que este archivo ejecuta; corregido 2026-11-21.)
 
 Cómo correrlo (requiere la clave real del Contador, no se guarda aquí):
     python chequeo_aislamiento_concurrente.py --pass "<clave real>"
@@ -26,8 +29,8 @@ BASE = "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp
 CORREO = "contador@pecuaria.co"
 CASOS = [
     ("901444215", "2026-10-01", "2026-10-31"),
-    ("901458732", "2026-10-01", "2026-10-31"),
-]
+    ("901333217", "2026-11-01", "2026-11-30"),
+]  # 901458732 se retiró: desde 2026-11-21 da 403 ALCANCE_INSUFICIENTE (cambio de otro QA en sus fincas, ver ficha.md)
 
 
 def _login(contrasena: str) -> str:

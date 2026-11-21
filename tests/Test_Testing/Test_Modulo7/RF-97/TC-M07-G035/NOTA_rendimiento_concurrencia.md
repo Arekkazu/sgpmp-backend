@@ -9,10 +9,19 @@ infraestructura de carga no disponible en este hilo. No se fabrica un resultado 
 Script reproducible: `chequeo_aislamiento_concurrente.py` (en esta misma carpeta). Ejecutar con
 `python chequeo_aislamiento_concurrente.py --pass "<clave real del Contador>"`.
 
-2026-11-18, 12 llamadas concurrentes (`ThreadPoolExecutor`, 12 workers) mezclando 3 titulares
-distintos contra `GET /integracion/aaef/vista-previa/productores/{nit}` en TEST:
+2026-11-21, 8 llamadas concurrentes (`ThreadPoolExecutor`, 2 titulares × 4 repeticiones, el
+default real de `--repeticiones` en el script comiteado) contra
+`GET /integracion/aaef/vista-previa/productores/{nit}` en TEST:
 
-- Duración total: 0.69 s para las 12 llamadas.
+- Duración total: 0.53 s para las 8 llamadas.
+- **Corrección 2026-11-21:** una versión anterior de esta nota (2026-11-18) citaba "12 llamadas
+  / 3 titulares / 0.69 s" -- eran los números de una corrida exploratoria hecha *antes* de
+  escribir `chequeo_aislamiento_concurrente.py`, que nunca se actualizaron para coincidir con el
+  script finalmente comiteado (2 titulares, no 3). La líder de pruebas detectó la
+  inconsistencia; se corrigió re-ejecutando el script tal cual está en el repo. De paso, el
+  titular `901458732` (uno de los dos originales) se reemplazó por `901333217`: desde el
+  2026-11-21 el primero da 403 `ALCANCE_INSUFICIENTE` (cambio de otro QA en sus fincas, no
+  relacionado con este TC).
 - **Ninguna mezcla de datos entre titulares**: cada respuesta devolvió `SourceSystem.SystemNIT`
   exactamente igual al NIT solicitado, confirmando que no hay estado compartido visible entre
   solicitudes concurrentes (consistente con que `ConsultarAaefUseCase`/`mapear_compras` son
