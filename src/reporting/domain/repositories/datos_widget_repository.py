@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                         |
 # |------------|----------|-----------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: puerto de lectura de datos de los widgets |
+# | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: activos valorados acotados a las fincas del usuario |
 """Puerto de lectura de los datos que muestran los widgets del dashboard (RF-103).
 
 Solo lecturas: el dashboard no persiste nada (Postcondición 4). Cada consulta de finca recibe un
@@ -72,7 +73,12 @@ class DatosWidgetRepository(ABC):
 
     # Finanzas (M06) e integración contable (M07); id_finca en None = alcance del Contador en Finanzas
     @abstractmethod
-    def activos_valorados(self, id_finca: Optional[int]) -> list[Fila]: ...
+    def activos_valorados(self, id_finca: Optional[int],
+                          fincas_permitidas: Optional[list[int]]) -> list[Fila]:
+        """Activos reconocidos de ``id_finca`` (o de todas las permitidas si es ``None``).
+
+        ``fincas_permitidas`` en ``None`` = alcance global. No depende de los permisos de Finanzas del
+        rol: el Productor ve el valor de su inventario sin leer la valoración (INC-M08-380-G002)."""
 
     @abstractmethod
     def periodos_abiertos(self, id_finca: Optional[int]) -> list[Fila]: ...
