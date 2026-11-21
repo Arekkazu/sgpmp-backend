@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                                  |
 # |------------|----------|------------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: TVCO, conflictos, correspondencias, colisiones y pendientes       |
+# | 2026-11-21 | Arekkazu | INC-M08-386-G018 RF-106: el rango máximo de 24 meses se cuenta por calendario |
 """Reglas del historial clínico predictivo de un animal (RF-106), sin E/S.
 
 - **TVCO** (tasa de validación clínica observada) = CORRECTO / inferencias con retroalimentación sin conflicto.
@@ -15,14 +16,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Optional
 
 COLISION = timedelta(hours=1)
 ANTIGUEDAD_PENDIENTE = timedelta(hours=48)
-RANGO_MAXIMO_DIAS = 731  # 24 meses
 CORRECTO = "CORRECTO"
 _PRIORIDAD = {"RETROALIMENTACION": 0, "EVENTO_SANITARIO": 1, "PREDICCION": 2}
+
+
+def inicio_minimo(fin: date) -> date:
+    """Primer día que admite un rango que termina en ``fin``: 24 meses antes por calendario (R2).
+
+    Un número fijo de días (731) dejaba pasar un día de más cuando esos 24 meses no tienen un 29 de febrero.
+    Del 29 de febrero se retrocede al 28.
+    """
+    try:
+        return fin.replace(year=fin.year - 2)
+    except ValueError:
+        return fin.replace(year=fin.year - 2, day=28)
 
 
 @dataclass

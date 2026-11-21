@@ -2,6 +2,7 @@
 # |------------|----------|------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: línea de tiempo de predicciones, eventos y retroalimentación |
 # | 2026-11-19 | Arekkazu | M8-01 RF-106: marca las predicciones en modo sombra |
+# | 2026-11-21 | Arekkazu | INC-M08-386-G018 RF-106: 24 meses por calendario; el tipo del evento no pisa el del marcador |
 """Caso de uso: historial clínico predictivo de un animal para el Veterinario (RF-106).
 
 Une sobre un mismo eje de tiempo las predicciones guardadas de M04 (RF-67, nunca el motor en vivo), los eventos
@@ -19,11 +20,11 @@ from typing import Any, Optional
 
 from src.reporting.application.use_cases.reportes.generacion import AbrirFuente, Solicitante
 from src.reporting.domain.historial_predictivo import (
-    RANGO_MAXIMO_DIAS,
     Marcador,
     agrupar_colisiones,
     calcular_tvco,
     correspondencias,
+    inicio_minimo,
     pendientes,
     valoraciones_por_inferencia,
 )
@@ -57,7 +58,7 @@ class ConsultarHistorialPredictivoUseCase:
             if inicio > fin:
                 raise ValidationError(code="VAL_ENTRADA", field="fecha_inicio",
                                       message="La fecha de inicio no puede ser posterior a la fecha de fin.")
-            if (fin - inicio).days > RANGO_MAXIMO_DIAS:
+            if inicio < inicio_minimo(fin):
                 raise ValidationError(code="VAL_ENTRADA", field="fecha_inicio",
                                       message="El rango máximo es de 24 meses. Elige un rango más corto.")
             activo = fuente.ubicar("activo", id_activo)
@@ -102,7 +103,7 @@ class ConsultarHistorialPredictivoUseCase:
             "tiene_retroalimentacion": i["id_resultado_inferencia"] in valoraciones,
             "en_conflicto": len(valoraciones.get(i["id_resultado_inferencia"], ())) > 1}) for i in visibles]
         m_eventos = [Marcador("EVENTO_SANITARIO", e["fecha"], {
-            "id_evento": e["id_evento"], "tipo": e["tipo"], "descripcion": e["descripcion"] or "Sin descripción",
+            "id_evento": e["id_evento"], "tipo_evento": e["tipo"], "descripcion": e["descripcion"] or "Sin descripción",
             "veterinario": nombres.get(e["id_veterinario"]) or "Sin veterinario registrado"})
             for e in eventos] if incluir_eventos else []
         m_retros = [Marcador("RETROALIMENTACION", r["fecha_retroalimentacion"], {

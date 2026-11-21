@@ -1,20 +1,30 @@
 # | Fecha      | Nombre   | Que se hizo                                                           |
 # |------------|----------|-----------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: TVCO, conflictos, correspondencias, colisiones y degradación |
+# | 2026-11-21 | Arekkazu | INC-M08-386-G018 RF-106: rango máximo de 24 meses por calendario |
 """RF-106 — historial clínico predictivo: reglas del dominio y aviso de degradación del modelo (sin BD)."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from contextlib import contextmanager
+from datetime import date, datetime, timedelta, timezone
 
+import pytest
+
+from src.reporting.application.use_cases.historial.consultar_historial_predictivo_use_case import (
+    ConsultarHistorialPredictivoUseCase,
+)
+from src.reporting.application.use_cases.reportes.generacion import Solicitante
 from src.reporting.application.use_cases.historial.vigilar_degradacion_modelo_use_case import (
     TasaValidacionPort,
     VigilarDegradacionModeloUseCase,
 )
+from src.shared.errors import ValidationError
 from src.reporting.domain.historial_predictivo import (
     Marcador,
     agrupar_colisiones,
     calcular_tvco,
     correspondencias,
+    inicio_minimo,
     pendientes,
 )
 
@@ -47,6 +57,61 @@ def test_dos_valoraciones_iguales_no_son_conflicto():
 def test_sin_retroalimentacion_no_hay_datos_suficientes():
     tvco = calcular_tvco(["a"], [])
     assert tvco.porcentaje is None and tvco.texto == "Sin datos suficientes para calcular"
+
+
+def test_rango_maximo_de_24_meses_por_calendario():
+    # INC-M08-386-G018: 2024-11-19 → 2026-11-20 son 731 días y pasaba; 24 meses exactos empiezan el 2024-11-20.
+    assert inicio_minimo(date(2026, 11, 20)) == date(2024, 11, 20)
+    assert date(2024, 11, 19) < inicio_minimo(date(2026, 11, 20))
+    assert inicio_minimo(date(2028, 2, 29)) == date(2026, 2, 28)
+
+
+class _Fuente:
+    def ubicar(self, _tipo, _id):
+        return {"id_finca": 1, "estado": "ACTIVO"}
+
+    def inferencias(self, **_):
+        return []
+
+    def eventos_sanitarios_aislados(self, **_):
+        return [{"id_evento": 9, "tipo": "CONTROL_PREVENTIVO", "descripcion": "Vacuna", "id_veterinario": None,
+                 "fecha": T0, "fuente": "M02"}]
+
+    def retroalimentaciones(self, **_):
+        return []
+
+    def parametro(self, _nombre):
+        return None
+
+    def nombres_usuarios(self, _ids):
+        return {}
+
+    def ficha(self, _id):
+        return {}
+
+
+@contextmanager
+def _abrir(_usuario, _zona):
+    yield _Fuente()
+
+
+def _consultar(**kw):
+    solicitante = Solicitante(id_usuario=1, nombre="Vet", permitidos=set(), fincas=None)
+    return ConsultarHistorialPredictivoUseCase(_abrir).execute(5, solicitante, **kw)
+
+
+def test_un_dia_mas_de_24_meses_es_400_y_24_exactos_pasan():
+    with pytest.raises(ValidationError) as error:
+        _consultar(fecha_inicio=date(2024, 11, 19), fecha_fin=date(2026, 11, 20))
+    assert error.value.field == "fecha_inicio"
+    assert _consultar(fecha_inicio=date(2024, 11, 20), fecha_fin=date(2026, 11, 20))["rango_fechas_aplicado"] == {
+        "fecha_inicio": "2024-11-20", "fecha_fin": "2026-11-20"}
+
+
+def test_el_tipo_clinico_del_evento_no_pisa_el_tipo_del_marcador():
+    # INC-M08-388-G021 OBS-7: «tipo» llegaba como CONTROL_PREVENTIVO y la vista no lo reconocía como evento.
+    evento = _consultar(fecha_inicio=date(2026, 10, 1), fecha_fin=date(2026, 11, 20))["eventos_sanitarios"][0]
+    assert evento["tipo"] == "EVENTO_SANITARIO" and evento["tipo_evento"] == "CONTROL_PREVENTIVO"
 
 
 def test_correspondencia_dentro_y_fuera_de_la_ventana():
