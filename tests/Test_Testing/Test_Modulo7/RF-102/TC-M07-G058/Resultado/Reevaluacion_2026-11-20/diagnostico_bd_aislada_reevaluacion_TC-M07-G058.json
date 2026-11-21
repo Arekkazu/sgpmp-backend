@@ -1,0 +1,86 @@
+{
+  "fecha_utc": "2026-11-21T00:27:47.741049+00:00",
+  "metodo": "bd_aislada_sintetica",
+  "nota": "Datos controlados; no representan histórico real de producción/TEST.",
+  "ok": true,
+  "database_url_host": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test",
+  "resultados": {
+    "cliente_creado": true,
+    "e5": {
+      "n_viejos": 4,
+      "n_vigentes": 5,
+      "cinco_corte": "2021-11-21T00:27:47.600566+00:00",
+      "diez_corte": "2016-11-21T00:27:47.600566+00:00",
+      "cliente_id": 1,
+      "tipos_aaef_incluidos": true
+    },
+    "e2": {
+      "ejecutar_archivado_ok": true,
+      "n_activos": 5,
+      "n_historicos": 4,
+      "viejos_en_historico": true,
+      "vigentes_siguen_activos": true,
+      "sin_aviso": true,
+      "idempotente": true
+    },
+    "e3": {
+      "hashes_antes": {
+        "44fa0c37-5521-4406-83d9-a235d3143fd5": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+        "34d132af-a303-4044-9d4e-f4b198d748e2": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+        "a89b0a75-27c0-48e7-90e0-bd4d36fe6f07": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519"
+      },
+      "n_comparados": 4,
+      "todos_conservados": true,
+      "detalle": [
+        {
+          "id": "44fa0c37-5521-4406-83d9-a235d3143fd5",
+          "antes": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+          "despues": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+          "igual": true
+        },
+        {
+          "id": "34d132af-a303-4044-9d4e-f4b198d748e2",
+          "antes": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+          "despues": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+          "igual": true
+        },
+        {
+          "id": "a89b0a75-27c0-48e7-90e0-bd4d36fe6f07",
+          "antes": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519",
+          "despues": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519",
+          "igual": true
+        },
+        {
+          "id": "635fa775-1f24-4937-b2de-7cc6a404f62c",
+          "antes": "14e6b8994209d189cafb668e7e1d2a4f59cfd889284a25349f65da31aa910681",
+          "despues": "14e6b8994209d189cafb668e7e1d2a4f59cfd889284a25349f65da31aa910681",
+          "igual": true
+        }
+      ]
+    },
+    "e4": {
+      "total_vista_historial": 9,
+      "esperado": 9,
+      "cubre_activos_y_archivados": true,
+      "consulta_dual_implementada": true
+    },
+    "e1": {
+      "fn_retencion_existe": true,
+      "general_lt_5y_permanece_activo": true,
+      "general_ge_5y_archivado": true,
+      "aaef_probado": true,
+      "aaef_ge_10y_archivado": true,
+      "aaef_lt_10y_activo": true
+    },
+    "e6": {
+      "fallo_detectado": true,
+      "causa_alerta": "FALLO_ARCHIVADO",
+      "rollback_sin_historico_del_lote": true,
+      "ambos_siguen_activos_tras_fallo": true,
+      "reintento_ok": true,
+      "bueno_archivado_tras_reintento": true,
+      "corrupto_permanece_activo": true,
+      "hash_bueno_conservado": true
+    }
+  }
+}

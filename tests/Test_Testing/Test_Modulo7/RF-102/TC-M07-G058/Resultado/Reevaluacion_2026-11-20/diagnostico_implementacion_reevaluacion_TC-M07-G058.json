@@ -1,0 +1,40 @@
+{
+  "fecha_utc": "2026-11-21T00:27:36.525177+00:00",
+  "issue": "#1165",
+  "implementacion": {
+    "code_root": "origin/test (inspección RF-102 #1165)",
+    "archivos_clave": {
+      "alembic/versions/f11651020001_rf102_archivo_auditoria_integracion.py": true,
+      "src/accounting_integration/application/use_cases/auditoria/archivar_auditoria_integracion_use_case.py": true,
+      "src/accounting_integration/infrastructure/archivo_auditoria_worker.py": true,
+      "src/accounting_integration/infrastructure/repositories/auditoria_integracion_repository.py": true,
+      "tests/integration/test_inc_m07_371_g58_archivado_auditoria.py": true,
+      "anotaciones/modulo_7/inc_m07_371_g58_retencion_auditoria_rf102.md": true,
+      "main.py": true
+    },
+    "retencion_5y_10y": true,
+    "tabla_historica": true,
+    "vista_historial": true,
+    "fn_archivar": true,
+    "worker_periodico": true,
+    "consulta_dual_almacen": true,
+    "reintento_15m": true,
+    "tipos_aaef_10y": [
+      "PAQUETE_AAEF_CONSULTADO",
+      "VISTA_AAEF_GENERADA",
+      "CONTRATO_ACTIVADO"
+    ],
+    "proteccion_salida": true,
+    "intervalo_1h": true,
+    "metodos_archivo": true,
+    "worker_en_lifespan": true,
+    "implementacion_codigo_completa": true,
+    "refs": {
+      "issue": "#1165",
+      "pr": "#1191",
+      "pr_lote": "#1202",
+      "commit_fix": "98f8b5c8822f4a169fb90cc1092cbe8bbb2f2b6a",
+      "migracion": "f11651020001"
+    }
+  }
+}

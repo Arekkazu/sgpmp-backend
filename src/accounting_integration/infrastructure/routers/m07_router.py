@@ -4,6 +4,7 @@
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: PATCH/PUT de una versión del contrato; las protegidas responden MODIFICACION_NO_PERMITIDA |
 # | 2026-11-19 | Arekkazu | M7-02/M7-03 RF-98: justificación del anexo y condiciones de activación en el listado |
+# | 2026-11-20 | Arekkazu | QA-M07 CU07 H-01 RF-102: el archivo exportado lleva la hora del usuario |
 """Routers de M07 (``/integracion``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 - ``GET /integracion/aaef/productores/{nit}``: la consulta de AgroFusion (RF-AE01). Su autenticación
@@ -12,7 +13,7 @@
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Request, Response
@@ -40,6 +41,7 @@ from src.accounting_integration.infrastructure.factoria import M07
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError, MethodNotAllowedError, ValidationError
+from src.shared.fechas import en_zona_usuario
 from src.shared.rbac import require_permission_sobre as permiso
 from src.shared.rbac import tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
@@ -314,7 +316,7 @@ def exportar_auditoria(
     contenido = m07.consultar_auditoria().exportar(
         _filtros(tipo_evento, id_cliente_externo, desde, hasta, endpoint, codigo_http, numero_id_tributaria), formato)
     tipo = "application/json" if formato == "json" else "text/csv; charset=utf-8"
-    nombre = f"auditoria_integracion_{datetime.now():%Y%m%d_%H%M%S}.{formato}"
+    nombre = f"auditoria_integracion_{en_zona_usuario(datetime.now(timezone.utc)):%Y%m%d_%H%M%S}.{formato}"
     return Response(content=contenido, media_type=tipo, headers={"Content-Disposition": f'attachment; filename="{nombre}"'})
 
 

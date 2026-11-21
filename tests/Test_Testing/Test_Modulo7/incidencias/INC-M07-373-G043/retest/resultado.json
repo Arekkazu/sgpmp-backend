@@ -1,0 +1,21 @@
+{
+  "incidencia": "INC-M07-373-G043",
+  "caso": "TC-M07-G043",
+  "caso_individual": "TC-101-004",
+  "run": "RUN-G043-V2-20261120-105748",
+  "ambiente": "TEST",
+  "fecha": "2026-11-20",
+  "version_probada": "backend 1.4.0-rc.80 (PR #1202, integra #1190 y #1189)",
+  "evaluador": "Julian Badillo",
+  "peticiones": {
+    "ejecutadas": 24,
+    "fallidas": 0
+  },
+  "comprobaciones": {
+    "ejecutadas": 31,
+    "fallidas": 0
+  },
+  "veredicto": "Corregida: retest aprobado",
+  "correccion": "Nombre de cliente único sin distinguir mayúsculas ni espacios: `409 CLIENTE_DUPLICADO` en `nombre` (#1170, dentro de #1190, rc.80; índice `uq_cliente_externo_nombre`, migración `b4d2f8e61c07`).",
+  "verificacion": "El nombre repetido (idéntico, en mayúsculas y con espacios sobrantes) responde 409; un nombre nuevo sigue respondiendo 201 (verificacion_nombre_duplicado.json, con rollback). El caso TC-M07-G043 pasa 31 de 31 y el conteo de clientes no cambia."
+}

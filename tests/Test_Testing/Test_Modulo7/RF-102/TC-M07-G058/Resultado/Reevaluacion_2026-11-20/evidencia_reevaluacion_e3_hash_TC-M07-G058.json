@@ -1,0 +1,64 @@
+{
+  "id": "E3",
+  "nombre": "Integridad del hash durante el archivado",
+  "caso_original": "TC-M07-102-015",
+  "estado": "APROBADO",
+  "validacion": "SHA-256 conservado antes/después del traslado",
+  "esperado": "Hash idéntico en activo→histórico y recuperable",
+  "obtenido": "aislado={'hashes_antes': {'44fa0c37-5521-4406-83d9-a235d3143fd5': '982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be', '34d132af-a303-4044-9d4e-f4b198d748e2': 'e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813', 'a89b0a75-27c0-48e7-90e0-bd4d36fe6f07': 'f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519'}, 'n_comparados': 4, 'todos_conservados': True, 'detalle': [{'id': '44fa0c37-5521-4406-83d9-a235d3143fd5', 'antes': '982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be', 'despues': '982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be', 'igual': True}, {'id': '34d132af-a303-4044-9d4e-f4b198d748e2', 'antes': 'e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813', 'despues': 'e34909be0c0d2176cd4e049783fa63d4eba1…",
+  "evidencia": "evidencia_reevaluacion_e3_hash_TC-M07-G058.json",
+  "pasos": [
+    "Captura hash previo al archivar",
+    "Traslado y lectura en eventos_integracion_archivados",
+    "Comparación 1:1 (no se reutiliza 160/160 original)"
+  ],
+  "observaciones": "Evidencia nueva de conservación durante archivado en BD aislada.",
+  "referencia_original": "Resultado/evidencia_e3_hash_TC-M07-G058.json",
+  "fecha_utc": "2026-11-21T00:27:47.742297+00:00",
+  "ambiente": {
+    "api_test": "https://api.inmero.co/api-sgpmp-test",
+    "codigo": "origin/test (inspección RF-102 #1165)",
+    "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+  },
+  "evidencia_tecnica": {
+    "aislado": {
+      "hashes_antes": {
+        "44fa0c37-5521-4406-83d9-a235d3143fd5": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+        "34d132af-a303-4044-9d4e-f4b198d748e2": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+        "a89b0a75-27c0-48e7-90e0-bd4d36fe6f07": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519"
+      },
+      "n_comparados": 4,
+      "todos_conservados": true,
+      "detalle": [
+        {
+          "id": "44fa0c37-5521-4406-83d9-a235d3143fd5",
+          "antes": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+          "despues": "982f9ea4144771abda145721dcef1aeef116a000e9cc3329c59dc7f87d76d0be",
+          "igual": true
+        },
+        {
+          "id": "34d132af-a303-4044-9d4e-f4b198d748e2",
+          "antes": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+          "despues": "e34909be0c0d2176cd4e049783fa63d4eba1dce718aaa0c106d9de98ba46a813",
+          "igual": true
+        },
+        {
+          "id": "a89b0a75-27c0-48e7-90e0-bd4d36fe6f07",
+          "antes": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519",
+          "despues": "f33f06209b2c5b6f459b1a1f2d60ba25beb0d9e4ae90d272c261def142924519",
+          "igual": true
+        },
+        {
+          "id": "635fa775-1f24-4937-b2de-7cc6a404f62c",
+          "antes": "14e6b8994209d189cafb668e7e1d2a4f59cfd889284a25349f65da31aa910681",
+          "despues": "14e6b8994209d189cafb668e7e1d2a4f59cfd889284a25349f65da31aa910681",
+          "igual": true
+        }
+      ]
+    },
+    "api_test_actual": {
+      "integro": 781,
+      "corrupto": 0
+    }
+  }
+}

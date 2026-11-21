@@ -1,0 +1,57 @@
+{
+  "capturado": "2026-11-20T12:30:22-05:00",
+  "run_sandbox": "rollback al finalizar",
+  "cierre_run": {
+    "http": 200,
+    "respuesta": {
+      "status": "Rollback exitoso"
+    }
+  },
+  "cliente_existente": {
+    "id": 6,
+    "nombre": "QA_M07_AAEF (cliente de pruebas QA-M07)"
+  },
+  "variantes": [
+    {
+      "variante": "nombre_identico",
+      "esperado": "HTTP 409 CLIENTE_DUPLICADO en nombre",
+      "obtenido_http": 409,
+      "respuesta": {
+        "error_code": "CLIENTE_DUPLICADO",
+        "field": "nombre",
+        "message": "Ya existe un cliente externo llamado «QA_M07_AAEF (cliente de pruebas QA-M07)». Use otro nombre.",
+        "codigo": null,
+        "estado": null
+      }
+    },
+    {
+      "variante": "nombre_en_mayusculas",
+      "esperado": "HTTP 409 CLIENTE_DUPLICADO en nombre",
+      "obtenido_http": 409,
+      "respuesta": {
+        "error_code": "CLIENTE_DUPLICADO",
+        "field": "nombre",
+        "message": "Ya existe un cliente externo llamado «QA_M07_AAEF (CLIENTE DE PRUEBAS QA-M07)». Use otro nombre.",
+        "codigo": null,
+        "estado": null
+      }
+    },
+    {
+      "variante": "nombre_con_espacios_sobrantes",
+      "esperado": "HTTP 409 CLIENTE_DUPLICADO en nombre",
+      "obtenido_http": 409,
+      "respuesta": {
+        "error_code": "CLIENTE_DUPLICADO",
+        "field": "nombre",
+        "message": "Ya existe un cliente externo llamado «QA_M07_AAEF (cliente de pruebas QA-M07)». Use otro nombre.",
+        "codigo": null,
+        "estado": null
+      }
+    }
+  ],
+  "control_nombre_nuevo": {
+    "esperado": "HTTP 201",
+    "obtenido_http": 201
+  },
+  "cumple": true
+}
