@@ -35,6 +35,7 @@ from src.shared.errors import BusinessRuleError
 NIT = "901444215"
 ID_USUARIO, ID_CLIENTE = 7, 3
 HASH = "c" * 64
+JUSTIFICACION = "TC-M07-G063: aprobacion interna del mapeo para la prueba de QA."
 RID_OK, RID_ERR = "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"
 
 
@@ -192,7 +193,7 @@ def _ciclo():
     contratos, auditoria = _Contratos(), _Auditoria()
     caso = GestionarAnexosUseCase(contratos, auditoria, _DbTx())
     anexo = caso.registrar("QA-G063", "9.9", "docs/qa.md", "d" * 64, ID_USUARIO)
-    caso.enviar_a_revision(anexo.id_mapeo_anexo_aaef, ID_USUARIO)
+    caso.enviar_a_revision(anexo.id_mapeo_anexo_aaef, ID_USUARIO, JUSTIFICACION)
     caso.aprobar(anexo.id_mapeo_anexo_aaef, EVIDENCIA, ID_USUARIO)
     return auditoria.eventos
 
@@ -226,7 +227,7 @@ def test_g5_3_una_validacion_fallida_tambien_queda_registrada(monkeypatch):
     contratos, auditoria = _Contratos(), _Auditoria()
     contratos.guardar_anexo(AnexoMapeo(None, "QA-G063-F", "9.8", "docs/qa.md", "e" * 64))
     with pytest.raises(BusinessRuleError):
-        GestionarAnexosUseCase(contratos, auditoria, _DbTx()).enviar_a_revision(1, ID_USUARIO)
+        GestionarAnexosUseCase(contratos, auditoria, _DbTx()).enviar_a_revision(1, ID_USUARIO, JUSTIFICACION)
     (e,) = auditoria.eventos
     assert e.tipo_evento == "ANEXO_VALIDACION_FALLIDA" and e.severidad == "ERROR" and e.id_usuario == ID_USUARIO
     assert e.json_detalle["fallas"] == ["estructura"]

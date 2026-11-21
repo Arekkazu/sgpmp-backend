@@ -374,7 +374,8 @@ def parte_sandbox(res, peticiones):
 
         if tok_prod and borrador:   # G4.5: usuario sin el perfil intenta la aprobacion interna
             ida = borrador["id_mapeo_anexo_aaef"]
-            s, eco, c = run.pedir("POST", f"/integracion/anexos/{ida}/revision", None, tok_prod)
+            s, eco, c = run.pedir("POST", f"/integracion/anexos/{ida}/revision",
+                                 {"justificacion": "TC-M07-G062: intento de aprobacion interna sin el perfil del Contador."}, tok_prod)
             peticiones.append({"paso": "G4.5 revision sin el perfil", "http": s, "eco": eco, "utc": ahora()})
             v = Variante("usuario sin el perfil del Contador intenta pasar el Anexo a revision", s, c, 403, "ACCESO_DENEGADO")
             s2, _, c2 = run.pedir("GET", "/integracion/anexos", token=tok_contador)

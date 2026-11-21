@@ -104,6 +104,10 @@ class _Fuente:
     def lineas_sin_trazabilidad(self, nit, desde, hasta):
         return 0
 
+    def linetypes_catalogados(self):
+        # RF-96 CA-6 / RF-109: un None dentro del conjunto es una fila de la matriz que aplica a todos los tipos.
+        return frozenset({None}), frozenset({None})
+
     def costos_factura(self, nit, desde, hasta):
         return self._costos
 
@@ -195,30 +199,19 @@ def test_g3_5_monto_100_999_se_trunca_a_2_decimales():
 
 
 def test_g3_5_monto_0_no_genera_un_documento_valido():
-    """Esperado: el pipeline (Mapper, cuadre o esquema de AgroFusion) rechaza un documento con monto 0."""
-    try:
-        docs = mapear_compras([_costo("0")])
-        envelope = _envelope(compras=docs)
-        verificar_cuadre(envelope)
-        AccountingConsultResponse.model_validate(json.loads(serializar(envelope)))
-    except Exception:  # noqa: BLE001 — cualquier rechazo del pipeline es lo esperado
-        return
-    pytest.fail("un costo con monto 0 produjo un documento 02 que supera Mapper, cuadre y esquema de AgroFusion")
+    """Esperado (INC-M07-378-G61, corregido en #1188): el Mapper rechaza un costo de monto 0 con MAPPER_FALLIDO."""
+    with pytest.raises(AaefError) as exc:
+        mapear_compras([_costo("0")])
+    assert exc.value.codigo == "MAPPER_FALLIDO" and exc.value.campo == "Value"
 
 
 def test_g3_5_monto_menor_a_un_centavo_no_produce_una_linea_en_cero():
     """0.0049 si entra por la API de costos (CostoDTO exige monto_costo > 0 con hasta 4 decimales) pero el Mapper
-    lo trunca a 0.00. Esperado (misma regla que el 0): el pipeline no deja pasar un documento 02 con valor 0.00."""
-    docs = mapear_compras([_costo("0.0049")])
-    valor = docs[0]["Lines"][0]["Value"] if docs else None
-    try:
-        envelope = _envelope(compras=docs)
-        verificar_cuadre(envelope)
-        AccountingConsultResponse.model_validate(json.loads(serializar(envelope)))
-    except Exception:  # noqa: BLE001 — cualquier rechazo del pipeline es lo esperado
-        return
-    pytest.fail(f"un costo de 0.0049 (valido en M06) produjo un documento 02 con Value={valor} que supera "
-                "Mapper, cuadre y esquema de AgroFusion")
+    lo trunca a 0.00. Esperado (misma regla que el 0, corregida en #1188): el Mapper rechaza la linea con
+    MAPPER_FALLIDO y no deja pasar un documento 02 con valor 0.00."""
+    with pytest.raises(AaefError) as exc:
+        mapear_compras([_costo("0.0049")])
+    assert exc.value.codigo == "MAPPER_FALLIDO" and exc.value.campo == "Value"
 
 
 # --- G3.6 ---------------------------------------------------------------------------------------

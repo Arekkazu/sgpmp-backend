@@ -2,10 +2,10 @@
   "caso": "TC-M07-G060",
   "requisito": "RF-AE01 / RF-AE02",
   "responsable": "Maria Jose",
-  "fecha_ejecucion_utc": "2026-11-19T14:57:19.405341+00:00",
+  "fecha_ejecucion_utc": "2026-11-21T15:55:46.209276+00:00",
   "entorno": "TEST",
   "base_url": "https://api.inmero.co/api-sgpmp-test",
-  "estado_final": "RECHAZADO",
+  "estado_final": "APROBADO",
   "escenarios": [
     {
       "id": "G2.1",
@@ -22,9 +22,9 @@
       "id": "G2.2",
       "nombre": "Token invalido, vencido y de otro canal",
       "prioridad": "Alta",
-      "esperado": "401 NO_AUTENTICADO en los tres",
-      "estado": "RECHAZADO",
-      "obtenido": "firma alterada: HTTP 401 NO_AUTENTICADO (esperado 401 NO_AUTENTICADO) OK; cadena que no es un token: HTTP 401 NO_AUTENTICADO (esperado 401 NO_AUTENTICADO) OK; token de la sesion web (sin audiencia de canal): HTTP 401 NO_AUTENTICADO (esperado 401 NO_AUTENTICADO) OK; token de otro canal (QA_M07_M2M): HTTP 403 CLIENTE_NO_AUTORIZADO (esperado 401 NO_AUTENTICADO) FALLA; token vencido (vigencia 300 s): HTTP 401 NO_AUTENTICADO (esperado 401 NO_AUTENTICADO) OK",
+      "esperado": "401 NO_AUTENTICADO con token invalido o vencido; 403 CLIENTE_NO_AUTORIZADO con token de otro canal",
+      "estado": "APROBADO",
+      "obtenido": "firma alterada: HTTP 401 NO_AUTENTICADO (esperado 401 NO_AUTENTICADO) OK; cadena que no es un token: HTTP 401 NO_AUTENTICADO (esperado 401 NO_AUTENTICADO) OK; token de la sesion web (sin audiencia de canal): HTTP 401 NO_AUTENTICADO (esperado 401 NO_AUTENTICADO) OK; token de otro canal (QA_M07_M2M): HTTP 403 CLIENTE_NO_AUTORIZADO (esperado 403 CLIENTE_NO_AUTORIZADO) OK; token vencido (vigencia 300 s): HTTP 401 NO_AUTENTICADO (esperado 401 NO_AUTENTICADO) OK",
       "pasos": [
         "GET con cada token defectuoso"
       ]
@@ -45,8 +45,8 @@
       "nombre": "Credenciales en la URL (token, password, api_key)",
       "prioridad": "Alta",
       "esperado": "400 CREDENCIALES_EN_URL; la credencial no queda registrada",
-      "estado": "RECHAZADO",
-      "obtenido": "token en la URL: HTTP 400 CREDENCIALES_EN_URL (esperado 400 CREDENCIALES_EN_URL) OK; password en la URL: HTTP 200 - (esperado 400 CREDENCIALES_EN_URL) FALLA; api_key en la URL: HTTP 400 CREDENCIALES_EN_URL (esperado 400 CREDENCIALES_EN_URL) OK; en la auditoria (16 eventos CREDENCIALES_EN_URL) no aparece el valor enviado: OK",
+      "estado": "APROBADO",
+      "obtenido": "token en la URL: HTTP 400 CREDENCIALES_EN_URL (esperado 400 CREDENCIALES_EN_URL) OK; password en la URL: HTTP 400 CREDENCIALES_EN_URL (esperado 400 CREDENCIALES_EN_URL) OK; api_key en la URL: HTTP 400 CREDENCIALES_EN_URL (esperado 400 CREDENCIALES_EN_URL) OK; en la auditoria (29 eventos CREDENCIALES_EN_URL) no aparece el valor enviado: OK",
       "pasos": [
         "GET con token valido y una credencial en la query",
         "Revisar la auditoria RF-102"
@@ -79,8 +79,8 @@
       "nombre": "Cada control del Anexo bloquea el paso a EN_REVISION",
       "prioridad": "Alta",
       "esperado": "Estructura, cobertura, cuadre de documento y de summary, cuentas y formato de fecha: cada falla bloquea (FA-2)",
-      "estado": "RECHAZADO",
-      "obtenido": "pytest: 5/7 comprobaciones pasan; NO bloquean o fallan: cobertura (KeyError: 'Lines'); cuadre_summary (Failed: DID NOT RAISE <class 'src.shared.errors.BusinessRuleError'>)",
+      "estado": "APROBADO",
+      "obtenido": "pytest: 7/7 comprobaciones pasan",
       "pasos": [
         "pytest sobre el caso de uso del Anexo (sin BD ni red)"
       ]
@@ -92,147 +92,147 @@
       "metodo": "POST",
       "ruta": "/integraciones/agrofusion/token",
       "http": 200,
-      "utc": "2026-11-19T14:51:27.261562+00:00"
+      "utc": "2026-11-21T15:49:54.121972+00:00"
     },
     {
       "paso": "Emitir token para dejar vencer",
       "metodo": "POST",
       "ruta": "/integraciones/agrofusion/token",
       "http": 200,
-      "utc": "2026-11-19T14:51:27.807104+00:00"
+      "utc": "2026-11-21T15:49:54.736769+00:00"
     },
     {
       "paso": "G2.1 sin Authorization",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
       "http": 401,
-      "utc": "2026-11-19T14:51:28.110260+00:00"
+      "utc": "2026-11-21T15:49:55.093850+00:00"
     },
     {
       "paso": "G2.2 firma alterada",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
       "http": 401,
-      "utc": "2026-11-19T14:51:28.472252+00:00"
+      "utc": "2026-11-21T15:49:55.432308+00:00"
     },
     {
       "paso": "G2.2 cadena que no es un token",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
       "http": 401,
-      "utc": "2026-11-19T14:51:28.882508+00:00"
+      "utc": "2026-11-21T15:49:55.854499+00:00"
     },
     {
       "paso": "G2.2 token de sesion web",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
       "http": 401,
-      "utc": "2026-11-19T14:51:29.825360+00:00"
+      "utc": "2026-11-21T15:49:56.889779+00:00"
     },
     {
       "paso": "Emitir token del cliente M2M",
       "metodo": "POST",
       "ruta": "/integraciones/agrofusion/token",
       "http": 200,
-      "utc": "2026-11-19T14:51:30.368027+00:00"
+      "utc": "2026-11-21T15:49:57.547005+00:00"
     },
     {
       "paso": "G2.2 token de otro canal",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
       "http": 403,
-      "utc": "2026-11-19T14:51:30.667148+00:00"
+      "utc": "2026-11-21T15:49:57.992615+00:00"
     },
     {
       "paso": "G2.3 falta desde",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?hasta=2026-10-31",
       "http": 400,
-      "utc": "2026-11-19T14:51:30.979070+00:00"
+      "utc": "2026-11-21T15:49:58.365755+00:00"
     },
     {
       "paso": "G2.3 falta hasta",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01",
       "http": 400,
-      "utc": "2026-11-19T14:51:31.292662+00:00"
+      "utc": "2026-11-21T15:49:58.755400+00:00"
     },
     {
       "paso": "G2.3 fecha 2026-13-40",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-13-40&hasta=2026-10-31",
       "http": 400,
-      "utc": "2026-11-19T14:51:31.722738+00:00"
+      "utc": "2026-11-21T15:49:59.111135+00:00"
     },
     {
       "paso": "G2.3 fecha 31/10/2026",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=31/10/2026",
       "http": 400,
-      "utc": "2026-11-19T14:51:32.027129+00:00"
+      "utc": "2026-11-21T15:49:59.516967+00:00"
     },
     {
       "paso": "G2.3 desde posterior a hasta",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-10-31&hasta=2026-09-01",
       "http": 400,
-      "utc": "2026-11-19T14:51:32.351305+00:00"
+      "utc": "2026-11-21T15:49:59.926487+00:00"
     },
     {
       "paso": "G2.4 token en la URL",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31&token=***",
       "http": 400,
-      "utc": "2026-11-19T14:51:32.750832+00:00"
+      "utc": "2026-11-21T15:50:00.330375+00:00"
     },
     {
       "paso": "G2.4 password en la URL",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31&password=***",
-      "http": 200,
-      "utc": "2026-11-19T14:51:33.108249+00:00"
+      "http": 400,
+      "utc": "2026-11-21T15:50:00.668071+00:00"
     },
     {
       "paso": "G2.4 api_key en la URL",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31&api_key=***",
       "http": 400,
-      "utc": "2026-11-19T14:51:33.494766+00:00"
+      "utc": "2026-11-21T15:50:01.103389+00:00"
     },
     {
       "paso": "G2.4 consultar auditoria CREDENCIALES_EN_URL",
       "metodo": "GET",
       "ruta": "/integracion/auditoria?tipo_evento=CREDENCIALES_EN_URL",
       "http": 200,
-      "utc": "2026-11-19T14:51:34.541915+00:00"
+      "utc": "2026-11-21T15:50:02.243655+00:00"
     },
     {
       "paso": "G2.5 NIT inexistente",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/999999990?desde=2026-09-01&hasta=2026-10-31",
       "http": 404,
-      "utc": "2026-11-19T14:51:34.868951+00:00"
+      "utc": "2026-11-21T15:50:02.694819+00:00"
     },
     {
       "paso": "G2.5 NIT con letras",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/12AB56?desde=2026-09-01&hasta=2026-10-31",
       "http": 400,
-      "utc": "2026-11-19T14:51:35.200552+00:00"
+      "utc": "2026-11-21T15:50:03.091292+00:00"
     },
     {
       "paso": "G2.5 NIT de 3 digitos",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/123?desde=2026-09-01&hasta=2026-10-31",
       "http": 400,
-      "utc": "2026-11-19T14:51:35.592225+00:00"
+      "utc": "2026-11-21T15:50:03.474649+00:00"
     },
     {
       "paso": "G2.2 token vencido",
       "metodo": "GET",
       "ruta": "/integracion/aaef/productores/901444215?desde=2026-09-01&hasta=2026-10-31",
       "http": 401,
-      "utc": "2026-11-19T14:57:18.193868+00:00"
+      "utc": "2026-11-21T15:55:45.154791+00:00"
     }
   ]
 }

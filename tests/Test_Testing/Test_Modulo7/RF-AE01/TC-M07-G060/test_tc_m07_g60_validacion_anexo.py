@@ -32,6 +32,8 @@ from src.accounting_integration.domain.services.aaef import (
 )
 from src.shared.errors import BusinessRuleError
 
+JUSTIFICACION = "TC-M07-G060: aprobacion interna del mapeo para la prueba de QA."
+
 FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TITULAR = Titular("901444215", "QA-M07 Titular Gateway S.A.S.")
 
@@ -125,7 +127,7 @@ class _Db:
 
 def test_g2_7_linea_base_sin_fallas_pasa_a_revision():
     contratos, auditoria = _Contratos(), _Auditoria()
-    uc.GestionarAnexosUseCase(contratos, auditoria, _Db()).enviar_a_revision(1, 1)
+    uc.GestionarAnexosUseCase(contratos, auditoria, _Db()).enviar_a_revision(1, 1, JUSTIFICACION)
     assert contratos.anexo.estado == "EN_REVISION" and auditoria.eventos == ["ANEXO_EN_REVISION"]
 
 
@@ -142,7 +144,7 @@ def test_g2_7_cada_falla_bloquea_el_paso_a_en_revision(falla, monkeypatch):
     contratos, auditoria = _Contratos(), _Auditoria()
     caso = uc.GestionarAnexosUseCase(contratos, auditoria, _Db())
     with pytest.raises(BusinessRuleError) as exc:
-        caso.enviar_a_revision(1, 1)
+        caso.enviar_a_revision(1, 1, JUSTIFICACION)
     assert exc.value.code == "ANEXO_VALIDACION_FALLIDA"
     assert contratos.anexo.estado == "BORRADOR" and contratos.guardados == 0, "el Anexo no debe avanzar"
     assert auditoria.eventos == ["ANEXO_VALIDACION_FALLIDA"]

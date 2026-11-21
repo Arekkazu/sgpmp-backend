@@ -4,7 +4,7 @@ metadata: {'Python': '3.12.7', 'Platform': 'macOS-27.2.1-arm64-arm-64bit', 'Pack
 rootdir: /Users/mariajosegarcia/Developer/sgpmp/sgpmp-backend
 configfile: pytest.ini
 plugins: cov-7.1.0, metadata-3.1.1, html-4.2.0, anyio-4.13.0
-collecting ... collected 23 items
+collecting ... collected 24 items
 
 tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_1_dia_alineado_a_un_periodo_de_un_dia_es_valido PASSED
 tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_1_dia_suelto_con_periodos_mensuales_no_esta_alineado[dia0] PASSED
@@ -25,28 +25,11 @@ tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::
 tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_4_mapper_rechaza_una_cuenta_vacia_o_no_numerica PASSED
 tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_5_monto_0_01_es_valido PASSED
 tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_5_monto_100_999_se_trunca_a_2_decimales PASSED
-tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_5_monto_0_no_genera_un_documento_valido FAILED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_5_monto_0_no_genera_un_documento_valido PASSED
+tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_5_monto_menor_a_un_centavo_no_produce_una_linea_en_cero PASSED
 tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_6_valor_de_linea_0_se_rechaza PASSED
 tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_6_valor_de_linea_menor_a_un_centavo_se_rechaza_porque_se_trunca_a_0 PASSED
 tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_6_valor_de_linea_0_01_se_acepta_y_la_suma_del_par_cuadra PASSED
 
-=================================== FAILURES ===================================
-_______________ test_g3_5_monto_0_no_genera_un_documento_valido ________________
-
-    def test_g3_5_monto_0_no_genera_un_documento_valido():
-        """Esperado: el pipeline (Mapper, cuadre o esquema de AgroFusion) rechaza un documento con monto 0."""
-        try:
-            docs = mapear_compras([_costo("0")])
-            envelope = _envelope(compras=docs)
-            verificar_cuadre(envelope)
-            AccountingConsultResponse.model_validate(json.loads(serializar(envelope)))
-        except Exception:  # noqa: BLE001 — cualquier rechazo del pipeline es lo esperado
-            return
->       pytest.fail("un costo con monto 0 produjo un documento 02 que supera Mapper, cuadre y esquema de AgroFusion")
-E       Failed: un costo con monto 0 produjo un documento 02 que supera Mapper, cuadre y esquema de AgroFusion
-
-tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py:205: Failed
 - generated xml file: /Users/mariajosegarcia/Developer/sgpmp/sgpmp-backend/tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/Resultado/pytest_g61_limites.xml -
-=========================== short test summary info ============================
-FAILED tests/Test_Testing/Test_Modulo7/RF-AE01/TC-M07-G061/test_tc_m07_g61_limites.py::test_g3_5_monto_0_no_genera_un_documento_valido
-========================= 1 failed, 22 passed in 0.38s =========================
+============================== 24 passed in 0.42s ==============================

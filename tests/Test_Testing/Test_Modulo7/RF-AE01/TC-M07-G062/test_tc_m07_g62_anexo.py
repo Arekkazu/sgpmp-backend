@@ -21,6 +21,7 @@ from src.accounting_integration.infrastructure.dto.m07_dto import AprobarAnexoDT
 from src.shared.errors import FlowError
 
 SHA = "a" * 64
+JUSTIFICACION = "TC-M07-G062: aprobacion interna del mapeo para la prueba de QA."
 EVIDENCIA = {"id_intercambio": "AF-SIGAB-2026-10-0000123", "ack_aceptado": True, "observaciones": None}
 
 
@@ -71,7 +72,7 @@ def _caso(*anexos):
 
 def test_g4_5_la_aprobacion_interna_pasa_el_borrador_a_revision():
     caso, contratos, auditoria = _caso(_anexo("BORRADOR"))
-    anexo = caso.enviar_a_revision(1, 7)
+    anexo = caso.enviar_a_revision(1, 7, JUSTIFICACION)
     assert anexo.estado == "EN_REVISION" and anexo.fecha_aprobacion_interna is not None
     assert auditoria.eventos == ["ANEXO_EN_REVISION"]
 
@@ -116,7 +117,7 @@ def test_g4_6_sin_evidencia_completa_se_rechaza_antes_de_aprobar(cuerpo):
 def test_g4_7_transiciones_invalidas_se_rechazan_sin_cambiar_el_estado(origen, operacion):
     caso, contratos, auditoria = _caso(_anexo(origen))
     with pytest.raises(FlowError) as exc:
-        caso.enviar_a_revision(1, 7) if operacion == "revision" else caso.aprobar(1, EVIDENCIA, 7)
+        caso.enviar_a_revision(1, 7, JUSTIFICACION) if operacion == "revision" else caso.aprobar(1, EVIDENCIA, 7)
     assert exc.value.code == "TRANSICION_NO_PERMITIDA"
     assert contratos.anexos[1].estado == origen, "el estado no debe cambiar"
     assert auditoria.eventos == []
@@ -134,7 +135,7 @@ def test_g4_7_ninguna_operacion_regresa_un_anexo_a_borrador():
 def test_g4_8_un_anexo_aprobado_no_admite_mas_operaciones_de_estado():
     caso, contratos, _ = _caso(_anexo("APROBADO"))
     antes = (contratos.anexos[1].estado, contratos.anexos[1].evidencia, contratos.anexos[1].sha256_documento)
-    for operacion in (lambda: caso.enviar_a_revision(1, 7), lambda: caso.aprobar(1, EVIDENCIA, 7)):
+    for operacion in (lambda: caso.enviar_a_revision(1, 7, JUSTIFICACION), lambda: caso.aprobar(1, EVIDENCIA, 7)):
         with pytest.raises(FlowError):
             operacion()
     despues = (contratos.anexos[1].estado, contratos.anexos[1].evidencia, contratos.anexos[1].sha256_documento)

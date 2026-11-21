@@ -320,7 +320,8 @@ def parte_g53(res, peticiones):
             return
         ida = (json_o_none(crudo) or {}).get("id_mapeo_anexo_aaef")
         tipos = ["ANEXO_REGISTRADO"]
-        s, actor_rev, crudo = operar("pasar a revision", "POST", f"/integracion/anexos/{ida}/revision", None)
+        s, actor_rev, crudo = operar("pasar a revision", "POST", f"/integracion/anexos/{ida}/revision",
+                                      {"justificacion": "TC-M07-G063: aprobacion interna dentro del sandbox, se revierte."})
         if s != 200:
             faltan.append(f"TEST: no se pudo pasar el Anexo a revision (HTTP {s}, {(json_o_none(crudo) or {}).get('error_code')})")
         else:
