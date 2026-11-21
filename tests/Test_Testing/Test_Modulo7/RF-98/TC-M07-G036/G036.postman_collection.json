@@ -1,8 +1,74 @@
 {
-  "info":{"name":"G036 RF-98 lecturas de contraste","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
-  "item":[
-    {"name":"G036-N-01 Anexos","request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{admin_token}}"},{"key":"X-Test-Run-Id","value":"{{run_id}}"},{"key":"X-Sandbox-Secret","value":"{{sandbox_secret}}"}],"url":"{{base_url}}/integracion/anexos"},"event":[{"listen":"test","script":{"exec":["pm.test('Anexos HTTP 200',()=>pm.response.to.have.status(200));","pm.test('Anexos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));","pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"]}}]},
-    {"name":"G036-N-02 Contratos","request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{admin_token}}"},{"key":"X-Test-Run-Id","value":"{{run_id}}"},{"key":"X-Sandbox-Secret","value":"{{sandbox_secret}}"}],"url":"{{base_url}}/integracion/contratos"},"event":[{"listen":"test","script":{"exec":["pm.test('Contratos HTTP 200',()=>pm.response.to.have.status(200));","pm.test('Contratos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));","pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"]}}]},
-    {"name":"G036-N-03 Auditoria","request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{admin_token}}"},{"key":"X-Test-Run-Id","value":"{{run_id}}"},{"key":"X-Sandbox-Secret","value":"{{sandbox_secret}}"}],"url":"{{base_url}}/integracion/auditoria?tipo_evento=CONTRATO_REGISTRADO&pagina=1&tamano=100"},"event":[{"listen":"test","script":{"exec":["pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));","pm.test('Auditoria paginada',()=>pm.expect(pm.response.json().items).to.be.an('array'));","pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"]}}]}
+  "info": {
+    "name": "G036 RF-98 V2 lecturas de contraste sin datos personales de auditor?a",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "G036-N-01 Anexos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/integracion/anexos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Anexos HTTP 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Anexos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G036-N-02 Contratos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/integracion/contratos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Contratos HTTP 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contratos lista',()=>pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('Sandbox eco',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+            ]
+          }
+        }
+      ]
+    }
   ]
 }

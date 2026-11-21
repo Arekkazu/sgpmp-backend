@@ -1,0 +1,4261 @@
+{
+  "grupo": "G038",
+  "run_id": "RUN-G038-V2-20261121-060449",
+  "version": 2,
+  "version_anterior": 1,
+  "solicitudes": [
+    {
+      "id": "G038-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:49.944Z",
+      "fase": "ANTES_DEL_RUN",
+      "efecto_persistente": "último acceso, auditoría de sesión y notificación de login fuera del sandbox",
+      "cuerpo_solicitud": {
+        "correo_electronico": "[CORREO]",
+        "contrasena": "[RESERVADO]"
+      },
+      "eco": false,
+      "cuerpo_respuesta": {
+        "token": "[RESERVADO]",
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "id": "G038-002",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:51.022Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "permisos": [
+          {
+            "nombre_recurso": "usuarios",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "usuarios",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "usuarios",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "usuarios",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "usuarios",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "roles",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "roles",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "roles",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "roles",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "permisos",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "permisos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "permisos",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "permisos",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "cuentas",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "cuentas",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "sesiones",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "eventos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "notificaciones",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "especies",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "especies",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "especies",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "especies",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "fincas",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "fincas",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "fincas",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "fincas",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "infraestructuras",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "infraestructuras",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "infraestructuras",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "infraestructuras",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "dispositivos_iot",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "dispositivos_iot",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "dispositivos_iot",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "dispositivos_iot",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "sensores",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "sensores",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "sensores",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "cierre_ciclo",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "ajuste_inventario",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "generacion_reportes",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "exportacion_datos",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "ciclos_biologicos",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "ciclos_biologicos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "ciclos_biologicos",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "ciclos_biologicos",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "patologias",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "patologias",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "patologias",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "patologias",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "metricas_produccion",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "metricas_produccion",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "metricas_produccion",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "metricas_produccion",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "umbrales_ambientales",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "umbrales_ambientales",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "umbrales_ambientales",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "umbrales_ambientales",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "configuraciones_globales",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "configuraciones_globales",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "configuraciones_globales",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "contexto_interfaz",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "identidad_visual",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "identidad_visual",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "identidad_visual",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "tema_visual",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "tema_visual",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "dashboard_layout",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "dashboard_layout",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "preferencia_idioma",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "preferencia_idioma",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "configuracion_ui_global",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "configuracion_ui_global",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "plantillas",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "plantillas",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "plantillas",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "activos_biologicos",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "activos_biologicos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "activos_biologicos",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "activos_biologicos",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "activos_biologicos",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "asociacion_sensor_activo",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "asociacion_sensor_activo",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "asociacion_sensor_activo",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "bitacora_auditoria_m02",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "bitacora_auditoria_m02",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "alertas_operativas",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "alertas_operativas",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "alertas_operativas",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "monitoreo_telemetria",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "historial_telemetria",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "historial_telemetria",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "infraestructura_iot",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "infraestructura_iot",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "alertas_tecnicas_iot",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "alertas_tecnicas_iot",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "vinculaciones_lecturas",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "vinculaciones_lecturas",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "calidad_telemetria",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "calidad_telemetria",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "bitacora_auditoria_iot",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "bitacora_auditoria_iot",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "patologia_variable",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "patologia_variable",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "patologia_variable",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "patologia_variable",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "configuracion_motor_ia",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "configuracion_motor_ia",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "configuracion_motor_ia",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "historial_diagnostico",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "version_modelo",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "version_modelo",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "version_modelo",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "ota_status",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "ota_status",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "retroalimentacion_clinica",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "auditoria_m04",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "auditoria_m04",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "consumo_alimentos",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "consumo_alimentos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "consumo_alimentos",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "medicamentos",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "medicamentos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "medicamentos",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "eficiencia_alimenticia",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "eficiencia_alimenticia",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "administracion_batch_ica",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "administracion_batch_ica",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_gastos_suministros",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "reporte_gastos_suministros",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "historial_suministros",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "historial_suministros",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "administracion_batch_reportes_gastos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "administracion_batch_reportes_gastos",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "administracion_batch_historial_suministros",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "administracion_batch_historial_suministros",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "costeo_directo_suministros",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "costeo_directo_suministros",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "costeo_directo_suministros",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "provision_nic41",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "provision_nic41",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "bitacora_auditoria_suministros",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "bitacora_auditoria_suministros",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "tipos_area",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "tipos_area",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "tipos_area",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "datos_clinicos_activo",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "datos_analiticos_eventos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "datos_analiticos_fases",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "datos_analiticos_estado",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "datos_analiticos_metricas",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "datos_financieros_activo",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "sincronizacion_reglas_edge",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "sincronizacion_reglas_edge",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "variables_ambientales_criticas",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "datos_tecnicos_dashboard",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "reglas_alertas",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "reglas_alertas",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "reglas_alertas",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "reglas_alertas",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "topologia_sanitaria",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "topologia_sanitaria",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "topologia_sanitaria",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "topologia_sanitaria",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "precios_mercado",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "precios_mercado",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "configuracion_contable",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "configuracion_contable",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "configuracion_contable",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "reconocimiento_inicial",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "reconocimiento_inicial",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "reconocimiento_inicial",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "valoracion_activos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "valoracion_activos",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "costos_activos",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "costos_activos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "costos_activos",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "cierre_periodo",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "cierre_periodo",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "valoracion_por_costo",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "valoracion_por_costo",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "valoracion_por_costo",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "cotizaciones",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "cotizaciones",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "cotizaciones",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "cotizaciones",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "trazabilidad_contable",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "trazabilidad_contable",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "revelaciones_nic41",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "revelaciones_nic41",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "revelaciones_nic41",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "estado_resultados",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "estado_resultados",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "estado_resultados",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "auditoria_financiera",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "exportacion_contable",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "clientes_externos",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "clientes_externos",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "clientes_externos",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "clientes_externos",
+            "id_accion": 4
+          },
+          {
+            "nombre_recurso": "contratos_aaef",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "contratos_aaef",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "contratos_aaef",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "auditoria_integracion",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "auditoria_integracion",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "indicadores_valor_inventario",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "reporte_inventario_biologico",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_costos_suministros",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_productividad",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_bajas_y_salidas",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_valoracion_nic41",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_estado_exportaciones",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_variacion_periodos",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_historico_sanitario",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_ficha_animal",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_vacunacion_medicamentos",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_riesgo_sanitario",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_telemetria",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_estado_dispositivos",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_calibracion_sensores",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_alertas_sensores",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_ejecutivo_consolidado",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_rentabilidad_finca",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "reporte_comparativo_periodos",
+            "id_accion": 5
+          },
+          {
+            "nombre_recurso": "historial_clinico_predictivo",
+            "id_accion": 2
+          },
+          {
+            "nombre_recurso": "catalogo_mensajes_error",
+            "id_accion": 1
+          },
+          {
+            "nombre_recurso": "catalogo_mensajes_error",
+            "id_accion": 3
+          },
+          {
+            "nombre_recurso": "catalogo_mensajes_error",
+            "id_accion": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-003",
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:51.518Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "OBSOLETO"
+        },
+        {
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "APROBADO"
+        },
+        {
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "EN_REVISION"
+        },
+        {
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "APROBADO"
+        },
+        {
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "APROBADO"
+        },
+        {
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "BORRADOR"
+        }
+      ]
+    },
+    {
+      "id": "G038-004",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:51.666Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-005",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-integracion-contable",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:51.897Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "nombre": "[NOMBRE]",
+          "valor": 30,
+          "fuente": "VALOR_BASE"
+        },
+        {
+          "nombre": "[NOMBRE]",
+          "valor": 90,
+          "fuente": "VALOR_BASE"
+        }
+      ]
+    },
+    {
+      "id": "G038-006",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_ACTIVADO&pagina=1&tamano=100",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:52.040Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 5,
+        "items": [
+          {
+            "id_evento_integracion": "db8ece27-c6cb-45ed-8b0b-5823abf598c5",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-18T13:53:13.302951+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "f0077286-7f70-4761-a149-51ed2ae11772",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-18T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "604a742a-97eb-49ac-97c0-37ed9cfad0a0",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "2.1",
+            "fecha_evento": "2026-11-14T01:49:00.638323+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "cdf95863-1583-4672-b9f8-66481dcff4b7",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-01T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "747a3120-4b86-4c6d-b589-50e406eed3cd",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-10-17T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-007",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_DEPRECADO&pagina=1&tamano=100",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:52.193Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 3,
+        "items": [
+          {
+            "id_evento_integracion": "ee6e014c-c302-4336-ac71-74adb0f92fd9",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "2.1",
+            "fecha_evento": "2026-11-18T13:53:13.055857+00:00",
+            "extracto": "{\"estado\":\"DEPRECADO\",\"por_version\":\"3.0\",\"fecha_inactivacion\":\"2027-02-16\"}"
+          },
+          {
+            "id_evento_integracion": "9f29c566-8b3d-473f-83a9-c8c21454a5da",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "2.0",
+            "fecha_evento": "2026-09-10T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "903287fd-705f-4beb-873a-b894c370921f",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "1.0",
+            "fecha_evento": "2026-08-05T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-008",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_ACTIVACION_BLOQUEADA&pagina=1&tamano=100",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:52.338Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 16,
+        "items": [
+          {
+            "id_evento_integracion": "352d74b8-9e85-4873-b3cb-c37394d4034c",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-21T00:02:30.837270+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "92a0ae00-13a4-4ca6-918f-6a4295067868",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-21T00:02:30.643620+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes y la versión 2.1 ya está en retiro hasta el 16/02/2027. Podrá activar una nueva versión cuando termine ese retiro.\"}"
+          },
+          {
+            "id_evento_integracion": "81586206-1317-4db5-8c04-34c3d5e1758c",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-20T15:07:32.871386+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "1588cd68-723b-4860-8be1-803f4d088d58",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-20T15:07:32.666601+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "5fcc0ce7-2d06-4d1d-a287-05fdaea263ff",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-20T00:02:08.339001+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "582c135b-5411-4f8a-8e34-acc9b2421a98",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-20T00:02:08.175600+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "075b1ab7-d8cd-4b21-9318-84f0a4b9150e",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-19T13:57:06.808050+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "53b90222-54c8-438f-97a3-072a92bfaf83",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-19T13:57:06.611588+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "f78257e0-1cd5-4f44-9bc0-c6939479d381",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-19T00:02:35.212857+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "f6ca8e61-0933-49ee-86cf-b279f3fdd86d",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-19T00:02:35.124563+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "3dee8672-f411-465d-bf4a-d888818dd6cd",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-18T21:02:34.644315+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "02a132d2-9ed7-4a35-b991-82753529e106",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-18T21:02:34.512473+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "e86b235b-b8b6-49fb-acdf-6d7f825fb906",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-18T19:35:04.536647+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "7152c8c9-ebe1-4eba-8599-bae1e9dcd330",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-18T19:35:04.443074+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "e326cc1d-65da-418e-97f2-709d1eba475e",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-18T13:54:22.721067+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "5d23346b-7e76-4897-bad1-c5ee319069e7",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-18T13:54:22.620722+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-009",
+      "metodo": "GET",
+      "ruta": "/notificaciones?pagina=1&tamano=50&modulo=integracion&nivel=CRITICA",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:52.582Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 9,
+        "items": [
+          {
+            "id_notificacion": 20806,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes y la versión 2.1 ya está en retiro hasta el 16/02/2027. Podrá activar una nueva versión cuando termine ese retiro.",
+            "fecha_envio": "2026-11-21T00:02:30.754254Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20700,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 5.0 del contrato contable no pudo activarse: La versión 5.0 no tiene un anexo de mapeo aprobado.",
+            "fecha_envio": "2026-11-20T15:07:32.989964Z",
+            "ocurrencias": 2,
+            "fecha_ultima_ocurrencia": "2026-11-21T00:02:30.914553Z"
+          },
+          {
+            "id_notificacion": 20466,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-20T00:02:08.286144Z",
+            "ocurrencias": 2,
+            "fecha_ultima_ocurrencia": "2026-11-20T15:07:32.821931Z"
+          },
+          {
+            "id_notificacion": 20313,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-19T13:57:06.757874Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20222,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-19T00:02:35.191063Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20172,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-18T21:02:34.623650Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20126,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-18T19:35:04.520951Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20006,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "No se pudo guardar un registro de la auditoría de la integración contable.",
+            "fecha_envio": "2026-11-18T16:33:34.568992Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 19973,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-18T13:54:22.700432Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-010",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-11",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:52.770Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-011",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/13/activar",
+      "caso": "TC-M07-11",
+      "http": 422,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:53.002Z",
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "CONTRATO_NO_VALIDO",
+        "message": "La versión 3.9 no tiene un anexo de mapeo aprobado.",
+        "field": null,
+        "fields": [],
+        "timestamp": "2026-11-21T06:04:53.315149+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G038-012",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-11",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:53.379Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-013",
+      "metodo": "GET",
+      "ruta": "/notificaciones?pagina=1&tamano=50&modulo=integracion&nivel=CRITICA",
+      "caso": "TC-M07-11",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:53.546Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 10,
+        "items": [
+          {
+            "id_notificacion": 20902,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 3.9 del contrato contable no pudo activarse: La versión 3.9 no tiene un anexo de mapeo aprobado.",
+            "fecha_envio": "2026-11-21T06:04:53.217992Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20806,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes y la versión 2.1 ya está en retiro hasta el 16/02/2027. Podrá activar una nueva versión cuando termine ese retiro.",
+            "fecha_envio": "2026-11-21T00:02:30.754254Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20700,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 5.0 del contrato contable no pudo activarse: La versión 5.0 no tiene un anexo de mapeo aprobado.",
+            "fecha_envio": "2026-11-20T15:07:32.989964Z",
+            "ocurrencias": 2,
+            "fecha_ultima_ocurrencia": "2026-11-21T00:02:30.914553Z"
+          },
+          {
+            "id_notificacion": 20466,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-20T00:02:08.286144Z",
+            "ocurrencias": 2,
+            "fecha_ultima_ocurrencia": "2026-11-20T15:07:32.821931Z"
+          },
+          {
+            "id_notificacion": 20313,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-19T13:57:06.757874Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20222,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-19T00:02:35.191063Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20172,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-18T21:02:34.623650Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20126,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-18T19:35:04.520951Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 20006,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "No se pudo guardar un registro de la auditoría de la integración contable.",
+            "fecha_envio": "2026-11-18T16:33:34.568992Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          },
+          {
+            "id_notificacion": 19973,
+            "tipo_evento": 41,
+            "nivel": "CRITICA",
+            "estado": "NUEVA",
+            "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+            "fecha_envio": "2026-11-18T13:54:22.700432Z",
+            "ocurrencias": 1,
+            "fecha_ultima_ocurrencia": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-014",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_ACTIVACION_BLOQUEADA&pagina=1&tamano=100",
+      "caso": "TC-M07-11",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:53.698Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 17,
+        "items": [
+          {
+            "id_evento_integracion": "aa88b547-187b-488b-8cf6-f4930f9de6dd",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "3.9",
+            "fecha_evento": "2026-11-21T06:04:53.076744+00:00",
+            "extracto": "{\"motivo\":\"La versión 3.9 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "352d74b8-9e85-4873-b3cb-c37394d4034c",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-21T00:02:30.837270+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "92a0ae00-13a4-4ca6-918f-6a4295067868",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-21T00:02:30.643620+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes y la versión 2.1 ya está en retiro hasta el 16/02/2027. Podrá activar una nueva versión cuando termine ese retiro.\"}"
+          },
+          {
+            "id_evento_integracion": "81586206-1317-4db5-8c04-34c3d5e1758c",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-20T15:07:32.871386+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "1588cd68-723b-4860-8be1-803f4d088d58",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-20T15:07:32.666601+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "5fcc0ce7-2d06-4d1d-a287-05fdaea263ff",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-20T00:02:08.339001+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "582c135b-5411-4f8a-8e34-acc9b2421a98",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-20T00:02:08.175600+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "075b1ab7-d8cd-4b21-9318-84f0a4b9150e",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-19T13:57:06.808050+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "53b90222-54c8-438f-97a3-072a92bfaf83",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-19T13:57:06.611588+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "f78257e0-1cd5-4f44-9bc0-c6939479d381",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-19T00:02:35.212857+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "f6ca8e61-0933-49ee-86cf-b279f3fdd86d",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-19T00:02:35.124563+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "3dee8672-f411-465d-bf4a-d888818dd6cd",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-18T21:02:34.644315+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "02a132d2-9ed7-4a35-b991-82753529e106",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-18T21:02:34.512473+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "e86b235b-b8b6-49fb-acdf-6d7f825fb906",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-18T19:35:04.536647+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "7152c8c9-ebe1-4eba-8599-bae1e9dcd330",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-18T19:35:04.443074+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          },
+          {
+            "id_evento_integracion": "e326cc1d-65da-418e-97f2-709d1eba475e",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "5.0",
+            "fecha_evento": "2026-11-18T13:54:22.721067+00:00",
+            "extracto": "{\"motivo\":\"La versión 5.0 no tiene un anexo de mapeo aprobado.\"}"
+          },
+          {
+            "id_evento_integracion": "5d23346b-7e76-4897-bad1-c5ee319069e7",
+            "tipo_evento": "CONTRATO_ACTIVACION_BLOQUEADA",
+            "version_contrato": "4.0",
+            "fecha_evento": "2026-11-18T13:54:22.620722+00:00",
+            "extracto": "{\"motivo\":\"Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.\"}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-015",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-09",
+      "http": 201,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:53.943Z",
+      "cuerpo_solicitud": {
+        "contrato_version": "9.0",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-26",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 39,
+        "contrato_version": "9.0",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-26",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": 90,
+        "descripcion": null,
+        "estado": "PENDIENTE",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G038-016",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/39/activar",
+      "caso": "TC-M07-09",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:54.088Z",
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 39,
+        "contrato_version": "9.0",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-26",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": 90,
+        "descripcion": null,
+        "estado": "ACTIVO",
+        "fecha_activacion": "2026-11-21T06:04:54.158736+00:00",
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G038-017",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-09",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:54.229Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "DEPRECADO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": "2026-11-21T06:04:54.158736+00:00",
+          "fecha_inactivacion": "2027-02-19T06:04:54.158736+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 39,
+          "contrato_version": "9.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2027-12-26",
+          "fecha_activacion": "2026-11-21T06:04:54.158736+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-018",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_ACTIVADO&pagina=1&tamano=100",
+      "caso": "TC-M07-09",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:54.381Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 6,
+        "items": [
+          {
+            "id_evento_integracion": "8d8c0968-bda5-4d62-8d8c-6eb51aa1a03f",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "9.0",
+            "fecha_evento": "2026-11-21T06:04:54.163462+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "db8ece27-c6cb-45ed-8b0b-5823abf598c5",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-18T13:53:13.302951+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "f0077286-7f70-4761-a149-51ed2ae11772",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-18T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "604a742a-97eb-49ac-97c0-37ed9cfad0a0",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "2.1",
+            "fecha_evento": "2026-11-14T01:49:00.638323+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "cdf95863-1583-4672-b9f8-66481dcff4b7",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-01T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "747a3120-4b86-4c6d-b589-50e406eed3cd",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-10-17T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-019",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_DEPRECADO&pagina=1&tamano=100",
+      "caso": "TC-M07-09",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:54.548Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 4,
+        "items": [
+          {
+            "id_evento_integracion": "ad385731-0573-4e97-8d25-e8a10b805f86",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-21T06:04:54.160897+00:00",
+            "extracto": "{\"estado\":\"DEPRECADO\",\"por_version\":\"9.0\",\"fecha_inactivacion\":\"2027-02-19\"}"
+          },
+          {
+            "id_evento_integracion": "ee6e014c-c302-4336-ac71-74adb0f92fd9",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "2.1",
+            "fecha_evento": "2026-11-18T13:53:13.055857+00:00",
+            "extracto": "{\"estado\":\"DEPRECADO\",\"por_version\":\"3.0\",\"fecha_inactivacion\":\"2027-02-16\"}"
+          },
+          {
+            "id_evento_integracion": "9f29c566-8b3d-473f-83a9-c8c21454a5da",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "2.0",
+            "fecha_evento": "2026-09-10T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "903287fd-705f-4beb-873a-b894c370921f",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "1.0",
+            "fecha_evento": "2026-08-05T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-020",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-12",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:54.692Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "DEPRECADO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": "2026-11-21T06:04:54.158736+00:00",
+          "fecha_inactivacion": "2027-02-19T06:04:54.158736+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 39,
+          "contrato_version": "9.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2027-12-26",
+          "fecha_activacion": "2026-11-21T06:04:54.158736+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-021",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-12",
+      "http": 201,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:54.850Z",
+      "cuerpo_solicitud": {
+        "contrato_version": "9.1",
+        "tipo_cambio": "MINOR",
+        "fecha_vigencia": "2027-12-26",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 40,
+        "contrato_version": "9.1",
+        "tipo_cambio": "MINOR",
+        "fecha_vigencia": "2027-12-26",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": null,
+        "descripcion": null,
+        "estado": "PENDIENTE",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G038-022",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-12",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:54.986Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "DEPRECADO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": "2026-11-21T06:04:54.158736+00:00",
+          "fecha_inactivacion": "2027-02-19T06:04:54.158736+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 39,
+          "contrato_version": "9.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2027-12-26",
+          "fecha_activacion": "2026-11-21T06:04:54.158736+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 40,
+          "contrato_version": "9.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-12-26",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-023",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/40/activar",
+      "caso": "TC-M07-12",
+      "http": 422,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:55.137Z",
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "LIMITE_VERSIONES_EXCEDIDO",
+        "message": "Ya hay 2 versiones vigentes y la versión 3.0 ya está en retiro hasta el 19/02/2027. Podrá activar una nueva versión cuando termine ese retiro.",
+        "field": null,
+        "fields": [],
+        "timestamp": "2026-11-21T06:04:55.379854+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G038-024",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-12",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:55.444Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "DEPRECADO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": "2026-11-21T06:04:54.158736+00:00",
+          "fecha_inactivacion": "2027-02-19T06:04:54.158736+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 39,
+          "contrato_version": "9.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2027-12-26",
+          "fecha_activacion": "2026-11-21T06:04:54.158736+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 40,
+          "contrato_version": "9.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-12-26",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-025",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:55.803Z",
+      "eco": false,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-026",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-10",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:55.956Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-027",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_ACTIVADO&pagina=1&tamano=100",
+      "caso": "TC-M07-10",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:56.106Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 5,
+        "items": [
+          {
+            "id_evento_integracion": "db8ece27-c6cb-45ed-8b0b-5823abf598c5",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-18T13:53:13.302951+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "f0077286-7f70-4761-a149-51ed2ae11772",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-18T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "604a742a-97eb-49ac-97c0-37ed9cfad0a0",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "2.1",
+            "fecha_evento": "2026-11-14T01:49:00.638323+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "cdf95863-1583-4672-b9f8-66481dcff4b7",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-01T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "747a3120-4b86-4c6d-b589-50e406eed3cd",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-10-17T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-028",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_DEPRECADO&pagina=1&tamano=100",
+      "caso": "TC-M07-10",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:56.256Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 3,
+        "items": [
+          {
+            "id_evento_integracion": "ee6e014c-c302-4336-ac71-74adb0f92fd9",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "2.1",
+            "fecha_evento": "2026-11-18T13:53:13.055857+00:00",
+            "extracto": "{\"estado\":\"DEPRECADO\",\"por_version\":\"3.0\",\"fecha_inactivacion\":\"2027-02-16\"}"
+          },
+          {
+            "id_evento_integracion": "9f29c566-8b3d-473f-83a9-c8c21454a5da",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "2.0",
+            "fecha_evento": "2026-09-10T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "903287fd-705f-4beb-873a-b894c370921f",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "1.0",
+            "fecha_evento": "2026-08-05T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-029",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-10",
+      "http": 201,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:56.409Z",
+      "cuerpo_solicitud": {
+        "contrato_version": "10.1",
+        "tipo_cambio": "MINOR",
+        "fecha_vigencia": "2027-12-26",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 41,
+        "contrato_version": "10.1",
+        "tipo_cambio": "MINOR",
+        "fecha_vigencia": "2027-12-26",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": null,
+        "descripcion": null,
+        "estado": "PENDIENTE",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G038-030",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/41/activar",
+      "caso": "TC-M07-10",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:56.580Z",
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 41,
+        "contrato_version": "10.1",
+        "tipo_cambio": "MINOR",
+        "fecha_vigencia": "2027-12-26",
+        "id_mapeo_anexo_aaef": 2,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": null,
+        "descripcion": null,
+        "estado": "ACTIVO",
+        "fecha_activacion": "2026-11-21T06:04:56.653240+00:00",
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G038-031",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-10",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:56.725Z",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 41,
+          "contrato_version": "10.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2027-12-26",
+          "fecha_activacion": "2026-11-21T06:04:56.653240+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    },
+    {
+      "id": "G038-032",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_ACTIVADO&pagina=1&tamano=100",
+      "caso": "TC-M07-10",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:56.883Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 6,
+        "items": [
+          {
+            "id_evento_integracion": "b5423b17-b959-4751-962d-c29d85a23fb0",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "10.1",
+            "fecha_evento": "2026-11-21T06:04:56.655887+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "db8ece27-c6cb-45ed-8b0b-5823abf598c5",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-18T13:53:13.302951+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "f0077286-7f70-4761-a149-51ed2ae11772",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-18T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "604a742a-97eb-49ac-97c0-37ed9cfad0a0",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "2.1",
+            "fecha_evento": "2026-11-14T01:49:00.638323+00:00",
+            "extracto": "{\"estado\":\"ACTIVO\"}"
+          },
+          {
+            "id_evento_integracion": "cdf95863-1583-4672-b9f8-66481dcff4b7",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-11-01T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "747a3120-4b86-4c6d-b589-50e406eed3cd",
+            "tipo_evento": "CONTRATO_ACTIVADO",
+            "version_contrato": "3.0",
+            "fecha_evento": "2026-10-17T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-033",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?tipo_evento=CONTRATO_DEPRECADO&pagina=1&tamano=100",
+      "caso": "TC-M07-10",
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:04:57.035Z",
+      "eco": true,
+      "cuerpo_lectura": {
+        "total": 3,
+        "items": [
+          {
+            "id_evento_integracion": "ee6e014c-c302-4336-ac71-74adb0f92fd9",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "2.1",
+            "fecha_evento": "2026-11-18T13:53:13.055857+00:00",
+            "extracto": "{\"estado\":\"DEPRECADO\",\"por_version\":\"3.0\",\"fecha_inactivacion\":\"2027-02-16\"}"
+          },
+          {
+            "id_evento_integracion": "9f29c566-8b3d-473f-83a9-c8c21454a5da",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "2.0",
+            "fecha_evento": "2026-09-10T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          },
+          {
+            "id_evento_integracion": "903287fd-705f-4beb-873a-b894c370921f",
+            "tipo_evento": "CONTRATO_DEPRECADO",
+            "version_contrato": "1.0",
+            "fecha_evento": "2026-08-05T10:00:00+00:00",
+            "extracto": "{\"qa_dis\":true}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G038-034",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador",
+      "momento": "2026-11-21T06:05:01.567Z",
+      "eco": false,
+      "cuerpo_lectura": [
+        {
+          "id_version_contrato_aaef": 1,
+          "contrato_version": "1.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-01-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 2,
+          "contrato_version": "2.0",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": null,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2024-07-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": "2026-09-01T00:00:00+00:00",
+          "fecha_inactivacion": "2026-11-18T08:29:22.220625+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 3,
+          "contrato_version": "2.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 2,
+          "estado": "INACTIVO",
+          "fecha_vigencia": "2026-11-13",
+          "fecha_activacion": "2026-11-14T01:49:00.447881+00:00",
+          "fecha_deprecacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_inactivacion": "2026-11-21T05:30:44.431987+00:00"
+        },
+        {
+          "id_version_contrato_aaef": 4,
+          "contrato_version": "2.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 3,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-06-30",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 13,
+          "contrato_version": "3.9",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 1,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 17,
+          "contrato_version": "3.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2027-03-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 18,
+          "contrato_version": "3.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "ACTIVO",
+          "fecha_vigencia": "2026-10-17",
+          "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 19,
+          "contrato_version": "4.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 7,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 20,
+          "contrato_version": "5.0",
+          "tipo_cambio": "MAJOR",
+          "id_mapeo_anexo_aaef": 8,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2026-11-01",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 24,
+          "contrato_version": "8.1",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        },
+        {
+          "id_version_contrato_aaef": 25,
+          "contrato_version": "8.2",
+          "tipo_cambio": "MINOR",
+          "id_mapeo_anexo_aaef": 6,
+          "estado": "PENDIENTE",
+          "fecha_vigencia": "2030-12-31",
+          "fecha_activacion": null,
+          "fecha_deprecacion": null,
+          "fecha_inactivacion": null
+        }
+      ]
+    }
+  ],
+  "pruebas": {
+    "TC-M07-09": [
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO"
+    ],
+    "TC-M07-10": [
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO"
+    ],
+    "TC-M07-11": [
+      "APROBADO",
+      "APROBADO",
+      "RECHAZADO"
+    ],
+    "TC-M07-12": [
+      "APROBADO",
+      "APROBADO",
+      "APROBADO"
+    ]
+  },
+  "incidencias": [
+    {
+      "caso": "TC-M07-11",
+      "regla": "AVISO_BLOQUEO_AUSENTE",
+      "severidad": "MEDIA",
+      "certeza": "CONFIRMADA",
+      "equipo_inicial": "Desarrollo",
+      "fundamento": "Primera discrepancia comprobada por API pública; causa raíz por determinar"
+    }
+  ],
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "newman/newman-G038.json",
+    "newman/newman-G038.html"
+  ],
+  "problemas_tecnicos": [],
+  "preflight_datos": [
+    {
+      "requisito": "PERMISO_contratos_aaef_1",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "PERMISO_contratos_aaef_3",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "PERMISO_auditoria_integracion_2",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "UNA_VIGENTE_ACTIVO",
+      "esperado": "una ACTIVO",
+      "observado": [
+        "3.0:ACTIVO"
+      ],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "ANEXO_APROBADO",
+      "esperado": "presente",
+      "observado": [
+        2,
+        6,
+        7
+      ],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "FIXTURE_11",
+      "esperado": "PENDIENTE con anexo no utilizable",
+      "observado": "3.9",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "ALTAS_LIBRES",
+      "esperado": "tres versiones ausentes",
+      "observado": [
+        "9.0",
+        "9.1",
+        "10.1"
+      ],
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "SIN_PENDIENTE_ACTIVABLE_VENCIDA",
+      "esperado": "ninguna",
+      "observado": [],
+      "cumple": true,
+      "bloqueante": true
+    }
+  ],
+  "cierre": {
+    "fases": [
+      {
+        "fase": "A",
+        "actor": "Administrador",
+        "momento": "2026-11-21T06:04:55.676Z",
+        "http": 200,
+        "rollback": {
+          "verificado": true,
+          "motivo": "Lectura pública poscierre sin cabeceras; ids, estados y fechas"
+        }
+      },
+      {
+        "fase": "B",
+        "actor": "Administrador",
+        "momento": "2026-11-21T06:05:01.180Z",
+        "http": 200,
+        "rollback": {
+          "verificado": true,
+          "motivo": "Lectura pública poscierre sin cabeceras; ids, estados y fechas"
+        }
+      }
+    ],
+    "http": 200,
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Ambas fases: lectura pública poscierre por ids, estados y fechas"
+    }
+  },
+  "newman": {
+    "codigo": 0,
+    "fallos": 0,
+    "solicitudes": 3,
+    "reportes": true
+  },
+  "observaciones": [],
+  "oficial": true,
+  "comparaciones": {
+    "aviso_11": {
+      "ruta": "/notificaciones?pagina=1&tamano=50&modulo=integracion&nivel=CRITICA",
+      "base_http": 200,
+      "posterior_http": 200,
+      "id_maximo_base": 20806,
+      "version": "3.9",
+      "avisos_base": [
+        {
+          "id_notificacion": 20806,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes y la versión 2.1 ya está en retiro hasta el 16/02/2027. Podrá activar una nueva versión cuando termine ese retiro.",
+          "fecha_envio": "2026-11-21T00:02:30.754254Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20700,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 5.0 del contrato contable no pudo activarse: La versión 5.0 no tiene un anexo de mapeo aprobado.",
+          "fecha_envio": "2026-11-20T15:07:32.989964Z",
+          "ocurrencias": 2,
+          "fecha_ultima_ocurrencia": "2026-11-21T00:02:30.914553Z"
+        },
+        {
+          "id_notificacion": 20466,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-20T00:02:08.286144Z",
+          "ocurrencias": 2,
+          "fecha_ultima_ocurrencia": "2026-11-20T15:07:32.821931Z"
+        },
+        {
+          "id_notificacion": 20313,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-19T13:57:06.757874Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20222,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-19T00:02:35.191063Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20172,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T21:02:34.623650Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20126,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T19:35:04.520951Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20006,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "No se pudo guardar un registro de la auditoría de la integración contable.",
+          "fecha_envio": "2026-11-18T16:33:34.568992Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 19973,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T13:54:22.700432Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        }
+      ],
+      "avisos_posteriores": [
+        {
+          "id_notificacion": 20902,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 3.9 del contrato contable no pudo activarse: La versión 3.9 no tiene un anexo de mapeo aprobado.",
+          "fecha_envio": "2026-11-21T06:04:53.217992Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20806,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes y la versión 2.1 ya está en retiro hasta el 16/02/2027. Podrá activar una nueva versión cuando termine ese retiro.",
+          "fecha_envio": "2026-11-21T00:02:30.754254Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20700,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 5.0 del contrato contable no pudo activarse: La versión 5.0 no tiene un anexo de mapeo aprobado.",
+          "fecha_envio": "2026-11-20T15:07:32.989964Z",
+          "ocurrencias": 2,
+          "fecha_ultima_ocurrencia": "2026-11-21T00:02:30.914553Z"
+        },
+        {
+          "id_notificacion": 20466,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-20T00:02:08.286144Z",
+          "ocurrencias": 2,
+          "fecha_ultima_ocurrencia": "2026-11-20T15:07:32.821931Z"
+        },
+        {
+          "id_notificacion": 20313,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-19T13:57:06.757874Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20222,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-19T00:02:35.191063Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20172,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T21:02:34.623650Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20126,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T19:35:04.520951Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20006,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "No se pudo guardar un registro de la auditoría de la integración contable.",
+          "fecha_envio": "2026-11-18T16:33:34.568992Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 19973,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T13:54:22.700432Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        }
+      ],
+      "candidatos": [],
+      "via": null,
+      "valores_comparados": null
+    },
+    "auditoria_11_dato": [
+      {
+        "id": "aa88b547-187b-488b-8cf6-f4930f9de6dd",
+        "tipo": "CONTRATO_ACTIVACION_BLOQUEADA",
+        "version": "3.9",
+        "fecha": "2026-11-21T06:04:53.076744+00:00",
+        "extracto": "{\"motivo\":\"La versión 3.9 no tiene un anexo de mapeo aprobado.\"}"
+      }
+    ],
+    "auditoria_09": {
+      "activados": [
+        {
+          "id": "8d8c0968-bda5-4d62-8d8c-6eb51aa1a03f",
+          "tipo": "CONTRATO_ACTIVADO",
+          "version": "9.0",
+          "fecha": "2026-11-21T06:04:54.163462+00:00",
+          "extracto": "{\"estado\":\"ACTIVO\"}"
+        }
+      ],
+      "deprecados": [
+        {
+          "id": "ad385731-0573-4e97-8d25-e8a10b805f86",
+          "tipo": "CONTRATO_DEPRECADO",
+          "version": "3.0",
+          "fecha": "2026-11-21T06:04:54.160897+00:00",
+          "extracto": "{\"estado\":\"DEPRECADO\",\"por_version\":\"9.0\",\"fecha_inactivacion\":\"2027-02-19\"}"
+        }
+      ]
+    },
+    "auditoria_10": {
+      "activados": [
+        {
+          "id": "b5423b17-b959-4751-962d-c29d85a23fb0",
+          "tipo": "CONTRATO_ACTIVADO",
+          "version": "10.1",
+          "fecha": "2026-11-21T06:04:56.655887+00:00",
+          "extracto": "{\"estado\":\"ACTIVO\"}"
+        }
+      ],
+      "deprecados": []
+    }
+  },
+  "lineas_base": {
+    "fase_A": {
+      "activados": 5,
+      "deprecados": 3,
+      "bloqueados": 16,
+      "aviso_maximo": 20806,
+      "avisos": [
+        {
+          "id_notificacion": 20806,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes y la versión 2.1 ya está en retiro hasta el 16/02/2027. Podrá activar una nueva versión cuando termine ese retiro.",
+          "fecha_envio": "2026-11-21T00:02:30.754254Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20700,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 5.0 del contrato contable no pudo activarse: La versión 5.0 no tiene un anexo de mapeo aprobado.",
+          "fecha_envio": "2026-11-20T15:07:32.989964Z",
+          "ocurrencias": 2,
+          "fecha_ultima_ocurrencia": "2026-11-21T00:02:30.914553Z"
+        },
+        {
+          "id_notificacion": 20466,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-20T00:02:08.286144Z",
+          "ocurrencias": 2,
+          "fecha_ultima_ocurrencia": "2026-11-20T15:07:32.821931Z"
+        },
+        {
+          "id_notificacion": 20313,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-19T13:57:06.757874Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20222,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-19T00:02:35.191063Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20172,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T21:02:34.623650Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20126,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T19:35:04.520951Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 20006,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "No se pudo guardar un registro de la auditoría de la integración contable.",
+          "fecha_envio": "2026-11-18T16:33:34.568992Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        },
+        {
+          "id_notificacion": 19973,
+          "tipo_evento": 41,
+          "nivel": "CRITICA",
+          "estado": "NUEVA",
+          "mensaje": "La versión 4.0 del contrato contable no pudo activarse: Ya hay 2 versiones vigentes. Retire primero la versión 2.1 antes de activar una nueva.",
+          "fecha_envio": "2026-11-18T13:54:22.700432Z",
+          "ocurrencias": 1,
+          "fecha_ultima_ocurrencia": null
+        }
+      ],
+      "bandeja_http": 200,
+      "gracia_dias": 90
+    },
+    "fase_B": {
+      "activados": 5,
+      "deprecados": 3
+    }
+  },
+  "autorizacion_referencia": "AUT-G038-V2-20261121",
+  "consume_version": true,
+  "cypress": {
+    "codigo": null,
+    "total_pruebas": 0,
+    "no_aplica": true
+  },
+  "veredictos": {
+    "10": "APROBADO",
+    "11": "RECHAZADO",
+    "12": "APROBADO",
+    "09": "APROBADO"
+  },
+  "casos": {
+    "TC-M07-09": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "activacion_major",
+        "deprecacion_anterior",
+        "fechas_gracia",
+        "auditoria_major"
+      ]
+    },
+    "TC-M07-10": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "activacion_minor",
+        "anterior_intacta",
+        "dos_vigentes",
+        "auditoria_minor"
+      ]
+    },
+    "TC-M07-11": {
+      "estado": "RECHAZADO",
+      "comprobaciones": [
+        "bloqueo_precondicion",
+        "pendiente_intacta",
+        "aviso_administrador"
+      ]
+    },
+    "TC-M07-12": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "limite_rechazado",
+        "mensaje_version",
+        "pendiente_y_vigentes"
+      ]
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M07-09",
+      "fuente": "API",
+      "id": "activacion_major",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-09",
+      "fuente": "API",
+      "id": "deprecacion_anterior",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-09",
+      "fuente": "API",
+      "id": "fechas_gracia",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-09",
+      "fuente": "API",
+      "id": "auditoria_major",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-10",
+      "fuente": "API",
+      "id": "activacion_minor",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-10",
+      "fuente": "API",
+      "id": "anterior_intacta",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-10",
+      "fuente": "API",
+      "id": "dos_vigentes",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-10",
+      "fuente": "API",
+      "id": "auditoria_minor",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-11",
+      "fuente": "API",
+      "id": "bloqueo_precondicion",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-11",
+      "fuente": "API",
+      "id": "pendiente_intacta",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-11",
+      "fuente": "API",
+      "id": "aviso_administrador",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-12",
+      "fuente": "API",
+      "id": "limite_rechazado",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-12",
+      "fuente": "API",
+      "id": "mensaje_version",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-12",
+      "fuente": "API",
+      "id": "pendiente_y_vigentes",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes_total": 39
+}

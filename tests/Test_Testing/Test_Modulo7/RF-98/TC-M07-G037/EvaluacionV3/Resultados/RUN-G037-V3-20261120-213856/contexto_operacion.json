@@ -1,0 +1,26 @@
+{
+  "grupo": "G037",
+  "version": 3,
+  "intento": 3,
+  "run_id": "RUN-G037-V3-20261120-213856",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G037-V3-20261120",
+  "casos": [
+    "TC-M07-06",
+    "TC-M07-07",
+    "TC-M07-08"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M07-06",
+      "TC-M07-07",
+      "TC-M07-08"
+    ],
+    "version_anterior": 2,
+    "motivo": "Reevaluación V3 del grupo completo por decisión del responsable QA. La V2 oficial rechazó el 07 solo porque el oráculo patch_invalido exigía un error_code derivado del código y no del RF-98. ORD-G037-009 corrigió el oráculo (400 sin cambios = cumple; código como observación) y ORD-G037-011 adaptó el ejecutor a la V3. Ensayo Windows: verificar.mjs OK, 20 escenarios, RED 0. g037.mjs 4af54149d15223e7a209ee3e3c526b9db26a84210e35fcb052fa212cac2dfe31.",
+    "incumplimientos_previos": "V2 OFICIAL RUN-G037-V2-20261120-210522 (AUT-G037-V2-20261120): 06 y 08 APROBADO; 07 RECHAZADO solo en patch_invalido (PATCH inválido de M09: 400 PARAMETRO_MLOPS_INVALIDO, field null, gracia sin cambios). Error de oráculo de QA, sin incidencia de producto. V1: INC-M07-G037-01 (gracia no configurable en M09).",
+    "correcciones_informadas": "Producto: 0553cefd (#1167) en origin/test, gracia configurable en M09 (sin cambios desde la V2). QA: oráculo patch_invalido ajustado al RF-98 (ORD-G037-009); el código genérico del error se registra como observación para Desarrollo.",
+    "resultado_esperado": "06: formatos mal formados 4xx sin alta y versión libre en PENDIENTE. 07: gracia de M09 aplicada (mínimo-1 rechazado, mínimo aceptado, omisión = defecto), también tras un PATCH dentro del RUN con GET CONFIGURADO; PATCH inválido (defecto < mínimo) 400 y gracia sin cambios, código de error como observación. 08: deprecar la ACTIVO con mínimo-1 rechazado; con el mínimo, DEPRECADO e inactivación a +mínimo días exactos."
+  },
+  "version_anterior": 2
+}

@@ -1,0 +1,1350 @@
+{
+  "grupo": "G037",
+  "run_id": "RUN-G037-V2-20261120-210522",
+  "version": 2,
+  "solicitudes": [
+    {
+      "id": "G037-001",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "ANTES_DEL_RUN",
+      "efecto_persistente": "último acceso, auditoría de sesión y notificación de login con escritura independiente",
+      "cuerpo_solicitud": {
+        "correo_electronico": "[CORREO]",
+        "contrasena": "[RESERVADO]"
+      },
+      "eco": false,
+      "cuerpo_respuesta": {
+        "token": "[RESERVADO]",
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    {
+      "id": "G037-002",
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-003",
+      "metodo": "GET",
+      "ruta": "/integracion/anexos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-004",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-005",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-integracion-contable",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días mínimos que una versión deprecada del contrato contable sigue disponible",
+          "valor": 30,
+          "valor_configurado": null,
+          "valor_base": 30,
+          "fuente": "VALOR_BASE",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        },
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días de gracia que se aplican cuando no se indica otro valor",
+          "valor": 90,
+          "valor_configurado": null,
+          "valor_base": 90,
+          "fuente": "VALOR_BASE",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        }
+      ]
+    },
+    {
+      "id": "G037-006",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-007",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "4",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "field": "contrato_version",
+        "fields": [
+          {
+            "field": "contrato_version",
+            "message": "String should match pattern '^\\d{1,3}\\.\\d{1,3}$'"
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:26.705748+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-008",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "4.0.1",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "field": "contrato_version",
+        "fields": [
+          {
+            "field": "contrato_version",
+            "message": "String should match pattern '^\\d{1,3}\\.\\d{1,3}$'"
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:26.834952+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-009",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "v4.0",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "field": "contrato_version",
+        "fields": [
+          {
+            "field": "contrato_version",
+            "message": "String should match pattern '^\\d{1,3}\\.\\d{1,3}$'"
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:26.978595+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-010",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "4.x",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "field": "contrato_version",
+        "fields": [
+          {
+            "field": "contrato_version",
+            "message": "String should match pattern '^\\d{1,3}\\.\\d{1,3}$'"
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:27.104972+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-011",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "4.",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "field": "contrato_version",
+        "fields": [
+          {
+            "field": "contrato_version",
+            "message": "String should match pattern '^\\d{1,3}\\.\\d{1,3}$'"
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:27.241098+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-012",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": ".4",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "field": "contrato_version",
+        "fields": [
+          {
+            "field": "contrato_version",
+            "message": "String should match pattern '^\\d{1,3}\\.\\d{1,3}$'"
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:27.370519+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-013",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud",
+        "field": "contrato_version",
+        "fields": [
+          {
+            "field": "contrato_version",
+            "message": "String should match pattern '^\\d{1,3}\\.\\d{1,3}$'"
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:27.496044+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-014",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-015",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 201,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "6.0",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 29,
+        "contrato_version": "6.0",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": 90,
+        "descripcion": null,
+        "estado": "PENDIENTE",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G037-016",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-06",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-017",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-018",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "6.1",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "periodo_gracia_dias": 29
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "PERIODO_GRACIA_INVALIDO",
+        "message": "El período de gracia debe ser de al menos 30 días.",
+        "field": "periodo_gracia_dias",
+        "fields": [
+          {
+            "field": "periodo_gracia_dias",
+            "message": "El período de gracia debe ser de al menos 30 días."
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:28.230694+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-019",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-020",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 201,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "6.1",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "periodo_gracia_dias": 30
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 30,
+        "contrato_version": "6.1",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": 30,
+        "descripcion": null,
+        "estado": "PENDIENTE",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G037-021",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-022",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 201,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "6.3",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 31,
+        "contrato_version": "6.3",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": 90,
+        "descripcion": null,
+        "estado": "PENDIENTE",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G037-023",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-024",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-integracion-contable",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "parametros": {
+          "aaef_gracia_minima_dias": 45,
+          "aaef_gracia_defecto_dias": 120
+        }
+      },
+      "eco": true,
+      "cuerpo_respuesta": [
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días mínimos que una versión deprecada del contrato contable sigue disponible",
+          "valor": 45,
+          "valor_configurado": 45,
+          "valor_base": 30,
+          "fuente": "CONFIGURADO",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        },
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días de gracia que se aplican cuando no se indica otro valor",
+          "valor": 120,
+          "valor_configurado": 120,
+          "valor_base": 90,
+          "fuente": "CONFIGURADO",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        }
+      ]
+    },
+    {
+      "id": "G037-025",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-integracion-contable",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días mínimos que una versión deprecada del contrato contable sigue disponible",
+          "valor": 45,
+          "valor_configurado": 45,
+          "valor_base": 30,
+          "fuente": "CONFIGURADO",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        },
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días de gracia que se aplican cuando no se indica otro valor",
+          "valor": 120,
+          "valor_configurado": 120,
+          "valor_base": 90,
+          "fuente": "CONFIGURADO",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        }
+      ]
+    },
+    {
+      "id": "G037-026",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-027",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "6.4",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "periodo_gracia_dias": 44
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "PERIODO_GRACIA_INVALIDO",
+        "message": "El período de gracia debe ser de al menos 45 días.",
+        "field": "periodo_gracia_dias",
+        "fields": [
+          {
+            "field": "periodo_gracia_dias",
+            "message": "El período de gracia debe ser de al menos 45 días."
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:29.427081+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-028",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-029",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 201,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "6.4",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "periodo_gracia_dias": 45
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 32,
+        "contrato_version": "6.4",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": 45,
+        "descripcion": null,
+        "estado": "PENDIENTE",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G037-030",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-031",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 201,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "contrato_version": "6.6",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ]
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 33,
+        "contrato_version": "6.6",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2027-12-25",
+        "id_mapeo_anexo_aaef": 7,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": 120,
+        "descripcion": null,
+        "estado": "PENDIENTE",
+        "fecha_activacion": null,
+        "fecha_deprecacion": null,
+        "fecha_inactivacion": null
+      }
+    },
+    {
+      "id": "G037-032",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-033",
+      "metodo": "PATCH",
+      "ruta": "/configuracion/parametros-integracion-contable",
+      "caso": "TC-M07-07",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "parametros": {
+          "aaef_gracia_defecto_dias": 44
+        }
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "PARAMETRO_MLOPS_INVALIDO",
+        "message": "El período de gracia por defecto no puede ser menor que el mínimo.",
+        "field": null,
+        "fields": [],
+        "timestamp": "2026-11-20T21:05:30.266025+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-034",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-integracion-contable",
+      "caso": "TC-M07-07",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true,
+      "cuerpo_lectura": [
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días mínimos que una versión deprecada del contrato contable sigue disponible",
+          "valor": 45,
+          "valor_configurado": 45,
+          "valor_base": 30,
+          "fuente": "CONFIGURADO",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        },
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días de gracia que se aplican cuando no se indica otro valor",
+          "valor": 120,
+          "valor_configurado": 120,
+          "valor_base": 90,
+          "fuente": "CONFIGURADO",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        }
+      ]
+    },
+    {
+      "id": "G037-035",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-08",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-036",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/18/deprecar",
+      "caso": "TC-M07-08",
+      "http": 400,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "dias_gracia": 44
+      },
+      "eco": true,
+      "cuerpo_error": {
+        "error_code": "PERIODO_GRACIA_INVALIDO",
+        "message": "El período de gracia debe ser de al menos 45 días.",
+        "field": "dias_gracia",
+        "fields": [
+          {
+            "field": "dias_gracia",
+            "message": "El período de gracia debe ser de al menos 45 días."
+          }
+        ],
+        "timestamp": "2026-11-20T21:05:30.677803+00:00"
+      },
+      "error_estandar": true
+    },
+    {
+      "id": "G037-037",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-08",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-038",
+      "metodo": "POST",
+      "ruta": "/integracion/contratos/18/deprecar",
+      "caso": "TC-M07-08",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "cuerpo_solicitud": {
+        "dias_gracia": 45
+      },
+      "eco": true,
+      "cuerpo_respuesta": {
+        "id_version_contrato_aaef": 18,
+        "contrato_version": "3.0",
+        "tipo_cambio": "MAJOR",
+        "fecha_vigencia": "2026-10-17",
+        "id_mapeo_anexo_aaef": 6,
+        "mapeadores": [
+          "COMPRAS"
+        ],
+        "endpoint_asociado": "/integracion/aaef/productores/{nit}",
+        "periodo_gracia_dias": 90,
+        "descripcion": "QA-DIS escenario A: versión 3.0.",
+        "estado": "DEPRECADO",
+        "fecha_activacion": "2026-11-18T13:53:12.939277+00:00",
+        "fecha_deprecacion": "2026-11-20T21:05:30.954910+00:00",
+        "fecha_inactivacion": "2027-01-04T21:05:30.954910+00:00"
+      }
+    },
+    {
+      "id": "G037-039",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": "TC-M07-08",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-040",
+      "metodo": "GET",
+      "ruta": "/integracion/auditoria?pagina=1&tamano=100",
+      "caso": "TC-M07-08",
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DENTRO_DEL_RUN",
+      "eco": true
+    },
+    {
+      "id": "G037-041",
+      "metodo": "GET",
+      "ruta": "/integracion/contratos",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DESPUES_DEL_RUN",
+      "eco": false
+    },
+    {
+      "id": "G037-042",
+      "metodo": "GET",
+      "ruta": "/configuracion/parametros-integracion-contable",
+      "caso": null,
+      "http": 200,
+      "actor": "Administrador QA",
+      "momento": "DESPUES_DEL_RUN",
+      "eco": false,
+      "cuerpo_lectura": [
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días mínimos que una versión deprecada del contrato contable sigue disponible",
+          "valor": 30,
+          "valor_configurado": null,
+          "valor_base": 30,
+          "fuente": "VALOR_BASE",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        },
+        {
+          "nombre": "[NOMBRE]",
+          "descripcion": "Días de gracia que se aplican cuando no se indica otro valor",
+          "valor": 90,
+          "valor_configurado": null,
+          "valor_base": 90,
+          "fuente": "VALOR_BASE",
+          "rango_minimo": "1",
+          "rango_maximo": "3650"
+        }
+      ]
+    }
+  ],
+  "pruebas": {
+    "TC-M07-06": [
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO"
+    ],
+    "TC-M07-07": [
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "APROBADO",
+      "RECHAZADO"
+    ],
+    "TC-M07-08": [
+      "APROBADO",
+      "APROBADO",
+      "APROBADO"
+    ]
+  },
+  "incidencias": [
+    {
+      "caso": "TC-M07-07",
+      "regla": "PATCH_INVALIDO_ACEPTADO",
+      "severidad": "MEDIA",
+      "certeza": "CONFIRMADA",
+      "equipo_inicial": "Desarrollo",
+      "fundamento": "Primera discrepancia en API pública; causa raíz no determinada"
+    }
+  ],
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "newman/newman-G037.json",
+    "newman/newman-G037.html"
+  ],
+  "problemas_tecnicos": [],
+  "preflight_datos": [
+    {
+      "requisito": "PERMISO_contratos_aaef_1",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "PERMISO_contratos_aaef_2",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": true
+    },
+    {
+      "requisito": "PERMISO_contratos_aaef_3",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "PERMISO_configuraciones_globales_2",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "PERMISO_configuraciones_globales_3",
+      "esperado": "presente",
+      "observado": "presente",
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "ANEXO_APROBADO",
+      "esperado": "presente",
+      "observado": 7,
+      "cumple": true,
+      "bloqueante": false
+    },
+    {
+      "requisito": "VERSION_ACTIVO",
+      "esperado": "presente",
+      "observado": 18,
+      "cumple": true,
+      "bloqueante": false
+    }
+  ],
+  "datos": {
+    "versiones": [
+      "6.0",
+      "6.1",
+      "6.2",
+      "6.3",
+      "6.4",
+      "6.5",
+      "6.6",
+      "6.7"
+    ],
+    "anexo": 7,
+    "activo": 18
+  },
+  "gracia": {
+    "antes": [
+      {
+        "nombre": "[NOMBRE]",
+        "descripcion": "Días mínimos que una versión deprecada del contrato contable sigue disponible",
+        "valor": 30,
+        "valor_configurado": null,
+        "valor_base": 30,
+        "fuente": "VALOR_BASE",
+        "rango_minimo": "1",
+        "rango_maximo": "3650"
+      },
+      {
+        "nombre": "[NOMBRE]",
+        "descripcion": "Días de gracia que se aplican cuando no se indica otro valor",
+        "valor": 90,
+        "valor_configurado": null,
+        "valor_base": 90,
+        "fuente": "VALOR_BASE",
+        "rango_minimo": "1",
+        "rango_maximo": "3650"
+      }
+    ],
+    "despues": [
+      {
+        "nombre": "[NOMBRE]",
+        "descripcion": "Días mínimos que una versión deprecada del contrato contable sigue disponible",
+        "valor": 45,
+        "valor_configurado": 45,
+        "valor_base": 30,
+        "fuente": "CONFIGURADO",
+        "rango_minimo": "1",
+        "rango_maximo": "3650"
+      },
+      {
+        "nombre": "[NOMBRE]",
+        "descripcion": "Días de gracia que se aplican cuando no se indica otro valor",
+        "valor": 120,
+        "valor_configurado": 120,
+        "valor_base": 90,
+        "fuente": "CONFIGURADO",
+        "rango_minimo": "1",
+        "rango_maximo": "3650"
+      }
+    ]
+  },
+  "eventos": {
+    "consulta_http": 200,
+    "registrados": [
+      {
+        "id": "3acb281a-4cce-4394-a99b-8163f5e26083",
+        "version": "6.6",
+        "fecha": "2026-11-20T21:05:29.985905+00:00"
+      },
+      {
+        "id": "5ee0f5a3-de6b-4b9c-bbeb-18a69cba3350",
+        "version": "6.4",
+        "fecha": "2026-11-20T21:05:29.709586+00:00"
+      },
+      {
+        "id": "c390ba00-5cbc-49ee-95b3-db9147200174",
+        "version": "6.3",
+        "fecha": "2026-11-20T21:05:28.768893+00:00"
+      },
+      {
+        "id": "f64ac39d-cd90-4ae9-a58e-a154b8a8d2b1",
+        "version": "6.1",
+        "fecha": "2026-11-20T21:05:28.502082+00:00"
+      },
+      {
+        "id": "7b7a62f5-fff0-4c5d-ac33-e96c86e6de23",
+        "version": "6.0",
+        "fecha": "2026-11-20T21:05:27.763451+00:00"
+      }
+    ],
+    "deprecados": [
+      {
+        "id": "de5a4c5c-83a1-4dc3-9f7e-88b13ff386d1",
+        "version": "3.0",
+        "fecha": "2026-11-20T21:05:30.958405+00:00"
+      }
+    ],
+    "evidencia": "resultado.json"
+  },
+  "cierre": {
+    "rollback": {
+      "verificado": true,
+      "motivo": "Lectura pública poscierre sin cabeceras RUN: ids, estados y parámetros M09"
+    },
+    "http": 200,
+    "run": {
+      "cierre_http": 200
+    }
+  },
+  "newman": {
+    "codigo": 0,
+    "fallos": 0,
+    "solicitudes": 2,
+    "reportes": true
+  },
+  "observaciones": [],
+  "oficial": true,
+  "autorizacion_referencia": "AUT-G037-V2-20261120",
+  "consume_version": true,
+  "cypress": {
+    "codigo": null,
+    "total_pruebas": 0,
+    "no_aplica": true
+  },
+  "veredictos": {
+    "06": "APROBADO",
+    "07": "RECHAZADO",
+    "08": "APROBADO"
+  },
+  "casos": {
+    "TC-M07-06": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "formato_1",
+        "formato_2",
+        "formato_3",
+        "formato_4",
+        "formato_5",
+        "formato_6",
+        "formato_7",
+        "registro_valido"
+      ]
+    },
+    "TC-M07-07": {
+      "estado": "RECHAZADO",
+      "comprobaciones": [
+        "gracia_inicial_baja",
+        "gracia_inicial_minima",
+        "gracia_inicial_defecto",
+        "m09_configurable",
+        "gracia_configurada_baja",
+        "gracia_configurada_minima",
+        "gracia_configurada_defecto",
+        "patch_invalido"
+      ]
+    },
+    "TC-M07-08": {
+      "estado": "APROBADO",
+      "comprobaciones": [
+        "deprecar_baja",
+        "deprecar_minima",
+        "inactivacion_exacta"
+      ]
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M07-06",
+      "fuente": "API",
+      "id": "formato_1",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-06",
+      "fuente": "API",
+      "id": "formato_2",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-06",
+      "fuente": "API",
+      "id": "formato_3",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-06",
+      "fuente": "API",
+      "id": "formato_4",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-06",
+      "fuente": "API",
+      "id": "formato_5",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-06",
+      "fuente": "API",
+      "id": "formato_6",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-06",
+      "fuente": "API",
+      "id": "formato_7",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-06",
+      "fuente": "API",
+      "id": "registro_valido",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-07",
+      "fuente": "API",
+      "id": "gracia_inicial_baja",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-07",
+      "fuente": "API",
+      "id": "gracia_inicial_minima",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-07",
+      "fuente": "API",
+      "id": "gracia_inicial_defecto",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-07",
+      "fuente": "API",
+      "id": "m09_configurable",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-07",
+      "fuente": "API",
+      "id": "gracia_configurada_baja",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-07",
+      "fuente": "API",
+      "id": "gracia_configurada_minima",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-07",
+      "fuente": "API",
+      "id": "gracia_configurada_defecto",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-07",
+      "fuente": "API",
+      "id": "patch_invalido",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-08",
+      "fuente": "API",
+      "id": "deprecar_baja",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-08",
+      "fuente": "API",
+      "id": "deprecar_minima",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M07-08",
+      "fuente": "API",
+      "id": "inactivacion_exacta",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "solicitudes_total": 44
+}
