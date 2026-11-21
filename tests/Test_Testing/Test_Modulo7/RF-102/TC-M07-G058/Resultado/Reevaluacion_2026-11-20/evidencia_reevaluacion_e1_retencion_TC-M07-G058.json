@@ -1,0 +1,31 @@
+{
+  "id": "E1",
+  "nombre": "Políticas de retención 5 y 10 años",
+  "caso_original": "TC-M07-102-015",
+  "estado": "APROBADO",
+  "validacion": "Configuración y comportamiento verificable 5y/10y",
+  "esperado": "5 años generales y 10 años AAEF aplicados al archivar",
+  "obtenido": "codigo_retencion=True; schema_test=True; aislado={'fn_retencion_existe': True, 'general_lt_5y_permanece_activo': True, 'general_ge_5y_archivado': True, 'aaef_probado': True, 'aaef_ge_10y_archivado': True, 'aaef_lt_10y_activo': True}",
+  "evidencia": "evidencia_reevaluacion_e1_retencion_TC-M07-G058.json",
+  "pasos": [
+    "Inspección migración f11651020001 / fn_fin_retencion_rf102",
+    "Catálogo TEST: funciones y tabla histórica",
+    "BD aislada: archivar alrededor de cortes 5y y 10y"
+  ],
+  "observaciones": "APROBADO solo con evidencia comportamental en ambos plazos.",
+  "referencia_original": "Resultado/evidencia_e1_retencion_TC-M07-G058.json",
+  "fecha_utc": "2026-11-21T00:27:47.742223+00:00",
+  "ambiente": {
+    "api_test": "https://api.inmero.co/api-sgpmp-test",
+    "codigo": "origin/test (inspección RF-102 #1165)",
+    "bd_aislada": "postgresql://***@127.0.0.1:5433/sgpmp_g058_reeval_test"
+  },
+  "evidencia_tecnica": {
+    "fn_retencion_existe": true,
+    "general_lt_5y_permanece_activo": true,
+    "general_ge_5y_archivado": true,
+    "aaef_probado": true,
+    "aaef_ge_10y_archivado": true,
+    "aaef_lt_10y_activo": true
+  }
+}
