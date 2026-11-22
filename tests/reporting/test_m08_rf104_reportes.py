@@ -3,6 +3,7 @@
 # | 2026-11-18 | Arekkazu | M08 RF-104: filtros, permisos, períodos, armado, Excel/PDF, partes y ciclo de vida |
 # | 2026-11-19 | Arekkazu | M08 RF-104: plantillas V1.1, indicadores, parámetros y encabezado del animal |
 # | 2026-11-20 | Arekkazu | A11Y-M08 TC-DIS-288 RF-104: PDF etiquetado, con idioma y título |
+# | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: el portafolio del ejecutivo viene de la valoración del período cerrado |
 """RF-104 — reportes: validación, ciclo de la solicitud, contenido de los reportes, archivos y casos de uso.
 
 Sin BD: la fuente, el repositorio y los avisos son dobles en memoria. Las consultas SQL tienen su prueba de
@@ -284,12 +285,17 @@ def test_dispositivos_sin_datos_hace_mas_de_24_horas_son_prioritarios():
 
 
 def test_ejecutivo_solo_usa_consultas_de_totales():
-    fuente = FuenteFalsa(ultimo_periodo_cerrado=PERIODO_CERRADO,
-                         valor_portafolio=[{"finca": "La Esperanza", "valor": Decimal("1000")}])
+    periodos_pedidos = []
+    fuente = FuenteFalsa(ultimo_periodo_cerrado=PERIODO_CERRADO, valor_portafolio_periodo=lambda **kw: (
+        periodos_pedidos.append(kw["id_periodo"]) or [{"finca": "La Esperanza", "valor": Decimal("2809848")}]))
     c = ARMADORES["REPORTE_EJECUTIVO_CONSOLIDADO"](_ctx("REPORTE_EJECUTIVO_CONSOLIDADO", fuente,
                                                         {"periodo_contable": 8},
                                                         periodos={"periodo_contable": PERIODO_ABIERTO}))
     assert c.detalle is None and len(c.secciones) == 5
+    # USAB2 M807: el portafolio es el del último período cerrado, sumado de la valoración NIC 41 de ese período.
+    portafolio = c.secciones[0].tablas[1].filas
+    assert periodos_pedidos == [PERIODO_CERRADO["id_periodo_contable"]]
+    assert portafolio[-1] == {"finca": "Total", "valor": Decimal("2809848")}
     individuales = {"inventario", "valoracion_periodo", "eventos_sanitarios", "predicciones_activas", "exportaciones"}
     assert not (individuales - {"exportaciones"}) & set(fuente.llamadas)
 
