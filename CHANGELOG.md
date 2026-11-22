@@ -1,3 +1,9 @@
+## [1.4.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.2...v1.4.3) (2026-11-22)
+
+### Bug Fixes
+
+* **rf66-mod4:** una mediana base 0 no satura el puntaje de anomalía por visión ([ab91ac7](https://github.com/Arekkazu/sgpmp-backend/commit/ab91ac7c72f3283a4685b20d9d6bde7227da6afb))
+
 ## [1.4.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.1...v1.4.2) (2026-11-22)
 
 ### Bug Fixes
