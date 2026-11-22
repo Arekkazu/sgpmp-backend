@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: preparar el directorio del respaldo durable para el usuario no privilegiado. |
+# | 2026-11-22 | Arekkazu | RF-69/RF-26: crear /app/storage/modelos del usuario 1000 para que un volumen nuevo herede el dueño |
 FROM python:3.13-slim
 
 WORKDIR /app
@@ -51,9 +52,13 @@ COPY . .
 # almacenamiento de modelos dejarian de funcionar despues del despliegue, sin
 # ningun error en el build que lo anticipe. Hacer explicito lo que ya ocurria
 # es todo el cambio; no hay migracion de permisos que ejecutar.
+# /app/storage/modelos tambien se crea aqui: un volumen nombrado nuevo (el de PROD
+# en su primer despliegue) hereda el dueno de la carpeta de la imagen; sin ella queda
+# de root y el registro de modelos (RF-69) y los logotipos (RF-26) fallan con
+# PermissionError. Un volumen que ya tiene archivos conserva su dueno.
 RUN useradd --create-home --uid 1000 appuser \
-    && mkdir -p /app/storage/auditoria_iot \
-    && chown 1000:1000 /app/storage/auditoria_iot
+    && mkdir -p /app/storage/auditoria_iot /app/storage/modelos \
+    && chown 1000:1000 /app/storage/auditoria_iot /app/storage/modelos
 # `USER 1000` y no `USER appuser`: DL3066 exige el UID numerico en la
 # directiva, no solo en useradd. El usuario sigue existiendo en /etc/passwd,
 # asi que `id` y las herramientas que resuelven el nombre siguen funcionando
