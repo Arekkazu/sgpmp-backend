@@ -3,6 +3,7 @@
 # | 2026-11-14 | Arekkazu | M08 RF-103: consultas de solo lectura de los widgets        |
 # | 2026-11-20 | Arekkazu | QA-M08 CU01 H-02 RF-103: el semáforo sale solo de alertas activas, no del riesgo de la inferencia |
 # | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: valor del inventario leído como sistema y acotado a las fincas del usuario |
+# | 2026-11-22 | Arekkazu | A11Y2-M08 TC-DIS-279 RF-103: distribución de riesgo con enfermedad y probabilidad |
 """Implementación SQLAlchemy de :class:`DatosWidgetRepository` (RF-103).
 
 Lo que ya calcula otro módulo se reutiliza tal cual para que el dashboard muestre lo mismo que la
@@ -223,11 +224,18 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             SELECT e.nombre AS especie,
                    count(*) FILTER (WHERE ri.nivel_riesgo = 0) AS normal,
                    count(*) FILTER (WHERE ri.nivel_riesgo IN (1, 2)) AS moderado,
-                   count(*) FILTER (WHERE ri.nivel_riesgo = 3) AS alto
+                   count(*) FILTER (WHERE ri.nivel_riesgo = 3) AS alto,
+                   -- TC-DIS-279: la enfermedad más probable de la especie y su probabilidad (la inferencia de mayor
+                   -- riesgo y confianza entre las de riesgo).
+                   (array_agg(p.nombre ORDER BY ri.nivel_riesgo DESC, ri.confianza_global DESC)
+                        FILTER (WHERE ri.nivel_riesgo > 0 AND p.nombre IS NOT NULL))[1] AS patologia,
+                   (array_agg(ri.confianza_global::float ORDER BY ri.nivel_riesgo DESC, ri.confianza_global DESC)
+                        FILTER (WHERE ri.nivel_riesgo > 0 AND p.nombre IS NOT NULL))[1] AS probabilidad
             FROM modulo2.activos_biologicos ab
             JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
             JOIN modulo9.especies e ON e.id_especie = ab.id_especie
             {_ULTIMA_INFERENCIA}
+            LEFT JOIN modulo9.patologias p ON p.id_patologia = ri.id_patologia
             WHERE i.id_finca = :f AND {_FILTRO_ESPECIES}
             GROUP BY e.nombre
             ORDER BY e.nombre"""), {"f": id_finca, "especies": especies, "horas": horas})

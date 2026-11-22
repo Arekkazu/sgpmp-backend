@@ -379,6 +379,12 @@ def test_plantilla_v11_parametros_indicadores_y_finca_del_animal():
     cifra = stringWidth(rr._texto_pdf(Decimal("2809848.5"), MONEDA), rr.FUENTE, 10)
     assert all(a - 2 * rr._PADDING >= cifra for a in anchos[:7]) and abs(sum(anchos) - 720) < 0.01
 
+    # USAB2 M812: en una tabla que no cabe, el identificador del animal conserva su ancho completo.
+    ancha = Tabla("x", [Columna("id_activo", "ID activo")] + [Columna(f"t{i}", f"Texto largo {i}") for i in range(12)],
+                  [{"id_activo": "BOV119TIL", **{f"t{i}": "palabra " * 12 for i in range(12)}}])
+    ancho_id = rr._anchos_pdf(ancha, 560)[0]
+    assert ancho_id - 2 * rr._PADDING >= stringWidth("BOV119TIL", rr.FUENTE, 10)
+
 
 class RenderizadorFalso(RenderizadorReportes):
     def renderizar(self, contenido, formato, ruta_logo):
