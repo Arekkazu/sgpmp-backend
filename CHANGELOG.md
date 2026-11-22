@@ -1,3 +1,9 @@
+## [1.4.0-rc.87](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.86...v1.4.0-rc.87) (2026-11-22)
+
+### Bug Fixes
+
+* **rf69-mod4:** crear el almacenamiento de modelos del usuario 1000 en la imagen ([885f39d](https://github.com/Arekkazu/sgpmp-backend/commit/885f39dee3e8f078d2a4ca863cf2568a53807381))
+
 ## [1.4.0-rc.86](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.85...v1.4.0-rc.86) (2026-11-22)
 
 ### Bug Fixes
