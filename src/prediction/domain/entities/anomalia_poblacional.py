@@ -1,12 +1,14 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: puntaje de anomalía del área contra RF-24     |
+# | 2026-11-22 | Arekkazu | RF-66 POBLACIONAL: tope de 1 por componente, una mediana base 0 no satura el puntaje |
 """RF-66 POBLACIONAL (RFC-009/RFC-011): el riesgo del área sale de comparar su vector de
 comportamiento (sobre D4 de la cámara) con la línea base del área y especie (RF-24).
 
 Puntaje = media de las desviaciones relativas |x − mediana| / max(|mediana|, ε) de los
-componentes calibrados, acotada a [0, 1]: 0 es el comportamiento de siempre y 1 un cambio del
-100 % o más. Es la regla provisional mientras AIoT/Análisis definen la del componente
+componentes calibrados, cada una acotada a [0, 1]: 0 es el comportamiento de siempre y 1 un
+cambio del 100 % o más. El tope va por componente: con una mediana base 0 (peces quietos), una
+ventana normal de 0,11 daría 11 y saturaría el área sola; un cambio real mueve varios componentes. Es la regla provisional mientras AIoT/Análisis definen la del componente
 ANOMALIAS (DEV, sombra). Dominio puro.
 """
 from __future__ import annotations
@@ -21,7 +23,7 @@ _CUATRO = Decimal("0.0001")
 def score_anomalia(vector: dict, linea_base: dict) -> Optional[Decimal]:
     """None si el vector no comparte ningún componente con la línea base."""
     desviaciones = [
-        abs(Decimal(str(vector[c])) - Decimal(str(m))) / max(abs(Decimal(str(m))), EPSILON)
+        min(Decimal(1), abs(Decimal(str(vector[c])) - Decimal(str(m))) / max(abs(Decimal(str(m))), EPSILON))
         for c, m in linea_base.items()
         if vector.get(c) is not None and m is not None
     ]
