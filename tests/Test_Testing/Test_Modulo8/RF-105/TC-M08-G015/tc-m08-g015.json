@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M08-G015 Canales, destinatarios y duplicados (RF-105)",
-    "description": "TC-M08-018, 019 y 024. Bloqueados por el token del broker, push, correo y logs; solo la preparación posible. Sandbox.",
+    "description": "TC-M08-018, 019 y 024 FUERA del sandbox (el worker post-commit no ve la transacción del sandbox). Autorizado por el usuario el 2026-11-21. Dos nodos temporales sin historial en el área 1468; al final se descartan las alertas y se desactivan. Push, correo y logs técnicos no son verificables en TEST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -87,14 +87,86 @@
     {
       "key": "tok_gestor",
       "value": ""
+    },
+    {
+      "key": "tok_otra",
+      "value": ""
+    },
+    {
+      "key": "ahora",
+      "value": ""
+    },
+    {
+      "key": "t_l1",
+      "value": ""
+    },
+    {
+      "key": "t_inicio",
+      "value": ""
+    },
+    {
+      "key": "alertas_creadas",
+      "value": ""
+    },
+    {
+      "key": "hay_umbral",
+      "value": ""
+    },
+    {
+      "key": "ocurr_paso1",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "t_calib",
+      "value": ""
+    },
+    {
+      "key": "dev_a",
+      "value": ""
+    },
+    {
+      "key": "sen_a",
+      "value": ""
+    },
+    {
+      "key": "serial_a",
+      "value": ""
+    },
+    {
+      "key": "nombre_sen_a",
+      "value": ""
+    },
+    {
+      "key": "dev_b",
+      "value": ""
+    },
+    {
+      "key": "sen_b",
+      "value": ""
+    },
+    {
+      "key": "serial_b",
+      "value": ""
+    },
+    {
+      "key": "nombre_sen_b",
+      "value": ""
+    },
+    {
+      "key": "intentos_l1",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "0. Precondiciones (logins dentro del sandbox)",
+      "name": "0. Precondiciones (fuera del sandbox)",
       "item": [
         {
-          "name": "PRE - Login Administrador",
+          "name": "PRE - Login Administrador (fuera del sandbox)",
           "event": [
             {
               "listen": "test",
@@ -111,6 +183,10 @@
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -129,7 +205,7 @@
           }
         },
         {
-          "name": "PRE - Login Productor",
+          "name": "PRE - Login Productor (fuera del sandbox)",
           "event": [
             {
               "listen": "test",
@@ -147,6 +223,10 @@
             "method": "POST",
             "header": [
               {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
@@ -162,22 +242,18 @@
               }
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "1. TC-M08-018/019 Generar la alerta crítica (necesita el token del broker)",
-      "item": [
+        },
         {
-          "name": "TC-M08-018 - POST /iot/telemetria sin el token del broker",
+          "name": "PRE - Login Veterinario (fuera del sandbox)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M08-018 - la ingesta exige el token de servicio del broker (401/403): sin él no se puede generar la alerta', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));",
-                  "console.warn('BLOQUEADO: TC-018, 019 y 024 necesitan el token del broker de TEST, push activado en el navegador, un buzón real y los logs del backend.');"
+                  "pm.test('PRE - Login Veterinario (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_vet', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_vet', t); pm.collectionVariables.set('id_veterinario', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
                 ]
               }
             }
@@ -186,14 +262,18 @@
             "method": "POST",
             "header": [
               {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url}}/iot/telemetria",
+            "url": "{{base_url}}/sesiones/",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"serial\": \"QA-M08-SENSOR-02\",\n  \"lecturas\": []\n}",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -201,22 +281,18 @@
               }
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "2. TC-M08-024 Token de push inválido (preparación)",
-      "item": [
+        },
         {
-          "name": "TC-M08-024 - Productor registra un token de push inválido",
+          "name": "PRE - Login Contador (fuera del sandbox)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log(pm.response.text().slice(0, 400));",
-                  "pm.test('TC-M08-024 - el token se registra sin error para el usuario (200/201/204)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]));"
+                  "pm.test('PRE - Login Contador (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_cont', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_cont', t); pm.collectionVariables.set('id_contador', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
                 ]
               }
             }
@@ -225,8 +301,639 @@
             "method": "POST",
             "header": [
               {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_contador}}\",\n  \"contrasena\": \"{{contrasena_contador}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Ingeniero de Campo (fuera del sandbox)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Ingeniero de Campo (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_ing', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_ing', t); pm.collectionVariables.set('id_ingeniero', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Login Productor de otra finca (fuera del sandbox)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor de otra finca (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_otra', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_otra', t); pm.collectionVariables.set('id_otra', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_otra_finca}}\",\n  \"contrasena\": \"{{contrasena_otra_finca}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Umbral de temperatura ambiental de la especie 722 (se crea si no existe)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const it = (pm.response.json() || {}).items || [];",
+                  "const u = it.find(x => x.id_variable_ambiental === 9);",
+                  "pm.collectionVariables.set('hay_umbral', u ? '1' : '');",
+                  "console.log(u ? 'Ya existe el umbral ' + u.id_umbral_ambiental : 'No hay umbral de temperatura para la especie 722: se crea');",
+                  "pm.test('PRE - consulta de umbrales (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
                 "key": "Authorization",
-                "value": "Bearer {{tok_prod}}"
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie=722"
+          }
+        },
+        {
+          "name": "PRE - Crear el umbral (normal 0-28, precaución 28-34, crítico 34-50 °C; contiguos desde el mínimo)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get('hay_umbral')) { console.log('Umbral ya creado: se omite'); pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 400));",
+                  "pm.test('PRE - umbral creado (201)', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 722,\n  \"id_variable_ambiental\": 9,\n  \"valor_min\": 0,\n  \"valor_max\": 50,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 28\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 28,\n      \"limite_superior\": 34\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 34,\n      \"limite_superior\": 50\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Crear el dispositivo A en el área 1468",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('sufijo')) pm.collectionVariables.set('sufijo', Date.now().toString(36).toUpperCase());",
+                  "pm.collectionVariables.set('serial_a', 'QA-M08-G015-A-' + pm.collectionVariables.get('sufijo'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('PRE - dispositivo A creado (201)', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('dev_a', String((pm.response.json() || {}).id_dispositivo_iot || ''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"{{serial_a}}\",\n  \"descripcion\": \"Nodo temporal TC-M08-G015 (se desactiva al terminar)\",\n  \"id_infraestructura\": 1468,\n  \"id_tipo_dispositivo\": 3,\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Crear el sensor de temperatura A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('PRE - sensor A creado (201)', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json() || {};",
+                  "pm.collectionVariables.set('sen_a', String(r.id_sensores || r.id_sensor || ''));",
+                  "pm.collectionVariables.set('nombre_sen_a', r.nombre || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot/{{dev_a}}/sensores",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"QA M08 G015 sensor A {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Asociar el sensor A al área 1468",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('PRE - sensor A asociado (200/201)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{sen_a}}/asociar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{dev_a}},\n  \"id_infraestructura\": 1468,\n  \"punto_instalacion\": \"Punto central (prueba QA)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Calibrar el sensor A",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('t_calib', new Date(Date.now() - 120000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('PRE - sensor A calibrado (200/201)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{sen_a}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{dev_a}},\n  \"id_infraestructura\": 1468,\n  \"valor_referencia\": 25.0,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{t_calib}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Crear el dispositivo B en el área 1468",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('sufijo')) pm.collectionVariables.set('sufijo', Date.now().toString(36).toUpperCase());",
+                  "pm.collectionVariables.set('serial_b', 'QA-M08-G015-B-' + pm.collectionVariables.get('sufijo'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('PRE - dispositivo B creado (201)', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('dev_b', String((pm.response.json() || {}).id_dispositivo_iot || ''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"{{serial_b}}\",\n  \"descripcion\": \"Nodo temporal TC-M08-G015 (se desactiva al terminar)\",\n  \"id_infraestructura\": 1468,\n  \"id_tipo_dispositivo\": 3,\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Crear el sensor de temperatura B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('PRE - sensor B creado (201)', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json() || {};",
+                  "pm.collectionVariables.set('sen_b', String(r.id_sensores || r.id_sensor || ''));",
+                  "pm.collectionVariables.set('nombre_sen_b', r.nombre || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot/{{dev_b}}/sensores",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"QA M08 G015 sensor B {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Asociar el sensor B al área 1468",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('PRE - sensor B asociado (200/201)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{sen_b}}/asociar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{dev_b}},\n  \"id_infraestructura\": 1468,\n  \"punto_instalacion\": \"Punto central (prueba QA)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Calibrar el sensor B",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('t_calib', new Date(Date.now() - 120000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('PRE - sensor B calibrado (200/201)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{sen_b}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{dev_b}},\n  \"id_infraestructura\": 1468,\n  \"valor_referencia\": 25.0,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{t_calib}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PRE - Bandejas antes de la corrida (críticas de telemetría de cada usuario)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = tok => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) }, { key: 'X-Zona-Horaria', value: 'America/Bogota' }];",
+                  "const pedir = (ruta, tok) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta, method: 'GET', header: H(tok) },",
+                  "  (e, r) => ok((() => { try { return r.json(); } catch (x) { return null; } })())));",
+                  "const dormir = ms => new Promise(ok => setTimeout(ok, ms));",
+                  "const base = tok => JSON.parse(pm.collectionVariables.get('base_' + tok) || '[]');",
+                  "// Críticas de telemetría de la bandeja (nuevas o leídas) que no estaban antes de la corrida.",
+                  "const nuevas = async tok => { const b = await pedir('/notificaciones?nivel=CRITICA&modulo=telemetria&tamano=50', tok);",
+                  "  const ya = base(tok), t = Date.parse(pm.collectionVariables.get('t_inicio'));",
+                  "  return ((b || {}).items || []).filter(n => !ya.includes(n.id_notificacion) || Date.parse(n.fecha_ultima_ocurrencia || 0) >= t); };",
+                  "const esperarNuevas = async (tok, minimo, maxMs) => { const t0 = Date.now(); let l = [];",
+                  "  while (Date.now() - t0 < maxMs) { l = await nuevas(tok); if (l.length >= minimo) break; await dormir(5000); }",
+                  "  return { l, ms: Date.now() - t0 }; };",
+                  "const sumar = l => l.reduce((a, n) => a + (n.ocurrencias || 1), 0);",
+                  "const delArea = (l, nombre) => l.filter(n => (n.mensaje || '').includes(nombre));",
+                  "(async () => {",
+                  "  for (const tok of [\"tok_prod\", \"tok_vet\", \"tok_ing\", \"tok_cont\", \"tok_otra\", \"tok_admin\"]) {",
+                  "    const b = await pedir('/notificaciones?nivel=CRITICA&modulo=telemetria&tamano=50', tok);",
+                  "    pm.collectionVariables.set('base_' + tok, JSON.stringify(((b || {}).items || []).map(n => n.id_notificacion)));",
+                  "    console.log(tok + ': ' + (((b || {}).items || []).length) + ' críticas de telemetría antes');",
+                  "  }",
+                  "  pm.collectionVariables.set('t_inicio', new Date(Date.now() - 60000).toISOString());",
+                  "})();",
+                  "pm.test('PRE - API viva (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              }
+            ],
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "TC-M08-024 - Ingeniero registra un token de push inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 400));",
+                  "pm.test('TC-M08-024 - el token se registra sin error para el usuario (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_ing}}"
               },
               {
                 "key": "Content-Type",
@@ -248,26 +955,636 @@
       ]
     },
     {
-      "name": "9. Rollback del sandbox (la BD queda como estaba)",
+      "name": "1. TC-M08-018 Canales y destinatarios de una alerta crítica",
       "item": [
         {
-          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "name": "TC-M08-018 - Lectura crítica 45 °C en el sensor A (área 1468)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 30 s atrás: el reloj de la PC puede ir adelantado y la BD rechaza capturas futuras (ERROR_TIEMPO).",
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 30000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 500));",
+                  "// Un nodo recién creado tarda en aceptar lecturas (401 «Dispositivo o sensor no encontrado o inactivo»):",
+                  "// se reintenta cada 10 s, hasta 12 veces, antes de dar la lectura por fallida.",
+                  "const n = Number(pm.collectionVariables.get('intentos_l1') || 0);",
+                  "if (pm.response.code === 401 && n < 12) { pm.collectionVariables.set('intentos_l1', String(n + 1));",
+                  "  console.log('Nodo aún no habilitado (intento ' + (n + 1) + '): se reintenta en 10 s');",
+                  "  setTimeout(() => {}, 10000); pm.execution.setNextRequest(pm.info.requestName); return; }",
+                  "console.log('Primera lectura aceptada tras ' + n + ' reintentos');",
+                  "pm.test('TC-M08-018 - lectura aceptada por la ingesta (201, LECTURA_VALIDA)', () => { pm.response.to.have.status(201); pm.expect((pm.response.json() || {}).estado_calidad).to.equal('LECTURA_VALIDA'); });",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('t_l1', String(Date.now()));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/telemetria",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{dev_a}},\n  \"sensor_id\": {{sen_a}},\n  \"serial\": \"{{serial_a}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 45.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ahora}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-018 - La alerta crítica se genera y llega a la bandeja de quien corresponde",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('ROLLBACK - sandbox revertido (200)', () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.unset('run_id');"
+                  "const H = tok => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) }, { key: 'X-Zona-Horaria', value: 'America/Bogota' }];",
+                  "const pedir = (ruta, tok) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta, method: 'GET', header: H(tok) },",
+                  "  (e, r) => ok((() => { try { return r.json(); } catch (x) { return null; } })())));",
+                  "const dormir = ms => new Promise(ok => setTimeout(ok, ms));",
+                  "const base = tok => JSON.parse(pm.collectionVariables.get('base_' + tok) || '[]');",
+                  "// Críticas de telemetría de la bandeja (nuevas o leídas) que no estaban antes de la corrida.",
+                  "const nuevas = async tok => { const b = await pedir('/notificaciones?nivel=CRITICA&modulo=telemetria&tamano=50', tok);",
+                  "  const ya = base(tok), t = Date.parse(pm.collectionVariables.get('t_inicio'));",
+                  "  return ((b || {}).items || []).filter(n => !ya.includes(n.id_notificacion) || Date.parse(n.fecha_ultima_ocurrencia || 0) >= t); };",
+                  "const esperarNuevas = async (tok, minimo, maxMs) => { const t0 = Date.now(); let l = [];",
+                  "  while (Date.now() - t0 < maxMs) { l = await nuevas(tok); if (l.length >= minimo) break; await dormir(5000); }",
+                  "  return { l, ms: Date.now() - t0 }; };",
+                  "const sumar = l => l.reduce((a, n) => a + (n.ocurrencias || 1), 0);",
+                  "const delArea = (l, nombre) => l.filter(n => (n.mensaje || '').includes(nombre));",
+                  "(async () => {",
+                  "  // La bandeja del Productor marca el tiempo de entrega (hasta 90 s); el resto se lee enseguida.",
+                  "  const p = await esperarNuevas('tok_prod', 1, 90000);",
+                  "  const r = { tok_prod: p };",
+                  "  // La entrega va en serie por destinatario: a los que deben recibirla se les espera hasta 60 s cada uno.",
+                  "  for (const tok of [\"tok_vet\", \"tok_ing\"]) r[tok] = await esperarNuevas(tok, 1, 60000);",
+                  "  for (const tok of [\"tok_cont\", \"tok_otra\", \"tok_admin\"]) r[tok] = { l: await nuevas(tok), ms: 0 };",
+                  "  const al = (await pedir('/iot/alertas?id_sensor=' + pm.collectionVariables.get('sen_a') + '&fecha_desde=' + encodeURIComponent(pm.collectionVariables.get('t_inicio')), 'tok_admin') || {}).items || [];",
+                  "  const ya = JSON.parse(pm.collectionVariables.get('alertas_creadas') || '[]');",
+                  "  pm.collectionVariables.set('alertas_creadas', JSON.stringify([...new Set(ya.concat(al.map(a => a.id_alerta)))]));",
+                  "  console.log('Alertas del sensor ' + pm.collectionVariables.get('sen_a') + ' desde el inicio: ' + JSON.stringify(al.map(a => ({ id: a.id_alerta, sev: a.severidad, estado: a.estado_alerta, tipo: a.tipo_alerta }))));",
+                  "  pm.test('TC-M08-018 - la lectura de 45 °C genera una alerta CRÍTICA', () => pm.expect(al.some(a => a.severidad === 'CRITICO')).to.be.true);",
+                  "  pm.test('TC-M08-018 - llega a la bandeja del Productor al instante (' + Math.round(p.ms / 1000) + ' s)', () => pm.expect(p.l.length).to.be.above(0));",
+                  "  pm.test('TC-M08-018 - Productor: ' + (r['tok_prod'].l.length ? 'la recibe' : 'no la recibe') + ' en la bandeja (debe recibirla)', () => pm.expect(r['tok_prod'].l.length > 0).to.equal(true));",
+                  "  pm.test('TC-M08-018 - Veterinario: ' + (r['tok_vet'].l.length ? 'la recibe' : 'no la recibe') + ' en la bandeja (debe recibirla)', () => pm.expect(r['tok_vet'].l.length > 0).to.equal(true));",
+                  "  pm.test('TC-M08-018 - Ingeniero de Campo: ' + (r['tok_ing'].l.length ? 'la recibe' : 'no la recibe') + ' en la bandeja (debe recibirla)', () => pm.expect(r['tok_ing'].l.length > 0).to.equal(true));",
+                  "  pm.test('TC-M08-018 - Contador: ' + (r['tok_cont'].l.length ? 'la recibe' : 'no la recibe') + ' en la bandeja (no debe recibirla)', () => pm.expect(r['tok_cont'].l.length > 0).to.equal(false));",
+                  "  pm.test('TC-M08-018 - Productor de otra finca: ' + (r['tok_otra'].l.length ? 'la recibe' : 'no la recibe') + ' en la bandeja (no debe recibirla)', () => pm.expect(r['tok_otra'].l.length > 0).to.equal(false));",
+                  "  console.log('Administrador: ' + r.tok_admin.l.length + ' críticas nuevas (el RF lo pone solo si el área no tiene destinatarios)');",
+                  "  const m = (p.l[0] || {});",
+                  "  console.log('Notificación del Productor: ' + JSON.stringify({ id: m.id_notificacion, nivel: m.nivel, estado: m.estado, ocurrencias: m.ocurrencias, mensaje: m.mensaje }));",
+                  "  console.warn('NO VERIFICABLE: push en ≤ 60 s y correo en ≤ 5 min. Las cuentas qa.m08 son @sgpmp-test.com (sin buzón) y no hay un navegador con push suscrito (bloqueo de terceros, no incidencia).');",
+                  "})();"
                 ]
               }
             }
           ],
           "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": "{{base_url}}/test-control/runs/{{run_id}}"
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              }
+            ],
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M08-019 y 024 Duplicados en 5 minutos y push inválido",
+      "item": [
+        {
+          "name": "TC-M08-019 - Esperar 1 minuto desde la primera lectura",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const falta = Number(pm.collectionVariables.get('t_l1')) + 60000 - Date.now();",
+                  "console.log('Esperando ' + Math.max(0, Math.round(falta / 1000)) + ' s');",
+                  "if (falta > 0) setTimeout(() => {}, falta);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('espera - API viva (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              }
+            ],
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "TC-M08-019 - Paso 1: la misma lectura crítica 1 minuto después (mismo sensor)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 30 s atrás: el reloj de la PC puede ir adelantado y la BD rechaza capturas futuras (ERROR_TIEMPO).",
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 30000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 500));",
+                  "pm.test('TC-M08-019 - lectura aceptada por la ingesta (201, LECTURA_VALIDA)', () => { pm.response.to.have.status(201); pm.expect((pm.response.json() || {}).estado_calidad).to.equal('LECTURA_VALIDA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/telemetria",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{dev_a}},\n  \"sensor_id\": {{sen_a}},\n  \"serial\": \"{{serial_a}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 45.5,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ahora}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-019 - Paso 1: sigue habiendo una sola notificación de ese evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = tok => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) }, { key: 'X-Zona-Horaria', value: 'America/Bogota' }];",
+                  "const pedir = (ruta, tok) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta, method: 'GET', header: H(tok) },",
+                  "  (e, r) => ok((() => { try { return r.json(); } catch (x) { return null; } })())));",
+                  "const dormir = ms => new Promise(ok => setTimeout(ok, ms));",
+                  "const base = tok => JSON.parse(pm.collectionVariables.get('base_' + tok) || '[]');",
+                  "// Críticas de telemetría de la bandeja (nuevas o leídas) que no estaban antes de la corrida.",
+                  "const nuevas = async tok => { const b = await pedir('/notificaciones?nivel=CRITICA&modulo=telemetria&tamano=50', tok);",
+                  "  const ya = base(tok), t = Date.parse(pm.collectionVariables.get('t_inicio'));",
+                  "  return ((b || {}).items || []).filter(n => !ya.includes(n.id_notificacion) || Date.parse(n.fecha_ultima_ocurrencia || 0) >= t); };",
+                  "const esperarNuevas = async (tok, minimo, maxMs) => { const t0 = Date.now(); let l = [];",
+                  "  while (Date.now() - t0 < maxMs) { l = await nuevas(tok); if (l.length >= minimo) break; await dormir(5000); }",
+                  "  return { l, ms: Date.now() - t0 }; };",
+                  "const sumar = l => l.reduce((a, n) => a + (n.ocurrencias || 1), 0);",
+                  "const delArea = (l, nombre) => l.filter(n => (n.mensaje || '').includes(nombre));",
+                  "(async () => {",
+                  "  await dormir(30000);",
+                  "  const l = delArea(await nuevas('tok_prod'), pm.collectionVariables.get('nombre_sen_a'));",
+                  "  console.log('Productor tras la 2ª lectura: ' + JSON.stringify(l.map(n => ({ id: n.id_notificacion, ocurrencias: n.ocurrencias, fecha: n.fecha_envio }))));",
+                  "  pm.collectionVariables.set('ocurr_paso1', String(sumar(l)));",
+                  "  pm.test('TC-M08-019 - mismo evento y sensor en < 5 min: una sola notificación (avisos ' + l.length + ', ocurrencias ' + sumar(l) + ')', () => { pm.expect(l.length).to.equal(1); pm.expect(sumar(l)).to.equal(1); });",
+                  "  const al = (await pedir('/iot/alertas?id_sensor=' + pm.collectionVariables.get('sen_a') + '&fecha_desde=' + encodeURIComponent(pm.collectionVariables.get('t_inicio')), 'tok_admin') || {}).items || [];",
+                  "  const ya = JSON.parse(pm.collectionVariables.get('alertas_creadas') || '[]');",
+                  "  pm.collectionVariables.set('alertas_creadas', JSON.stringify([...new Set(ya.concat(al.map(a => a.id_alerta)))]));",
+                  "  console.log('Alertas del sensor ' + pm.collectionVariables.get('sen_a') + ' desde el inicio: ' + JSON.stringify(al.map(a => ({ id: a.id_alerta, sev: a.severidad, estado: a.estado_alerta, tipo: a.tipo_alerta }))));",
+                  "})();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              }
+            ],
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "TC-M08-019 - Paso 3: lectura crítica del mismo tipo en otro sensor (B, otro nodo de la finca) en < 5 min",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 30 s atrás: el reloj de la PC puede ir adelantado y la BD rechaza capturas futuras (ERROR_TIEMPO).",
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 30000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 500));",
+                  "pm.test('TC-M08-019 - lectura aceptada por la ingesta (201, LECTURA_VALIDA)', () => { pm.response.to.have.status(201); pm.expect((pm.response.json() || {}).estado_calidad).to.equal('LECTURA_VALIDA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/telemetria",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{dev_b}},\n  \"sensor_id\": {{sen_b}},\n  \"serial\": \"{{serial_b}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 46.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ahora}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-019 - Paso 3: el evento del otro sensor llega como notificación aparte",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = tok => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) }, { key: 'X-Zona-Horaria', value: 'America/Bogota' }];",
+                  "const pedir = (ruta, tok) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta, method: 'GET', header: H(tok) },",
+                  "  (e, r) => ok((() => { try { return r.json(); } catch (x) { return null; } })())));",
+                  "const dormir = ms => new Promise(ok => setTimeout(ok, ms));",
+                  "const base = tok => JSON.parse(pm.collectionVariables.get('base_' + tok) || '[]');",
+                  "// Críticas de telemetría de la bandeja (nuevas o leídas) que no estaban antes de la corrida.",
+                  "const nuevas = async tok => { const b = await pedir('/notificaciones?nivel=CRITICA&modulo=telemetria&tamano=50', tok);",
+                  "  const ya = base(tok), t = Date.parse(pm.collectionVariables.get('t_inicio'));",
+                  "  return ((b || {}).items || []).filter(n => !ya.includes(n.id_notificacion) || Date.parse(n.fecha_ultima_ocurrencia || 0) >= t); };",
+                  "const esperarNuevas = async (tok, minimo, maxMs) => { const t0 = Date.now(); let l = [];",
+                  "  while (Date.now() - t0 < maxMs) { l = await nuevas(tok); if (l.length >= minimo) break; await dormir(5000); }",
+                  "  return { l, ms: Date.now() - t0 }; };",
+                  "const sumar = l => l.reduce((a, n) => a + (n.ocurrencias || 1), 0);",
+                  "const delArea = (l, nombre) => l.filter(n => (n.mensaje || '').includes(nombre));",
+                  "(async () => {",
+                  "  const { l } = await esperarNuevas('tok_prod', 2, 90000);",
+                  "  const a = delArea(l, pm.collectionVariables.get('nombre_sen_a')), b = delArea(l, pm.collectionVariables.get('nombre_sen_b'));",
+                  "  console.log('Productor: ' + JSON.stringify(l.map(n => ({ id: n.id_notificacion, ocurrencias: n.ocurrencias, mensaje: (n.mensaje || '').slice(0, 110) }))));",
+                  "  pm.test('TC-M08-019 - mismo tipo en otro sensor en < 5 min: una notificación por cada sensor (A: ' + a.length + ', B: ' + b.length + ')', () => { pm.expect(a.length).to.equal(1); pm.expect(b.length).to.equal(1); });",
+                  "  // La entrega a cada destinatario va en serie: se espera hasta 60 s la del Ingeniero (token de push inválido).",
+                  "  let ing = []; const ti = Date.now(); while (Date.now() - ti < 60000) { ing = delArea(await nuevas('tok_ing'), pm.collectionVariables.get('nombre_sen_b')); if (ing.length) break; await dormir(5000); }",
+                  "  pm.test('TC-M08-024 - con el token de push inválido, el Ingeniero recibe en la bandeja la notificación generada después de registrarlo (' + ing.length + ')', () => pm.expect(ing.length).to.equal(1));",
+                  "  console.warn('BLOQUEADO (sin acceso): el log técnico con el fallo del push y sus reintentos (1, 5 y 15 min) no se puede revisar sin los logs del backend de TEST.');",
+                  "  const al = (await pedir('/iot/alertas?id_sensor=' + pm.collectionVariables.get('sen_b') + '&fecha_desde=' + encodeURIComponent(pm.collectionVariables.get('t_inicio')), 'tok_admin') || {}).items || [];",
+                  "  const ya = JSON.parse(pm.collectionVariables.get('alertas_creadas') || '[]');",
+                  "  pm.collectionVariables.set('alertas_creadas', JSON.stringify([...new Set(ya.concat(al.map(a => a.id_alerta)))]));",
+                  "  console.log('Alertas del sensor ' + pm.collectionVariables.get('sen_b') + ' desde el inicio: ' + JSON.stringify(al.map(a => ({ id: a.id_alerta, sev: a.severidad, estado: a.estado_alerta, tipo: a.tipo_alerta }))));",
+                  "})();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              }
+            ],
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "TC-M08-019 - Esperar a que pasen 6 minutos desde la primera lectura",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const falta = Number(pm.collectionVariables.get('t_l1')) + 370000 - Date.now();",
+                  "console.log('Esperando ' + Math.max(0, Math.round(falta / 1000)) + ' s');",
+                  "if (falta > 0) setTimeout(() => {}, falta);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('espera - API viva (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              }
+            ],
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "TC-M08-019 - Paso 2: la misma lectura crítica pasados 6 minutos (mismo sensor)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 30 s atrás: el reloj de la PC puede ir adelantado y la BD rechaza capturas futuras (ERROR_TIEMPO).",
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 30000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 500));",
+                  "pm.test('TC-M08-019 - lectura aceptada por la ingesta (201, LECTURA_VALIDA)', () => { pm.response.to.have.status(201); pm.expect((pm.response.json() || {}).estado_calidad).to.equal('LECTURA_VALIDA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/telemetria",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{dev_a}},\n  \"sensor_id\": {{sen_a}},\n  \"serial\": \"{{serial_a}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 46.5,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ahora}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-M08-019 - Paso 2: pasados 5 minutos llega una segunda notificación independiente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = tok => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) }, { key: 'X-Zona-Horaria', value: 'America/Bogota' }];",
+                  "const pedir = (ruta, tok) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta, method: 'GET', header: H(tok) },",
+                  "  (e, r) => ok((() => { try { return r.json(); } catch (x) { return null; } })())));",
+                  "const dormir = ms => new Promise(ok => setTimeout(ok, ms));",
+                  "const base = tok => JSON.parse(pm.collectionVariables.get('base_' + tok) || '[]');",
+                  "// Críticas de telemetría de la bandeja (nuevas o leídas) que no estaban antes de la corrida.",
+                  "const nuevas = async tok => { const b = await pedir('/notificaciones?nivel=CRITICA&modulo=telemetria&tamano=50', tok);",
+                  "  const ya = base(tok), t = Date.parse(pm.collectionVariables.get('t_inicio'));",
+                  "  return ((b || {}).items || []).filter(n => !ya.includes(n.id_notificacion) || Date.parse(n.fecha_ultima_ocurrencia || 0) >= t); };",
+                  "const esperarNuevas = async (tok, minimo, maxMs) => { const t0 = Date.now(); let l = [];",
+                  "  while (Date.now() - t0 < maxMs) { l = await nuevas(tok); if (l.length >= minimo) break; await dormir(5000); }",
+                  "  return { l, ms: Date.now() - t0 }; };",
+                  "const sumar = l => l.reduce((a, n) => a + (n.ocurrencias || 1), 0);",
+                  "const delArea = (l, nombre) => l.filter(n => (n.mensaje || '').includes(nombre));",
+                  "(async () => {",
+                  "  const antes = Number(pm.collectionVariables.get('ocurr_paso1'));",
+                  "  let l = []; const t0 = Date.now();",
+                  "  while (Date.now() - t0 < 90000) { l = delArea(await nuevas('tok_prod'), pm.collectionVariables.get('nombre_sen_a')); if (sumar(l) > antes) break; await dormir(5000); }",
+                  "  console.log('Productor (sensor A): ' + JSON.stringify(l.map(n => ({ id: n.id_notificacion, ocurrencias: n.ocurrencias, fecha: n.fecha_envio }))));",
+                  "  pm.test('TC-M08-019 - pasados 5 minutos el mismo evento genera otra notificación (ocurrencias ' + antes + ' → ' + sumar(l) + ')', () => pm.expect(sumar(l)).to.equal(antes + 1));",
+                  "  const al = (await pedir('/iot/alertas?id_sensor=' + pm.collectionVariables.get('sen_a') + '&fecha_desde=' + encodeURIComponent(pm.collectionVariables.get('t_inicio')), 'tok_admin') || {}).items || [];",
+                  "  const ya = JSON.parse(pm.collectionVariables.get('alertas_creadas') || '[]');",
+                  "  pm.collectionVariables.set('alertas_creadas', JSON.stringify([...new Set(ya.concat(al.map(a => a.id_alerta)))]));",
+                  "  console.log('Alertas del sensor ' + pm.collectionVariables.get('sen_a') + ' desde el inicio: ' + JSON.stringify(al.map(a => ({ id: a.id_alerta, sev: a.severidad, estado: a.estado_alerta, tipo: a.tipo_alerta }))));",
+                  "})();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              }
+            ],
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Limpieza",
+      "item": [
+        {
+          "name": "LIMPIEZA - Cerrar las alertas creadas por la corrida (descartar, o atender y resolver)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const H = tok => [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get(tok) }, { key: 'X-Zona-Horaria', value: 'America/Bogota' }];",
+                  "const pedir = (ruta, tok) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + ruta, method: 'GET', header: H(tok) },",
+                  "  (e, r) => ok((() => { try { return r.json(); } catch (x) { return null; } })())));",
+                  "const dormir = ms => new Promise(ok => setTimeout(ok, ms));",
+                  "const base = tok => JSON.parse(pm.collectionVariables.get('base_' + tok) || '[]');",
+                  "// Críticas de telemetría de la bandeja (nuevas o leídas) que no estaban antes de la corrida.",
+                  "const nuevas = async tok => { const b = await pedir('/notificaciones?nivel=CRITICA&modulo=telemetria&tamano=50', tok);",
+                  "  const ya = base(tok), t = Date.parse(pm.collectionVariables.get('t_inicio'));",
+                  "  return ((b || {}).items || []).filter(n => !ya.includes(n.id_notificacion) || Date.parse(n.fecha_ultima_ocurrencia || 0) >= t); };",
+                  "const esperarNuevas = async (tok, minimo, maxMs) => { const t0 = Date.now(); let l = [];",
+                  "  while (Date.now() - t0 < maxMs) { l = await nuevas(tok); if (l.length >= minimo) break; await dormir(5000); }",
+                  "  return { l, ms: Date.now() - t0 }; };",
+                  "const sumar = l => l.reduce((a, n) => a + (n.ocurrencias || 1), 0);",
+                  "const delArea = (l, nombre) => l.filter(n => (n.mensaje || '').includes(nombre));",
+                  "const ids = JSON.parse(pm.collectionVariables.get('alertas_creadas') || '[]');",
+                  "const patch = (id, estado) => new Promise(ok => pm.sendRequest({ url: pm.variables.replaceIn('{{base_url}}') + '/iot/alertas/' + id + '/estado', method: 'PATCH',",
+                  "  header: H('tok_admin').concat([{ key: 'Content-Type', value: 'application/json' }]),",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ nuevo_estado: estado, motivo: 'Prueba QA TC-M08-G015: lectura simulada, se cierra al terminar.' }) } }, (e, r) => ok(r ? r.code : 0)));",
+                  "(async () => {",
+                  "  const res = [];",
+                  "  for (const id of ids) {",
+                  "    const a = await pedir('/iot/alertas/' + id, 'tok_admin') || {};",
+                  "    if (['VENCIDA', 'RESUELTA', 'DESCARTADA'].includes(a.estado_alerta)) { res.push(id + ':' + a.estado_alerta); continue; }",
+                  "    let c = await patch(id, 'DESCARTADA'); if (c !== 200) { await patch(id, 'EN_ATENCION'); c = await patch(id, 'RESUELTA'); }",
+                  "    res.push(id + ':' + (c === 200 ? 'CERRADA' : 'ERROR ' + c)); }",
+                  "  console.log('Alertas cerradas: ' + res.join(', '));",
+                  "  pm.test('LIMPIEZA - ninguna alerta creada queda activa (' + (res.join(', ') || 'ninguna') + ')', () => pm.expect(res.every(x => !x.includes('ERROR'))).to.be.true);",
+                  "})();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              }
+            ],
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "LIMPIEZA - Desactivar el dispositivo temporal A",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('dev_a')) { console.log('No se creó el dispositivo A'); pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('LIMPIEZA - dispositivo A desactivado (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot/{{dev_a}}/desactivar"
+          }
+        },
+        {
+          "name": "LIMPIEZA - Desactivar el dispositivo temporal B",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('dev_b')) { console.log('No se creó el dispositivo B'); pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(pm.response.text().slice(0, 300));",
+                  "pm.test('LIMPIEZA - dispositivo B desactivado (200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-Fuera-Sandbox",
+                "value": "1"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/dispositivos-iot/{{dev_b}}/desactivar"
           }
         }
       ]

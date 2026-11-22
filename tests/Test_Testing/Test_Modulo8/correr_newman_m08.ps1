@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-11-19 | Juan Manuel      | TC-M08: runner propio de M08 (no toca el runner comun) |
+# | 2026-11-21 | Juan Manuel      | TC-M08: token del broker (G015)                        |
 # Runner de los casos de M08. Uso (desde tests\Test_Testing\Test_Modulo8):
 #   .\correr_newman_m08.ps1 -Caso G001 -Rf RF-103
 #
@@ -31,6 +32,11 @@ $def = [ordered]@{
   contrasena_contador    = @{S=$true;  D=''}
   correo_ingeniero       = @{S=$false; D='qa.m08.ingeniero@sgpmp-test.com'}
   contrasena_ingeniero   = @{S=$true;  D=''}
+  broker_token           = @{S=$true;  D=''}
+  correo_otra_finca      = @{S=$false; D='productor@gmail.com'}
+  correo_bandeja         = @{S=$false; D='qa.m08.productor.bandeja@sgpmp-test.com'}
+  contrasena_bandeja     = @{S=$true;  D=''}
+  contrasena_otra_finca  = @{S=$true;  D=''}
   correo_gestor          = @{S=$false; D='gestor.granja@gmail.com'}
   contrasena_gestor      = @{S=$true;  D=''}
 }
