@@ -1,3 +1,9 @@
+## [1.4.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.1...v1.4.2) (2026-11-22)
+
+### Bug Fixes
+
+* **rf69-mod4:** guardar la firma del artefacto al registrar una versión de modelo ([86896a3](https://github.com/Arekkazu/sgpmp-backend/commit/86896a36bcca7982108226b6cf9f7cbf3f619d43))
+
 ## [1.4.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0...v1.4.1) (2026-11-22)
 
 ### Bug Fixes
