@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-34: fecha_referencia, 404 sin asociación activa, sensores_en_infraestructura, advertencia_integridad."""
 from __future__ import annotations
 
@@ -9,6 +13,7 @@ from src.biological_assets.application.use_cases.registro.consultar_asociacion_u
     ConsultarAsociacionUseCase,
 )
 from src.biological_assets.domain.entities.activo_biologico import HistorialInfraestructura, SensorEnInfraestructura
+from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import NotFoundError, ValidationError
 
@@ -48,13 +53,24 @@ class ActivoRepoFake:
 
 
 class InfraPortFake:
-    def __init__(self, sensores=None) -> None:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
+    def __init__(self, sensores=None, capacidad_maxima=None) -> None:
         self.sensores = sensores or []
         self.consultas: list[int] = []
+        self.capacidad_maxima = capacidad_maxima
 
     def listar_sensores_activos(self, id_infraestructura: int):
         self.consultas.append(id_infraestructura)
         return self.sensores
+
+    def obtener_activa(self, id_infraestructura: int):
+        # RFC-012 (DEV-23): capacidad derivada del área vigente.
+        return InfraestructuraConsulta(
+            id_infraestructura=id_infraestructura, nombre='Area', tipo='Corral', es_activo=True,
+            capacidad_maxima=self.capacidad_maxima,
+        )
 
 
 def _usuario() -> UsuarioActual:

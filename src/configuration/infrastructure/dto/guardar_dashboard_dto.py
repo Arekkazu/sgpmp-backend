@@ -1,7 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo                                                  |
+# |------------|----------|--------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-103: opciones por widget y frecuencia de actualización |
 """DTO de entrada para guardar la configuración del dashboard (RF-28)."""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import Field
 
@@ -16,6 +19,8 @@ class WidgetConfigDTO(BaseDTO):
     span_columnas: int = Field(ge=1, le=2)
     visible: bool
     orden: int = Field(ge=0)
+    # Opciones de "Configurar widget" (RF-103); se validan contra el catálogo del widget.
+    parametros: dict[str, Any] = Field(default_factory=dict)
 
 
 class GuardarDashboardDTO(BaseDTO):
@@ -30,3 +35,5 @@ class GuardarDashboardDTO(BaseDTO):
     # la personalización ya no es el mismo y el RF pide rechazar con 409. Opcional
     # para no romper a los clientes que todavía no la envían.
     version_perfil: Optional[int] = None
+    # Segundos entre actualizaciones automáticas del dashboard (RF-103). Sin enviar: se conserva.
+    frecuencia_actualizacion: Optional[int] = Field(default=None, ge=15, le=120)

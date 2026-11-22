@@ -1,8 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo                                                    |
+# |------------|----------|----------------------------------------------------------------|
+# | 2026-11-14 | Arekkazu | M08 RF-103: opciones por widget y frecuencia de actualización   |
 """Entidad de dominio ``DashboardLayout`` — configuración del dashboard por usuario (RF-28).
 
 Grilla 4×3 con máximo 12 widgets activos. El JSONB se estructura como
-``{"grid": [...WidgetConfig...]}``. La columna de array ``active_widget``
-contiene las claves de los indicadores visibles.
+``{"grid": [...WidgetConfig...], "frecuencia_actualizacion": 30}``; cada celda puede llevar las
+opciones que el usuario eligió para ese widget en ``parametros`` (RF-103). La columna de array
+``active_widget`` contiene las claves de los indicadores visibles.
 
 Los layouts predeterminados por rol ya no viven acá: están en
 ``modulo9.dashboard_layouts_default``. Tenerlos quemados obligaba a nombrar
@@ -10,15 +14,18 @@ Los layouts predeterminados por rol ya no viven acá: están en
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from src.shared.errors import ConflictError, ValidationError
 
 _MAX_WIDGETS = 12
 _MAX_FILAS = 3
 _MAX_COLUMNAS = 4
+# RF-103 Restricción 2: refresco automático de 30 s por defecto, configurable entre 15 y 120.
+FRECUENCIA_DEFECTO = 30
+_FRECUENCIA_MIN, _FRECUENCIA_MAX = 15, 120
 
 
 @dataclass
@@ -30,9 +37,11 @@ class WidgetConfig:
     span_columnas: int
     visible: bool
     orden: int
+    # Opciones elegidas en "Configurar widget" (RF-103); vacío = valores por defecto del widget.
+    parametros: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        return {
+        datos = {
             "id_widget": self.id_widget,
             "posicion_fila": self.posicion_fila,
             "posicion_columna": self.posicion_columna,
@@ -40,6 +49,9 @@ class WidgetConfig:
             "visible": self.visible,
             "orden": self.orden,
         }
+        if self.parametros:
+            datos["parametros"] = self.parametros
+        return datos
 
     @classmethod
     def from_dict(cls, d: dict) -> WidgetConfig:
@@ -50,6 +62,7 @@ class WidgetConfig:
             span_columnas=d["span_columnas"],
             visible=d["visible"],
             orden=d["orden"],
+            parametros=d.get("parametros") or {},
         )
 
 
@@ -63,6 +76,7 @@ class DashboardLayout:
     active_widget: list[str]
     fecha_actualizacion: Optional[datetime]
     id_dashboard_layout: Optional[int] = None
+    frecuencia_actualizacion: int = FRECUENCIA_DEFECTO
 
     @classmethod
     def crear(
@@ -71,20 +85,37 @@ class DashboardLayout:
         id_usuario: int,
         grid: list[WidgetConfig],
         active_widget: list[str],
+        frecuencia_actualizacion: int = FRECUENCIA_DEFECTO,
     ) -> DashboardLayout:
         cls._validar(grid, active_widget)
+        cls._validar_frecuencia(frecuencia_actualizacion)
         return cls(
             id_usuario=id_usuario,
             grid=grid,
             active_widget=active_widget,
             fecha_actualizacion=datetime.now(timezone.utc),
+            frecuencia_actualizacion=frecuencia_actualizacion,
         )
 
-    def actualizar(self, *, grid: list[WidgetConfig], active_widget: list[str]) -> None:
+    def actualizar(self, *, grid: list[WidgetConfig], active_widget: list[str],
+                   frecuencia_actualizacion: Optional[int] = None) -> None:
         self._validar(grid, active_widget)
+        if frecuencia_actualizacion is not None:
+            self._validar_frecuencia(frecuencia_actualizacion)
+            self.frecuencia_actualizacion = frecuencia_actualizacion
         self.grid = grid
         self.active_widget = active_widget
         self.fecha_actualizacion = datetime.now(timezone.utc)
+
+    @staticmethod
+    def _validar_frecuencia(segundos: int) -> None:
+        if not _FRECUENCIA_MIN <= segundos <= _FRECUENCIA_MAX:
+            raise ValidationError(
+                code="VAL_ENTRADA",
+                message=(f"La actualización automática debe ser de {_FRECUENCIA_MIN} a "
+                         f"{_FRECUENCIA_MAX} segundos."),
+                field="frecuencia_actualizacion",
+            )
 
     @classmethod
     def _validar(cls, grid: list[WidgetConfig], active_widget: list[str]) -> None:
@@ -181,7 +212,7 @@ class DashboardLayout:
             )
 
     def config_jsonb(self) -> dict:
-        return {"grid": [w.to_dict() for w in self.grid]}
+        return {"grid": [w.to_dict() for w in self.grid], "frecuencia_actualizacion": self.frecuencia_actualizacion}
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, DashboardLayout):

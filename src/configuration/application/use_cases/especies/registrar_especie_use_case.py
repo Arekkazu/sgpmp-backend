@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: registra esperanza_vida_dias; snapshot desde la entidad |
 """Caso de uso: Registrar nueva especie en el catálogo (Flujo A — RF-15).
 
 Solo el Administrador puede registrar especies nuevas.
@@ -16,22 +19,6 @@ from src.configuration.infrastructure.dto.registrar_especie_dto import Registrar
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import ConflictError
 
-
-def _snapshot(especie: Especie) -> dict:
-    return {
-        "id_especie": especie.id_especie,
-        "nombre": especie.nombre.valor,
-        "descripcion": especie.descripcion,
-        "densidad_maxima_por_especie": (
-            str(especie.densidad_maxima_por_especie)
-            if especie.densidad_maxima_por_especie is not None
-            else None
-        ),
-        "grupo_manejo": especie.grupo_manejo,
-        "es_activo": especie.es_activo,
-        "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
-        "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
-    }
 
 
 class RegistrarEspecieUseCase:
@@ -63,6 +50,7 @@ class RegistrarEspecieUseCase:
             descripcion=dto.descripcion,
             densidad_maxima_por_especie=dto.densidad_maxima_por_especie,
             grupo_manejo=dto.grupo_manejo,
+            esperanza_vida_dias=dto.esperanza_vida_dias,
             fecha_creacion=datetime.now(timezone.utc),
         )
 
@@ -72,7 +60,7 @@ class RegistrarEspecieUseCase:
                 id_especie=especie_guardada.id_especie,
                 id_usuario=usuario_actual.id_usuario,
                 tipo_operacion="CREATE",
-                valores_nuevos=_snapshot(especie_guardada),
+                valores_nuevos=especie_guardada._snapshot(),
             )
             self.db.commit()
         except Exception:

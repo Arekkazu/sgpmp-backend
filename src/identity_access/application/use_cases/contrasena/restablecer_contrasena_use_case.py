@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: restablecimiento de contraseña mediante token de recuperación.
 
 Verifica el token, su expiración (15 min), aplica la nueva contraseña e
@@ -17,6 +20,7 @@ from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dto.contrasena_dto import RestablecerContrasenaDTO
 from src.shared.errors import AuthenticationError, ConflictError, GoneError, LockedError
+from src.shared.fechas import en_zona_usuario
 
 MINUTOS_EXPIRACION_TOKEN = 15
 TIPO_RESTABLECIMIENTO = 8
@@ -116,7 +120,7 @@ class RestablecerContrasenaUseCase:
                     message=(
                         f"Demasiados intentos fallidos. Por seguridad, la funcionalidad de "
                         f"restablecimiento ha sido bloqueada temporalmente. "
-                        f"Intente nuevamente a las {bloqueado_hasta.strftime('%H:%M:%S')}."
+                        f"Intente nuevamente a las {en_zona_usuario(bloqueado_hasta).strftime('%H:%M:%S')}."
                     ),
                 )
 
@@ -205,6 +209,6 @@ class RestablecerContrasenaUseCase:
             message=(
                 f"Demasiados intentos con tokens inválidos desde su conexión. Por "
                 f"seguridad, la funcionalidad de restablecimiento ha sido bloqueada "
-                f"temporalmente. Intente nuevamente a las {bloqueado_hasta.strftime('%H:%M:%S')}."
+                f"temporalmente. Intente nuevamente a las {en_zona_usuario(bloqueado_hasta).strftime('%H:%M:%S')}."
             ),
         )

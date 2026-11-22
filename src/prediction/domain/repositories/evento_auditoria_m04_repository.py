@@ -1,9 +1,20 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: registrar() acepta origen_dato |
+# | 2026-10-26 | Arekkazu     | INC-M04 G092/G099 RF-73: timestamp_evento (E7) y filtro correlacion_id |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: declarar el resultado tipado de aceptacion o rechazo E1. |
+# | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
+# | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
 from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
+
+from src.prediction.domain.services.validacion_auditoria_m04 import ResultadoRegistroAuditoriaM04
 
 if TYPE_CHECKING:
     from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
@@ -24,7 +35,16 @@ class EventoAuditoriaM04Repository(ABC):
         entidad_referencia: Optional[str] = None,
         resultado_operacion: Optional[str] = None,
         correlacion_id: Optional[uuid.UUID] = None,
-    ) -> None: ...
+        codigo_error: Optional[str] = None,
+        descripcion_error: Optional[str] = None,
+        origen_dato: Optional[str] = None,
+        timestamp_evento: Optional[datetime] = None,
+    ) -> ResultadoRegistroAuditoriaM04:
+        """Devuelve rechazo E1 sin cancelar el proceso; el commit pertenece al emisor.
+
+        ``timestamp_evento``: instante en que ocurrió el evento en su origen (por omisión,
+        ahora). Si es futuro o anterior al último de su ``correlacion_id`` se corrige al del
+        sistema y se registra TIMESTAMP_CORREGIDO (RF-73 E7)."""
 
     @abstractmethod
     def consultar(
@@ -37,9 +57,17 @@ class EventoAuditoriaM04Repository(ABC):
         id_sistema: Optional[str] = None,
         id_referencia: Optional[str] = None,
         severidad_evento: Optional[str] = None,
+        correlacion_id: Optional[uuid.UUID] = None,
+        tipo_modelo: Optional[str] = None,
+        entidad_referencia: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
     ) -> tuple[list["EventoAuditoriaM04"], int]: ...
 
     @abstractmethod
     def obtener_por_id(self, id_evento: uuid.UUID) -> "EventoAuditoriaM04": ...
+
+    @abstractmethod
+    def insertar_desde_respaldo(self, evento: dict) -> bool:
+        """RF-73 E8: inserta un evento del respaldo local con su id y fecha originales
+        y ``origen_registro = FALLBACK``. False si ya estaba (idempotente por id_evento)."""

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-49 Tipo B (INC-M02-66-G90/#217): "Asociación Ambiental Compartida" --
 un sensor ambiental se asocia a una infraestructura productiva completa
 (no a un activo puntual) y aplica automáticamente a todos los activos que
@@ -48,6 +51,9 @@ class SensorPortFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def __init__(self, infras: dict[int, InfraestructuraConsulta]) -> None:
         self.infras = infras
 

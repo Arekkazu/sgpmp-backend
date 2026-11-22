@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | Arekkazu | INC-M04-143/146 RF-67: cursor sobre (fecha_evento, id_evento) estables |
 from __future__ import annotations
 
 import base64
@@ -8,11 +12,12 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.prediction.domain.entities.historial_diagnostico import EventoHistorial, PaginaHistorial
+from src.prediction.domain.entities.historial_diagnostico import PaginaHistorial
 from src.prediction.domain.repositories.activo_biologico_port import ActivoBiologicoPort
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.historial_diagnostico_repository import HistorialDiagnosticoRepository
 from src.shared.errors import AuthorizationError, NotFoundError, ValidationError
+from src.shared.fechas import fin_dia_usuario, hoy_usuario, inicio_dia_usuario
 
 _LIMITE = 50
 
@@ -47,7 +52,7 @@ class ConsultarHistorialUseCase:
         if not self._activo_port.activo_existe_y_accesible(id_activo_biologico, id_usuario, id_rol):
             raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe o no está disponible.")
 
-        hoy = datetime.now(tz=timezone.utc).date()
+        hoy = hoy_usuario()
         if fecha_inicio > fecha_fin:
             raise ValidationError(
                 code="RANGO_FECHAS_INVALIDO",
@@ -61,14 +66,14 @@ class ConsultarHistorialUseCase:
                 field="fecha_fin",
             )
 
-        cursor: Optional[tuple[datetime, str]] = None
+        cursor: Optional[tuple[datetime, uuid.UUID]] = None
         if cursor_paginacion:
             cursor = _decodificar_cursor(cursor_paginacion)
 
-        dt_inicio = datetime.combine(fecha_inicio, datetime.min.time(), tzinfo=timezone.utc)
-        dt_fin = datetime.combine(fecha_fin, datetime.max.time().replace(microsecond=999999), tzinfo=timezone.utc)
+        dt_inicio = inicio_dia_usuario(fecha_inicio)
+        dt_fin = fin_dia_usuario(fecha_fin)
 
-        filas = self._repo.consultar(
+        eventos = self._repo.consultar(
             id_activo_biologico=id_activo_biologico,
             fecha_inicio=dt_inicio,
             fecha_fin=dt_fin,
@@ -79,33 +84,19 @@ class ConsultarHistorialUseCase:
             limite=_LIMITE + 1,
         )
 
-        hay_mas = len(filas) > _LIMITE
-        if hay_mas:
-            filas = filas[:_LIMITE]
-
-        eventos = [
-            EventoHistorial(
-                id_evento=uuid.uuid4(),
-                tipo_evento=f["tipo_evento"],
-                id_activo_biologico=f["id_activo_biologico"],
-                fecha_evento=f["fecha_evento"],
-                id_resultado_inferencia=f["id_resultado_inferencia"],
-                payload=f["payload"],
-            )
-            for f in filas
-        ]
-
+        # RF-67: máximo 50 eventos por página, cursor sobre (timestamp_evento, id_evento).
         cursor_siguiente: Optional[str] = None
-        if hay_mas:
-            ultimo = filas[-1]
-            cursor_siguiente = _codificar_cursor(ultimo["fecha_evento"], str(ultimo["id_resultado_inferencia"]))
+        if len(eventos) > _LIMITE:
+            eventos = eventos[:_LIMITE]
+            cursor_siguiente = _codificar_cursor(eventos[-1].fecha_evento, eventos[-1].id_evento)
 
         try:
             self._repo.materializar_eventos(eventos)
             self._auditoria_repo.registrar(
-                tipo_evento="CONSULTA_HISTORIAL_DIAGNOSTICO",
+                tipo_evento="HISTORIAL_CONSULTADO",
                 tipo_actor="USUARIO",
                 payload_evento={
+                    "consulta": "HISTORIAL_DIAGNOSTICO",
                     "id_activo_biologico": id_activo_biologico,
                     "fecha_inicio": fecha_inicio.isoformat(),
                     "fecha_fin": fecha_fin.isoformat(),
@@ -119,7 +110,7 @@ class ConsultarHistorialUseCase:
                 id_usuario=id_usuario,
                 id_referencia=str(id_activo_biologico),
                 entidad_referencia="activo_biologico",
-                resultado_operacion="OK",
+                resultado_operacion="EXITOSO",
             )
             self._db.commit()
         except Exception:
@@ -133,18 +124,18 @@ class ConsultarHistorialUseCase:
         )
 
 
-def _codificar_cursor(fecha: datetime, id_resultado: str) -> str:
-    payload = json.dumps({"ts": fecha.isoformat(), "id": id_resultado})
+def _codificar_cursor(fecha: datetime, id_evento: uuid.UUID) -> str:
+    payload = json.dumps({"ts": fecha.isoformat(), "id": str(id_evento)})
     return base64.urlsafe_b64encode(payload.encode()).decode()
 
 
-def _decodificar_cursor(cursor: str) -> tuple[datetime, str]:
+def _decodificar_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
     try:
         payload = json.loads(base64.urlsafe_b64decode(cursor.encode()).decode())
         fecha = datetime.fromisoformat(payload["ts"])
         if fecha.tzinfo is None:
             fecha = fecha.replace(tzinfo=timezone.utc)
-        return fecha, payload["id"]
+        return fecha, uuid.UUID(payload["id"])
     except Exception:
         raise ValidationError(
             code="CURSOR_INVALIDO",

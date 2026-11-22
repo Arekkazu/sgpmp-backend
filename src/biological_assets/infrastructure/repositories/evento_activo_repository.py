@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Implementación SQLAlchemy de ``EventoActivoRepository`` (RF-39 a RF-45)."""
 
 from __future__ import annotations
@@ -28,6 +32,7 @@ from src.biological_assets.infrastructure.models.evento_productivo_model import 
 from src.biological_assets.infrastructure.models.evento_reproductivo_model import EventoReproductivoModel
 from src.biological_assets.infrastructure.models.evento_sanitario_model import EventoSanitarioModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.fechas import nombre_zona_usuario
 
 
 class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
@@ -65,6 +70,8 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                 cantidad_afectada=b.cantidad_afectada,
                 tipo=b.tipo,
                 detalles=b.detalles,
+                valor_venta=b.valor_venta,
+                referencia_venta=b.referencia_venta,
             )
 
         ingreso: Optional[EventoIngreso] = None
@@ -158,6 +165,8 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                     cantidad_afectada=b.cantidad_afectada,
                     tipo=b.tipo,
                     detalles=b.detalles,
+                    valor_venta=b.valor_venta,
+                    referencia_venta=b.referencia_venta,
                 ))
             elif evento.ingreso:
                 i = evento.ingreso
@@ -263,7 +272,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
             .filter(
                 EventoActivoModel.id_activo_biologico == id_activo,
                 EventoProductivoModel.id_metrica_produccion == id_metrica_produccion,
-                func.date(EventoActivoModel.fecha) == fecha,
+                func.date(func.timezone(nombre_zona_usuario(), EventoActivoModel.fecha)) == fecha,
             )
             .first()
         ) is not None

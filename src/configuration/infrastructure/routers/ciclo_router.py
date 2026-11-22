@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
 """Router FastAPI para etapas del ciclo productivo (`/configuracion/ciclos`).
 
 Expone los cuatro flujos de RF-16 CU02 para etapas:
@@ -17,11 +20,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.configuration.application.use_cases.ciclos.configurar_densidad_etapa_use_case import (
+    ConfigurarDensidadEtapaUseCase,
+)
 from src.configuration.application.use_cases.ciclos.consultar_ciclos_use_case import ConsultarCiclosUseCase
 from src.configuration.application.use_cases.ciclos.desactivar_ciclo_use_case import DesactivarCicloUseCase
 from src.configuration.application.use_cases.ciclos.editar_ciclo_use_case import EditarCicloUseCase
 from src.configuration.application.use_cases.ciclos.reactivar_ciclo_use_case import ReactivarCicloUseCase
 from src.configuration.application.use_cases.ciclos.registrar_ciclo_use_case import RegistrarCicloUseCase
+from src.configuration.infrastructure.dto.configurar_densidad_etapa_dto import ConfigurarDensidadEtapaDTO
 from src.configuration.infrastructure.dto.editar_ciclo_dto import EditarCicloDTO
 from src.configuration.infrastructure.dto.registrar_ciclo_dto import RegistrarCicloDTO
 from src.configuration.infrastructure.repositories.auditoria_ciclo_repository import SqlAlchemyAuditoriaCicloRepository
@@ -197,3 +204,29 @@ def reactivar_ciclo(
     )
     ciclo = use_case.execute(id_ciclo_biologico, usuario_actual)
     return CicloBiologicoResponse.model_validate(ciclo)
+
+
+@router.patch(
+    "/{id_ciclo_biologico}/densidad",
+    response_model=CicloBiologicoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 3))],
+    responses={c: {"model": ErrorResponse} for c in (400, 401, 403, 404, 412, 422)},
+    summary="Densidad y biomasa máximas de la etapa, con su aviso preventivo",
+)
+def configurar_densidad_etapa(
+    id_ciclo_biologico: int,
+    dto: ConfigurarDensidadEtapaDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> CicloBiologicoResponse:
+    """Límite propio del lote que está en esta etapa (RF-16 por etapa, RF-36). La capacidad del área por la
+    densidad de la especie (RFC-012) sigue valiendo; gana el límite más estricto.
+
+    **Acceso:** `ciclos_biologicos` · Actualizar (Administrador y Veterinario).
+    """
+    etapa = ConfigurarDensidadEtapaUseCase(
+        db, SqlAlchemyCicloBiologicoRepository(db), SqlAlchemyAuditoriaCicloRepository(db),
+    ).execute(id_ciclo_biologico, densidad_maxima=dto.densidad_maxima, biomasa_maxima=dto.biomasa_maxima,
+              aviso_preventivo_pct=dto.aviso_preventivo_pct, fecha_actualizacion=dto.fecha_actualizacion,
+              id_usuario=usuario_actual.id_usuario)
+    return CicloBiologicoResponse.model_validate(etapa)

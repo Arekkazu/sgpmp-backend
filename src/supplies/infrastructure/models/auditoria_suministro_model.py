@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: mapear identidad única y versión de integridad de auditoría. |
 """Modelo ORM para ``modulo5.auditorias_suministros`` (RF-80, RF-78/79 / CU-05).
 
 Generado con sqlacodegen y adaptado (Base compartida, columnas enum de PG
@@ -14,6 +17,7 @@ la app nunca lo asigna.
 from typing import Optional
 import datetime
 import decimal
+import uuid
 
 from sqlalchemy import (
     ARRAY,
@@ -29,6 +33,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.dialects.postgresql import UUID
 
 from .base_model import Base
 
@@ -68,3 +73,5 @@ class AuditoriaSuministroModel(Base):
     numero_reintentos: Mapped[Optional[int]] = mapped_column(Integer)
     fecha_intentos: Mapped[Optional[list]] = mapped_column(ARRAY(DateTime(True)))
     id_gestion_fases: Mapped[Optional[int]] = mapped_column(Integer)
+    id_evento_m05: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, server_default=text('gen_random_uuid()'))
+    version_hash_integridad: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('2'))

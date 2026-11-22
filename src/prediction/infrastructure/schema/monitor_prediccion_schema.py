@@ -1,0 +1,123 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
+# | 2026-10-30 | Arekkazu | RF-66: modo_sombra y respuesta del registro desde el motor IA      |
+# | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
+# | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, computed_field
+
+from src.shared.tipo_modelo import paradigma_de
+
+
+class InferenciaMonitorResponse(BaseModel):
+    """Un resultado del motor (RF-66). INDIVIDUAL: nivel, probabilidades y patología;
+    POBLACIONAL (RFC-009): el score viaja en ``probabilidad_riesgo``."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id_resultado_inferencia: uuid.UUID
+    id_activo_biologico: int
+    identificador_activo: Optional[str]
+    nombre_area: str
+    nombre_finca: str
+    especie: Optional[str]
+    tipo_modelo: str
+    id_version_modelo: int
+    nombre_version: Optional[str]
+    nivel_riesgo: int
+    probabilidad_riesgo: dict
+    id_patologia: Optional[int]
+    nombre_patologia: Optional[str]
+    probabilidad_enfermedad: dict
+    confianza_global: Decimal
+    contexto_incompleto: bool
+    latencia_excedida: bool
+    modo_ejecucion: str
+    latencia_ms: Optional[int]
+    fecha_inicio_ventana: Optional[datetime]
+    fecha_fin_ventana: Optional[datetime]
+    fecha_inferencia: datetime
+    tiene_alerta_generada: bool
+    id_alerta_generada: Optional[int]
+    modo_sombra: bool
+    # T-18: nombre de cada patología de probabilidad_enfermedad, por su id.
+    nombres_patologias: Optional[dict] = None
+    id_infraestructura: Optional[int] = None
+
+    @computed_field
+    @property
+    def paradigma(self) -> Optional[str]:
+        return paradigma_de(self.tipo_modelo)
+
+
+
+class IndicadoresInferenciasResponse(BaseModel):
+    """AJF-10: totales del periodo filtrado, no solo de la página."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    total: int
+    en_riesgo: int
+    con_alerta: int
+    animales_distintos: int
+
+
+class InferenciasPaginadasResponse(BaseModel):
+    """AJF-10: página del monitor con el total para paginar."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    items: list[InferenciaMonitorResponse]
+    total: int
+    pagina: int
+    por_pagina: int
+    indicadores: IndicadoresInferenciasResponse
+
+class RiesgoContagioMonitorResponse(BaseModel):
+    """Un cálculo de riesgo de contagio por lote (RF-68)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id_resultado_contagio: int
+    id_activo_biologico: int
+    identificador_activo: Optional[str]
+    nombre_area: str
+    nombre_finca: str
+    especie: Optional[str]
+    probabilidad_contagio: Decimal
+    nivel_riesgo_contagio: int
+    factor_sanitario_fs: Decimal
+    factor_ambiental_fa: Optional[Decimal]
+    factor_densidad_fd: Optional[Decimal]
+    w_fs_aplicado: Decimal
+    w_fa_aplicado: Decimal
+    w_fd_aplicado: Decimal
+    confianza_baja: bool
+    data_quality_score: Optional[Decimal]
+    factores_ausentes: Optional[list]
+    modo_ejecucion_calculo: Optional[str]
+    n_enfermos_detectados: Optional[int]
+    total_activos_lote: Optional[int]
+    porcentaje_sensores_activos: Optional[Decimal]
+    fecha_calculo: datetime
+    id_alerta_generada: Optional[int]
+    detalle_calculo: Optional[dict] = None
+    id_infraestructura: Optional[int] = None
+
+
+class ResultadoInferenciaRegistradoResponse(BaseModel):
+    """Acuse al motor IA. ``duplicado``: ese id ya estaba guardado y no se volvió a escribir."""
+
+    id_resultado_inferencia: uuid.UUID
+    duplicado: bool
+    modo_sombra: bool
+    latencia_excedida: bool
+    tiene_alerta_generada: bool

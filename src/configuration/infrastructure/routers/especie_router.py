@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-46 RF-15: desactivar especie documenta 422 en vez de 423 |
 """Router FastAPI para el catálogo de especies productivas (`/configuracion/especies`).
 
 Expone los cinco flujos de RF-15 (CU01):
@@ -147,7 +150,6 @@ def editar_especie(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
-        423: {"model": ErrorResponse},
     },
     summary="Desactivar especie (Flujo C)",
 )
@@ -160,7 +162,7 @@ def desactivar_especie(
 
     **Acceso:** `especies` · Desactivar.
 
-    Responde 422 si ya está inactiva y 423 si tiene procesos productivos activos.
+    Responde 422 si ya está inactiva o si tiene procesos productivos activos.
     """
     use_case = DesactivarEspecieUseCase(
         db=db,

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-48 (INC-M02-73-G80/TC-M02-134): E-06 (DESTINO_IGUAL_ORIGEN) usaba
 ValidationError (HTTP 400), pero el contrato del endpoint no declara 400 y
 espera 422 -- misma familia de regla de negocio que C1/C3 (BusinessRuleError).
@@ -35,6 +38,9 @@ class TransferenciaRepoFake:
 
 
 class InfraPortFake:
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
+
     def __init__(self, infras: dict[int, InfraestructuraConsulta]) -> None:
         self.infras = infras
 

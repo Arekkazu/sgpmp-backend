@@ -1,0 +1,731 @@
+{
+  "tarea": "DEV-07 / #3525",
+  "fecha": "2026-10-19",
+  "rama": "fix/dev07-vision-contrato-d4",
+  "base": "origin/feature/aiot-v1-token-servicio-broker",
+  "base_commit": "1d503b51",
+  "inspeccion_remota": {
+    "identidad": [
+      "sgpmp_dev",
+      "on"
+    ],
+    "destino": "conexion autorizada sgpmp_dev por 5447",
+    "catalogo_fisico": [
+      [
+        "modulo3",
+        "heartbeats",
+        "id_heartbeat",
+        "integer",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "id_dispositivo_iot",
+        "integer",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "tipo_mensaje",
+        "modulo3.enum_tipo_mensaje_iot",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "nivel_bateria_pct",
+        "numeric(5,2)",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "calidad_senal_rssi",
+        "numeric(6,2)",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "calidad_senal_snr",
+        "numeric(6,2)",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "estado_local_buffer",
+        "\"char\"",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "datos_pendientes_buffer",
+        "integer",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "version_firmware",
+        "character varying(50)",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "coordenadas",
+        "jsonb",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "fecha_registro",
+        "timestamp with time zone",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "fecha_recepcion",
+        "timestamp with time zone",
+        true
+      ],
+      [
+        "modulo3",
+        "heartbeats",
+        "reloj_sincronizado",
+        "boolean",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "id_observacion_vision",
+        "integer",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "id_dispositivo_iot",
+        "integer",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "id_infraestructura",
+        "integer",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "fecha_observacion",
+        "timestamp with time zone",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "cobertura_ventana",
+        "numeric(5,4)",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "cantidad_tracks",
+        "integer",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "cantidad_tracks_perdidos",
+        "integer",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "fps_efectivo",
+        "numeric(6,2)",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "estado_calibracion",
+        "character varying(15)",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "json_vector",
+        "jsonb",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "indice_calidad",
+        "smallint",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "clasificacion_calidad",
+        "character varying(20)",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "es_apto_para_ia",
+        "boolean",
+        true
+      ],
+      [
+        "modulo3",
+        "observaciones_vision",
+        "fecha_creacion",
+        "timestamp with time zone",
+        true
+      ]
+    ],
+    "restricciones_vision": [
+      [
+        "ck_observacion_vision_cantidad_tracks",
+        "CHECK (((cantidad_tracks >= 0) AND (cantidad_tracks_perdidos >= 0)))"
+      ],
+      [
+        "ck_observacion_vision_clasificacion_calidad",
+        "CHECK (((clasificacion_calidad)::text = ANY ((ARRAY['APTO'::character varying, 'APTO_CON_RESERVA'::character varying, 'NO_APTO'::character varying])::text[])))"
+      ],
+      [
+        "ck_observacion_vision_cobertura_ventana",
+        "CHECK (((cobertura_ventana >= (0)::numeric) AND (cobertura_ventana <= (1)::numeric)))"
+      ],
+      [
+        "ck_observacion_vision_estado_calibracion",
+        "CHECK (((estado_calibracion)::text = ANY ((ARRAY['CALIBRADA'::character varying, 'DEGRADADA'::character varying, 'SIN_DETECCION'::character varying])::text[])))"
+      ],
+      [
+        "ck_observacion_vision_fps_efectivo",
+        "CHECK ((fps_efectivo >= (0)::numeric))"
+      ],
+      [
+        "ck_observacion_vision_indice_calidad",
+        "CHECK (((indice_calidad >= 0) AND (indice_calidad <= 100)))"
+      ],
+      [
+        "observaciones_vision_cantidad_tracks_not_null",
+        "NOT NULL cantidad_tracks"
+      ],
+      [
+        "observaciones_vision_cantidad_tracks_perdidos_not_null",
+        "NOT NULL cantidad_tracks_perdidos"
+      ],
+      [
+        "observaciones_vision_clasificacion_calidad_not_null",
+        "NOT NULL clasificacion_calidad"
+      ],
+      [
+        "observaciones_vision_cobertura_ventana_not_null",
+        "NOT NULL cobertura_ventana"
+      ],
+      [
+        "observaciones_vision_es_apto_para_ia_not_null",
+        "NOT NULL es_apto_para_ia"
+      ],
+      [
+        "observaciones_vision_estado_calibracion_not_null",
+        "NOT NULL estado_calibracion"
+      ],
+      [
+        "observaciones_vision_fecha_creacion_not_null",
+        "NOT NULL fecha_creacion"
+      ],
+      [
+        "observaciones_vision_fecha_observacion_not_null",
+        "NOT NULL fecha_observacion"
+      ],
+      [
+        "observaciones_vision_fps_efectivo_not_null",
+        "NOT NULL fps_efectivo"
+      ],
+      [
+        "observaciones_vision_id_dispositivo_iot_fkey",
+        "FOREIGN KEY (id_dispositivo_iot) REFERENCES modulo9.dispositivos_iot(id_dispositivo_iot) ON UPDATE CASCADE ON DELETE RESTRICT"
+      ],
+      [
+        "observaciones_vision_id_dispositivo_iot_not_null",
+        "NOT NULL id_dispositivo_iot"
+      ],
+      [
+        "observaciones_vision_id_infraestructura_fkey",
+        "FOREIGN KEY (id_infraestructura) REFERENCES modulo9.infraestructuras(id_infraestructura) ON UPDATE CASCADE ON DELETE RESTRICT"
+      ],
+      [
+        "observaciones_vision_id_infraestructura_not_null",
+        "NOT NULL id_infraestructura"
+      ],
+      [
+        "observaciones_vision_id_observacion_vision_not_null",
+        "NOT NULL id_observacion_vision"
+      ],
+      [
+        "observaciones_vision_indice_calidad_not_null",
+        "NOT NULL indice_calidad"
+      ],
+      [
+        "observaciones_vision_json_vector_not_null",
+        "NOT NULL json_vector"
+      ],
+      [
+        "observaciones_vision_pkey",
+        "PRIMARY KEY (id_observacion_vision)"
+      ],
+      [
+        "uq_observacion_vision_id_dispositivo_iot_fecha_observacion",
+        "UNIQUE (id_dispositivo_iot, fecha_observacion)"
+      ]
+    ],
+    "claves_mlops": [
+      [
+        "intervalo_evaluacion_drift_dias"
+      ],
+      [
+        "max_tamano_artefacto_mb"
+      ],
+      [
+        "max_tiempo_pausa_reentrenamiento_min"
+      ],
+      [
+        "min_registros_evaluacion_drift"
+      ],
+      [
+        "min_registros_reentrenamiento"
+      ],
+      [
+        "umbral_clasificacion_riesgo_alto"
+      ],
+      [
+        "umbral_drift_f1_score"
+      ],
+      [
+        "ventana_retroalimentacion_dias"
+      ]
+    ],
+    "escrituras": false
+  },
+  "inspeccion_local": {
+    "origen": ".env",
+    "host": "127.0.0.1",
+    "puerto": 5432,
+    "base": "integrador",
+    "columnas_db03": []
+  },
+  "aclaracion_db03": "El usuario informa aplicada. Las columnas no aparecen en los dos destinos consultados; no se afirma ausencia en todos los entornos ni se pide otra migracion para los campos ya previstos.",
+  "entorno_pruebas": {
+    "motor": "PostgreSQL 18.4 aislado",
+    "baseline": "3a9d5e7c1b24",
+    "db03": "upgrade exacto 65541db23c71 aplicado con Operations.context, sin cambiar registro Alembic del baseline",
+    "http": "router real con autenticacion DEV-06 y repositorios reales",
+    "rf24": "40 observaciones reales persistidas, adaptador M03 real y caso de uso RF24 real; salidas calibracion/linea-base/auditoria con dobles",
+    "broker_mqtt_hardware": "no verificados",
+    "calculo_calidad": "formula heredada, no AIOT-SPEC-01 ponderada"
+  },
+  "grupos": {
+    "telemetria": {
+      "aprobadas": 76,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 76,
+      "resultados_no_aprobados": []
+    },
+    "integracion": {
+      "aprobadas": 15,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 15,
+      "resultados_no_aprobados": []
+    },
+    "configuracion": {
+      "aprobadas": 555,
+      "fallidas": 1,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 556,
+      "resultados_no_aprobados": [
+        {
+          "prueba": "tests.configuration.test_rf26_identidad_visual_accesibilidad::test_la_aplicacion_sirve_el_directorio_de_logotipos",
+          "estado": "fallidas",
+          "motivo": "ModuleNotFoundError: fcntl, dependencia preexistente M02 al importar main"
+        }
+      ]
+    },
+    "prediccion": {
+      "aprobadas": 23,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 23,
+      "resultados_no_aprobados": []
+    },
+    "shared": {
+      "aprobadas": 73,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 73,
+      "resultados_no_aprobados": []
+    }
+  },
+  "total_distinto": {
+    "aprobadas": 742,
+    "fallidas": 1,
+    "errores": 0,
+    "omitidas": 0,
+    "total": 743
+  },
+  "nuevas_pruebas": [
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_sobre_incompleto_no_se_completa_por_defecto[serial]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_sobre_incompleto_no_se_completa_por_defecto[area_id]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_sobre_incompleto_no_se_completa_por_defecto[ventana_inicio]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_sobre_incompleto_no_se_completa_por_defecto[ventana_fin]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_sobre_incompleto_no_se_completa_por_defecto[componentes]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_sobre_incompleto_no_se_completa_por_defecto[calidad]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_sobre_incompleto_no_se_completa_por_defecto[version_cascada]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_componentes_fuera_de_dominio_se_rechazan[densidad_actividad--0.0001]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_componentes_fuera_de_dominio_se_rechazan[densidad_actividad-1.0001]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_componentes_fuera_de_dominio_se_rechazan[dispersion_espacial--1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_componentes_fuera_de_dominio_se_rechazan[tasa_movimiento--1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_componentes_fuera_de_dominio_se_rechazan[tasa_movimiento-nan]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_componentes_fuera_de_dominio_se_rechazan[dispersion_espacial-inf]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_todos_los_componentes_son_obligatorios[densidad_actividad]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_todos_los_componentes_son_obligatorios[dispersion_espacial]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_todos_los_componentes_son_obligatorios[tasa_movimiento]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[calidad-n_tracks-True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[calidad-n_tracks-1.5]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[calidad-n_tracks_perdidos--1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[calidad-fps_efectivo--1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[calidad-cobertura_ventana-1.1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[calidad-estado_calibracion-OTRO]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[version_cascada-detector-]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[calidad-apto_para_ia-True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[componentes-otro-1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_estructura_calidad_y_versiones_no_admite_decisiones_del_cliente[version_cascada-otro-v1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_campos_no_soportados_no_se_ignoran_silenciosamente[apto_para_ia]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_campos_no_soportados_no_se_ignoran_silenciosamente[es_apto_para_ia]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_campos_no_soportados_no_se_ignoran_silenciosamente[indice_calidad]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_campos_no_soportados_no_se_ignoran_silenciosamente[clasificacion_calidad]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_campos_no_soportados_no_se_ignoran_silenciosamente[n_individuos_observados]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_campos_no_soportados_no_se_ignoran_silenciosamente[origen]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_campos_no_soportados_no_se_ignoran_silenciosamente[tipo_dato]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_ventana_requiere_zona_y_orden[sin-zona]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_ventana_requiere_zona_y_orden[igual]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_ventana_requiere_zona_y_orden[invertido]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_aliases_equivalentes_se_documentan_sin_completar_otro_sobre",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_aliases_contradictorios_se_rechazan",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_d4_conserva_ventana_versiones_y_calculo_backend_heredado",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_baja_calidad_no_se_vuelve_apta_por_recibir_el_sobre",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_identidad_y_area_rechazan_antes_de_persistir[camara0-ERROR_AUTENTICACION]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_identidad_y_area_rechazan_antes_de_persistir[camara1-DISPOSITIVO_NO_ES_CAMARA]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_identidad_y_area_rechazan_antes_de_persistir[camara2-AREA_NO_COINCIDE]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_ventana_fin_futura_rechaza_sin_persistir",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_duplicado_concurrente_del_repositorio_no_se_cuenta_aceptado",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "telemetria",
+      "prueba": "tests.telemetry.test_dev07_vision_d4::test_error_de_persistencia_revierte_y_no_confirma",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_http_persiste_sobre_d4_con_ventana_y_versiones",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_serial_no_autentica_sin_token_valido[None]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_serial_no_autentica_sin_token_valido[incorrecto]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_token_no_configurado_no_simula_disponibilidad",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_identidad_y_area_validas_requeridas[cambio0-ERROR_AUTENTICACION]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_identidad_y_area_validas_requeridas[cambio1-AREA_NO_COINCIDE]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_decision_del_cliente_se_rechaza[apto_para_ia]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_decision_del_cliente_se_rechaza[es_apto_para_ia]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_decision_del_cliente_se_rechaza[indice_calidad]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_calidad_baja_calculada_no_es_apta",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_reenvio_preserva_fila_original_y_deduplica_por_instante",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_lote_heredado_con_token_se_conserva",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_error_tras_insert_revierte_todo_el_lote",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_concurrencia_no_crea_dos_observaciones",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev07_vision_d4::test_rf24_consume_observaciones_d4_persistidas_para_linea_base",
+      "estado": "aprobadas"
+    }
+  ],
+  "nota_conteo": "46 unitarias nuevas incluidas en 76 de telemetria; 15 integraciones nuevas. La ejecucion unitaria enfocada no se suma otra vez.",
+  "archivos_no_recolectables_fcntl": [
+    "tests/telemetry/test_inc_m09_77_g137_observaciones_vision.py",
+    "tests/telemetry/test_dev06_token_servicio_broker.py",
+    "tests/configuration/test_inc_m09_75_g142_disparo_automatico_vision.py"
+  ],
+  "controles": {
+    "compileall": "aprobado",
+    "bandit": "sin hallazgos en archivos de produccion modificados; cache offline",
+    "git_diff_check": "aprobado",
+    "semgrep": "no ejecutado"
+  },
+  "pendientes": [
+    "Confirmar destino donde se aplico DB-03",
+    "Integrar DEV-06 antes de DEV-07",
+    "Sobre ampliado RF53: n_individuos/tipo_dato/origen y almacenamiento",
+    "Catalogo y formula ponderada RF62 con configuracion M09 y metadata",
+    "Consumo real RF56 e integracion BRK03/hardware"
+  ],
+  "migraciones_nuevas": false,
+  "escrituras_compartidas": false,
+  "push": false
+}

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-20 | Arekkazu | INC-M07-375-G002 RF-95: el cuerpo de error también trae `field` |
 """Pruebas de la red de seguridad global de errores.
 
 Sin estos handlers, un fallo de base de datos a mitad de request escapa a
@@ -12,7 +15,7 @@ from sqlalchemy.exc import InterfaceError, OperationalError, ProgrammingError
 
 from src.shared.error_handlers import register_error_handlers
 
-CLAVES_ESPERADAS = {"error_code", "message", "fields", "timestamp"}
+CLAVES_ESPERADAS = {"error_code", "message", "field", "fields", "timestamp"}
 SECRETO = "password=superclave host=10.0.0.7"
 
 
@@ -69,7 +72,7 @@ def test_todas_las_respuestas_traen_el_mismo_cuerpo(client: TestClient, ruta: st
     cuerpo = client.get(ruta).json()
 
     assert set(cuerpo) == CLAVES_ESPERADAS
-    assert cuerpo["fields"] == []
+    assert cuerpo["fields"] == [] and cuerpo["field"] is None
 
 
 @pytest.mark.parametrize("ruta", ["/bd-caida", "/bd-desconectada", "/sql-roto"])

@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                                   |
+# |------------|----------|---------------------------------------------------------------|
+# | 2026-11-13 | Arekkazu | SSO AgroFusion: la cuenta creada por SSO nace Administrador   |
+# | 2026-11-16 | Arekkazu | SSO AgroFusion: el alta del Administrador no choca con la RLS |
 """Caso de uso: inicio de sesión vía SSO de AgroFusion (Mecanismo A).
 
 Verifica un token de handoff RS256 emitido por AgroFusion y, según si el
@@ -21,20 +25,18 @@ from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.domain.entities.usuario import Usuario
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.identity_access.domain.repositories.sso_provider_port import SsoProviderPort
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.infrastructure.dto.usuario_dto import SsoLoginDTO
+from src.shared.database import como_sistema, declarar_identidad_si_anonima
 from src.shared.errors import AuthenticationError
 
 # modulo1.tipos_eventos — ver anotaciones/modulo_1/gaps_bd_sso_agrofusion.md
 TIPO_LOGIN_SSO_EXITOSO = 20
 TIPO_PROVISION_SSO_MINIMA = 21
-
-# modulo1.roles — rol de mínimo privilegio (cero permisos) para cuentas SSO
-# provistas sin sincronización previa de AgroFusion. Ver mismo gaps doc.
-ROL_EXTERNO_AGROFUSION = 9
 
 
 class SsoLoginUseCase:
@@ -47,6 +49,7 @@ class SsoLoginUseCase:
         cuentas_repo: CuentaRepository,
         sesiones_repo: SesionRepository,
         eventos_repo: EventoRepository,
+        roles_repo: RolRepository,
         db: Session,
         notificacion_service=None,
     ):
@@ -58,6 +61,7 @@ class SsoLoginUseCase:
             cuentas_repo: Repositorio de dominio del agregado Cuenta.
             sesiones_repo: Repositorio de dominio de sesiones y tokens.
             eventos_repo: Repositorio de dominio de eventos (auditoría).
+            roles_repo: Repositorio de dominio de roles (resuelve el Administrador).
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
@@ -66,6 +70,7 @@ class SsoLoginUseCase:
         self.cuentas_repo = cuentas_repo
         self.sesiones_repo = sesiones_repo
         self.eventos_repo = eventos_repo
+        self.roles_repo = roles_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
@@ -160,15 +165,29 @@ class SsoLoginUseCase:
 
         Camino de respaldo del Mecanismo A: no hay sincronización previa
         (Mecanismo B `CREATE_USER`) que ya haya traído los datos completos.
+
+        La cuenta nace con el rol Administrador: quien entra desde AgroFusion
+        compró los módulos para su finca y AgroFusion todavía no es
+        multi-tenant, así que no hay un rol por finca que asignarle. Mientras
+        la cuenta siga en PENDIENTE_DATOS, RBAC no hace efectivos sus permisos.
+        El Administrador se identifica por ``es_protegido``, no por ``id_rol``.
+
+        El alta corre como el usuario de servicio: la RLS de ``modulo1.usuarios``
+        no deja que un anónimo cree a alguien con rol protegido (eso protege el
+        registro público). Lo demás —cuenta, evento, sesión— sigue como el
+        usuario nuevo, igual que en el registro.
         """
         try:
+            id_rol_administrador = next(r.id_rol for r in self.roles_repo.listar() if r.es_protegido)
             contrasena_inutilizable = Contrasena.cifrar(secrets.token_urlsafe(32))
             usuario = Usuario.crear_minimo_sso(
                 correo=identidad.email,
                 contrasena=contrasena_inutilizable,
-                id_rol=ROL_EXTERNO_AGROFUSION,
+                id_rol=id_rol_administrador,
             )
-            usuario = self.usuarios_repo.guardar(usuario)
+            with como_sistema(self.db):
+                usuario = self.usuarios_repo.guardar(usuario)
+            declarar_identidad_si_anonima(self.db, usuario.id_usuario)
 
             # Se crea directo en PENDIENTE_DATOS (sin token de activación: no
             # aplica un flujo de verificación por correo aquí) para no pasar

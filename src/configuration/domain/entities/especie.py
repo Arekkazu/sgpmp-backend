@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: esperanza_vida_dias y _snapshot de auditoría en la entidad (RFC-014) |
 """Entidad de dominio ``Especie`` del contexto de configuración.
 
 Python puro, sin dependencias de SQLAlchemy ni FastAPI. Concentra las reglas
@@ -35,6 +38,8 @@ class Especie:
     densidad_maxima_por_especie: Optional[Decimal] = None
     # RF-15 v1.1: clasificación productiva; de ella sale el modelo que RF-20 exige al área.
     grupo_manejo: Optional[str] = None
+    # RFC-014: en días; M02 la usa para advertir (nunca rechazar) por edad del activo.
+    esperanza_vida_dias: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
     fecha_actualizacion: Optional[datetime] = None
 
@@ -46,6 +51,7 @@ class Especie:
         descripcion: Optional[str],
         densidad_maxima_por_especie: Optional[Decimal] = None,
         grupo_manejo: Optional[str] = None,
+        esperanza_vida_dias: Optional[int] = None,
         fecha_creacion: datetime,
     ) -> Especie:
         """Construye una especie nueva, aún sin persistir.
@@ -58,6 +64,7 @@ class Especie:
             descripcion=descripcion,
             densidad_maxima_por_especie=densidad_maxima_por_especie,
             grupo_manejo=grupo_manejo,
+            esperanza_vida_dias=esperanza_vida_dias,
             es_activo=True,
             fecha_creacion=fecha_creacion,
         )
@@ -70,18 +77,36 @@ class Especie:
         densidad_maxima_por_especie: Optional[Decimal],
         fecha_actualizacion: datetime,
         grupo_manejo: Optional[str] = None,
+        esperanza_vida_dias: Optional[int] = None,
     ) -> None:
         """Aplica los nuevos valores tras una edición validada."""
         self.nombre = nombre
         self.descripcion = descripcion
         self.densidad_maxima_por_especie = densidad_maxima_por_especie
         self.grupo_manejo = grupo_manejo
+        self.esperanza_vida_dias = esperanza_vida_dias
         self.fecha_actualizacion = fecha_actualizacion
 
     @property
     def tipo_modelo(self) -> Optional[str]:
         """Modelo de IA de la especie, derivado de ``grupo_manejo`` (mapeo 1:1)."""
         return tipo_modelo_de_grupo(self.grupo_manejo)
+
+    def _snapshot(self) -> dict:
+        """Estado JSON-serializable para la auditoría (valores anteriores/nuevos)."""
+        return {
+            "id_especie": self.id_especie,
+            "nombre": self.nombre.valor,
+            "descripcion": self.descripcion,
+            "densidad_maxima_por_especie": (
+                str(self.densidad_maxima_por_especie) if self.densidad_maxima_por_especie is not None else None
+            ),
+            "grupo_manejo": self.grupo_manejo,
+            "esperanza_vida_dias": self.esperanza_vida_dias,
+            "es_activo": self.es_activo,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_actualizacion": self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
+        }
 
     def desactivar(self) -> None:
         """Marca la especie como inactiva (baja lógica)."""

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Configuración del engine SQLAlchemy y generador de sesiones de base de datos.
 
 Exporta `get_db`, el generador FastAPI/Depends que provee una sesión por request
@@ -11,8 +14,11 @@ rendirse y traduce el fallo a `ServiceUnavailableError`.
 import logging
 import os
 import time
-from typing import Optional
+from contextlib import contextmanager
+from datetime import timezone
+from typing import Iterator, Optional
 
+import psycopg2.extensions as pg_ext
 from dotenv import load_dotenv
 from fastapi import Depends
 from sqlalchemy import create_engine, event, text
@@ -20,6 +26,7 @@ from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.shared.errors import ServiceUnavailableError
+from src.shared.fechas import nombre_zona_usuario
 
 load_dotenv()
 
@@ -46,9 +53,26 @@ if not DATABASE_URL:
 # falla, por eso pasó desapercibido (ej. los 3 niveles de un umbral ambiental
 # siempre se insertan juntos). Desactivarlo vuelve al INSERT fila-por-fila
 # (comportamiento de SQLAlchemy < 2.0), sin este riesgo.
+# La sesión de Postgres siempre en UTC (ver src/shared/fechas.py): así `now()`,
+# `CURRENT_DATE` y los `::date` no dependen de la configuración del servidor.
 engine = create_engine(
-    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False
+    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False,
+    connect_args={"options": "-c timezone=UTC"},
 )
+
+# Las pocas columnas `timestamp` sin zona (`modulo1.usuarios.fecha_registro`,
+# `auditoria.logs_*`, varias vistas) guardan hora UTC porque la sesión es UTC,
+# pero llegaban a Python sin zona y la API las serializaba sin offset: el
+# navegador las leía como hora local. Se marcan UTC al leerlas.
+_TIMESTAMP_SIN_ZONA = pg_ext.string_types[1114]
+
+
+def _timestamp_utc(valor, cursor):
+    fecha = _TIMESTAMP_SIN_ZONA(valor, cursor)
+    return fecha.replace(tzinfo=timezone.utc) if fecha is not None else None
+
+
+pg_ext.register_type(pg_ext.new_type((1114,), "TIMESTAMP_UTC", _timestamp_utc))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Identidad de la transacción para RLS (F2/F4 del control de acceso por BD).
@@ -116,6 +140,17 @@ def _reaplicar_identidad(session: Session, _transaccion, conexion) -> None:
         _aplicar_identidad(conexion, identidad)
 
 
+@event.listens_for(Session, "after_begin")
+def _declarar_zona_usuario(_session: Session, _transaccion, conexion) -> None:
+    """`modulo1.fn_hoy_usuario()` lee `app.zona_horaria` para que los triggers
+    usen el mismo "hoy" que la API. Sin zona (UTC) no hace falta el viaje: la
+    función ya cae a UTC. `true` la limita a la transacción, como la identidad.
+    """
+    zona = nombre_zona_usuario()
+    if zona != "UTC":
+        conexion.execute(text("SELECT set_config('app.zona_horaria', :zona, true)"), {"zona": zona})
+
+
 def _declarar(db: Session, identidad) -> None:
     db.info[_CLAVE_IDENTIDAD] = identidad
     if db.in_transaction():
@@ -141,6 +176,36 @@ def declarar_identidad_si_anonima(db: Session, id_usuario: int) -> None:
 def declarar_identidad_sistema(db: Session) -> None:
     """Hace que `db` actúe como el usuario de servicio."""
     _declarar(db, _SISTEMA)
+
+
+@contextmanager
+def como_sistema(db: Session) -> Iterator[None]:
+    """Corre un bloque de `db` como el usuario de servicio y luego restaura la identidad.
+
+    Para búsquedas internas cuyo resultado no puede depender de quién llama,
+    dentro de la misma transacción del request (ej. a qué Gateway Edge va una
+    regla, DEV-08). `modulo9` tiene RLS forzada (FORCE ROW LEVEL SECURITY) y su
+    dueño no tiene BYPASSRLS, así que una función SECURITY DEFINER ya no la
+    evita. Usarlo solo para lecturas acotadas: todo lo que corre adentro ve
+    lo que ve el Administrador.
+    """
+    anterior = db.info.get(_CLAVE_IDENTIDAD)
+    declarar_identidad_sistema(db)
+    try:
+        yield
+    finally:
+        if anterior is not None:
+            _declarar(db, anterior)
+        else:
+            db.info.pop(_CLAVE_IDENTIDAD, None)
+            if db.in_transaction():
+                db.connection().execute(
+                    text(
+                        "SELECT set_config('app.current_user_id', '', true), "
+                        "set_config('app.current_role', '', true), "
+                        "set_config('app.usuario_id', '', true)"
+                    )
+                )
 
 
 def id_usuario_servicio(db: Session) -> int:

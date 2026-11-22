@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: conteo de filtros (R11)            |
+# | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 """Entidades del historial/trazabilidad de suministros (RF-81 / CU-04).
 
 Python puro, sin SQLAlchemy ni FastAPI. Lee sobre ``registro_suministro``
@@ -31,6 +35,34 @@ class FiltrosHistorialSuministro:
     costo_max: Optional[Decimal] = None
     pagina: int = 1
     registros_por_pagina: int = 50
+
+    def para_auditoria(self) -> dict:
+        """Filtros aplicados en formato JSON para la bitácora (RF-81 Fase 7, CA-8)."""
+        return {
+            "id_activo_biologico": self.id_activo_biologico,
+            "id_ciclo_productivo": self.id_ciclo_productivo,
+            "fecha_inicio_filtro": self.fecha_inicio_filtro.isoformat() if self.fecha_inicio_filtro else None,
+            "fecha_fin_filtro": self.fecha_fin_filtro.isoformat() if self.fecha_fin_filtro else None,
+            "tipo_suministro_filtro": self.tipo_suministro_filtro,
+            "origen_precio_filtro": self.origen_precio_filtro,
+            "costo_min": str(self.costo_min) if self.costo_min is not None else None,
+            "costo_max": str(self.costo_max) if self.costo_max is not None else None,
+        }
+
+    @property
+    def cantidad_filtros(self) -> int:
+        """Filtros aplicados además del activo (Restricción 11: más de 3 → asíncrono en nivel 3)."""
+        return sum(
+            (
+                self.id_ciclo_productivo is not None,
+                self.fecha_inicio_filtro is not None,
+                self.fecha_fin_filtro is not None,
+                self.tipo_suministro_filtro not in (None, TipoSuministroFiltro.TODOS.value),
+                self.origen_precio_filtro not in (None, OrigenPrecioFiltro.TODOS.value),
+                self.costo_min is not None,
+                self.costo_max is not None,
+            )
+        )
 
     def combinacion_valida(self) -> bool:
         """Restricción 7 de RF-81: fechas y rango de costo coherentes."""
@@ -93,3 +125,4 @@ class ResumenConsultaHistorial:
     datos_contexto_no_disponibles: bool
     datos_actualizados_hasta: datetime
     nivel_volumen: int
+    mensaje: Optional[str] = None  # E1: sin registros con los filtros aplicados

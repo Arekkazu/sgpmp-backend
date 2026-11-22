@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: el doble del puerto responde sin límite de etapa |
 """RF-48 (INC-M02-89-G83/TC-M02-308): E-05 (INFRAESTRUCTURA_DESTINO_INVALIDA)
 devolvía el mismo mensaje genérico ("no existe o no está activa") tanto para
 una infraestructura destino inexistente como para una existente pero inactiva.
@@ -41,6 +44,9 @@ class InfraPortFake:
     """`existentes` simula infraestructuras que existen pero pueden estar
     inactivas (no aparecen en `activas`); las que no están en ninguno de los
     dos conjuntos no existen en absoluto."""
+
+    def limite_etapa_del_activo(self, id_activo_biologico):
+        return None
 
     def __init__(self, activas: dict[int, InfraestructuraConsulta], existentes: set[int]) -> None:
         self.activas = activas

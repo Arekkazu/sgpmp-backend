@@ -1,8 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-18 RF-01: el DTO de registro trae fecha de nacimiento válida |
 """Pruebas de regresión para el hashing de tokens de un solo uso."""
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
 from src.identity_access.application.use_cases.contrasena import (
@@ -235,7 +238,7 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
             contrasena="Clave1!x",
             nombre="Ana",
             apellidos="Prueba",
-            fecha_nacimiento=None,
+            fecha_nacimiento=date(1990, 1, 1),
             genero=SimpleNamespace(value="F"),
             tipo_identificacion="CC",
             numero_identificacion="123",

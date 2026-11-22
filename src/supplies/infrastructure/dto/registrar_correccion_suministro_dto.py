@@ -1,14 +1,17 @@
-"""DTO de entrada para corregir un registro de suministro existente (RF-78 E7, CORRECCION).
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-78: corrección aditiva (R12/RNF-09)    |
+"""DTO de entrada para una CORRECCION del ledger de RF-78.
 
-``id_registro_original`` viaja en la URL (``POST /{id_registro_original}/correccion``,
-mismo patrón que ``POST /{id_medicamento}/anulacion``), no en el cuerpo.
-Acepta corregir un registro de cualquier tipo de suministro (ALIMENTO,
-MEDICAMENTO, SERVICIO_VETERINARIO, INSEMINACION) — ver Gap 10 de
-``anotaciones/modulo_5/cu05_gaps_bd_rf78_rf79.md``.
+La corrección es un ajuste que SUMA al acumulado (R12, CA-8): su costo es
+``cantidad × precio_unitario`` y puede ser negativo (RNF-09) usando un precio
+negativo; la cantidad siempre es > 0. ``id_registro_original`` va en la ruta
+(E7: si no existe → 422).
 """
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Optional
 from uuid import UUID
 
 from pydantic import Field
@@ -17,10 +20,8 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarCorreccionSuministroDTO(BaseDTO):
-    """Campos requeridos para registrar una corrección de un suministro existente."""
-
-    cantidad_corregida: Decimal = Field(gt=0, description="Cantidad corregida (> 0).")
-    precio_unitario_corregido: Decimal = Field(gt=0, description="Precio unitario corregido (> 0).")
-    justificacion_precio: str = Field(min_length=20, max_length=500)
-    motivo_correccion: str = Field(min_length=20, max_length=500)
     id_idempotencia: UUID
+    cantidad: Decimal = Field(description="Cantidad del ajuste (> 0).")
+    precio_unitario: Decimal = Field(description="Precio unitario del ajuste; negativo si compensa (≠ 0).")
+    justificacion_precio: Optional[str] = None
+    motivo_correccion: str = Field(min_length=20, max_length=500)

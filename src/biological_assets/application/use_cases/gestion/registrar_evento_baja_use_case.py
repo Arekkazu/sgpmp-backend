@@ -1,8 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
 """Caso de uso: registro de baja de un activo o de individuos de un lote (RF-45)."""
 
 from __future__ import annotations
 
-from datetime import datetime, time, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -23,7 +27,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, fin_dia_usuario, hoy_usuario
 
 
 class RegistrarEventoBajaUseCase:
@@ -85,7 +89,7 @@ class RegistrarEventoBajaUseCase:
 
         # E-03: fecha_baja no futura ni anterior al último evento
         ahora = datetime.now(timezone.utc)
-        hoy = hoy_colombia()
+        hoy = hoy_usuario()
         if dto.fecha_baja > hoy:
             raise ValidationError(
                 code='FECHA_BAJA_FUTURA',
@@ -101,12 +105,12 @@ class RegistrarEventoBajaUseCase:
         # ocurrió); para un día pasado se usa el final de ese día, que nunca cae
         # en el futuro porque el día completo ya transcurrió.
         fecha_dt = ahora if dto.fecha_baja == hoy else no_anterior_a_creacion(
-            dto.fecha_baja, datetime.combine(dto.fecha_baja, time.max, tzinfo=timezone.utc), activo,
+            dto.fecha_baja, fin_dia_usuario(dto.fecha_baja), activo,
         )
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha is not None:
-            ultimo_dia = fecha_colombia(ultima_fecha)
+            ultimo_dia = fecha_usuario(ultima_fecha)
             if dto.fecha_baja < ultimo_dia:
                 raise ValidationError(
                     code='FECHA_BAJA_CRONOLOGICAMENTE_INVALIDA',
@@ -175,6 +179,8 @@ class RegistrarEventoBajaUseCase:
                 cantidad_afectada=cantidad_evento,
                 tipo=dto.tipo_baja,
                 detalles=dto.motivo_baja,
+                valor_venta=dto.valor_venta,
+                referencia_venta=dto.referencia_venta,
             ),
         )
 
@@ -217,6 +223,8 @@ class RegistrarEventoBajaUseCase:
             detalle_tecnico={
                 'tipo_baja': dto.tipo_baja,
                 'motivo': dto.motivo_baja,
+                **({'valor_venta': str(dto.valor_venta)} if dto.valor_venta is not None else {}),
+                **({'referencia_venta': dto.referencia_venta} if dto.referencia_venta else {}),
                 'registros_rf46': registros_rf46(
                     eventos_activos=resultado.id_eventos,
                     historicos_estados_activos=historico.id_historico if historico else None,

@@ -1,0 +1,726 @@
+{
+  "fecha_utc": "2026-10-18T04:54:49.776044+00:00",
+  "rama": "fix/dev05-ingesta-bplus-postcommit",
+  "base": "cd06a257",
+  "dev_oficial": {
+    "nombre_confirmado": "sgpmp_dev",
+    "solo_lectura": true,
+    "funcion_ingesta_sha256": "aa7c6aa0fba267cbdc86093efe70ac9a59eb430d60d8099505114de87c725c79",
+    "triggers_habilitados": [
+      "trg_aux_01_telemetria_contacto_dispositivo",
+      "trg_rf53_01_validar_timestamp",
+      "trg_rf53_02_no_update",
+      "trg_rf53_03_no_delete",
+      "trg_rf53_04_bitacora_persistida",
+      "trg_rf58_01_cache_estado_sensor",
+      "trg_rf60_01_procesar_heartbeat"
+    ],
+    "revision_alembic": "No consultable con el rol disponible: InsufficientPrivilege",
+    "escrituras_realizadas": false
+  },
+  "entorno_persistencia_pruebas": {
+    "postgresql": "18.4",
+    "python": "3.13.13",
+    "alembic_head": "3a9d5e7c1b24",
+    "aislado": true
+  },
+  "suites": {
+    "telemetria": {
+      "conteo": {
+        "passed": 46,
+        "skipped": 0,
+        "xfail": 0,
+        "failed": 0,
+        "error": 0
+      },
+      "casos": [
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_rechazos_sql_confirman_bitacora_antes_de_responder[ERROR_DUPLICADO-409]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_rechazos_sql_confirman_bitacora_antes_de_responder[ERROR_ESTRUCTURA-400]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_rechazos_sql_confirman_bitacora_antes_de_responder[ERROR_AUTENTICACION-401]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_rechazos_sql_confirman_bitacora_antes_de_responder[ERROR_TIEMPO-400]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_rechazos_sql_confirman_bitacora_antes_de_responder[ERROR_UNIDAD-400]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_rechazos_sql_confirman_bitacora_antes_de_responder[ERROR_SENSOR-422]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_solo_id_y_estado_persistido_permiten_confirmar[LECTURA_VALIDA]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_solo_id_y_estado_persistido_permiten_confirmar[FUERA_DE_RANGO]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_solo_id_y_estado_persistido_permiten_confirmar[ERROR_CALIBRACION]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_resultado_inconsistente_no_confirma[resultado0]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_resultado_inconsistente_no_confirma[resultado1]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_error_de_persistencia_revierte_sin_acuse_falso",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_error_en_commit_no_devuelve_id_aceptado",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_credencial_invalida_no_llega_a_sql_y_no_se_registra_en_payload",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_batch_conserva_aceptados_rechazados_y_duplicados",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_dev05_ingesta_bplus.test_batch_no_convierte_indisponibilidad_en_confirmacion_de_rechazo",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestReclasificarSemaforoUseCase.test_sin_activo_biologico_no_hace_nada",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestReclasificarSemaforoUseCase.test_telemetria_inexistente_no_hace_nada",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestReclasificarSemaforoUseCase.test_sin_especie_resuelta_no_hace_nada",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestReclasificarSemaforoUseCase.test_sin_umbral_configurado_no_hace_nada",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestReclasificarSemaforoUseCase.test_clasifica_normal_precaucion_critico_segun_niveles_rf17",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestResolverVinculacionDisparaReclasificacion.test_resolver_ambigua_reclasifica_con_el_activo_elegido",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestResolverVinculacionDisparaReclasificacion.test_fallo_en_reclasificacion_no_rompe_la_resolucion",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestCorregirVinculacionDisparaReclasificacion.test_corregir_reclasifica_con_el_nuevo_activo",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_106_g31_reclasificar_semaforo_rf17.TestCorregirVinculacionDisparaReclasificacion.test_fallo_en_reclasificacion_no_rompe_la_correccion",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_107_g32_umbral_historico_real_rf17.TestSemaforoCalculatorPorNiveles.test_valor_en_banda_normal_es_verde",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_107_g32_umbral_historico_real_rf17.TestSemaforoCalculatorPorNiveles.test_valor_en_banda_precaucion_es_amarillo",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_107_g32_umbral_historico_real_rf17.TestSemaforoCalculatorPorNiveles.test_valor_en_banda_critica_es_rojo",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_107_g32_umbral_historico_real_rf17.TestSemaforoCalculatorPorNiveles.test_valor_fuera_de_todas_las_bandas_es_rojo",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_107_g32_umbral_historico_real_rf17.TestSemaforoHistoricoConsumeUmbralReal.test_sin_especie_resuelta_no_consulta_el_puerto_y_queda_gris",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_107_g32_umbral_historico_real_rf17.TestSemaforoHistoricoConsumeUmbralReal.test_sin_valor_queda_gris",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_107_g32_umbral_historico_real_rf17.TestSemaforoHistoricoConsumeUmbralReal.test_sin_umbral_configurado_queda_gris",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_inc_m09_107_g32_umbral_historico_real_rf17.TestSemaforoHistoricoConsumeUmbralReal.test_umbral_configurado_calcula_semaforo_real_y_expone_identificacion",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_cerrada_no_es_un_estado_del_catalogo",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_ninguna_transicion_hacia_cerrada_es_valida[ACTIVA]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_ninguna_transicion_hacia_cerrada_es_valida[EN_ATENCION]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_ninguna_transicion_hacia_cerrada_es_valida[RESUELTA]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_ninguna_transicion_hacia_cerrada_es_valida[DESCARTADA]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_ninguna_transicion_hacia_cerrada_es_valida[VENCIDA]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_ninguna_transicion_hacia_cerrada_es_valida[PENDIENTE_SINCRONIZACION]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_las_transiciones_de_cierre_ratificadas_son_validas[ACTIVA-EN_ATENCION]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_las_transiciones_de_cierre_ratificadas_son_validas[EN_ATENCION-RESUELTA]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_las_transiciones_de_cierre_ratificadas_son_validas[ACTIVA-DESCARTADA]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_rfc008_tc_m03_040_ciclo_vida_alerta.test_las_transiciones_de_cierre_ratificadas_son_validas[ACTIVA-VENCIDA]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_tc_m09_71_g31_dashboard_filtro_area_rf58.test_filtro_por_area_devuelve_solo_su_unidad_con_semaforo_recalculado",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.telemetry.test_tc_m09_71_g31_dashboard_filtro_area_rf58.test_sin_filtro_devuelve_todas_las_unidades",
+          "resultado": "passed"
+        }
+      ]
+    },
+    "shared_seleccion": {
+      "conteo": {
+        "passed": 73,
+        "skipped": 0,
+        "xfail": 0,
+        "failed": 0,
+        "error": 0
+      },
+      "casos": [
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_prefiere_column_name",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_limpia_prefijo_de_tipo_y_de_tabla",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_limpia_el_prefijo_aunque_no_haya_tabla",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_reconoce_todos_los_prefijos[uq_]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_reconoce_todos_los_prefijos[uk_]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_reconoce_todos_los_prefijos[fk_]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_reconoce_todos_los_prefijos[ck_]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_reconoce_todos_los_prefijos[chk_]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_reconoce_todos_los_prefijos[pk_]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_reconoce_todos_los_prefijos[idx_]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_reconoce_todos_los_prefijos[ix_]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_campo_sin_diagnostico_devuelve_none",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_unicidad_no_filtra_el_nombre_del_constraint",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_unicidad_usa_el_mensaje_personalizado_del_repositorio",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_check_violation_es_400",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_fk_referenciada_es_conflicto_no_error_del_servidor",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_fk_inexistente_es_dato_invalido_del_cliente",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_duplicate_stage_es_409_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_duplicate_metric_es_409_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_sensor_ya_activo_es_409_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_sensor_finca_distinta_es_422_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_area_en_uso_es_422_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_evento_reproductivo_tipo_invalido_es_422_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_secuencia_reproductiva_es_422_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_evento_fecha_invalida_es_400_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_poblacional_cantidad_invalida_es_400_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcodes_duplicados_de_modulo9_son_409_no_500[P0125-DUPLICATE_AREA: Ya existe un \\xe1rea productiva con el nombre \"GALPON\" en esta finca (case-insensitive).]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcodes_duplicados_de_modulo9_son_409_no_500[P0101-DUPLICATE_SPECIES: Ya existe una especie con ese nombre.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcodes_duplicados_de_modulo9_son_409_no_500[P0107-DUPLICATE_PATHOLOGY: Ya existe una patolog\\xeda con ese nombre.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcodes_duplicados_de_modulo9_son_409_no_500[P0110-DUPLICATE_THRESHOLD: Ya existe un umbral para esa especie y variable.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcodes_duplicados_de_modulo9_son_409_no_500[P0119-DUPLICATE_FARM_GLOBAL: Ya existe una finca con ese nombre.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcodes_duplicados_de_modulo9_son_409_no_500[P0120-DUPLICATE_FARM_PRODUCER: Ya tienes una finca con ese nombre.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcodes_duplicados_de_modulo9_son_409_no_500[P0128-DUPLICATE_SERIAL: Ya existe un dispositivo con ese serial.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_estado_historial_inconsistente_es_409_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_baja_cantidad_invalida_es_400",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_baja_supera_existencia_es_422",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_transicion_de_estado_es_error_de_negocio[INVALID_TRANSITION: La transici\\xf3n de estado \"ACTIVO\" \\u2192 \"CERRADO\" no est\\xe1 permitida.-BusinessRuleError-TRANSICION_INVALIDA-422]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_transicion_de_estado_es_error_de_negocio[REDUNDANT_TRANSITION: El estado nuevo es igual al estado actual.-ConflictError-ESTADO_REDUNDANTE-409]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_p0211_de_bug_de_aplicacion_sigue_siendo_500[MISSING_FIELD: El campo modulo_origen es obligatorio para trazabilidad.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_p0211_de_bug_de_aplicacion_sigue_siendo_500[DIRECT_STATE_CHANGE: No se permite modificar id_estado directamente en activos_biologicos.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_rol_protegido_es_error_controlado[PROTECTED_ADMIN: No se puede cambiar el rol del usuario porque su rol actual \"Administrador\" es protegido.-BusinessRuleError-ROL_ADMIN_PROTEGIDO-422-No se puede cambiar el rol del usuario porque su rol actual \"Administrador\" es protegido.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_rol_protegido_es_error_controlado[PROTECTED_ADMIN: No se puede cambiar el estado de la cuenta del usuario con rol protegido \"Administrador\".-BusinessRuleError-ROL_ADMIN_PROTEGIDO-422-No se puede cambiar el estado de la cuenta del usuario con rol protegido \"Administrador\".]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_rol_protegido_es_error_controlado[PROTECTED_ROLE: No se puede modificar.-AuthorizationError-ROL_PROTEGIDO-403-No se puede modificar.]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_p0004_con_etiqueta_desconocida_sigue_siendo_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_integrity_error_no_mapeado_es_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_data_error_es_400",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_operational_error_es_503_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_excepcion_desconocida_es_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_byte_nulo_de_psycopg2_es_400_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_errcode_niveles_solapados_es_422_no_500",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_db_error_translator.test_error_no_mapeado_no_menciona_la_base_de_datos",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_fallo_de_conexion_responde_503[/bd-caida]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_fallo_de_conexion_responde_503[/bd-desconectada]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_error_de_sql_responde_500_con_el_formato_estandar",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_excepcion_cualquiera_responde_500_con_el_formato_estandar",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_todas_las_respuestas_traen_el_mismo_cuerpo[/bd-caida]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_todas_las_respuestas_traen_el_mismo_cuerpo[/bd-desconectada]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_todas_las_respuestas_traen_el_mismo_cuerpo[/sql-roto]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_todas_las_respuestas_traen_el_mismo_cuerpo[/explota]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_no_se_filtran_detalles_de_la_conexion_al_cliente[/bd-caida]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_no_se_filtran_detalles_de_la_conexion_al_cliente[/bd-desconectada]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_error_handlers_globales.test_no_se_filtran_detalles_de_la_conexion_al_cliente[/sql-roto]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_contexto_rls.test_se_vuelve_a_declarar_en_cada_transaccion_de_la_sesion",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_contexto_rls.test_sigue_siendo_local_a_la_transaccion",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_contexto_rls.test_una_sesion_sin_contexto_no_declara_nada",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_contexto_rls.test_el_contexto_no_pasa_a_otra_sesion",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_database_reintentos.test_reintenta_y_conecta_antes_de_agotar_los_intentos",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_database_reintentos.test_agota_tres_intentos_y_lanza_503",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_database_reintentos.test_interface_error_tambien_se_reintenta",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_database_reintentos.test_el_mensaje_no_expone_detalles_internos",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_database_reintentos.test_get_db_entrega_la_sesion_y_la_cierra",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_database_reintentos.test_get_db_traduce_la_bd_caida_y_cierra_la_sesion",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.shared.test_orm_foreign_keys_resolvibles.test_todas_las_fk_del_orm_resuelven",
+          "resultado": "passed"
+        }
+      ]
+    },
+    "postgresql_dev05_y_regresion_rf61": {
+      "conteo": {
+        "passed": 34,
+        "skipped": 1,
+        "xfail": 2,
+        "failed": 0,
+        "error": 0
+      },
+      "casos": [
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_http_y_funcion_comun_persisten_misma_normalizacion_y_una_bitacora[False]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_http_y_funcion_comun_persisten_misma_normalizacion_y_una_bitacora[True]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_rechazos_funcionales_http_no_persisten[cambio0-400]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_rechazos_funcionales_http_no_persisten[cambio1-400]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_batch_acepta_una_sola_vez_y_devuelve_duplicado",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_reinicio_completa_etapas_faltantes_aunque_ya_exista_calidad_y_no_muta_origen",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_fuente_oficial_excluye_evaluacion_superada_aun_si_dice_vigente",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_dependencia_dev02_es_visible_y_no_intenta_update_ni_lee_flags_legacy",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_falla_individual_no_impide_procesar_otra_lectura",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_falla_de_evidencia_revierte_efectos_aunque_caso_de_uso_haya_hecho_commit",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_heartbeat_sql_buffer_persistido_se_recupera_y_no_se_duplica[A]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_heartbeat_sql_buffer_persistido_se_recupera_y_no_se_duplica[L]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_umbrales_ausentes_quedan_pendientes_sin_perder_estado_buffer",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_umbrales_inyectados_generan_alertas_sin_duplicados_ni_historial_inicial_extra",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_bloqueo_de_fila_evita_doble_ejecucion_concurrente",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_limites_de_alertas_son_los_parametros_del_puerto[10--100-esperadas0]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_limites_de_alertas_son_los_parametros_del_puerto[30--101-esperadas1]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_limites_de_alertas_son_los_parametros_del_puerto[31--100-esperadas2]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_origen_sin_commit_no_es_visible_para_procesador",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_reintento_despues_de_fallo_recupera_solo_la_etapa_pendiente",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_heartbeat_http_conserva_autenticacion_y_se_procesa_sin_reinsertar",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_cache_se_restaura_con_captura_mayor_y_no_verde_sin_umbral",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_rf53_sigue_rechazando_updates_y_delete",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_prioridades_semaforo_respetan_estado_operativo_y_alertas[ACTIVO-None-VERDE]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_prioridades_semaforo_respetan_estado_operativo_y_alertas[ACTIVO-MODERADO-AMARILLO]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_prioridades_semaforo_respetan_estado_operativo_y_alertas[ACTIVO-CRITICO-ROJO]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_prioridades_semaforo_respetan_estado_operativo_y_alertas[SIN_SE\\xd1AL-CRITICO-GRIS]",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_heartbeat_no_saca_dispositivo_de_mantenimiento",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_contrato_db02_sin_calibracion_deja_valor_ajustado_null",
+          "resultado": "xfail",
+          "motivo": "DB-02 pendiente: la función actual no deja valor_ajustado NULL sin calibración"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_contrato_db02_rechazo_sql_conserva_bitacora",
+          "resultado": "xfail",
+          "motivo": "DB-02 pendiente: la función actual no registra sus rechazos en bitacora_ingest"
+        },
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_serie_20_lecturas_evalua_rf62_cuando_dev02_esta_integrado",
+          "resultado": "skipped",
+          "motivo": "Requiere DEV-02 integrado; esta rama no duplica su corrección."
+        },
+        {
+          "caso": "tests.integration.test_inc_m09_64_g31_vinculacion_ingesta.test_area_sin_activos_deja_una_fila_sin_vincular",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_inc_m09_64_g31_vinculacion_ingesta.test_un_activo_operativo_vincula_automaticamente",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_inc_m09_64_g31_vinculacion_ingesta.test_un_lote_poblacional_vincula_la_lectura_al_lote",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_inc_m09_64_g31_vinculacion_ingesta.test_varios_activos_dejan_la_lectura_ambigua",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_inc_m09_64_g31_vinculacion_ingesta.test_sin_vincular_se_resuelve_y_dispara_la_reclasificacion_rf17",
+          "resultado": "passed"
+        },
+        {
+          "caso": "tests.integration.test_inc_m09_64_g31_vinculacion_ingesta.test_una_vinculacion_individual_vigente_sigue_exigiendo_su_activo",
+          "resultado": "passed"
+        }
+      ]
+    },
+    "compatibilidad_condicional_dev02": {
+      "conteo": {
+        "passed": 1,
+        "skipped": 0,
+        "xfail": 0,
+        "failed": 0,
+        "error": 0
+      },
+      "casos": [
+        {
+          "caso": "tests.integration.test_dev05_ingesta_bplus_postcommit.test_serie_20_lecturas_evalua_rf62_cuando_dev02_esta_integrado",
+          "resultado": "passed"
+        }
+      ]
+    }
+  },
+  "conteo_sin_duplicar": {
+    "aprobadas_rama_independiente": 153,
+    "omitidas_en_rama": 1,
+    "xfail_db02": 2,
+    "aprobacion_condicional_adicional_mismo_caso_omitido": 1,
+    "casos_distintos_con_aprobacion_en_algun_contexto": 154
+  },
+  "limitaciones": [
+    "Dos contratos DB-02 reproducidos como xfail estricto; no son aprobaciones.",
+    "DEV-02 no integrado en la rama. Su escenario de 21 lecturas aprobó con los siete archivos reales del commit 8fc5ef9c superpuestos temporalmente y restaurados contra HEAD.",
+    "Un archivo de visión no colectable en Windows por importación preexistente de fcntl desde M02.",
+    "Sin broker MQTT real, sin carga sostenida y sin escrituras en DEV.",
+    "Los parámetros de alertas numéricas fueron inyectados en pruebas; M09 no publica todavía la fuente oficial."
+  ],
+  "calidad_estatica": {
+    "compileall": "aprobado",
+    "git_diff_check": "aprobado",
+    "bandit_gate_alta_confianza_alta": "aprobado",
+    "bandit_altos": 0,
+    "bandit_medios_preexistentes": 1,
+    "semgrep": "no ejecutado localmente"
+  }
+}

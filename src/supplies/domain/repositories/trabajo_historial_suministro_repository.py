@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81 R8: límite por usuario              |
 """Puerto de la cola de trabajos pesados de historial de suministros (RF-81)."""
 from __future__ import annotations
 
@@ -18,7 +21,7 @@ class TrabajoHistorialSuministroRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def contar_activos(self, tipo_trabajo: str) -> int:
+    def contar_activos(self, tipo_trabajo: str, id_usuario: Optional[int] = None) -> int:
         """Trabajos en PENDIENTE + EN_PROCESO del tipo dado (control de concurrencia 429)."""
         raise NotImplementedError
 

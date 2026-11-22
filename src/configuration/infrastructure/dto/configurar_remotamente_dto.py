@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-03 | Arekkazu | QA-M09 RF-23: intervalo de transmisión mínimo de 10 minutos |
 """DTO de entrada para configurar remotamente un dispositivo IoT (POST /{id}/configurar RF-23)."""
 from __future__ import annotations
 
@@ -6,6 +9,10 @@ from typing import Optional
 from pydantic import ConfigDict, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+
+#: Piso del intervalo de transmisión para cualquier tipo de sensor; el rango por
+#: tipo (``tipos_dispositivo_iot``) solo puede acotarlo más.
+INTERVALO_TRANSMISION_MINIMO = 10
 
 
 class ConfigurarRemotamenteDTO(BaseDTO):
@@ -25,11 +32,20 @@ class ConfigurarRemotamenteDTO(BaseDTO):
     intervalo_transmision: Optional[int] = None
     fps: Optional[int] = None
 
-    @field_validator("frecuencia_captura", "intervalo_transmision")
+    @field_validator("frecuencia_captura")
     @classmethod
     def validar_positivo(cls, v: Optional[int]) -> Optional[int]:
         if v is not None and v < 1:
             raise ValueError("El valor debe ser un entero positivo (mínimo 1 minuto).")
+        return v
+
+    @field_validator("intervalo_transmision")
+    @classmethod
+    def validar_intervalo_minimo(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v < INTERVALO_TRANSMISION_MINIMO:
+            raise ValueError(
+                f"El intervalo de transmisión debe ser de al menos {INTERVALO_TRANSMISION_MINIMO} minutos."
+            )
         return v
 
     @field_validator("fps")
