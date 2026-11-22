@@ -1,3 +1,9 @@
+## [1.4.0-rc.86](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.85...v1.4.0-rc.86) (2026-11-22)
+
+### Bug Fixes
+
+* **rf53-mod3:** respaldo de auditoria IoT en volumen persistente en PROD (INC-M03-125-G12) ([e2ec9ed](https://github.com/Arekkazu/sgpmp-backend/commit/e2ec9ed5166a41c6525e9f56d51a954b10fe0f02))
+
 ## [1.4.0-rc.85](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.84...v1.4.0-rc.85) (2026-11-21)
 
 ### Bug Fixes
