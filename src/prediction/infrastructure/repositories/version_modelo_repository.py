@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-22 | Arekkazu | SEG-M04-01 RF-69: guardar firma_artefacto al registrar la versión |
 from __future__ import annotations
 
 import uuid
@@ -106,6 +107,8 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
                 metricas_poblacionales=entidad.metricas_poblacionales,
                 id_activo_biologico=entidad.id_activo_biologico,
                 fuente_datos=entidad.fuente_datos,
+                # SEG-M04-01: la firma validada al registrar; sombra, activar y la copia por animal la exigen.
+                firma_artefacto=entidad.firma_artefacto,
             )
             self._db.add(orm)
             self._db.flush()
