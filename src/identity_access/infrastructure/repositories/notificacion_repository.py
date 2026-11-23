@@ -5,6 +5,7 @@
 # | 2026-11-19 | Arekkazu | M8-05 RF-105: agrupa avisos repetidos sin atender y saca de la bandeja los inicios de sesión |
 # | 2026-11-20 | Arekkazu | QA-M08 CU03 H-01 RF-105: agrupación visual por tipo, nivel y activo; leer o cerrar alcanza al grupo |
 # | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: notificación ajena → 403 con el mensaje del RF |
+# | 2026-11-22 | Arekkazu | INC-M08-394-G013 RF-105: «marcar todas» no cuenta los avisos de inicio de sesión |
 """Implementación SQLAlchemy del puerto de dominio :class:`NotificacionRepository`.
 
 Traduce el estado de envío de texto al enum ``EnumEstadoEnvio`` de la columna y
@@ -26,7 +27,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from sqlalchemy import and_, case, func, or_, text, tuple_
+from sqlalchemy import and_, case, func, or_, select, text, tuple_
 from sqlalchemy.orm import Session, aliased
 
 from src.identity_access.domain.entities.notificacion import Notificacion
@@ -568,8 +569,10 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
                     "accion_documentada": notificacion.accion_documentada})
 
     def marcar_todas_leidas(self, id_usuario: int) -> int:
+        # INC-M08-394-G013: mismo criterio que la bandeja; los avisos de inicio de sesión no se listan ni se cuentan.
+        fuera = select(Eventos.id_evento).where(Eventos.tipo_evento.in_(TIPOS_FUERA_DE_BANDEJA))
         filtro = (Notificaciones.id_usuario == id_usuario, Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
-                  Notificaciones.estado == NUEVA)
+                  Notificaciones.estado == NUEVA, Notificaciones.id_evento.not_in(fuera))
         try:
             ids = [i for (i,) in self.db.query(Notificaciones.id_notificacion).filter(*filtro).all()]
             cambiadas = (

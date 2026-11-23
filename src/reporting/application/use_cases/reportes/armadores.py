@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: contenido de los 18 reportes según la matriz de campos |
 # | 2026-11-19 | Arekkazu | M08 RF-104 M8-08: indicadores de las plantillas y encabezado con la finca del animal |
+# | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: el portafolio del ejecutivo es el de la valoración NIC 41 del período |
 """Arma el contenido de cada reporte de RF-104 con los datos de la fuente (matriz de campos del Drive).
 
 Cada armador recibe el :class:`Contexto` (fuente en la instantánea, filtros ya validados, fincas del alcance) y
@@ -1000,7 +1001,8 @@ def ejecutivo_consolidado(ctx: Contexto) -> ContenidoReporte:
     desde, hasta = inicio_dia_usuario(inicio), fin_dia_usuario(fin)
     f = ctx.fuente
     cierre = f.ultimo_periodo_cerrado(nit=periodo["nit"], hasta=fin) if periodo.get("nit") else None
-    valor = f.valor_portafolio(fincas=fincas, fin=cierre["fecha_fin"]) if cierre else []
+    # USAB2 M807: el valor del portafolio sale del mismo cálculo que la valoración NIC 41 del período cerrado.
+    valor = f.valor_portafolio_periodo(id_periodo=cierre["id_periodo_contable"], fincas=fincas) if cierre else []
     riesgo = f.riesgo_por_nivel(fincas=fincas, desde=desde, hasta=hasta)
     estados = defaultdict(lambda: [0, 0])
     for d in f.dispositivos_por_estado(fincas=fincas):

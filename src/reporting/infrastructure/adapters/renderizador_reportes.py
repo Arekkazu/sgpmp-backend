@@ -3,6 +3,7 @@
 # | 2026-11-18 | Arekkazu | M08 RF-104: PDF carta (ReportLab) y Excel tipado (openpyxl) de reportes |
 # | 2026-11-19 | Arekkazu | M08 RF-104 M8-12/M8-13: diseño de las plantillas V1.1, columnas sin partir palabras y fechas reales |
 # | 2026-11-20 | Arekkazu | A11Y-M08 TC-DIS-288 RF-104: PDF etiquetado, con idioma, título visible en el lector y fuentes incrustadas |
+# | 2026-11-22 | Arekkazu | USAB2 M812 RF-104: la columna del identificador del animal nunca parte el código |
 """Render de un :class:`ContenidoReporte` a PDF o Excel (RF-104 Fase 3, CA-4, CA-11).
 
 PDF (ReportLab): tamaño carta (horizontal si la tabla es ancha), letra de 10 puntos o más y la estructura de las
@@ -118,6 +119,8 @@ def _texto_pdf(valor: Any, tipo: str) -> str:
 
 _NUMERICOS = (ENTERO, NUMERO, MONEDA, PORCENTAJE, FECHA, FECHA_HORA)
 _PALABRA_TEXTO_MAXIMA = 70  # un código largo (QA-M06-G52-SANITARIO, una huella) sí puede bajar de línea
+# USAB2 M812: el identificador del animal o lote es lo que se busca en la tabla; nunca se parte («BOV119TI / L»).
+_CLAVES_IDENTIFICADOR = {"id_activo", "identificador", "activo", "serial"}
 
 
 def _anchos_pdf(t: Tabla, ancho_util: float) -> list[float]:
@@ -139,8 +142,8 @@ def _anchos_pdf(t: Tabla, ancho_util: float) -> list[float]:
         largos = sorted(stringWidth(x, FUENTE, _FUENTE) for x in textos)
         tipico = largos[len(largos) // 2] if largos else 0
         minimos.append(minimo)
-        # Si la tabla no cabe, una columna de texto se conforma con la palabra de su título.
-        ajustados.append(minimo if numerica else max(titulo, 28) + 2 * _PADDING + _HOLGURA)
+        # Si la tabla no cabe, una columna de texto se conforma con la palabra de su título (el identificador, no).
+        ajustados.append(minimo if numerica or c.clave in _CLAVES_IDENTIFICADOR else max(titulo, 28) + 2 * _PADDING + _HOLGURA)
         extras.append(max(min(tipico, 220) + 2 * _PADDING - minimo, 0))
         faltantes.append(max(min(palabra, 150) + 2 * _PADDING + _HOLGURA - ajustados[-1], 0))
     if sum(minimos) > ancho_util:

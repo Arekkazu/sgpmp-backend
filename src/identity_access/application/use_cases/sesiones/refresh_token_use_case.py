@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-22 | Arekkazu | USAB2 M01 RF-02: un refresh rotado cuya respuesta se perdió no cierra la sesión |
 """Caso de uso: renovar el access token a partir de un refresh token vigente.
 
 Sin credenciales: la confianza la da el valor opaco de alta entropía que solo
@@ -16,6 +19,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from src.identity_access.domain.entities.token import Token
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
@@ -32,6 +36,10 @@ INACTIVIDAD_MINUTOS = 30
 # nueva), no un robo: se atiende como un refresco normal. Fuera del margen sigue
 # siendo reuso y revoca la sesión.
 MARGEN_REUSO_SEGUNDOS = 15
+# USAB2 M01: si la respuesta de una rotación se pierde (recarga o cambio de pestaña a mitad de la petición), el
+# navegador conserva la cookie anterior y la presenta minutos después. Si el token que la rotación emitió nunca se
+# usó, nadie avanzó la cadena con él: no es robo, se rota de nuevo. Si ya se usó, sí es reuso y se cierra la sesión.
+MARGEN_SUCESOR_SEGUNDOS = 5
 
 
 class RefreshTokenUseCase:
@@ -59,6 +67,11 @@ class RefreshTokenUseCase:
         self.usuarios_repo = usuarios_repo
         self.eventos_repo = eventos_repo
         self.db = db
+
+    def _sucesor_sin_usar(self, token: Token, sesion) -> bool:
+        if not token.esta_usado() or sesion.id_token_refresco is None:
+            return False
+        return _es_sucesor(self.sesiones_repo.buscar_token_por_id(sesion.id_token_refresco), token)
 
     def execute(self, refresh_token_raw: str, ip: str, user_agent: str) -> tuple[str, datetime, str, datetime]:
         """Canjea un refresh token vigente por un access token nuevo, rotando ambos.
@@ -90,7 +103,8 @@ class RefreshTokenUseCase:
         sesion = self.sesiones_repo.buscar_sesion_por_id(token.id_sesion) if token.id_sesion is not None else None
         cuenta = self.cuentas_repo.obtener_por_id(sesion.id_cuenta_usuario) if sesion is not None else None
 
-        en_margen = _rotado_hace_poco(token.fecha_uso, ahora) and sesion is not None and sesion.es_activa
+        en_margen = sesion is not None and sesion.es_activa and (
+            _rotado_hace_poco(token.fecha_uso, ahora) or self._sucesor_sin_usar(token, sesion))
         if token.esta_usado() and not en_margen:
             # Reuso de un refresh token ya rotado: señal de robo. Se revoca el
             # par de tokens *vigente* de la sesión — nunca se vuelve a tocar
@@ -178,6 +192,15 @@ class RefreshTokenUseCase:
             raise
 
         return jwt_str, nueva_fecha_expiracion, nuevo_refresh_raw, nueva_fecha_expiracion_refresco
+
+
+def _es_sucesor(vigente: Token | None, token: Token) -> bool:
+    """``vigente`` nació en la rotación que consumió ``token`` y nunca se usó."""
+    if vigente is None or vigente.esta_usado() or token.fecha_uso is None or vigente.fecha_creacion is None:
+        return False
+    creado = vigente.fecha_creacion if vigente.fecha_creacion.tzinfo else vigente.fecha_creacion.replace(tzinfo=timezone.utc)
+    usado = token.fecha_uso if token.fecha_uso.tzinfo else token.fecha_uso.replace(tzinfo=timezone.utc)
+    return abs(creado - usado) <= timedelta(seconds=MARGEN_SUCESOR_SEGUNDOS)
 
 
 def _rotado_hace_poco(fecha_uso: datetime | None, ahora: datetime) -> bool:

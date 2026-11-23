@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-22 | Arekkazu | USAB2 M01 RF-02: un refresh rotado cuya respuesta se perdió no cierra la sesión |
 """Puerto de persistencia del agregado ``Sesion`` (capa de dominio).
 
 Contrato para gestionar sesiones de acceso y sus tokens, expresado en términos
@@ -36,6 +39,11 @@ class SesionRepository(ABC):
     @abstractmethod
     def buscar_token_por_hash(self, hash_valor: str) -> Optional[Token]:
         """Retorna el token de refresco cuyo hash coincide, o ``None``."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def buscar_token_por_id(self, id_token: int) -> Optional[Token]:
+        """Retorna el token por su identificador, o ``None``."""
         raise NotImplementedError
 
     @abstractmethod

@@ -2,6 +2,7 @@
 # |------------|----------|----------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104/RF-106: consultas de solo lectura de reportes e historial |
 # | 2026-11-19 | Arekkazu | M8-01/M8-07 RF-104/RF-106: predicciones en modo sombra y portafolio igual al NIC 41 |
+# | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: el ejecutivo suma las mismas filas que la valoración NIC 41 |
 """Implementación SQLAlchemy de :class:`FuenteReportesRepository` (RF-104, RF-106).
 
 Corre en la sesión de la instantánea (``REPEATABLE READ READ ONLY``) con la identidad de quien pidió el reporte:
@@ -288,6 +289,14 @@ _SQL_VALORACION_PERIODO = text(f"""
     WHERE p.id_periodo_contable = :periodo AND i.id_finca = ANY(:fincas)
       AND (vr.valor_neto IS NOT NULL OR vc.valor IS NOT NULL)
     ORDER BY f.nombre, e.nombre, identificador
+""")
+
+# USAB2 M807: el reporte ejecutivo suma exactamente las filas de la valoración NIC 41 del período (mismo método por
+# activo, sin excluir los que salieron después de valorarse), agregadas por finca: las dos cifras no pueden diferir.
+_SQL_VALOR_PORTAFOLIO_PERIODO = text(f"""
+    SELECT v.finca, sum(CASE WHEN v.metodo = 'VALOR_RAZONABLE' THEN v.valor_razonable ELSE v.costo_atribuido END) AS valor
+    FROM ({_SQL_VALORACION_PERIODO.text}) v
+    GROUP BY v.finca ORDER BY v.finca
 """)
 
 # Solicitudes de la integración contable del período: estado, confirmación, hash y monto del paquete.
@@ -793,6 +802,9 @@ class SqlAlchemyFuenteReportesRepository(FuenteReportesRepository):
 
     def valor_portafolio(self, *, fincas, fin):
         return self._filas(_SQL_VALOR_PORTAFOLIO, {"fincas": fincas, "fin": fin})
+
+    def valor_portafolio_periodo(self, *, id_periodo, fincas):
+        return self._filas(_SQL_VALOR_PORTAFOLIO_PERIODO, {"periodo": id_periodo, "fincas": fincas})
 
     def bajas_por_tipo(self, *, fincas, desde, hasta):
         return self._filas(_SQL_BAJAS_POR_TIPO, {"fincas": fincas, "desde": desde, "hasta": hasta})
