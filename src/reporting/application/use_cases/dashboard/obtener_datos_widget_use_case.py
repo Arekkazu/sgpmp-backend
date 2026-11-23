@@ -2,6 +2,7 @@
 # |------------|----------|------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: datos de un widget con las opciones del usuario |
 # | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: el valor del inventario se acota a las fincas permitidas |
+# | 2026-11-22 | Arekkazu | A11Y2-M08 TC-DIS-278 RF-103: el semáforo trae el total de alertas por área |
 """Caso de uso: datos de un widget del dashboard para la finca activa (RF-103).
 
 Cada widget se pide por separado: si uno falla o tarda, los demás siguen (CA-5, CA-8, CA-9). El
@@ -191,7 +192,8 @@ class ObtenerDatosWidgetUseCase:
         filas = self.datos.semaforo_areas(id_finca, areas)
         items = [{"id_infraestructura": f["id_infraestructura"], "nombre": f["nombre"],
                   "estado": estado_semaforo(f["criticas"], f["advertencias"], f["sin_datos"]),
-                  "criticas": f["criticas"], "advertencias": f["advertencias"]} for f in filas]
+                  "criticas": f["criticas"], "advertencias": f["advertencias"],
+                  "alertas": f["criticas"] + f["advertencias"]} for f in filas]  # TC-DIS-278: total en texto
         resumen: dict[str, int] = {}
         for item in items:
             resumen[item["estado"]] = resumen.get(item["estado"], 0) + 1

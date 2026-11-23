@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: TVCO, conflictos, correspondencias, colisiones y degradación |
 # | 2026-11-20 | Arekkazu | QA-M08 CU04 H-01 RF-106: pendientes con el criterio de la bandeja de retroalimentación |
+# | 2026-11-22 | Arekkazu | INC-M08-396-G022 RF-106: pendientes de cualquier nivel con más de 48 h |
 """RF-106 — historial clínico predictivo: reglas del dominio y aviso de degradación del modelo (sin BD)."""
 from __future__ import annotations
 
@@ -68,7 +69,7 @@ def test_colision_de_media_hora_agrupa_con_la_retroalimentacion_primero():
 
 
 def test_pendientes_de_mas_de_48_horas_por_riesgo_y_fecha():
-    """Solo las que la bandeja deja evaluar: abren episodio moderado o alto, o generaron alerta (QA M08 CU04 H-01)."""
+    """RF-106 Proceso 5 (INC-M08-396-G022): toda inferencia sin retroalimentación con más de 48 h, de cualquier nivel."""
     ahora = T0 + timedelta(days=5)
     inferencias = [
         {"id_resultado_inferencia": "a", "fecha_inferencia": T0, "nivel_riesgo": 1, "tiene_alerta_generada": True},
@@ -79,8 +80,8 @@ def test_pendientes_de_mas_de_48_horas_por_riesgo_y_fecha():
         {"id_resultado_inferencia": "d", "fecha_inferencia": ahora - timedelta(hours=10), "nivel_riesgo": 3},
     ]
     lista = pendientes(inferencias, {"e"}, ahora)
-    # c continúa el episodio Alto que abrió b; f es bajo sin alerta; d tiene menos de 48 h; e ya está evaluada.
-    assert [i["id_resultado_inferencia"] for i in lista] == ["b", "a"]
+    # d tiene menos de 48 h y e ya está evaluada; las demás van por nivel y luego por fecha, de mayor a menor.
+    assert [i["id_resultado_inferencia"] for i in lista] == ["c", "b", "f", "a"]
 
 
 class Tasa(TasaValidacionPort):
