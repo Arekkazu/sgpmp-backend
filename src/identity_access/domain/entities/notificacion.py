@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel y ciclo de vida NUEVA → LEÍDA → ATENDIDA/DESCARTADA |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio para una notificación interna de usuario (RF-14, RF-105)."""
 from __future__ import annotations
 
@@ -60,10 +61,12 @@ class Notificacion:
 
     @property
     def puede_descartarse(self) -> bool:
+        """Indica si la notificación se puede descartar (no crítica y sin atender)."""
         return self.nivel != CRITICA and self.estado in (NUEVA, LEIDA)
 
     @property
     def puede_atenderse(self) -> bool:
+        """Indica si la notificación aún se puede atender."""
         return self.estado in (NUEVA, LEIDA)
 
     def marcar_como_leida(self, ahora: Optional[datetime] = None) -> None:

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-14 | Arekkazu | QA-M06 RF-37: el inicio de fase de hoy no es futuro aunque el reloj del usuario vaya adelantado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/fases`` (RF-37)."""
 
 from __future__ import annotations
@@ -40,6 +41,7 @@ class CambiarFaseDTO(BaseDTO):
     @field_validator('fecha_inicio')
     @classmethod
     def fecha_no_futura(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Normaliza la fecha a UTC y rechaza fechas futuras."""
         if v is not None:
             # Normalizada a UTC: el use case la compara con fechas timestamptz de la BD.
             v_utc = hasta_ahora(v)

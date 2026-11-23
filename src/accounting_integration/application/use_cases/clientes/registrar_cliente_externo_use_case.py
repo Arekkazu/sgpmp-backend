@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101 Fase 1: registro de un cliente externo con su credencial |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G043 RF-101 FA-8: nombre de cliente externo único |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Registra un cliente externo (RF-101 Fase 1). El secreto se muestra una sola vez.
 
 Se puede generar (256 bits) o recibir uno ya existente: AgroFusion usa una credencial fija para
@@ -24,6 +25,7 @@ from src.shared.errors import ConflictError, ValidationError
 
 @dataclass(frozen=True)
 class SolicitudCliente:
+    """Datos para registrar un cliente externo."""
     codigo: str
     nombre: str
     identificador_publico: str
@@ -44,12 +46,18 @@ def expiracion(fecha_vencimiento: date) -> datetime:
 
 
 class RegistrarClienteExternoUseCase:
+    """Registra un cliente externo y genera su secreto."""
     def __init__(self, clientes: ClienteExternoRepository, auditoria: AuditoriaIntegracionRepository, db: Session):
         self.clientes = clientes
         self.auditoria = auditoria
         self.db = db
 
     def execute(self, s: SolicitudCliente, id_usuario: int) -> tuple[ClienteExterno, str]:
+        """Registra el cliente y devuelve el cliente con su secreto en claro.
+
+        Raises:
+            ConflictError: Si el identificador ya existe.
+        """
         if self.clientes.obtener_por_identificador(s.identificador_publico):
             raise ConflictError(code="CLIENTE_DUPLICADO", field="identificador_publico",
                                 message="Ya existe un cliente externo con ese identificador.")

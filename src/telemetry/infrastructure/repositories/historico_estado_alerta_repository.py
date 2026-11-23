@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-05 RF-57: nombre de quien hizo cada cambio de estado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio del historial de cambios de estado de alertas (RF-57)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -16,6 +18,7 @@ from src.telemetry.infrastructure.models.historico_estado_alerta_model import Hi
 
 
 class SqlAlchemyHistoricoEstadoAlertaRepository(HistoricoEstadoAlertaRepository):
+    """Registra y consulta el historial de estados de las alertas."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -28,6 +31,7 @@ class SqlAlchemyHistoricoEstadoAlertaRepository(HistoricoEstadoAlertaRepository)
         id_usuario: Optional[int] = None,
         motivo: Optional[str] = None,
     ) -> None:
+        """Registra un cambio de estado de alerta con su motivo y responsable."""
         try:
             orm = HistoricoEstadoAlertaModel(
                 id_alerta=id_alerta,
@@ -43,6 +47,7 @@ class SqlAlchemyHistoricoEstadoAlertaRepository(HistoricoEstadoAlertaRepository)
             raise_from_db_error(exc)
 
     def obtener_por_alerta(self, id_alerta: int) -> list[HistoricoEstadoAlerta]:
+        """Devuelve el historial de una alerta en orden cronológico, con el nombre del usuario."""
         orms = (
             self.db.query(HistoricoEstadoAlertaModel)
             .filter(HistoricoEstadoAlertaModel.id_alerta == id_alerta)

@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: E11 200, edición 405 y alcance     |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para el registro de medicamentos (`/suministros/medicamentos`).
 
 Expone los flujos de RF-76 (CU-01):
@@ -108,6 +109,7 @@ def anular_medicamento(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> MedicamentoResponse:
+    """Anula una aplicación de medicamento."""
     medicamento = build_anular_medicamento_use_case(db).execute(id_medicamento, dto, usuario_actual)
     return MedicamentoResponse.model_validate(medicamento)
 
@@ -131,6 +133,7 @@ def consultar_medicamentos(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsultaMedicamentosResponse:
+    """Lista las aplicaciones de medicamentos con filtros."""
     medicamentos = build_consultar_medicamentos_use_case(db).execute(
         usuario_actual,
         id_activo_biologico=id_activo_biologico,

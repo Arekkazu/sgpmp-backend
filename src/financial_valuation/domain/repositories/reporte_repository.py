@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de los reportes del período: estado de resultados (RF-93) e informe de revelaciones (RF-92)."""
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ from typing import Optional
 
 
 class ReporteRepository(ABC):
+    """Puerto de persistencia de reportes financieros."""
     @abstractmethod
     def movimientos(self, id_periodo_contable: int, filtros: dict) -> list[dict]:
         """Líneas REGISTRADAS del período con activo, especie, finca e infraestructura."""
@@ -19,39 +21,59 @@ class ReporteRepository(ABC):
         """RF-93 FA-2: variaciones (RF-86) y productos agrícolas (RF-85) del período sin línea de asiento."""
 
     @abstractmethod
-    def agregar_estado(self, datos: dict) -> int: ...
+    def agregar_estado(self, datos: dict) -> int:
+        """Guarda un estado de resultados y devuelve su id."""
+        ...
 
     @abstractmethod
-    def obtener_estado(self, id_estado: int) -> Optional[dict]: ...
+    def obtener_estado(self, id_estado: int) -> Optional[dict]:
+        """Devuelve el estado de resultados, o ``None``."""
+        ...
 
     @abstractmethod
-    def aprobar_estado(self, id_estado: int, id_usuario: int) -> None: ...
+    def aprobar_estado(self, id_estado: int, id_usuario: int) -> None:
+        """Aprueba el estado de resultados."""
+        ...
 
     @abstractmethod
-    def listar_estados(self, id_periodo_contable: int) -> list[dict]: ...
+    def listar_estados(self, id_periodo_contable: int) -> list[dict]:
+        """Lista los estados de resultados del periodo."""
+        ...
 
     @abstractmethod
-    def siguiente_version_estado(self, id_periodo_contable: int) -> int: ...
+    def siguiente_version_estado(self, id_periodo_contable: int) -> int:
+        """Siguiente número de versión del estado de resultados."""
+        ...
 
     @abstractmethod
     def datos_revelaciones(self, id_periodo_contable: int) -> dict:
         """Insumos de RF-92: activos, rollforward, supuestos, precios, costo, riesgos."""
 
     @abstractmethod
-    def agregar_informe(self, datos: dict) -> int: ...
+    def agregar_informe(self, datos: dict) -> int:
+        """Guarda un informe de revelaciones y devuelve su id."""
+        ...
 
     @abstractmethod
-    def obtener_informe(self, id_informe: int) -> Optional[dict]: ...
+    def obtener_informe(self, id_informe: int) -> Optional[dict]:
+        """Devuelve el informe, o ``None``."""
+        ...
 
     @abstractmethod
     def aprobar_informe(self, id_informe: int, id_usuario: int) -> None:
         """Aprueba y archiva la versión APROBADA anterior del período (RF-92 R4)."""
 
     @abstractmethod
-    def rechazar_informe(self, id_informe: int, razon: str) -> None: ...
+    def rechazar_informe(self, id_informe: int, razon: str) -> None:
+        """Rechaza el informe con su razón."""
+        ...
 
     @abstractmethod
-    def listar_informes(self, id_periodo_contable: int) -> list[dict]: ...
+    def listar_informes(self, id_periodo_contable: int) -> list[dict]:
+        """Lista los informes del periodo."""
+        ...
 
     @abstractmethod
-    def siguiente_version_informe(self, id_periodo_contable: int) -> int: ...
+    def siguiente_version_informe(self, id_periodo_contable: int) -> int:
+        """Siguiente número de versión del informe."""
+        ...

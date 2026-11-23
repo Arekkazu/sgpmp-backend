@@ -1,6 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-62: listado de observaciones de visión evaluadas (el panel mostraba datos de ejemplo) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Caso de uso del listado de calidad de visión (RF-62).
+
+Valida clasificación, paginación y rango de fechas, consulta las observaciones
+acotadas a las fincas permitidas y adjunta la política vigente.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,6 +27,8 @@ RANGO_MAXIMO = timedelta(days=31)
 
 @dataclass(frozen=True)
 class PaginaCalidadVision:
+    """Página de observaciones evaluadas con la política de visión vigente."""
+
     items: list[ObservacionVisionEvaluada]
     total: int
     pagina: int
@@ -32,6 +40,7 @@ class PaginaCalidadVision:
 
 
 class ConsultarCalidadVisionUseCase:
+    """Orquesta la consulta paginada de calidad de visión."""
 
     def __init__(self, repo: CalidadVisionRepository, politica: PoliticaVisionPort) -> None:
         self._repo = repo
@@ -41,6 +50,12 @@ class ConsultarCalidadVisionUseCase:
                 clasificacion: Optional[str] = None, desde: Optional[datetime] = None,
                 hasta: Optional[datetime] = None, pagina: int = 1, por_pagina: int = 50,
                 ahora: Optional[datetime] = None) -> PaginaCalidadVision:
+        """Devuelve una página de observaciones de visión evaluadas.
+
+        Raises:
+            ValidationError: Si la clasificación, la paginación o el rango de
+                fechas no son válidos.
+        """
         if clasificacion is not None and clasificacion not in (*CLASES_VISION, SIN_EVALUAR):
             raise ValidationError(code="CLASIFICACION_INVALIDA",
                                   message=f"clasificacion debe ser una de {[*CLASES_VISION, SIN_EVALUAR]}.",

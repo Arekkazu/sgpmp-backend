@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.gestiones_cuenta`.
 
 Historial de cambios de estado de cuentas aplicados por administradores.
@@ -19,6 +22,7 @@ if TYPE_CHECKING:
     from .usuarios_model import Usuarios
 
 class GestionesCuenta(Base):
+    """Modelo ORM de las gestiones administrativas de cuentas (tabla ``modulo1.gestiones_cuenta``)."""
     __tablename__ = 'gestiones_cuenta'
     __table_args__ = (
         ForeignKeyConstraint(['id_cuenta_usuario'], ['modulo1.cuentas_usuarios.id_cuenta_usuario'], name='fk_cuenta'),

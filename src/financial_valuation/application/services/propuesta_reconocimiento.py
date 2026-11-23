@@ -9,6 +9,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-82: la donación por valor razonable también omite el hecho menor a 0,01 (#1027 + #1036) |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -49,6 +50,7 @@ RAZON_SIN_MERCADO = "Ausencia verificada de precio de mercado en el repositorio 
 
 @dataclass
 class Propuesta:
+    """Propuesta de reconocimiento inicial de un activo con sus bloqueos."""
     activo: DatosActivo
     fecha_reconocimiento: date
     es_apertura: bool
@@ -68,9 +70,11 @@ class Propuesta:
 
     @property
     def es_confirmable(self) -> bool:
+        """Indica si la propuesta no tiene bloqueos."""
         return not self.bloqueos
 
     def bloquear(self, codigo: str, mensaje: str) -> None:
+        """Agrega un bloqueo a la propuesta."""
         self.bloqueos.append({"codigo": codigo, "mensaje": mensaje})
 
 
@@ -81,6 +85,7 @@ def _hecho(tipo_hecho: str, sentido: str, valor: Decimal) -> list[tuple[str, str
 
 
 class ProponedorReconocimiento:
+    """Arma la propuesta de reconocimiento inicial de un activo."""
     def __init__(self, valorador: Valorador, config: ConfiguracionContableRepository) -> None:
         self.valorador = valorador
         self.config = config
@@ -88,6 +93,7 @@ class ProponedorReconocimiento:
     def proponer(self, activo: DatosActivo, id_usuario: int, id_periodo: int = 0, *,
                  costos_manuales: Optional[dict] = None, justificacion: Optional[str] = None,
                  clasificacion: Optional[str] = None, referencia_documental: Optional[str] = None) -> Propuesta:
+        """Calcula la propuesta de reconocimiento del activo."""
         configuracion = self.config.obtener()
         # Activos que ya estaban en M02 antes de M06: reconocimiento de apertura al precio del día en que
         # se reconocen (D-5); RF-82 R5 prohíbe valores retroactivos y no hay precio de su fecha de ingreso.

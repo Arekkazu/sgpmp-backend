@@ -3,6 +3,7 @@
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-358-G43 RF-81: existe() distingue un activo ajeno (403) de uno inexistente (404) |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de consulta del activo biológico (RF-33 / RF-36) para el módulo de suministros.
 
 El dominio de suministros solo necesita leer ciertos atributos del activo para
@@ -48,14 +49,17 @@ class ActivoConsulta:
 
     @property
     def es_poblacional(self) -> bool:
+        """Indica si el activo es un lote poblacional."""
         return (self.tipo or "").upper() == "POBLACIONAL"
 
     @property
     def esta_activo(self) -> bool:
+        """Indica si el activo está activo."""
         return self.id_estado == ESTADO_ACTIVO
 
     @property
     def esta_en_tratamiento(self) -> bool:
+        """Indica si el activo está en tratamiento."""
         return self.id_estado == ESTADO_EN_TRATAMIENTO
 
 

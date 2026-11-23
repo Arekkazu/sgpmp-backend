@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: la respuesta trae esperanza_vida_dias (RFC-014) |
 # | 2026-10-20 | Arekkazu | DEV-21 RF-15: la respuesta trae densidad_poblacional_max y deja el nombre anterior deprecado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para los endpoints del catálogo de especies (RF-15).
 
 ``EspecieResponse`` se usa en todas las operaciones que devuelven una especie
@@ -42,6 +43,7 @@ class EspecieResponse(BaseModel):
 
     @model_validator(mode="after")
     def copiar_densidad(self):
+        """Copia la densidad al campo con el nombre anterior."""
         self.densidad_poblacional_max = self.densidad_maxima_por_especie
         return self
 

@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-56/RF-66: ventana de lecturas del activo para el motor IA     |
 # | 2026-10-31 | Arekkazu | RF-17/RF-66 C3: rangos de la especie del activo desde M09        |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Contrato IA-1 v1 (decisión D-B del plan del motor): el backend envía con cada paquete
 el activo al que pertenece y su ventana de lecturas, porque el paquete de RF-56 es una sola
 lectura de una variable y el modelo individual (ET-02) necesita la serie del animal."""
@@ -20,6 +21,7 @@ DURACION_VENTANA = timedelta(hours=2)
 
 @dataclass(frozen=True)
 class VentanaActivo:
+    """Ventana de lecturas de un activo enviada al motor de inferencia."""
     id_activo_biologico: Optional[int]
     #: Formato largo: ``{"timestamp", "variable", "valor", "apto_para_ia"}``, una fila por lectura.
     lecturas: list[dict[str, Any]] = field(default_factory=list)
@@ -30,6 +32,7 @@ class VentanaActivo:
 
 
 class VentanaInferenciaPort(ABC):
+    """Puerto para armar las ventanas de lecturas por paquete de inferencia."""
     @abstractmethod
     def ventanas(self, paquetes: list[PaqueteInferencia]) -> dict[int, VentanaActivo]:
         """``{id_paquetes_inferencia: VentanaActivo}``. Un paquete cuyo sensor no está asociado

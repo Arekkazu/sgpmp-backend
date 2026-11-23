@@ -2,6 +2,8 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66: cámaras de visión de un área por SQL (con la RLS del usuario) |
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: inventario del área y conteos de la cámara      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador de cámaras de un área."""
 from __future__ import annotations
 
 from typing import Optional
@@ -35,16 +37,20 @@ _SQL_CONTEOS = text("""
 
 
 class CamarasAreaM09Adapter(CamarasAreaPort):
+    """Lista las cámaras activas de un área."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def camaras(self, id_area: int) -> list[int]:
+        """Cámaras del área que el usuario puede ver (RLS de M09): vacía si el área no es suya."""
         return list(self._db.execute(_SQL, {"id_area": id_area}).scalars())
 
     def cantidad_registrada(self, id_area: int) -> Optional[int]:
+        """Suma de ``cantidad_actual`` de los lotes POBLACIONAL vigentes del área (M02); None si no hay."""
         total = self._db.execute(_SQL_INVENTARIO, {"id_area": id_area}).scalar()
         return int(total) if total is not None else None
 
     def conteos_recientes(self, id_area: int, limite: int) -> list[int]:
+        """Individuos que vio la cámara en las últimas ventanas aptas (RF-62), del más nuevo al más viejo."""
         return list(self._db.execute(_SQL_CONTEOS, {"id_area": id_area, "limite": limite}).scalars())

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-358-G43 RF-81: existe() consulta como el usuario de servicio para no confundir 403 con 404 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de consulta del activo biológico (RF-33 / RF-36) contra ``modulo2``.
 
 Reutiliza ``SqlAlchemyActivoBiologicoRepository`` de biological_assets y proyecta
@@ -41,6 +42,7 @@ class ActivoM02Adapter(ActivoConsultaPort):
         self._repo = SqlAlchemyActivoBiologicoRepository(db)
 
     def obtener(self, id_activo: int) -> Optional[ActivoConsulta]:
+        """Devuelve el activo, o ``None``."""
         activo = self._repo.obtener_por_id(id_activo)
         if activo is None:
             return None
@@ -64,5 +66,6 @@ class ActivoM02Adapter(ActivoConsultaPort):
             return self.db.execute(_SQL_EXISTE, {"id_activo": id_activo}).first() is not None
 
     def listar_en_tratamiento(self) -> list[int]:
+        """Lista los ids de activos en tratamiento."""
         filas = self.db.execute(_SQL_EN_TRATAMIENTO, {"id_estado": ESTADO_EN_TRATAMIENTO}).fetchall()
         return [f.id_activo_biologico for f in filas]

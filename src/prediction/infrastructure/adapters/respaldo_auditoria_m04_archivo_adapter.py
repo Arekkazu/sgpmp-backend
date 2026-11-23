@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-23 | Arekkazu | PR-667: SAST Bearer (timeout parametrizado y candados con nombre fijo) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-73 E8: respaldo en disco ``logs/audit_fallback_M04_YYYYMMDD.log`` (JSON por línea).
 
 Mismo esquema de exclusión que el buffer de la bitácora de M02
@@ -37,6 +38,7 @@ _CANDADOS = {
 
 
 class RespaldoAuditoriaM04ArchivoAdapter(RespaldoAuditoriaM04Port):
+    """Respaldo en archivo local de eventos de auditoría que no se pudieron persistir."""
     def __init__(self, directorio: Optional[Path] = None) -> None:
         # Relativo al directorio de trabajo, como el resto de logs/ del backend.
         self._dir = Path(directorio or os.getenv("AUDITORIA_M04_DIR_RESPALDO", "logs"))
@@ -56,16 +58,24 @@ class RespaldoAuditoriaM04ArchivoAdapter(RespaldoAuditoriaM04Port):
                 fcntl.flock(candado, fcntl.LOCK_UN)
 
     def guardar(self, evento: dict) -> None:
+        """Agrega el evento al respaldo. Lanza si no se pudo escribir."""
         linea = json.dumps(evento, default=str, ensure_ascii=False)
         with self._bloqueo("escritura"):
             with open(self._archivo_del_dia(), "a", encoding="utf-8") as f:
                 f.write(linea + "\n")
 
     def hay_pendientes(self) -> bool:
+        """True si hay eventos esperando sincronización (consulta barata, sin bloqueo)."""
         return any(self._dir.glob(_PATRON)) or any(self._procesando.glob(_PATRON))
 
     @contextmanager
     def pendientes(self) -> Iterator[Optional[list[dict]]]:
+        """Toma los eventos pendientes en orden FIFO.
+
+        Entrega ``None`` si otra sincronización ya los tiene tomados. Si el bloque
+        termina sin excepción, se descartan del respaldo; si lanza, se conservan
+        para el siguiente intento.
+        """
         try:
             candado = self._bloqueo("sincronizacion", esperar=False)
             candado.__enter__()

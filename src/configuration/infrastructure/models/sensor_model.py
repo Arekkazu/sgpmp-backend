@@ -4,6 +4,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-25 | Arekkazu         | INC-M03-124-G01 RF-22: INSERT sin RETURNING   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.sensores` (RF-22).
 
 La columna `categoria` mapea al enum PG `enum_reglas_alertas_tipo_sensor`
@@ -21,6 +22,7 @@ from .base_model import Base
 
 
 class SensorModel(Base):
+    """Modelo ORM de la tabla ``modulo9.sensores``."""
     __tablename__ = 'sensores'
     __table_args__ = (
         ForeignKeyConstraint(

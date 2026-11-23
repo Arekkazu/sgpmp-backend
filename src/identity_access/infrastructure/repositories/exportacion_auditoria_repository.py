@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de la cola de exportaciones de auditoría (RF-10)."""
 from __future__ import annotations
 
@@ -49,6 +52,7 @@ class SqlAlchemyExportacionAuditoriaRepository(ExportacionAuditoriaRepository):
         )
 
     def encolar(self, trabajo: TrabajoExportacion) -> TrabajoExportacion:
+        """Encola un trabajo de exportación."""
         try:
             orm = ColaExportacionAuditoria(
                 parametros=trabajo.parametros,
@@ -63,6 +67,7 @@ class SqlAlchemyExportacionAuditoriaRepository(ExportacionAuditoriaRepository):
             raise_from_db_error(exc)
 
     def obtener(self, id_cola: int) -> Optional[TrabajoExportacion]:
+        """Devuelve el trabajo de exportación, o ``None``."""
         orm = self.db.get(ColaExportacionAuditoria, id_cola)
         if orm is None:
             return None
@@ -74,6 +79,7 @@ class SqlAlchemyExportacionAuditoriaRepository(ExportacionAuditoriaRepository):
         return self._a_entidad(orm, ejecucion)
 
     def contar_activos(self) -> int:
+        """Cuenta los trabajos pendientes o en proceso."""
         return (
             self.db.query(ColaExportacionAuditoria)
             .filter(
@@ -85,6 +91,7 @@ class SqlAlchemyExportacionAuditoriaRepository(ExportacionAuditoriaRepository):
         )
 
     def tomar_pendiente(self) -> Optional[TrabajoExportacion]:
+        """Reclama el siguiente trabajo pendiente sin bloquear a otros workers."""
         # SKIP LOCKED evita que dos workers reclamen el mismo trabajo: el segundo
         # salta la fila bloqueada en vez de esperarla.
         orm = self.db.scalars(
@@ -103,6 +110,7 @@ class SqlAlchemyExportacionAuditoriaRepository(ExportacionAuditoriaRepository):
         return self._a_entidad(orm)
 
     def completar(self, id_cola: int, resultado: ResultadoExportacion) -> None:
+        """Marca el trabajo como completado y guarda su resultado."""
         try:
             self.db.add(
                 EjecucionExportacionAuditoria(
@@ -122,6 +130,7 @@ class SqlAlchemyExportacionAuditoriaRepository(ExportacionAuditoriaRepository):
             raise_from_db_error(exc)
 
     def fallar(self, id_cola: int, error: str, reintentable: bool) -> None:
+        """Marca el trabajo como fallido o lo deja para reintentar."""
         orm = self.db.get(ColaExportacionAuditoria, id_cola)
         if orm is None:
             return
@@ -137,6 +146,7 @@ class SqlAlchemyExportacionAuditoriaRepository(ExportacionAuditoriaRepository):
         self.db.flush()
 
     def obtener_resultado(self, id_cola: int) -> Optional[ResultadoExportacion]:
+        """Devuelve el archivo generado por el trabajo, o ``None``."""
         ejecucion = self.db.scalar(
             select(EjecucionExportacionAuditoria).where(
                 EjecucionExportacionAuditoria.id_cola == id_cola
@@ -152,6 +162,7 @@ class SqlAlchemyExportacionAuditoriaRepository(ExportacionAuditoriaRepository):
         )
 
     def obtener_configuracion(self) -> ConfiguracionExportacion:
+        """Devuelve la configuración de exportaciones por lotes."""
         orm = self.db.scalars(
             select(ConfiguracionBatchExportacionAuditoria).limit(1)
         ).first()

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
 """La normalización por fila pertenece a PostgreSQL, no a un segundo pipeline."""
 import json
 
@@ -23,10 +26,13 @@ SELECT * FROM modulo3.fn_ingesta_telemetria(
 
 
 class SqlAlchemyIngestaTelemetriaRepository(IngestaTelemetriaPort):
+    """Invoca la función de ingesta de telemetría y devuelve su resultado."""
+
     def __init__(self, db: Session):
         self.db = db
 
     def ingerir(self, parametros):
+        """Ejecuta la ingesta y devuelve el resultado con sus tiempos de procesamiento."""
         valores = dict(parametros, metadatos=json.dumps(parametros['metadatos']))
         try:
             fila = self.db.execute(_INGESTA, valores).mappings().one()

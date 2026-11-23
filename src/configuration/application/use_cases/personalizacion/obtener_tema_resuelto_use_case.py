@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Obtener tema visual resuelto del usuario (GET RF-27).
 
 Jerarquía: preferencia individual → tema global → CLARO (1).
@@ -16,6 +19,7 @@ class ObtenerTemaResueltoUseCase:
         self.tema_repo = tema_repo
 
     def execute(self, usuario_actual: UsuarioActual) -> dict:
+        """Devuelve el tema efectivo del usuario (personal o global)."""
         personal = self.tema_repo.obtener_por_usuario(usuario_actual.id_usuario)
         if personal is not None:
             return {

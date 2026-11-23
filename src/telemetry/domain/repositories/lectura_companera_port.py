@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: lectura de la variable compañera de una regla compuesta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto para obtener lecturas compañeras usadas en reglas compuestas."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -12,6 +14,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class LecturaCompanera:
+    """Última lectura válida de otra variable del mismo área o dispositivo."""
     id_telemetria: int
     id_sensor: int
     tipo_variable: str
@@ -20,6 +23,7 @@ class LecturaCompanera:
 
 
 class LecturaCompaneraPort(ABC):
+    """Puerto para buscar la lectura compañera más reciente."""
     @abstractmethod
     def ultima_lectura_valida(self, tipo_variable: str, id_infraestructura: Optional[int],
                               id_dispositivo: Optional[int], momento: datetime,

@@ -5,6 +5,13 @@
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: ventana de reevaluación por IA (valor base 60 min) |
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57 E12/E13: umbral_confianza_edge_ia con valor base 0.85 |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador de parámetros de alertas contra la configuración MLOps (RF-57).
+
+Lee umbrales de confianza, ventanas de reevaluación/deduplicación y SLA. Si el
+parámetro no está configurado usa el valor base publicado por el RF; un valor
+inválido sí falla.
+"""
 import logging
 
 from src.configuration.domain.entities.parametro_mlops import (
@@ -31,10 +38,13 @@ logger = logging.getLogger(__name__)
 
 
 class ParametrosAlertasMLOpsAdapter(ParametrosAlertasPort):
+    """Resuelve los parámetros configurables del motor de alertas."""
+
     def __init__(self, parametros_repo):
         self.parametros_repo = parametros_repo
 
     def obtener_confianza_edge_ia(self):
+        """Umbral de confianza del Edge/IA; base 0.85 si no está configurado."""
         try:
             return numero_configurado(self.parametros_repo.obtener([RF57_CONFIANZA]), RF57_CONFIANZA,
                                       minimo='0.70', maximo='0.95')
@@ -46,6 +56,7 @@ class ParametrosAlertasMLOpsAdapter(ParametrosAlertasPort):
             return RF57_CONFIANZA_BASE
 
     def obtener_confianza_minima_ia(self):
+        """Confianza mínima de IA para predicciones de patología; base 0.75."""
         try:
             return numero_configurado(self.parametros_repo.obtener([RF57_CONFIANZA_MINIMA]), RF57_CONFIANZA_MINIMA,
                                       minimo=0, maximo=1)
@@ -56,6 +67,7 @@ class ParametrosAlertasMLOpsAdapter(ParametrosAlertasPort):
             return RF57_CONFIANZA_MINIMA_BASE
 
     def obtener_ventana_reevaluacion_min(self):
+        """Ventana de reevaluación por IA en minutos; base 60 si no está configurada."""
         try:
             return numero_configurado(self.parametros_repo.obtener([RF57_VENTANA_REEVALUACION]),
                                       RF57_VENTANA_REEVALUACION, minimo=1, entero=True)
@@ -74,13 +86,16 @@ class ParametrosAlertasMLOpsAdapter(ParametrosAlertasPort):
             return base
 
     def obtener_ventana_deduplicacion_min(self):
+        """Ventana de deduplicación de alertas en minutos, con su valor base."""
         return self._entero_con_base(RF57_VENTANA_DEDUPLICACION, RF57_VENTANA_DEDUPLICACION_BASE)
 
     def obtener_sla_minutos(self):
+        """Plazos SLA en minutos por severidad (crítico, moderado, leve)."""
         por_severidad = {'CRITICO': RF57_SLA_CRITICO, 'MODERADO': RF57_SLA_MODERADO, 'LEVE': RF57_SLA_LEVE}
         return {sev: self._entero_con_base(nombre, RF57_SLA_BASE[nombre]) for sev, nombre in por_severidad.items()}
 
     def obtener_umbrales_tormenta(self):
+        """Umbrales de agrupación por tormenta; ``None`` si no están configurados."""
         # Sin configurar no se inventa un valor (regla de DEV-14): se notifica una por una.
         nombres = [RF57_TORMENTA_SISTEMA, RF57_TORMENTA_UNIDAD]
         try:

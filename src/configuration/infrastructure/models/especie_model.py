@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: mapea esperanza_vida_dias (RFC-014) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.especies`.
 
 Catálogo maestro de especies productivas gestionadas en la plataforma.
@@ -19,6 +20,7 @@ from .base_model import Base
 
 
 class EspecieModel(Base):
+    """Modelo ORM de la tabla ``modulo9.especies``."""
     __tablename__ = 'especies'
     __table_args__ = (
         PrimaryKeyConstraint('id_especie', name='especies_pkey'),

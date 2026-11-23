@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
 # | 2026-10-25 | Arekkazu | INC-M04-138-G001 RF-64: filtro nombre en el listado del catálogo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para el catálogo de patologías M04 (`/prediccion/patologias`).
 
 RF-64 CU-01: gestión del catálogo de patologías por especie.
@@ -66,6 +67,7 @@ def registrar_patologia(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PatologiaM04Response:
+    """Registra una patología en el catálogo."""
     use_case = RegistrarPatologiaUseCase(
         db=db,
         repo=SqlAlchemyPatologiaM04Repository(db),
@@ -96,6 +98,7 @@ def listar_patologias(
         None, max_length=60, description="Fragmento del nombre, sin distinguir mayúsculas."),
     db: Session = Depends(get_db),
 ) -> PatologiaM04ListResponse:
+    """Lista el catálogo de patologías."""
     use_case = ConsultarPatologiasUseCase(repo=SqlAlchemyPatologiaM04Repository(db))
     items = use_case.execute(especie_aplicable=especie_aplicable, solo_activas=solo_activas,
                              solo_base=solo_base, nombre=nombre)
@@ -120,6 +123,7 @@ def obtener_patologia(
     id_patologia: int,
     db: Session = Depends(get_db),
 ) -> PatologiaM04Response:
+    """Devuelve una patología."""
     use_case = ObtenerPatologiaUseCase(repo=SqlAlchemyPatologiaM04Repository(db))
     entidad = use_case.execute(id_patologia)
     return PatologiaM04Response.from_entity(entidad)
@@ -146,6 +150,7 @@ def editar_patologia(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PatologiaM04Response:
+    """Edita una patología."""
     use_case = EditarPatologiaUseCase(
         db=db,
         repo=SqlAlchemyPatologiaM04Repository(db),
@@ -177,6 +182,7 @@ def desactivar_patologia(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PatologiaM04Response:
+    """Desactiva una patología."""
     use_case = DesactivarPatologiaUseCase(
         db=db,
         repo=SqlAlchemyPatologiaM04Repository(db),

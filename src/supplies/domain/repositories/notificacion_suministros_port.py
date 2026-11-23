@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74/77/79/81: notificaciones internas   |
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: permitir avisos por rol sin depender del permiso de ejecución. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de las notificaciones internas de M05 (bandeja RF-14).
 
 Lo usan: RF-74 (CA crítica al Productor y Veterinario del activo; batch
@@ -16,8 +17,10 @@ from abc import ABC, abstractmethod
 
 
 class NotificacionSuministrosPort(ABC):
+    """Puerto de notificaciones del módulo de suministros."""
     @abstractmethod
     def a_usuarios(self, ids_usuarios: list[int], tipo_evento: str, mensaje: str, detalle: dict) -> None:
+        """Notifica a los usuarios indicados."""
         raise NotImplementedError
 
     @abstractmethod

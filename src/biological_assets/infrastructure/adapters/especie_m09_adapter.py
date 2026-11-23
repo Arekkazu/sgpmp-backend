@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adapter de ``EspecieConsultaPort`` que lee el catálogo de especies de M09."""
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ class EspecieM09Adapter(EspecieConsultaPort):
         self.db = db
 
     def obtener_activa(self, id_especie: int) -> Optional[EspecieConsulta]:
+        """Devuelve la especie si existe y está activa, o ``None``."""
         orm = self.db.get(EspecieModel, id_especie)
         if orm is None or not orm.es_activo:
             return None

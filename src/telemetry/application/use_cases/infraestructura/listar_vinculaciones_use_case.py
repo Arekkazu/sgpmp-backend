@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Caso de uso del listado de vinculaciones lectura-activo (RF-61).
+
+Valida el rango de fechas y delega el listado paginado al repositorio, acotado
+a las fincas permitidas.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +19,7 @@ from src.telemetry.domain.repositories.vinculacion_lectura_repository import Vin
 
 
 class ListarVinculacionesUseCase:
+    """Orquesta el listado paginado de vinculaciones de lectura."""
 
     def __init__(self, db: Session, vinculacion_repo: VinculacionLecturaRepository) -> None:
         self.db = db
@@ -30,6 +39,14 @@ class ListarVinculacionesUseCase:
         ids_fincas_permitidas: Optional[list[int]] = None,
         modelo_manejo: Optional[str] = None,
     ) -> Tuple[List[VinculacionLectura], int]:
+        """Lista vinculaciones con filtros y paginación.
+
+        Raises:
+            ValidationError: Si ``fecha_desde`` es posterior a ``fecha_hasta``.
+
+        Returns:
+            Tupla con la página de vinculaciones y el total de coincidencias.
+        """
         # CP84: un rango invertido devolvía 0 vinculaciones sin decir por qué.
         if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
             raise ValidationError(

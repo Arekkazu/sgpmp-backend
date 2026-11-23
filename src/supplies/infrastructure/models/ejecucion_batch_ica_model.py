@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: mapear el motivo opcional de la interrupción. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.ejecuciones_batch_ica`` (RF-74 / motor batch).
 
 Registra el estado y métricas de cada corrida del batch ICA (FA-05/06/12).
@@ -16,6 +17,7 @@ from .base_model import Base
 
 
 class EjecucionBatchIcaModel(Base):
+    """Modelo ORM de la tabla ``modulo5.ejecuciones_batch_ica``."""
     __tablename__ = 'ejecuciones_batch_ica'
     __table_args__ = {'schema': 'modulo5'}
 

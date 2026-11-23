@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelos ORM del módulo de identidad y acceso."""
 from .acciones_model import Acciones
 from .dispositivos_fcm_model import DispositivosFcm
 from .cuenta_usuarios_model import CuentasUsuarios

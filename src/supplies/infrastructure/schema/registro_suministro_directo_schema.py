@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: estado YA_PROCESADO/YA_ACUMULADO   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schema de respuesta para los endpoints de registro directo de suministro (RF-78)."""
 from __future__ import annotations
 
@@ -50,6 +51,7 @@ class ResultadoRegistroSuministroResponse(BaseModel):
 
     @classmethod
     def desde_resultado(cls, resultado) -> "ResultadoRegistroSuministroResponse":
+        """Construye la respuesta a partir del resultado del registro."""
         registro = RegistroSuministroDirectoResponse.model_validate(resultado.registro)
         return cls(
             estado=resultado.estado,

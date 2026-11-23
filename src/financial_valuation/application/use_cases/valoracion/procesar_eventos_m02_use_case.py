@@ -17,6 +17,7 @@
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida del producto de consumo acredita el activo, como los demás pares de pérdida |
 # | 2026-11-15 | Arekkazu | QA-M06 CU04 H-01 RF-85: la cosecha conserva el día del evento productivo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso de fondo: procesa los eventos biológicos de M02 de los activos ya reconocidos.
 
 - Crecimiento (pesaje): medición posterior con efecto transformación y efecto precio (RF-83).
@@ -116,6 +117,7 @@ def _motivo_exclusion(evento: EventoM02, activo: DatosActivo) -> Optional[tuple[
 
 
 class ProcesarEventosM02UseCase:
+    """Procesa los eventos de activos biológicos que afectan su valoración."""
     def __init__(self, db: Session, eventos: EventoM02Port, activos: ActivoFinancieroPort,
                  valoraciones: ValoracionRepository, precios: PrecioRepository, medidor: Medidor,
                  contabilizador: Contabilizador, id_usuario_servicio: int,
@@ -137,6 +139,7 @@ class ProcesarEventosM02UseCase:
         self._bajas_pendientes: list[tuple] = []  # (activo, periodo, id_evento, dia): se ejecutan tras el commit
 
     def execute(self, limite: int = 200) -> dict:
+        """Procesa hasta ``limite`` eventos pendientes y devuelve el conteo por resultado."""
         conteo: dict[str, int] = {}
         for evento in self.eventos.pendientes(limite):
             self._activo, self._causa, self._motivo = None, CAUSA_MEDICION, None

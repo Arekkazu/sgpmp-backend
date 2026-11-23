@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-46 RF-15: proceso crítico activo responde 422 (antes 423) |
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: snapshot de auditoría desde la entidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Desactivar especie del catálogo (Flujo C — RF-15).
 
 Solo el Administrador puede desactivar. La operación se bloquea si existe
@@ -39,6 +40,7 @@ class DesactivarEspecieUseCase:
         self.proceso_critico_port = proceso_critico_port
 
     def execute(self, id_especie: int, usuario_actual: UsuarioActual) -> Especie:
+        """Desactiva la especie si no tiene ciclos activos y la audita."""
         especie = self.especies_repo.obtener_por_id(id_especie)
         if especie is None:
             raise NotFoundError(

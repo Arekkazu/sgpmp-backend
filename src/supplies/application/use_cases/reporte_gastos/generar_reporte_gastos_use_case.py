@@ -5,6 +5,7 @@
 # | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: auditar cada reporte persistido antes del commit, incluido el worker. |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-13 | Arekkazu | INC-M05-360-G23 RF-77: el período anterior entero antes del ciclo también se nota como recortado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: generar el reporte de gastos acumulados (RF-77).
 
 Decide síncrono vs. asíncrono según el rango solicitado (R8/R13: > 12 meses
@@ -71,6 +72,7 @@ _sincronos_en_curso = 0
 
 
 class GenerarReporteGastosUseCase:
+    """Genera el reporte de gastos acumulados, al momento o en segundo plano."""
     def __init__(
         self,
         db: Session,
@@ -97,6 +99,7 @@ class GenerarReporteGastosUseCase:
         self, filtros: FiltrosReporteGasto, usuario_actual: UsuarioActual,
         formato_exportacion: Optional[str] = None,
     ) -> Union[ReporteGasto, TrabajoReporteGasto]:
+        """Genera el reporte o encola el trabajo si el volumen es grande."""
         ids_permitidos = self.alcance_port.listar_ids_activos_permitidos(
             usuario_actual.id_usuario, usuario_actual.id_rol
         )
@@ -213,6 +216,7 @@ class GenerarReporteGastosUseCase:
         return filtros.dias > umbral
 
     def tiempo_estimado_minutos(self) -> int:
+        """Tiempo estimado de espera según la cola activa."""
         return (self.trabajo_repo.contar_activos() + 1) * _MINUTOS_POR_TRABAJO
 
     # ── Cupo de generaciones simultáneas (E10, R15-R17) ──────────────────────
@@ -259,6 +263,7 @@ class GenerarReporteGastosUseCase:
     # ── Camino síncrono ───────────────────────────────────────────────────────
     def construir(self, filtros: FiltrosReporteGasto, id_usuario: int, activo,
                   ids_permitidos: Optional[list[int]] = None) -> ReporteGasto:
+        """Arma el reporte de gastos con los filtros dados."""
         lineas = self.detalle_port.consultar(
             fecha_inicio=filtros.fecha_inicio,
             fecha_fin=filtros.fecha_fin,

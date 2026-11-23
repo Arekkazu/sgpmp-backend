@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81 R10: consulta con tiempo límite     |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura del historial de suministros (RF-81).
 
 Fuente: ``modulo5.registro_suministro`` (ledger poblado desde RF-75/76). Es de
@@ -22,6 +23,7 @@ class ConsultaExcedioTiempo(Exception):
 
 
 class HistorialSuministroReadPort(ABC):
+    """Puerto de lectura del historial de suministros."""
     @abstractmethod
     def contar_total_activo(self, id_activo_biologico: int) -> int:
         """Volumen histórico total del activo (ignora filtros de página), para

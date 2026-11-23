@@ -8,6 +8,7 @@
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: el disparo de RF-68 pasa a disparos_automaticos   |
 # | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
 # | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Resultados del motor de inferencia (RF-66) en ``modulo4.resultados_inferencia``.
 
   GET  /prediccion/inferencias — Monitor. Mismo recurso que el historial diagnóstico
@@ -84,6 +85,7 @@ def listar_inferencias(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> list[InferenciaMonitorResponse]:
+    """Lista las inferencias del alcance del usuario."""
     fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     items = ListarInferenciasUseCase(SqlAlchemyMonitorPrediccionRepository(db)).execute(
         ids_fincas=fincas, tipo_modelo=tipo_modelo, nivel_riesgo=nivel_riesgo, desde=desde, hasta=hasta,
@@ -114,6 +116,7 @@ def paginar_inferencias(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> InferenciasPaginadasResponse:
+    """Lista paginada de inferencias del alcance del usuario."""
     fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     r = PaginarInferenciasUseCase(SqlAlchemyMonitorPrediccionRepository(db)).execute(
         ids_fincas=fincas, pagina=pagina, por_pagina=por_pagina, tipo_modelo=tipo_modelo, nivel_riesgo=nivel_riesgo,

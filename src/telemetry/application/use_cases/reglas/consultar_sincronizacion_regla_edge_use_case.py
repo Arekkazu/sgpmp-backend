@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
 """Estado vigente de una regla compuesta en cada Gateway Edge (DEV-08)."""
 from __future__ import annotations
 
@@ -15,6 +18,7 @@ from src.telemetry.domain.repositories.sincronizacion_regla_edge_repository impo
 
 
 class ConsultarSincronizacionReglaEdgeUseCase:
+    """Consulta en qué versión tiene cada nodo Edge una regla compuesta."""
 
     def __init__(
         self,
@@ -25,6 +29,11 @@ class ConsultarSincronizacionReglaEdgeUseCase:
         self.sincronizacion_repo = sincronizacion_repo
 
     def execute(self, id_regla_alertas: int) -> ResultadoSincronizacionRegla:
+        """Devuelve el estado consolidado de sincronización de la regla.
+
+        Raises:
+            NotFoundError: Si la regla no existe.
+        """
         regla = self.regla_repo.obtener_por_id(id_regla_alertas)
         if regla is None:
             raise NotFoundError(code="REGLA_ALERTA_NO_ENCONTRADA", message="La regla de alerta no existe.")

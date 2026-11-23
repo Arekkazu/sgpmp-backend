@@ -11,6 +11,8 @@
 # | 2026-10-31 | Arekkazu | CP06 RF-58/60: conectividad viva del dispositivo en el sensor y en los conteos del área |
 # | 2026-10-31 | Claude | INC-M03-247-G92 RF-58: semáforos base con su unidad para el estado general |
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: última lectura y umbrales vigentes para el semáforo calculado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de monitoreo de sensores y semáforos por área (RF-58/RF-59)."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -320,6 +322,7 @@ ORDER BY i.nombre
 
 
 class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
+    """Consulta estados de sensores, semáforos y resúmenes de unidades productivas."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -330,6 +333,7 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
         timestamp_captura: datetime,
         estado_semaforo: str,
     ) -> None:
+        """Actualiza el semáforo solo si la lectura es más reciente que la cacheada."""
         self.db.execute(_SQL_ACTUALIZAR_SEMAFORO, {
             'id_sensor': id_sensor,
             'timestamp_captura': timestamp_captura,
@@ -344,6 +348,7 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EstadoSensorActual], int]:
+        """Devuelve los estados de sensores de un área y el total de coincidencias."""
         # por_pagina None → LIMIT NULL: todos los sensores (conteo del semáforo, M3-08).
         offset = (pagina - 1) * (por_pagina or 0)
         params = {
@@ -367,6 +372,7 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[SemaforoBaseSensor]:
+        """Devuelve el semáforo base de cada sensor con sus umbrales vigentes."""
         filas = self.db.execute(_SQL_SEMAFOROS, {
             'id_infraestructura': id_infraestructura,
             'filtro_finca': ids_fincas_permitidas is not None,
@@ -391,6 +397,7 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[ResumenUnidadProductiva]:
+        """Devuelve el resumen agregado de cada unidad productiva del alcance."""
         filas = self.db.execute(_SQL_RESUMEN, {
             'filtro_finca': ids_fincas_permitidas is not None,
             'ids_fincas': ids_fincas_permitidas or [],

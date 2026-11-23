@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Patologías de la especie del activo para el evento sanitario (RF-41).
 
 El formulario sanitario leía las patologías de la configuración de M09 (recurso
@@ -21,6 +24,7 @@ class ListarPatologiasActivoUseCase:
         self.parametros_port = parametros_port
 
     def execute(self, id_activo: int, *, ids_fincas_permitidas: Optional[list[int]] = None) -> list[PatologiaEspecie]:
+        """Lista las patologías de la especie del activo."""
         activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

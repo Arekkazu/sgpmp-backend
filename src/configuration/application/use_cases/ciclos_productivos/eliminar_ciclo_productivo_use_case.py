@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: ciclos productivos de la especie con sus fases en orden |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Eliminar un ciclo productivo que ningún activo ha usado (RF-16)."""
 from __future__ import annotations
 
@@ -12,10 +13,16 @@ from src.shared.errors import ConflictError
 
 
 class EliminarCicloProductivoUseCase:
+    """Elimina un ciclo productivo sin uso."""
     def __init__(self, db: Session, ciclos: CicloProductivoRepository) -> None:
         self.db, self.ciclos = db, ciclos
 
     def execute(self, id_ciclo_productivo: int) -> None:
+        """Elimina el ciclo productivo.
+
+        Raises:
+            BusinessRuleError: Si el ciclo está en uso.
+        """
         ciclo = obtener_o_404(self.ciclos, id_ciclo_productivo)
         if ciclo.en_uso:
             raise ConflictError(code="CICLO_PRODUCTIVO_EN_USO", message=(

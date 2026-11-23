@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.dispositivos_fcm`.
 
 Registra los tokens FCM de los dispositivos suscritos a notificaciones push
@@ -19,6 +22,7 @@ if TYPE_CHECKING:
 
 
 class DispositivosFcm(Base):
+    """Modelo ORM de los dispositivos registrados para push (tabla ``modulo1.dispositivos_fcm``)."""
     __tablename__ = 'dispositivos_fcm'
     __table_args__ = (
         ForeignKeyConstraint(['id_usuario'], ['modulo1.usuarios.id_usuario'], ondelete='CASCADE', name='dispositivos_fcm_id_usuario_fkey'),

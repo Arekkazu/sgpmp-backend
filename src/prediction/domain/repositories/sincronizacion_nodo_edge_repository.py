@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto del estado de sincronización del motor por nodo Edge."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -29,4 +33,6 @@ class SincronizacionNodoEdgeRepository(ABC):
         ...
 
     @abstractmethod
-    def listar_por_tipo_modelo(self, tipo_modelo: str) -> list[SincronizacionNodoEdge]: ...
+    def listar_por_tipo_modelo(self, tipo_modelo: str) -> list[SincronizacionNodoEdge]:
+        """Lista el estado de sincronización de los nodos del tipo de modelo."""
+        ...

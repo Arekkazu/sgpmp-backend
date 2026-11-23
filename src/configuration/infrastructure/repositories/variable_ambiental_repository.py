@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: persiste es_critica (RFC-016) |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: catálogo de variables con código de telemetría |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto VariableAmbientalRepository."""
 from __future__ import annotations
 
@@ -16,16 +17,19 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyVariableAmbientalRepository(VariableAmbientalRepository):
+    """Implementación SQLAlchemy de ``VariableAmbientalRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def obtener_por_id(self, id_variable_ambiental: int) -> Optional[VariableAmbiental]:
+        """Obtiene la variable ambiental por id, o ``None`` si no existe."""
         orm = self._db.get(VariableAmbientalModel, id_variable_ambiental)
         if orm is None:
             return None
         return self._a_entidad(orm)
 
     def listar_activas(self) -> list[VariableAmbiental]:
+        """Variables ambientales activas del catálogo."""
         orms = (
             self._db.query(VariableAmbientalModel)
             .filter(VariableAmbientalModel.es_activo.is_(True))
@@ -35,6 +39,7 @@ class SqlAlchemyVariableAmbientalRepository(VariableAmbientalRepository):
         return [self._a_entidad(orm) for orm in orms]
 
     def actualizar(self, variable: VariableAmbiental) -> VariableAmbiental:
+        """RFC-016: persiste ``es_critica`` (el resto del catálogo no se edita)."""
         orm = self._db.get(VariableAmbientalModel, variable.id_variable_ambiental)
         orm.es_critica = variable.es_critica
         try:

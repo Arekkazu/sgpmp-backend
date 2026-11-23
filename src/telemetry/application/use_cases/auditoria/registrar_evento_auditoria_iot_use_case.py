@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-147-G191 RF-63 CA-13: registra eventos incompletos sin rechazarlos |
 # | 2026-11-19 | Arekkazu | SEG-M03-01 RF-63: el evento que no se pudo guardar se reintenta y su pérdida queda en ERROR |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso para registrar eventos en la bitácora de auditoría IoT (RF-63)."""
 from __future__ import annotations
 
 import hashlib

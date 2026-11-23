@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: activos por especie y carga del área (RFC-012) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación real de :class:`InfraestructuraDependencyPort` (RF-20 FA-04).
 
 Verifica dispositivos IoT activos y sensores asociados vigentes vía
@@ -17,11 +18,13 @@ from src.configuration.domain.repositories.infraestructura_dependency_port impor
 
 
 class InfraestructuraDependencyAdapter(InfraestructuraDependencyPort):
+    """Consulta dependencias de un área antes de desactivarla."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def tiene_dependencias_activas(self, id_infraestructura: int) -> bool:
+        """Retorna True si el área tiene dispositivos IoT o activos biológicos activos."""
         row = self.db.execute(
             text(
                 "SELECT dispositivos_activos, sensores_asociados_activos "
@@ -47,6 +50,7 @@ class InfraestructuraDependencyAdapter(InfraestructuraDependencyPort):
         return bool(tiene_activos_biologicos)
 
     def contar_activos_por_especie(self, id_infraestructura: int) -> dict[int, int]:
+        """RFC-012: activos vigentes alojados en el área, por ``id_especie``."""
         filas = self.db.execute(
             text(
                 "SELECT id_especie, count(*) AS cantidad FROM modulo2.activos_biologicos "
@@ -58,6 +62,7 @@ class InfraestructuraDependencyAdapter(InfraestructuraDependencyPort):
         return {f.id_especie: f.cantidad for f in filas}
 
     def calcular_carga(self, id_infraestructura: int) -> int:
+        """RFC-012: Σ individuos vigentes del área (INDIVIDUAL cuenta 1, POBLACIONAL su cantidad)."""
         # Misma regla que InfraestructuraM09Adapter.calcular_ocupacion de M02 (RF-34/RF-48).
         return int(self.db.execute(
             text(

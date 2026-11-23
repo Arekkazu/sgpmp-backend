@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de evaluaciones de calidad de telemetría."""
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -10,9 +12,12 @@ from src.telemetry.domain.entities.telemetria_calidad import TelemetriaCalidad
 
 
 class TelemetriaCalidadRepository(ABC):
+    """Puerto de persistencia de evaluaciones de calidad."""
 
     @abstractmethod
-    def guardar(self, evaluacion: TelemetriaCalidad) -> TelemetriaCalidad: ...
+    def guardar(self, evaluacion: TelemetriaCalidad) -> TelemetriaCalidad:
+        """Guarda la evaluación y la devuelve persistida."""
+        ...
 
     @abstractmethod
     def obtener_por_lectura(self, id_telemetria: int) -> Optional[TelemetriaCalidad]:
@@ -37,7 +42,9 @@ class TelemetriaCalidadRepository(ABC):
         """
 
     @abstractmethod
-    def marcar_superada(self, id_evaluacion: UUID, motivo: str) -> None: ...
+    def marcar_superada(self, id_evaluacion: UUID, motivo: str) -> None:
+        """Marca una evaluación como superada con su motivo."""
+        ...
 
     @abstractmethod
     def listar_vigentes_por_sensor_rango(
@@ -45,4 +52,6 @@ class TelemetriaCalidadRepository(ABC):
         id_sensor: int,
         fecha_desde: datetime,
         fecha_hasta: datetime,
-    ) -> list[TelemetriaCalidad]: ...
+    ) -> list[TelemetriaCalidad]:
+        """Lista las evaluaciones vigentes del sensor en el rango de fechas."""
+        ...

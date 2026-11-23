@@ -5,6 +5,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
 # | 2026-11-15 | Arekkazu | QA-M06 CU07 H-01 RF-88 FA-1: el deterioro acumulado suma lo aplicado, no lo solicitado |
 # | 2026-11-16 | Arekkazu | QA-M06 CU07 H-02 RF-87/88: el deterioro no entra a un período cerrado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-88 paso 5: el Contador cuantifica el impacto económico de un evento sanitario de
 RF-41 sobre un activo valorado por costo. RF-41 aporta el hecho clínico; M06, el monto.
 
@@ -41,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 class RegistrarDeterioroUseCase:
+    """Registra el deterioro de un activo valorado al costo."""
     def __init__(self, db: Session, activos: ActivoFinancieroPort, valoraciones: ValoracionRepository,
                  contabilizador: Contabilizador, notificador: Optional[NotificacionFinancieraPort] = None) -> None:
         self.db = db
@@ -51,6 +53,7 @@ class RegistrarDeterioroUseCase:
 
     def execute(self, id_activo_biologico: int, id_evento_sanitario: int, impacto: Decimal, justificacion: str,
                 id_usuario: int) -> dict:
+        """Registra el deterioro por un evento sanitario y lo contabiliza."""
         activo = self.activos.obtener(id_activo_biologico)
         if activo is None:
             raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe.")

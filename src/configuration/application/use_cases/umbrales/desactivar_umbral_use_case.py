@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Desactivar umbral ambiental (Flujo D — RF-17)."""
 from __future__ import annotations
 
@@ -24,6 +27,7 @@ class DesactivarUmbralUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_umbral_ambiental: int, usuario_actual: UsuarioActual) -> UmbralAmbiental:
+        """Desactiva el umbral y lo audita."""
         umbral = self.umbral_repo.obtener_por_id(id_umbral_ambiental)
         if umbral is None:
             raise NotFoundError(

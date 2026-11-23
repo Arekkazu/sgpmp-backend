@@ -3,6 +3,7 @@
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: permitir densidad negativa finita para resolver el error de sensor en E2. |
 # | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: documentar el filtro de identidad y el conteo sanitario derivado. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """``POST /prediccion/riesgo-contagio`` (RF-68 Entradas)."""
 from __future__ import annotations
 
@@ -25,12 +26,14 @@ class SalidaRf66DTO(BaseDTO):
 
 
 class VariablesAmbientalesDTO(BaseDTO):
+    """Variables ambientales del área."""
     temperatura: Optional[Decimal] = None
     humedad_relativa: Optional[Decimal] = Field(default=None, ge=0, le=100)
     fecha_captura: FechaHoraUtc
 
 
 class EstimarRiesgoContagioDTO(BaseDTO):
+    """Datos para estimar el riesgo de contagio de un lote."""
     id_lote: int = Field(gt=0, description="Activo biológico (lote) a evaluar.")
     salidas_rf66: list[SalidaRf66DTO] = Field(default_factory=list, max_length=10_000)
     n_enfermos_detectados: Optional[int] = Field(

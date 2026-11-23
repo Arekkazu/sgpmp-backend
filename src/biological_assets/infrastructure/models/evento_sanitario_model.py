@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.eventos_sanitarios`` (subtipo de evento, RF-41)."""
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ if TYPE_CHECKING:
 
 
 class EventoSanitarioModel(Base):
+    """Modelo ORM de los eventos sanitarios (tabla ``modulo2.eventos_sanitarios``)."""
     __tablename__ = 'eventos_sanitarios'
     __table_args__ = (
         CheckConstraint('dosis > 0', name='chk_sanitario_dosis_positiva'),

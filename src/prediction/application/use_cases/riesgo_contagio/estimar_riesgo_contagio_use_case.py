@@ -10,6 +10,7 @@
 # | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: la cobertura recibe el id del lote filtrado por #857 |
 # | 2026-11-02 | Arekkazu | RF-68: ejecución como sistema (disparo tras RF-66) y sin alerta con insumos en sombra |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: exposición a focos vecinos (RF-110) y área expuesta sin inferencias propias |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
 Flujo: acceso al lote → configuración RF-65 → cobertura RF-66 → caché (5.1) →
@@ -71,6 +72,7 @@ MAX_DEGRADADAS_CONSECUTIVAS = 5
 
 
 class EstimarRiesgoContagioUseCase:
+    """Estima el riesgo de contagio de un lote."""
 
     def __init__(
         self,
@@ -95,6 +97,7 @@ class EstimarRiesgoContagioUseCase:
         self._id_sistema: Optional[str] = None
 
     def execute(self, dto: EstimarRiesgoContagioDTO, id_usuario: int, id_rol: int) -> ResultadoRiesgoContagio:
+        """Calcula y guarda el riesgo de contagio del lote."""
         if not self.activo_port.activo_existe_y_accesible(dto.id_lote, id_usuario, id_rol):
             raise NotFoundError(code="LOTE_NO_ENCONTRADO", message=f"No existe el lote {dto.id_lote}.", field="id_lote")
         return self._ejecutar(dto, id_usuario)

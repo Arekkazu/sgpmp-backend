@@ -3,6 +3,8 @@
 # | 2026-10-31 | Arekkazu | RF-71: aviso de datos insuficientes para reentrenar el modelo individual |
 # | 2026-10-31 | Arekkazu | RF-71/RF-73: respuesta de la solicitud de reentrenamiento |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta del estado de reentrenamiento."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,6 +17,7 @@ from src.prediction.domain.entities.estado_reentrenamiento import EstadoReentren
 
 
 class EstadoReentrenamientoResponse(BaseModel):
+    """Estado de reentrenamiento de un tipo de modelo."""
     tipo_modelo: str
     #: Resultados de inferencia con retroalimentación RF-72 desde la última versión del modelo.
     registros_nuevos: int
@@ -28,12 +31,14 @@ class EstadoReentrenamientoResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, e: EstadoReentrenamiento) -> "EstadoReentrenamientoResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(tipo_modelo=e.tipo_modelo, registros_nuevos=e.registros_nuevos, desde=e.desde,
                    estado=e.estado, faltan=e.faltan, minimo_solicitud=e.minimo_solicitud,
                    minimo_reentrenamiento=e.minimo_reentrenamiento)
 
 
 class SolicitudReentrenamientoResponse(BaseModel):
+    """Resultado de solicitar un reentrenamiento."""
     #: Evento REENTRENAMIENTO_SOLICITADO en la bitácora de M04 (RF-73).
     id_evento: UUID
     estado: EstadoReentrenamientoResponse

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`TipoAreaRepository` (RF-20)."""
 from __future__ import annotations
 
@@ -30,10 +33,12 @@ class SqlAlchemyTipoAreaRepository(TipoAreaRepository):
         )
 
     def obtener_por_id(self, id_tipo_area: int) -> Optional[TipoArea]:
+        """Obtiene el tipo de área por id, o ``None`` si no existe."""
         orm = self.db.get(TipoAreaModel, id_tipo_area)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre(self, nombre: str) -> Optional[TipoArea]:
+        """Busca un tipo de área cuyo nombre coincida (case-insensitive)."""
         orm = (
             self.db.query(TipoAreaModel)
             .filter(func.lower(TipoAreaModel.nombre) == nombre.strip().lower())
@@ -42,6 +47,7 @@ class SqlAlchemyTipoAreaRepository(TipoAreaRepository):
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, tipo_area: TipoArea) -> TipoArea:
+        """Inserta el tipo de área y devuelve la entidad con su id asignado."""
         orm = TipoAreaModel(
             nombre=tipo_area.nombre,
             es_activo=tipo_area.es_activo,
@@ -60,6 +66,7 @@ class SqlAlchemyTipoAreaRepository(TipoAreaRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, tipo_area: TipoArea) -> TipoArea:
+        """Persiste los cambios del tipo de área y devuelve la entidad actualizada."""
         orm = self.db.get(TipoAreaModel, tipo_area.id_tipo_area)
         orm.nombre = tipo_area.nombre
         orm.es_activo = tipo_area.es_activo
@@ -76,6 +83,7 @@ class SqlAlchemyTipoAreaRepository(TipoAreaRepository):
         return self._a_entidad(orm)
 
     def listar(self, *, solo_activos: bool = False) -> list[TipoArea]:
+        """Retorna el catálogo, ordenado por nombre."""
         query = self.db.query(TipoAreaModel)
         if solo_activos:
             query = query.filter(TipoAreaModel.es_activo.is_(True))

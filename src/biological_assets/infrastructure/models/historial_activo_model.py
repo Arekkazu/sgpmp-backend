@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.historial_activos``: snapshots versionados del activo tras
 cada operación.
 """
@@ -14,6 +17,7 @@ from .base_model import Base
 
 
 class HistorialActivoModel(Base):
+    """Modelo ORM del historial de cambios de un activo (tabla ``modulo2.historial_activos``)."""
     __tablename__ = 'historial_activos'
     __table_args__ = (
         PrimaryKeyConstraint('id_historial_activo', name='historial_activos_pkey'),

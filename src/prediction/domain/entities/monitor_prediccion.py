@@ -5,6 +5,7 @@
 # | 2026-10-30 | Arekkazu | RF-66: modo_sombra del resultado                                   |
 # | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
 # | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Read-models del monitor de predicción (RF-66) y del riesgo de contagio (RF-68).
 
 El monitor y la pestaña de contagio pintaban datos simulados (monitorMock.ts,
@@ -23,6 +24,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class InferenciaMonitor:
+    """Inferencia mostrada en el monitor de predicciones."""
     id_resultado_inferencia: uuid.UUID
     id_activo_biologico: int
     identificador_activo: Optional[str]
@@ -65,6 +67,7 @@ class IndicadoresInferencias:
 
 @dataclass(frozen=True)
 class RiesgoContagioMonitor:
+    """Cálculo de riesgo de contagio mostrado en el monitor."""
     id_resultado_contagio: int
     id_activo_biologico: int
     identificador_activo: Optional[str]

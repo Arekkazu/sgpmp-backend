@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-26 RF-69/70: OTA distribuye versiones APROBADO    |
 # | 2026-10-26 | Arekkazu     | INC-M04-204-G43/207-G46 RF-70: PROGRAMADO fuera de ventana se pospone (E1) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Crear una distribución OTA de un componente a varios nodos (DEV-15, RF-70, D6 de AIOT-DEV-03).
 
 1. Valida la versión: debe estar APROBADO (RFC-015 C3, R11 de RF-69 corregida:
@@ -46,11 +47,13 @@ ESTADOS_VERSION_DISTRIBUIBLES = ("APROBADO", "ACTIVO")
 
 @dataclass
 class ResultadoDistribucionOta:
+    """Distribución OTA con sus despliegues."""
     distribucion: DistribucionOta
     despliegues: list[DespliegueOta]
 
 
 class CrearDistribucionOtaUseCase:
+    """Crea una distribución OTA escalonada de una versión de modelo."""
 
     def __init__(
         self,
@@ -74,6 +77,7 @@ class CrearDistribucionOtaUseCase:
         self._url_port = url_port
 
     def execute(self, dto: CrearDistribucionOtaDTO, id_usuario: int) -> ResultadoDistribucionOta:
+        """Crea la distribución y sus despliegues de la primera fase."""
         if not self._url_port.configurada():
             raise ServiceUnavailableError(
                 code="OTA_NO_CONFIGURADA",

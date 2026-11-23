@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-38: dispara los efectos de suministros |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: cierre del ciclo productivo de un activo (RF-38)."""
 
 from __future__ import annotations
@@ -55,6 +56,7 @@ class CerrarCicloUseCase:
         self.suministros = suministros
 
     def execute(self, id_activo: int, dto: CerrarCicloDTO, usuario: UsuarioActual) -> HistoricoEstado:
+        """Cierra el ciclo productivo del activo y audita el rechazo si falla."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario),
             db=self.db,

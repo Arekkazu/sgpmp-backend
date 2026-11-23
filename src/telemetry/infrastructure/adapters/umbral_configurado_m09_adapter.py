@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: consulta los umbrales RF-17 de las especies del área |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """RF-57 E9: ¿hay umbrales configurados (RF-17, ``modulo9.umbrales_ambientales``) para la variable?
 
 Se miran las especies del área (``modulo9.infraestructuras_especies``, RFC-012). Basta un umbral activo
@@ -24,10 +25,13 @@ _SQL_UMBRAL = text("""
 
 
 class UmbralConfiguradoM09Adapter(UmbralConfiguradoPort):
+    """Consulta si existe un umbral RF-17 configurado para la variable del área."""
+
     def __init__(self, db):
         self.db = db
 
     def consultar(self, tipo_variable, id_infraestructura):
+        """Devuelve si hay umbral activo y el motivo cuando no lo hay."""
         variable = variable_para_alerta(self.db, codigo=tipo_variable)
         if variable is None:
             return UmbralConfigurado(False, motivo="VARIABLE_FUERA_DEL_CATALOGO")

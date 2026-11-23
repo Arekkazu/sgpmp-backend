@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidades de la evaluación de calidad de telemetría."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,6 +13,7 @@ from uuid import UUID
 
 
 class ClasificacionCalidad(str, Enum):
+    """Clasificación de calidad de una lectura."""
     APTO = 'APTO'
     APTO_CON_RESERVA = 'APTO_CON_RESERVA'
     NO_APTO = 'NO_APTO'
@@ -16,6 +21,7 @@ class ClasificacionCalidad(str, Enum):
 
 
 class EstadoEvaluacion(str, Enum):
+    """Vigencia de una evaluación de calidad."""
     VIGENTE = 'VIGENTE'
     SUPERADA = 'SUPERADA'
 
@@ -63,6 +69,7 @@ def calcular_indice_calidad(flags: dict) -> Optional[int]:
 
 
 def clasificar_desde_indice(indice: Optional[int]) -> ClasificacionCalidad:
+    """Clasifica la calidad a partir del índice (0-100)."""
     if indice is None:
         return ClasificacionCalidad.INDETERMINADA
     if indice >= 80:
@@ -83,6 +90,7 @@ def derivar_aptitud(clasificacion: ClasificacionCalidad) -> tuple[bool, bool]:
 
 @dataclass
 class TelemetriaCalidad:
+    """Evaluación de calidad de una lectura de telemetría."""
     id_evaluacion: Optional[UUID]
     id_telemetria: int
     id_sensor: int

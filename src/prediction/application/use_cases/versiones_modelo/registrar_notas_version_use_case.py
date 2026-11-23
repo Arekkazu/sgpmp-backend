@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-02 RF-73: notas como NOTAS_REGISTRADAS   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de registro de notas de una versión de modelo."""
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -13,6 +15,7 @@ from src.shared.errors import NotFoundError
 
 
 class RegistrarNotasVersionUseCase:
+    """Registra las notas de una versión de modelo."""
 
     def __init__(
         self,
@@ -26,6 +29,7 @@ class RegistrarNotasVersionUseCase:
         self._auditoria_repo = auditoria_repo
 
     def execute(self, id_version: int, dto: RegistrarNotasVersionDTO, id_usuario: int) -> VersionModelo:
+        """Guarda las notas de la versión y las audita."""
         entidad = self._repo.obtener_por_id(id_version)
         if entidad is None:
             raise NotFoundError(

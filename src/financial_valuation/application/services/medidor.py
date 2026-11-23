@@ -6,6 +6,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: motivo de la estimación y precio usado |
 # | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43-03 RF-83/87: la medición estimada sin variación se registra, marcada y con alerta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Servicio de aplicación: medición posterior de un activo (RF-83) y su registro en resultados
 (RF-86). Lo usan el procesador de eventos de M02 y el cierre del período (RF-87). No hace commit.
 
@@ -64,6 +65,7 @@ def _motivo_estimacion(precio: Precio, dia: date, especie: str) -> dict:
 
 @dataclass(frozen=True)
 class AlertaMedicion:
+    """Alerta generada al medir un activo."""
     mensaje: str
     detalle: dict
     id_finca: Optional[int]
@@ -71,6 +73,7 @@ class AlertaMedicion:
 
 @dataclass(frozen=True)
 class ResultadoMedicion:
+    """Resultado de medir un activo en el periodo."""
     estado: str  # MEDIDO | SIN_VARIACION | PENDIENTE
     motivo: Optional[str] = None
     mensaje: Optional[str] = None
@@ -80,6 +83,7 @@ class ResultadoMedicion:
 
 
 class Medidor:
+    """Mide el valor razonable de un activo y contabiliza su variación."""
     def __init__(self, valorador: Valorador, valoraciones: ValoracionRepository, contabilizador: Contabilizador) -> None:
         self.valorador = valorador
         self.valoraciones = valoraciones
@@ -109,6 +113,7 @@ class Medidor:
         tipo_evidencia_pm: str = TipoEvidencia.VARIACION_PRECIO.value,
         tipo_hecho_tb: str = TipoHecho.VARIACION_VR_TB.value,
     ) -> ResultadoMedicion:
+        """Mide el activo en el periodo y registra la variación si la hay."""
         anterior = self.valoraciones.ultimo_calculo(activo.id_activo_biologico)
         if anterior is None:
             return self._pendiente(activo, periodo, id_evento, id_usuario_auditoria, "SIN_BASE",

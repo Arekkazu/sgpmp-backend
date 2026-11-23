@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``PATCH /activos-biologicos/{id_activo}/estado`` (RF-44)."""
 
 from __future__ import annotations
@@ -37,10 +40,12 @@ class CambiarEstadoDTO(BaseDTO):
     @field_validator('estado_nuevo')
     @classmethod
     def estado_valido(cls, v: str) -> str:
+        """Exige un estado de activo permitido."""
         if v not in _ESTADO_A_ID:
             raise ValueError(f'Estado inválido. Valores permitidos: {", ".join(_ESTADO_A_ID)}.')
         return v
 
     @property
     def id_estado_nuevo(self) -> int:
+        """Id del estado nuevo en el catálogo."""
         return _ESTADO_A_ID[self.estado_nuevo]

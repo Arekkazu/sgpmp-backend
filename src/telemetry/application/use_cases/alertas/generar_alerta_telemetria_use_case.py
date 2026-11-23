@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: alerta critica del origen confirmado |
 # | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: la alerta guarda el umbral que la disparó en reglas_activas |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/M3-12 RF-57/58: sin activo se clasifica con la especie del área |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Orquesta RF-17 → RF-57 dentro de la unidad post-commit existente."""
 from src.shared.errors import ServiceUnavailableError
 from src.telemetry.domain.entities.alerta import regla_umbral
@@ -11,12 +12,14 @@ from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import Procesar
 
 
 class GenerarAlertaTelemetriaUseCase:
+    """Decide si una lectura confirmada genera alerta según su calidad y evaluación."""
     def __init__(self, lecturas, clasificador, generador):
         self.lecturas = lecturas
         self.clasificador = clasificador
         self.generador = generador
 
     def execute(self, identificador):
+        """Evalúa la lectura indicada y devuelve la decisión tomada sobre la alerta."""
         lectura = self.lecturas.obtener_por_id(identificador)
         if lectura is None:
             raise RuntimeError('No existe la telemetría confirmada del procesamiento.')

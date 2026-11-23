@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta del historial de configuración del motor."""
 from __future__ import annotations
 
 from src.prediction.domain.entities.historial_configuracion_motor import (
@@ -32,6 +34,7 @@ class ConsultarHistorialMotorUseCase:
         self._historial_repo = historial_repo
 
     def execute(self, tipo_modelo: str) -> HistorialConfiguracionMotor:
+        """Devuelve las versiones de configuración del tipo de modelo."""
         vigente = self._repo.obtener_por_tipo(tipo_modelo) if tipo_modelo in TIPOS_MODELO else None
         anteriores = self._historial_repo.listar_por_tipo(tipo_modelo) if tipo_modelo in TIPOS_MODELO else []
         if vigente is None and not anteriores:

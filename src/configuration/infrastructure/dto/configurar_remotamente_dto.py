@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | QA-M09 RF-23: intervalo de transmisión mínimo de 10 minutos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para configurar remotamente un dispositivo IoT (POST /{id}/configurar RF-23)."""
 from __future__ import annotations
 
@@ -35,6 +36,7 @@ class ConfigurarRemotamenteDTO(BaseDTO):
     @field_validator("frecuencia_captura")
     @classmethod
     def validar_positivo(cls, v: Optional[int]) -> Optional[int]:
+        """Exige un entero positivo."""
         if v is not None and v < 1:
             raise ValueError("El valor debe ser un entero positivo (mínimo 1 minuto).")
         return v
@@ -42,6 +44,7 @@ class ConfigurarRemotamenteDTO(BaseDTO):
     @field_validator("intervalo_transmision")
     @classmethod
     def validar_intervalo_minimo(cls, v: Optional[int]) -> Optional[int]:
+        """Exige el intervalo de transmisión mínimo."""
         if v is not None and v < INTERVALO_TRANSMISION_MINIMO:
             raise ValueError(
                 f"El intervalo de transmisión debe ser de al menos {INTERVALO_TRANSMISION_MINIMO} minutos."
@@ -51,6 +54,7 @@ class ConfigurarRemotamenteDTO(BaseDTO):
     @field_validator("fps")
     @classmethod
     def validar_fps(cls, v: Optional[int]) -> Optional[int]:
+        """Exige fps entre 1 y 60."""
         if v is not None and not 1 <= v <= 60:
             raise ValueError("fps debe estar entre 1 y 60 cuadros por segundo.")
         return v

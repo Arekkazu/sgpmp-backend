@@ -2,6 +2,8 @@
 # |------------|----------|-------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: validación común, armado y partición en archivos de 50 MB   |
 # | 2026-11-19 | Arekkazu | M08 RF-104: autor, rol y parámetros de selección como en las plantillas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+# | 2026-11-23 | Arekkazu | QA-M08 CU02 H-02 RF-104: la auditoría lleva los filtros elegidos como se leen        |
 """Pasos comunes de RF-104 que comparten la vista previa, la generación inmediata y el proceso en segundo plano.
 
 1. Permiso por tipo de reporte (Fase 1, 403) — ``Solicitante.permitidos`` sale de ``modulo1.permisos``.
@@ -62,6 +64,7 @@ class Solicitante:
 
 @dataclass
 class Preparado:
+    """Reporte validado y con su contenido armado."""
     definicion: DefinicionReporte
     filtros: dict[str, Any]
     contenido: ContenidoReporte
@@ -70,6 +73,11 @@ class Preparado:
 
 
 def exigir_permiso(tipo: str, solicitante: Solicitante) -> DefinicionReporte:
+    """Devuelve la definición del reporte si el solicitante lo puede generar.
+
+    Raises:
+        NotFoundError: Si el reporte no existe o no está permitido.
+    """
     definicion = CATALOGO.get(tipo)
     if definicion is None:
         raise NotFoundError(code="REPORTE_INEXISTENTE", message="Ese reporte no existe.", field="tipo_reporte")
@@ -227,9 +235,13 @@ def _archivo(numero: int, nombre: str, tipo: str, datos: bytes) -> ArchivoReport
 def detalle_auditoria(preparado: Preparado, formato: str, estado: str, checksum: Optional[str],
                       numero_registros: Optional[int], id_reporte: Any) -> dict[str, Any]:
     """Campos de auditoría de CA-15 (y la exportación contable incluida, para la trazabilidad de M07)."""
+    # QA M08 CU02 H-02: los filtros elegidos como se leen en «Parámetros de selección», para la descripción del
+    # evento que muestra la auditoría (``filtros_aplicados`` guarda los valores crudos).
+    legibles = [f"{etiqueta}: {texto}" for filtro, (etiqueta, texto)
+                in zip(preparado.definicion.filtros, preparado.contenido.parametros) if filtro.nombre in preparado.filtros]
     detalle: dict[str, Any] = {
         "id_reporte": str(id_reporte), "tipo_reporte": preparado.definicion.tipo,
-        "filtros_aplicados": filtros_serializables(preparado.filtros), "formato": formato,
+        "filtros_aplicados": filtros_serializables(preparado.filtros), "filtros_legibles": legibles, "formato": formato,
         "fecha_snapshot": preparado.fecha_snapshot.isoformat() if preparado.fecha_snapshot else None, "estado_final": estado, "checksum": checksum,
         "numero_registros": numero_registros,
     }

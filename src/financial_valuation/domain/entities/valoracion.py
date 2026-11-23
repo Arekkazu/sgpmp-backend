@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculo de valor razonable, reconocimiento y valoración por costo |
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-14 | Arekkazu | QA-M06 RF-82: la fecha del reconocimiento es un día, no un instante |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidades de valoración NIC 41."""
 from __future__ import annotations
 
@@ -56,6 +57,7 @@ class CalculoValor:
 
 @dataclass(frozen=True)
 class Reconocimiento:
+    """Reconocimiento inicial de un activo."""
     id_reconocimiento_inicial: int
     id_activo_biologico: int
     estado: str
@@ -96,6 +98,7 @@ class ValoracionCosto:
 
 @dataclass
 class Medicion:
+    """Medición del valor razonable de un activo entre dos cálculos."""
     id_activo_biologico: int
     id_calculo_actual: int
     id_calculo_anterior: int
@@ -112,6 +115,7 @@ class Medicion:
 
     @property
     def variacion_total(self) -> Decimal:
+        """Variación total de valor razonable."""
         return self.valor_razonable_actual - self.valor_razonable_anterior
 
 
@@ -137,10 +141,12 @@ class VariacionRegistro:
 
     @property
     def monto_variacion(self) -> Decimal:
+        """Monto total de la variación (transformación más precio)."""
         return self.variacion_transformacion + self.variacion_precio_mercado
 
     @property
     def es_correctivo(self) -> bool:
+        """Indica si la variación corrige otra."""
         return self.id_variacion_corregida is not None
 
     def correctivo(self, id_usuario: int) -> "VariacionRegistro":
@@ -178,4 +184,5 @@ class SolicitudCorrectivo:
 
     @property
     def esta_pendiente(self) -> bool:
+        """Indica si la solicitud sigue pendiente."""
         return self.estado == "PENDIENTE"

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-60: secuencias temporales de ventanas por camara |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidades para detectar secuencias de ventanas de visión sin detección."""
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -8,6 +10,7 @@ from decimal import Decimal
 
 @dataclass(frozen=True)
 class VentanaVision:
+    """Ventana de observación de una cámara con su cobertura."""
     identificador: int
     camara: int
     area: int
@@ -18,6 +21,7 @@ class VentanaVision:
 
 @dataclass(frozen=True)
 class ParametrosVentanasVision:
+    """Parámetros que definen una secuencia de ventanas sin detección."""
     cantidad: int
     cobertura_minima: Decimal
     duracion_seg: int

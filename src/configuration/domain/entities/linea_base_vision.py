@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Cálculo de la línea base por visión (RF-24 v2.0, RFC-011): las tres etapas de
 auditoría automática, en orden, cada una sobre la salida de la anterior.
 
@@ -50,6 +53,7 @@ class ResultadoLineaBase:
 
     @property
     def es_exitosa(self) -> bool:
+        """Indica si la línea base se pudo calcular."""
         return self.estado == EstadoCalibracionVision.EXITOSA
 
 
@@ -64,10 +68,12 @@ def percentil(valores: list[float], p: float) -> float:
 
 
 def mediana(valores: list[float]) -> float:
+    """Mediana de los valores."""
     return percentil(valores, 50)
 
 
 def recortar_p5_p95(valores: list[float]) -> list[float]:
+    """Descarta los valores fuera de los percentiles 5 y 95."""
     p5, p95 = percentil(valores, 5), percentil(valores, 95)
     return [v for v in valores if p5 <= v <= p95]
 
@@ -82,6 +88,7 @@ def _fallo(estado, etapa, motivo, n_obs, n_validas, **extra) -> ResultadoLineaBa
 def calcular_linea_base(
     observaciones: list[ObservacionVision], parametros: ParametrosLineaBase
 ) -> ResultadoLineaBase:
+    """Calcula la línea base de visión a partir de las observaciones."""
     n_obs = len(observaciones)
 
     # ── Etapa 1 — Filtrado ambiental ─────────────────────────────────────────

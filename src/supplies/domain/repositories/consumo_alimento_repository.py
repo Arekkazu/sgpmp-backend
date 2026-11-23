@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75 CA-10: último consumo validado      |
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto del repositorio de consumos de alimento (RF-75).
 
 Expresado en términos de dominio: recibe y devuelve la entidad
@@ -31,6 +32,7 @@ class TipoAlimentoRef:
 
     @property
     def esta_activo(self) -> bool:
+        """Indica si el tipo de alimento está activo."""
         return (self.estado or "").upper() == "ACTIVO"
 
 

@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: M06 provisional (recepción)        |
 # | 2026-11-05 | Arekkazu | M06: mensajes visibles sin códigos de módulo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad ``RecepcionProvision``: una provisión de costos recibida de M05 (RF-79)."""
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ MODALIDADES = {"INCREMENTAL", "CONSOLIDADO"}
 
 @dataclass(frozen=True)
 class RecepcionProvision:
+    """Provisión de costos recibida de suministros."""
     id_evento_provision: UUID
     modalidad: str
     schema_version: str

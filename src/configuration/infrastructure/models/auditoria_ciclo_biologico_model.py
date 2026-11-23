@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.auditorias_ciclos_biologicos`.
 
 Registro append-only de operaciones sobre etapas del ciclo productivo (RF-16).
@@ -15,6 +18,7 @@ from .base_model import Base
 
 
 class AuditoriaCicloBiologicoModel(Base):
+    """Modelo ORM de la tabla ``modulo9.auditorias_ciclos_biologicos``."""
     __tablename__ = 'auditorias_ciclos_biologicos'
     __table_args__ = (
         CheckConstraint(

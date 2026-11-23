@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo M09 de compatibilidad biologica sensor-especie (RF-49)."""
 from __future__ import annotations
 
@@ -18,6 +21,7 @@ from .base_model import Base
 
 
 class CompatibilidadSensorEspecieModel(Base):
+    """Modelo ORM de la tabla ``modulo9.compatibilidad_sensores_especies``."""
     __tablename__ = 'compatibilidad_sensores_especies'
     __table_args__ = (
         ForeignKeyConstraint(

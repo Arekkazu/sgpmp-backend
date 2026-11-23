@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Crear una plantilla de configuración reutilizable (RF-31).
 
 Toma los parámetros productivos de una especie origen (proporcionados en el
@@ -56,6 +59,7 @@ class RegistrarPlantillaUseCase:
         self.variable_repo = variable_repo
 
     def execute(self, dto: RegistrarPlantillaDTO, usuario_actual: UsuarioActual) -> Plantilla:
+        """Registra una plantilla de configuración y la audita."""
         # INC-M09-01-109 (#319): el RF-30 exige auditar también los intentos
         # fallidos de cualquier operación, no solo la creación exitosa. Todo el
         # método queda envuelto para que cualquier excepción -- de validación

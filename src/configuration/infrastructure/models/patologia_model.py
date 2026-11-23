@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.patologias`.
 
 Catálogo global de patologías. Los campos de M04 (nombre_tecnico, etiologia,
@@ -18,6 +21,7 @@ from .enums_models import EnumPatologiaCategoria
 
 
 class PatologiaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.patologias``."""
     __tablename__ = 'patologias'
     __table_args__ = (
         UniqueConstraint('nombre', name='uq_enfermedad_nombre'),

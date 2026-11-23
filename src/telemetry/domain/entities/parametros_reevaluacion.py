@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: validar correcciones locales de calibracion y estadistica sin alterar M09. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de las funciones |
 """Correcciones locales de una reevaluación; no modifican la configuración M09."""
 from dataclasses import fields,replace
 from decimal import Decimal
@@ -19,6 +20,11 @@ def _invalido():
 
 
 def validar_correcciones(correcciones):
+    """Valida y normaliza las correcciones de parámetros de una reevaluación.
+
+    Raises:
+        BusinessRuleError: Si algún parámetro no es admitido o no es válido.
+    """
     datos=dict(correcciones or {})
     if datos.keys()-(ESTADISTICOS|CALIBRACION):
         raise BusinessRuleError('PARAMETROS_REEVALUACION_INVALIDOS',
@@ -44,6 +50,7 @@ def validar_correcciones(correcciones):
 
 
 def corregir_estadisticos(parametros,correcciones):
+    """Aplica las correcciones estadísticas y valida la relación entre ventanas."""
     corregidos=replace(parametros,**{k:v for k,v in correcciones.items() if k in ESTADISTICOS})
     if corregidos.M>corregidos.N or corregidos.P>corregidos.N:
         raise _invalido()
@@ -51,6 +58,7 @@ def corregir_estadisticos(parametros,correcciones):
 
 
 def corregir_calibracion(original,correcciones):
+    """Combina las correcciones de calibración con las existentes y las valida."""
     cambios={k:v for k,v in correcciones.items() if k in CALIBRACION}
     if not cambios:
         return original

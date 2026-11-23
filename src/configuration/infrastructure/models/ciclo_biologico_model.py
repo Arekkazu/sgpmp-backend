@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.ciclos_biologicos`.
 
 Representa las etapas del ciclo productivo configuradas por especie (RF-16).
@@ -21,6 +22,7 @@ from .base_model import Base
 
 
 class CicloBiologicoModel(Base):
+    """Modelo ORM de la tabla ``modulo9.ciclos_biologicos``."""
     __tablename__ = 'ciclos_biologicos'
     __table_args__ = (
         ForeignKeyConstraint(

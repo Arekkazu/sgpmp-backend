@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-89 paso 2: historial de precios con su estado efectivo |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: estado corregido en el historial |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-89 paso 2: historial por especie y categoría, del más reciente al más antiguo,
 con su estado (vigente, programado, vencido, superado, corregido) calculado a la fecha de hoy."""
 from __future__ import annotations
@@ -15,10 +16,12 @@ from src.shared.fechas import hoy_usuario
 
 
 class ListarPreciosUseCase:
+    """Lista los precios de mercado agrupados."""
     def __init__(self, precios: PrecioRepository) -> None:
         self.precios = precios
 
     def execute(self, id_especie: Optional[int] = None) -> list[dict]:
+        """Lista los precios, opcionalmente de una especie, con su vigencia."""
         hoy = hoy_usuario()
         lista = self.precios.listar(id_especie)
         grupos = defaultdict(list)

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: modo PROGRAMADO espera su ventana (E1) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``DistribucionOtaRepository`` (DB-04, DEV-15)."""
 from __future__ import annotations
 
@@ -17,11 +18,13 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyDistribucionOtaRepository(DistribucionOtaRepository):
+    """Implementación SQLAlchemy de ``DistribucionOtaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def guardar(self, entidad: DistribucionOta) -> DistribucionOta:
+        """Guarda la distribución."""
         try:
             orm = DistribucionOtaModel(
                 id_version_modelo=entidad.id_version_modelo,
@@ -46,10 +49,12 @@ class SqlAlchemyDistribucionOtaRepository(DistribucionOtaRepository):
             raise_from_db_error(exc)
 
     def obtener_por_id(self, id_distribucion: int, *, bloquear: bool = False) -> Optional[DistribucionOta]:
+        """Devuelve la distribución, opcionalmente bloqueada, o ``None``."""
         orm = self._db.get(DistribucionOtaModel, id_distribucion, with_for_update=bloquear or None)
         return self._a_entidad(orm) if orm else None
 
     def actualizar(self, entidad: DistribucionOta) -> DistribucionOta:
+        """Actualiza la distribución."""
         try:
             orm = self._db.get(DistribucionOtaModel, entidad.id_distribucion_ota)
             orm.fase_rollout = entidad.fase_rollout
@@ -61,6 +66,7 @@ class SqlAlchemyDistribucionOtaRepository(DistribucionOtaRepository):
             raise_from_db_error(exc)
 
     def listar_programadas_en_ventana(self, ahora: datetime) -> list[DistribucionOta]:
+        """Distribuciones PROGRAMADO en curso cuya ventana contiene ``ahora`` (RF-70 E1)."""
         stmt = select(DistribucionOtaModel).where(
             DistribucionOtaModel.modo_distribucion == "PROGRAMADO",
             DistribucionOtaModel.estado_distribucion == ESTADO_EN_CURSO,

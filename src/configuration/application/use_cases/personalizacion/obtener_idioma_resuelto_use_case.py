@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Obtener idioma resuelto del usuario (GET RF-29).
 
 Jerarquía: preferencia individual → idioma global → 'es-CO'.
@@ -16,6 +19,7 @@ class ObtenerIdiomaResueltoUseCase:
         self.idioma_repo = idioma_repo
 
     def execute(self, usuario_actual: UsuarioActual) -> dict:
+        """Devuelve el idioma efectivo del usuario (personal o global)."""
         version = self.idioma_repo.version_perfil(usuario_actual.id_usuario)
 
         personal = self.idioma_repo.obtener_por_usuario(usuario_actual.id_usuario)

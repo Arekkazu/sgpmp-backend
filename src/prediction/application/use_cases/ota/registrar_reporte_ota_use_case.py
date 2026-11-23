@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-152-G083 RF-70/73: emite HASH_INVALIDO_DETECTADO |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: conservar los minimos auditables del reporte de integridad OTA. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Reporte de un nodo durante la OTA (DEV-15, RF-70/RF-73, D6 paso 5).
 
 El broker reenvía cada ``ota/<evento>`` del nodo (BRK-08) con su token de servicio.
@@ -56,6 +57,7 @@ EVENTO_HASH_INVALIDO = "HASH_INVALIDO_DETECTADO"
 
 @dataclass
 class ResultadoReporteOta:
+    """Despliegue actualizado con el evento generado."""
     despliegue: DespliegueOta
     evento_rf73: Optional[str]
     sin_cambios: bool = False
@@ -81,6 +83,7 @@ def _decimal(valor: Any) -> Optional[Decimal]:
 
 
 class RegistrarReporteOtaUseCase:
+    """Registra los reportes de avance enviados por los dispositivos OTA."""
 
     def __init__(
         self,
@@ -104,6 +107,7 @@ class RegistrarReporteOtaUseCase:
         self._url_port = url_port
 
     def execute(self, dto: ReporteOtaDTO) -> ResultadoReporteOta:
+        """Aplica el reporte al despliegue y lo audita."""
         ahora = datetime.now(timezone.utc)
         try:
             despliegue = self._despliegue_repo.obtener_por_id(dto.id_despliegue_ota, bloquear=True)

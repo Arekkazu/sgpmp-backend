@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: snapshot de auditoría desde la entidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Reactivar especie inactiva del catálogo (Flujo D — RF-15).
 
 Solo el Administrador puede reactivar. La operación se registra como
@@ -35,6 +36,7 @@ class ReactivarEspecieUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_especie: int, usuario_actual: UsuarioActual) -> Especie:
+        """Reactiva la especie y la audita."""
         especie = self.especies_repo.obtener_por_id(id_especie)
         if especie is None:
             raise NotFoundError(

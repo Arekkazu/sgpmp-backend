@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`ConfiguracionBatchICARepository` (RF-74)."""
 from __future__ import annotations
 
@@ -25,10 +28,12 @@ _DEFAULTS = ConfiguracionBatch(
 
 
 class SqlAlchemyConfiguracionBatchICARepository(ConfiguracionBatchICARepository):
+    """Implementación SQLAlchemy de ``ConfiguracionBatchICARepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener(self) -> ConfiguracionBatch:
+        """Devuelve la configuración vigente del motor batch (fila única)."""
         orm = (
             self.db.query(ConfiguracionBatchIcaModel)
             .order_by(ConfiguracionBatchIcaModel.id_configuracion.asc())

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: baja del activo cosechado completamente |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto hacia M02 para iniciar la baja de un activo (RF-45) desde M06.
 
 RF-85 FA-4: cuando la cosecha de un PRODUCTO_DE_CONSUMO equivale al 100 % del activo, M06 inicia su baja."""
@@ -12,6 +13,7 @@ from typing import Optional
 
 
 class BajaActivoPort(ABC):
+    """Puerto para dar de baja activos por cosecha."""
     @abstractmethod
     def dar_de_baja_por_cosecha(self, id_activo_biologico: int, fecha: date, motivo: str) -> Optional[str]:
         """Registra la baja total del activo en M02 en su propia transacción.

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre         | Que se hizo |
 # |------------|----------------|-------------|
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: fin de retiro al Productor y al Veterinario, por correo y en la bandeja interna |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de notificaciones del período de retiro (RF-76 pasos 9 y 13).
 
 Resuelve destinatarios con SQL directo (mismo patrón que
@@ -69,6 +70,7 @@ class NotificacionMedicamentoEmailAdapter(NotificacionMedicamentoPort):
         nombre_medicamento: str,
         fecha_fin_retiro: date,
     ) -> None:
+        """Notifica por correo el inicio del periodo de retiro."""
         productor = self._productor_de_activo(id_activo)
         if productor is not None:
             self._enviar(
@@ -89,6 +91,7 @@ class NotificacionMedicamentoEmailAdapter(NotificacionMedicamentoPort):
     def notificar_fin_retiro(
         self, id_activo: int, fecha_fin_retiro: date, id_usuario_veterinario: Optional[int] = None
     ) -> None:
+        """Notifica por correo el fin del periodo de retiro."""
         productor = self._productor_de_activo(id_activo)
         if productor is not None:
             self._enviar(

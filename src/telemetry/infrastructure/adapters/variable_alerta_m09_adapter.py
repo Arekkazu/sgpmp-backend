@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: identidad de variable entre canales |
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: expone rango físico y es_critica para FALLO_AMBIENTAL |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase, función y método |
 """Metadatos M09 para alertas, compatible con el catálogo previo y DEV-40.
 
 No valida ingesta ni define otro catálogo: los alias previos se consultan solo
@@ -27,6 +28,11 @@ def _normalizar_nombre(nombre):
 
 
 def variable_para_alerta(db, *, id_variable=None, codigo=None):
+    """Resuelve la identidad de una variable desde M09, compatible con el catálogo previo.
+
+    Raises:
+        ServiceUnavailableError: Si la identidad de la variable es ambigua.
+    """
     legado = getattr(contrato_telemetria, 'CATALOGO_I3P1', {})
     if codigo is not None:
         codigo = codigo.upper().strip()
@@ -55,10 +61,13 @@ def variable_para_alerta(db, *, id_variable=None, codigo=None):
 
 
 class VariableAlertaM09Adapter(VariableAlertaPort):
+    """Expone el rango físico y la criticidad de una variable para alertas."""
+
     def __init__(self, db):
         self.db = db
 
     def obtener_rango_fisico(self, tipo_variable):
+        """Devuelve el rango físico de la variable, o ``None`` si no existe."""
         variable = variable_para_alerta(self.db, codigo=tipo_variable)
         if variable is None:
             return None

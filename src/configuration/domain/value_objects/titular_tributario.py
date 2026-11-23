@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | RF-19 v1.1 (RFC-018 D-18.6): titular tributario de la finca |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Value object ``TitularTributario``: quién lleva la contabilidad de la finca (RF-19 v1.1).
 
 ``tipo_id_tributaria`` ∈ {NIT, CC, CE}; número de 6 a 15 dígitos sin dígito de verificación; ``dv``
@@ -24,6 +25,7 @@ def digito_verificacion(numero: str) -> int:
 
 @dataclass(frozen=True)
 class TitularTributario:
+    """Titular tributario (tipo, número y razón social)."""
     tipo_id_tributaria: str
     numero_id_tributaria: str
     razon_social: str

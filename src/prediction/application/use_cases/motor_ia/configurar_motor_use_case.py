@@ -5,6 +5,8 @@
 # | 2026-10-26 | Arekkazu     | INC-M04-203-G42 RF-65/68: cada peso de contagio en [0, 1], no solo la suma |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: validar perfil exclusivo de contagio y guardar pesos fijos en MVP. |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de configuración del motor de IA y su sincronización con Edge."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -39,6 +41,7 @@ _ESTADO_ACTIVO = "ACTIVO"
 
 @dataclass
 class ResultadoConfiguracionMotor:
+    """Configuración resultante y si es nueva."""
     entidad: ConfiguracionMotorIA
     es_nueva: bool
     # DEV-09: estado de la configuración en los nodos Edge del tipo_modelo.
@@ -55,6 +58,7 @@ def payload_config_motor(entidad: ConfiguracionMotorIA) -> dict:
 
 
 class ConfigurarMotorUseCase:
+    """Crea o actualiza la configuración del motor de IA."""
     def __init__(
         self,
         *,

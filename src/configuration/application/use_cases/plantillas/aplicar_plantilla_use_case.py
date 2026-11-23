@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Aplicar una plantilla a una especie destino (RF-32).
 
 Reemplaza las configuraciones activas (ciclos, métricas, umbrales, patologías)
@@ -57,6 +60,7 @@ class AplicarPlantillaUseCase:
     def execute(
         self, id_plantilla: int, dto: AplicarPlantillaDTO, usuario_actual: UsuarioActual
     ) -> AplicacionPlantilla:
+        """Aplica la plantilla de configuración y registra la aplicación."""
         # INC-M09-04-124 (#316): auditar también los intentos fallidos de
         # aplicación (con o sin rollback de datos ya hecho más abajo).
         try:

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Métricas de la especie del activo para los formularios de eventos (RF-40, RF-43).
 
 El formulario de evento productivo pedía el producto como texto libre y el
@@ -35,6 +38,7 @@ class ListarMetricasActivoUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[tuple[MetricaProductiva, bool]]:
+        """Lista las métricas productivas aplicables al activo."""
         activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

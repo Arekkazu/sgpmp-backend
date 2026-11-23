@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto UmbralAmbientalRepository."""
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
+    """Implementación SQLAlchemy de ``UmbralAmbientalRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
@@ -28,12 +30,14 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
     # ------------------------------------------------------------------
 
     def obtener_por_id(self, id_umbral_ambiental: int, *, bloquear: bool = False) -> Optional[UmbralAmbiental]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         orm = self._db.get(UmbralAmbientalModel, id_umbral_ambiental, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_especie_y_variable(
         self, id_especie: int, id_variable_ambiental: int
     ) -> Optional[UmbralAmbiental]:
+        """Umbral de la especie para la variable, o ``None`` si no existe."""
         stmt = select(UmbralAmbientalModel).where(
             UmbralAmbientalModel.id_especie == id_especie,
             UmbralAmbientalModel.id_variable_ambiental == id_variable_ambiental,
@@ -44,6 +48,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
     def listar_por_especie(
         self, id_especie: int, *, solo_activas: bool = False
     ) -> list[UmbralAmbiental]:
+        """Umbrales de la especie, opcionalmente solo los activos."""
         stmt = select(UmbralAmbientalModel).where(
             UmbralAmbientalModel.id_especie == id_especie
         )
@@ -58,6 +63,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
     # ------------------------------------------------------------------
 
     def guardar(self, umbral: UmbralAmbiental) -> UmbralAmbiental:
+        """Inserta el umbral y devuelve la entidad con su id asignado."""
         try:
             orm = UmbralAmbientalModel(
                 id_especie=umbral.id_especie,
@@ -92,6 +98,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
             raise_from_db_error(exc)
 
     def actualizar(self, umbral: UmbralAmbiental) -> UmbralAmbiental:
+        """Persiste los cambios del umbral y devuelve la entidad actualizada."""
         try:
             orm = self._db.get(UmbralAmbientalModel, umbral.id_umbral_ambiental)
             orm.valor_min = umbral.valor_min
@@ -125,6 +132,12 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
             raise_from_db_error(exc)
 
     def actualizar_estado_sincronizacion(self, umbral: UmbralAmbiental) -> UmbralAmbiental:
+        """Persiste solo estado_sincronizacion/fecha_ultima_sincronizacion/motivo_fallo_sincronizacion.
+
+        No toca valor_min/valor_max/niveles -- se usa después del intento de
+        propagación al Nodo Edge (INC-M09-104-G29), en un segundo commit
+        separado del guardado del umbral en sí.
+        """
         try:
             orm = self._db.get(UmbralAmbientalModel, umbral.id_umbral_ambiental)
             orm.estado_sincronizacion = umbral.estado_sincronizacion
@@ -137,6 +150,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
             raise_from_db_error(exc)
 
     def desactivar_todos_por_especie(self, id_especie: int) -> None:
+        """Marca como inactivos todos los umbrales activos de una especie. Hace ``flush``."""
         try:
             self._db.query(UmbralAmbientalModel).filter(
                 UmbralAmbientalModel.id_especie == id_especie,
@@ -147,6 +161,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
             raise_from_db_error(exc)
 
     def guardar_desde_snapshot(self, datos: dict, id_especie: int, id_usuario: int) -> None:
+        """Inserta un umbral + niveles a partir de un dict del params_snapshot. Hace ``flush``."""
         from decimal import Decimal
         try:
             orm = UmbralAmbientalModel(

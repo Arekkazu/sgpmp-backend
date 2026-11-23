@@ -5,6 +5,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: TRAZABILIDAD_INCOMPLETA nombra los hechos afectados y los trae en el detalle |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: ERROR_DATOS_FINANCIEROS para fallas al leer los datos financieros y ERROR_INTERNO_RF97 para lo inesperado |
 # | 2026-11-19 | Arekkazu | TC-M07-G019 RF-96 CA-6: LineType validado contra la matriz contable |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Genera el envelope AAEF de un titular para un rango de períodos cerrados (RF-97 v3.0).
 
 Lo invoca el Gateway (RF-95) con el usuario ya autenticado y con permiso; aquí se resuelve lo que
@@ -77,6 +78,7 @@ def _trazabilidad_incompleta(lineas: list[dict]) -> AaefError:
 
 @dataclass(frozen=True)
 class SolicitudAaef:
+    """Parámetros de la consulta de la exportación contable."""
     nit: str
     desde: date
     hasta: date
@@ -87,6 +89,7 @@ class SolicitudAaef:
 
 @dataclass(frozen=True)
 class ResultadoAaef:
+    """Archivo generado con su hash y el contrato aplicado."""
     cuerpo: bytes
     hash_contenido: str
     contrato: VersionContrato
@@ -95,6 +98,7 @@ class ResultadoAaef:
 
 
 class ConsultarAaefUseCase:
+    """Genera la exportación contable de un titular para un rango de fechas."""
     def __init__(self, fuente: FuenteContableRepository, contratos: ContratoRepository, sistema: SistemaOrigen,
                  limite_bytes: int, hoy: Callable[[], date]):
         self.fuente = fuente
@@ -104,6 +108,11 @@ class ConsultarAaefUseCase:
         self.hoy = hoy
 
     def execute(self, s: SolicitudAaef) -> ResultadoAaef:
+        """Genera el archivo de la exportación.
+
+        Raises:
+            NotFoundError: Si el titular no existe.
+        """
         titular = self.fuente.titular(s.nit)
         if titular is None:  # RF-95 FA-7
             raise NotFoundError(code="TITULAR_NO_ENCONTRADO", field="nit",

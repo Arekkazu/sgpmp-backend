@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``HistoricoEstadoRepository`` (RF-44)."""
 
 from __future__ import annotations
@@ -32,6 +35,7 @@ class SqlAlchemyHistoricoEstadoRepository(HistoricoEstadoRepository):
         usuario_id: int,
         modulo_origen: str,
     ) -> HistoricoEstado:
+        """Registra un cambio de estado del activo."""
         try:
             self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': usuario_id})
             orm = HistoricoEstadoActivoModel(
@@ -60,6 +64,7 @@ class SqlAlchemyHistoricoEstadoRepository(HistoricoEstadoRepository):
             raise_from_db_error(exc, {})
 
     def obtener_ultimo_cambio(self, id_activo: int) -> Optional[HistoricoEstado]:
+        """Devuelve el último cambio de estado del activo."""
         orm = (
             self.db.query(HistoricoEstadoActivoModel)
             .filter(HistoricoEstadoActivoModel.id_activo_biologico == id_activo)

@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82 R2/paso 10: reversión auditada del reconocimiento inicial |
 # | 2026-11-05 | Arekkazu | M06 RF-82: el bloqueo de la reversión nombra los registros sin códigos ni ids |
 # | 2026-11-14 | Arekkazu | QA-M06 CU01 H-03 RF-82 FA-6: el deterioro y los registros contables posteriores bloquean la reversión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-82 paso 10: asiento espejo y el activo vuelve a la bandeja de propuestas."""
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ _DEPENDIENTE = {"MEDICION_POSTERIOR": "medición posterior", "VARIACION": "varia
                 "CIERRE_PERIODO": "cierre del período"}
 
 class RevertirReconocimientoUseCase:
+    """Revierte el reconocimiento inicial de un activo."""
     def __init__(self, db: Session, activos: ActivoFinancieroPort, valoraciones: ValoracionRepository,
                  contabilizador: Contabilizador) -> None:
         self.db = db
@@ -29,6 +31,7 @@ class RevertirReconocimientoUseCase:
         self.contabilizador = contabilizador
 
     def execute(self, id_activo_biologico: int, motivo: str, id_usuario: int) -> dict:
+        """Revierte el reconocimiento con su motivo y lo contabiliza."""
         if len((motivo or "").strip()) < 20:  # R2 c / CA-15
             raise ValidationError(code="MOTIVO_REVERSION_INSUFICIENTE",
                                   message="El motivo de la reversión debe tener al menos 20 caracteres.", field="motivo")

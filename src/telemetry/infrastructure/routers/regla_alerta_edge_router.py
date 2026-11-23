@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: tabla de seguimiento y docstrings de los endpoints |
 """Router FastAPI para propagar reglas compuestas al Gateway Edge (DEV-08, RF-55/RF-57).
 
   POST /iot/reglas-alertas/{id}/sincronizar-edge   — Enviar la regla a sus Gateway Edge
@@ -49,6 +52,7 @@ def sincronizar_regla_edge(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> SincronizacionReglaSchema:
+    """Propaga una regla compuesta a todos sus Gateway Edge."""
     use_case = SincronizarReglaEdgeUseCase(
         db=db,
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
@@ -76,6 +80,7 @@ def consultar_sincronizacion_regla_edge(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> SincronizacionReglaSchema:
+    """Devuelve el estado de la regla en cada Gateway Edge."""
     use_case = ConsultarSincronizacionReglaEdgeUseCase(
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
         sincronizacion_repo=SqlAlchemySincronizacionReglaEdgeRepository(db),

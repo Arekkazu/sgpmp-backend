@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Aviso por correo de RF-73 E8 (DEV-37), con el canal de RF-14 como los avisos de DEV-48.
 
 Destinatarios por permiso, no por ``id_rol``: quien administra la bitácora de M04,
@@ -22,12 +23,14 @@ ACCION_EJECUTAR = 5
 
 
 class AvisoAuditoriaM04EmailAdapter(AvisoAuditoriaM04Port):
+    """Avisa por correo los eventos relevantes de la auditoría del motor."""
     def __init__(self, db: Session) -> None:
         # Reusa la resolución de destinatarios (como_sistema, sin el usuario de
         # servicio) y el envío best-effort de los avisos de versiones.
         self._correo = AvisoVersionModeloEmailAdapter(db)
 
     def avisar_fallback_activado(self, resumen: dict) -> None:
+        """RF-73 E8: alerta AUDITORIA_FALLBACK_ACTIVADO con el inicio de la contingencia."""
         for nombre, correo in self._correo._destinatarios(RECURSO_AUDITORIA_M04, ACCION_EJECUTAR):
             self._correo._enviar(
                 correo,

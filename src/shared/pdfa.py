@@ -1,6 +1,7 @@
 # | Fecha      | Nombre         | Que se hizo                                                            |
 # |------------|----------------|------------------------------------------------------------------------|
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: PDF/A-1b (fuente incrustada, perfil sRGB y metadatos XMP) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Conformidad PDF/A-1b (ISO 19005-1) para los PDF de ReportLab, que no la trae de fábrica.
 
 Un PDF/A-1b necesita:
@@ -103,6 +104,7 @@ def _fecha_xmp(marca) -> str:
 
 
 def xmp_pdfa1b(*, titulo: str, autor: str, asunto: str, palabras: str, creador: str, productor: str, fecha: str) -> bytes:
+    """Genera el paquete de metadatos XMP que declara la conformidad PDF/A-1b."""
     t, a, s, k, c, p = (escape(v or "") for v in (titulo, autor, asunto, palabras, creador, productor))
     return f"""<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/">

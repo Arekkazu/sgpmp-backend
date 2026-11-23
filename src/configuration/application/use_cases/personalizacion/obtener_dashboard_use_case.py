@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Obtener layout del dashboard del usuario (GET RF-28).
 
 Si no tiene configuración guardada, devuelve el layout predeterminado de su rol.
@@ -18,6 +21,7 @@ class ObtenerDashboardUseCase:
         self.dashboard_repo = dashboard_repo
 
     def execute(self, usuario_actual: UsuarioActual) -> DashboardLayout:
+        """Devuelve el tablero del usuario o el de su rol por defecto."""
         layout = self.dashboard_repo.obtener_por_usuario(usuario_actual.id_usuario)
         if layout is not None:
             return layout

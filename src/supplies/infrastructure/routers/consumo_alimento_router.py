@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-75: E5 405, alcance y wiring nuevo     |
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para el registro de consumo de alimento (`/suministros/consumo-alimentos`).
 
 Expone los flujos de RF-75 (CU-01):
@@ -68,6 +69,7 @@ def registrar_consumo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsumoAlimentoResponse:
+    """Registra un consumo de alimento."""
     consumo = build_registrar_consumo_use_case(db).execute(dto, usuario_actual)
     return ConsumoAlimentoResponse.model_validate(consumo)
 
@@ -91,6 +93,7 @@ def anular_consumo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsumoAlimentoResponse:
+    """Anula un consumo de alimento."""
     consumo = build_anular_consumo_use_case(db).execute(id_consumo, dto, usuario_actual)
     return ConsumoAlimentoResponse.model_validate(consumo)
 
@@ -115,6 +118,7 @@ def consultar_consumos(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsultaConsumosResponse:
+    """Lista los consumos de alimento con filtros."""
     consumos = build_consultar_consumos_use_case(db).execute(
         usuario_actual,
         id_activo_biologico=id_activo_biologico,
@@ -139,6 +143,7 @@ def listar_tipos_alimento(
     solo_activos: bool = Query(True, description="Solo los ACTIVO (no los CESADO), que son los únicos que admite el registro."),
     db: Session = Depends(get_db),
 ) -> ListaTiposAlimentoResponse:
+    """Lista los tipos de alimento."""
     tipos = build_listar_tipos_alimento_use_case(db).execute(solo_activos=solo_activos)
     items = [
         TipoAlimentoResponse(

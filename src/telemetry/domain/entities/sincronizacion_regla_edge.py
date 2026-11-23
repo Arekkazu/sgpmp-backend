@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Estado de una regla compuesta en cada Gateway Edge (DEV-08, RF-55/RF-57).
 
 Una regla compuesta (THI, síndrome respiratorio, riesgo hídrico...) se envía a
@@ -27,6 +30,7 @@ ESTADOS_SINCRONIZACION = (ESTADO_APLICADA, ESTADO_PENDIENTE, ESTADO_NO_CONF)
 
 @dataclass(frozen=True)
 class GatewayEdge:
+    """Gateway Edge destino de la sincronización de reglas."""
     id_dispositivo_iot: int
     serial: str
 
@@ -52,6 +56,7 @@ class ResultadoPropagacionEdge:
 
 @dataclass
 class SincronizacionReglaEdge:
+    """Estado de sincronización de una versión de regla en un gateway Edge."""
     id_regla_alertas: int
     id_dispositivo_iot: int
     serial: str

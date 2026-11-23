@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/sanitario`` (RF-41).
 """
 
@@ -41,12 +42,14 @@ class RegistrarEventoSanitarioDTO(BaseDTO):
     @field_validator('tipo')
     @classmethod
     def tipo_valido(cls, v: str) -> str:
+        """Exige un tipo sanitario permitido."""
         if v not in _TIPOS_SANITARIO:
             raise ValueError(f"El tipo sanitario debe ser uno de: {', '.join(sorted(_TIPOS_SANITARIO))}.")
         return v
 
     @model_validator(mode='after')
     def validar_campos_por_tipo(self) -> RegistrarEventoSanitarioDTO:
+        """Exige los campos obligatorios según el tipo sanitario."""
         tipo = self.tipo
         if tipo == 'VACUNACION':
             if self.medicamento is None or self.dosis is None:

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                                      |
 # |------------|----------|------------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M04-227-G067 RF-72: estado sin coerción, lo valida el dominio |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO de retroalimentación clínica."""
 from __future__ import annotations
 
 import uuid
@@ -12,6 +14,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarRetroalimentacionDTO(BaseDTO):
+    """Retroalimentación del veterinario sobre una inferencia."""
     id_resultado_inferencia: uuid.UUID
     id_activo_biologico: int
     # INC-M04-227-G067: sin tipo para que un número o null lleguen al dominio y respondan

@@ -8,6 +8,7 @@
 # | 2026-10-31 | Arekkazu | RF-71/RF-72: mínimos de registros para solicitar y para reentrenar |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: período de gracia del contrato contable |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Parámetros persistidos administrados por M09, almacenados en M04.
 
 Los ejemplos del RF no son valores de respaldo: una lectura incompleta o
@@ -67,6 +68,7 @@ PARAMETROS_CALIDAD = (RF62_K, RF62_M, RF62_N, RF62_DRIFT, RF62_P)
 
 @dataclass(frozen=True)
 class ParametroMLOps:
+    """Parámetro operativo configurado."""
     nombre: str
     valor: Any
     minimo: Decimal | None = None
@@ -74,6 +76,11 @@ class ParametroMLOps:
 
 
 def numero_configurado(parametros, nombre, *, minimo=None, maximo=None, entero=False, positivo=False):
+    """Devuelve el parámetro numérico validando su rango.
+
+    Raises:
+        ServiceUnavailableError: Si falta o es inválido.
+    """
     parametro = parametros.get(nombre)
     if parametro is None:
         raise ServiceUnavailableError('PARAMETRO_CONFIGURACION_AUSENTE',
@@ -101,6 +108,7 @@ def numero_configurado(parametros, nombre, *, minimo=None, maximo=None, entero=F
 
 
 def calidad_configurada(parametros):
+    """Devuelve los parámetros de calidad configurados y validados."""
     valores = {
         'k': numero_configurado(parametros, RF62_K, positivo=True),
         'M': numero_configurado(parametros, RF62_M, minimo=1, entero=True),

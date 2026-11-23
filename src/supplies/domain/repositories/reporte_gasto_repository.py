@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de persistencia del snapshot de reportes de gastos (RF-77)."""
 from __future__ import annotations
 
@@ -8,6 +11,7 @@ from src.supplies.domain.entities.reporte_gasto import ReporteGasto
 
 
 class ReporteGastoRepository(ABC):
+    """Puerto de persistencia de reportes de gastos."""
     @abstractmethod
     def guardar(self, reporte: ReporteGasto) -> ReporteGasto:
         """Persiste el snapshot del reporte en ``reporte_gastos_acumulados``."""
@@ -15,6 +19,7 @@ class ReporteGastoRepository(ABC):
 
     @abstractmethod
     def obtener(self, id_reporte_gasto_acumulado: int) -> Optional[ReporteGasto]:
+        """Devuelve el reporte, o ``None``."""
         raise NotImplementedError
 
     @abstractmethod

@@ -12,6 +12,8 @@
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 # | 2026-10-31 | Claude | INC-M03-241-G74 RF-57: deduplicación de PREDICCION_PATOLOGIA por tipo + activo biológico |
 # | 2026-10-31 | Claude | INC-M03-173-G85 RF-57 E9: eventos PENDIENTE_EVALUACION se reevalúan al configurar la regla |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de alertas."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -22,6 +24,7 @@ from src.telemetry.domain.entities.alerta import Alerta
 
 
 class AlertaRepository(ABC):
+    """Puerto de persistencia, deduplicación y consulta de alertas."""
     def buscar_compuesta_activa(self, tipo_alerta: str, id_infraestructura: int, ventana_min: int):
         """E14: alerta compuesta abierta del mismo tipo en el área, bloqueada para consolidar."""
         raise NotImplementedError
@@ -61,15 +64,19 @@ class AlertaRepository(ABC):
         raise NotImplementedError
 
     def bloquear_condicion_calidad(self, id_sensor: int, anomalia: str):
+        """Serializa la evaluación de una anomalía de calidad por sensor."""
         raise NotImplementedError
 
     def buscar_tecnica_calidad(self, id_sensor: int, anomalia: str, id_telemetria: int):
+        """Busca la alerta técnica de calidad abierta de la anomalía dada."""
         raise NotImplementedError
 
     def contexto_sensor_calidad(self, id_sensor: int) -> dict:
+        """Devuelve el dispositivo y el área asociados al sensor."""
         raise NotImplementedError
 
     def escalar_calidad(self, id_alerta: int, severidad: str):
+        """Cambia la severidad de una alerta técnica de calidad."""
         raise NotImplementedError
 
     def bloquear_dispositivo(self, id_dispositivo: int) -> None:
@@ -77,9 +84,11 @@ class AlertaRepository(ABC):
         raise NotImplementedError
 
     def escalar_bateria(self, id_alerta: int, causa: str, severidad: str, metadatos: dict) -> None:
+        """Anota la condición vigente por batería en la alerta técnica."""
         raise NotImplementedError
 
     def listar_conectividad_abierta(self, id_dispositivo: int) -> list[Alerta]:
+        """Lista las alertas técnicas de conectividad abiertas del dispositivo."""
         raise NotImplementedError
 
     def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
@@ -87,7 +96,9 @@ class AlertaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def guardar(self, alerta: Alerta) -> Alerta: ...
+    def guardar(self, alerta: Alerta) -> Alerta:
+        """Guarda una alerta nueva y la devuelve con su id."""
+        ...
 
     @abstractmethod
     def buscar_activa_duplicada(
@@ -95,7 +106,9 @@ class AlertaRepository(ABC):
         id_sensor: int,
         tipo_variable: str,
         ventana_min: int = 30,
-    ) -> Optional[Alerta]: ...
+    ) -> Optional[Alerta]:
+        """Busca una alerta activa del mismo sensor y variable dentro de la ventana."""
+        ...
 
     @abstractmethod
     def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
@@ -107,7 +120,9 @@ class AlertaRepository(ABC):
         id_alerta: int,
         ultima_ocurrencia: datetime,
         nueva_severidad: Optional[str] = None,
-    ) -> None: ...
+    ) -> None:
+        """Registra una nueva ocurrencia de una alerta duplicada."""
+        ...
 
     @abstractmethod
     def actualizar_estado(
@@ -118,7 +133,9 @@ class AlertaRepository(ABC):
         motivo: Optional[str],
         fecha_atencion: Optional[datetime] = None,
         fecha_resolucion: Optional[datetime] = None,
-    ) -> Alerta: ...
+    ) -> Alerta:
+        """Cambia el estado de una alerta."""
+        ...
 
     @abstractmethod
     def obtener_por_id(
@@ -126,7 +143,9 @@ class AlertaRepository(ABC):
         id_alerta: int,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
-    ) -> Optional[Alerta]: ...
+    ) -> Optional[Alerta]:
+        """Devuelve la alerta si existe y está en las fincas permitidas."""
+        ...
 
     @abstractmethod
     def listar(
@@ -146,7 +165,9 @@ class AlertaRepository(ABC):
         excluir_tipo_alerta: Optional[str] = None,
         fecha_resolucion_desde: Optional[datetime] = None,
         id_infraestructura: Optional[int] = None,
-    ) -> tuple[list[Alerta], int]: ...
+    ) -> tuple[list[Alerta], int]:
+        """Lista alertas con filtros y paginación; devuelve la página y el total."""
+        ...
 
     @abstractmethod
     def reclamar_pendientes_notificacion(self, ahora: datetime, ventana_min: int = 10, limite: int = 100) -> list[Alerta]:

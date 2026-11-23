@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Configurar la densidad máxima de una etapa (#391, RF-16). La aplica RF-36 al lote que está en esa fase."""
 from __future__ import annotations
 
@@ -28,11 +29,13 @@ def _snapshot(etapa: CicloBiologico) -> dict:
 
 
 class ConfigurarDensidadEtapaUseCase:
+    """Configura los límites de densidad y biomasa de una etapa."""
     def __init__(self, db: Session, etapas: CicloBiologicoRepository, auditoria: AuditoriaCicloRepository) -> None:
         self.db, self.etapas, self.auditoria = db, etapas, auditoria
 
     def execute(self, id_ciclo_biologico: int, *, densidad_maxima: Decimal, biomasa_maxima: Optional[Decimal],
                 aviso_preventivo_pct: int, fecha_actualizacion: Optional[datetime], id_usuario: int) -> CicloBiologico:
+        """Guarda los límites de la etapa con control de concurrencia y los audita."""
         etapa = self.etapas.obtener_por_id(id_ciclo_biologico, bloquear=True)
         if etapa is None:
             raise NotFoundError(code="ETAPA_NO_ENCONTRADA", message="La etapa no existe.")

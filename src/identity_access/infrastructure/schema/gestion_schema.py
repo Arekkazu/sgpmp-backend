@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-25: fincas del alcance del usuario para los filtros (todas para el Administrador) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para gestión de usuarios, auditoría y listados paginados.
 
 `UsuarioEnmascaradoResponse` incluye el número de identificación parcialmente
@@ -90,15 +91,18 @@ class FincaDelAlcanceResponse(FincaAsignadaResponse):
 
 
 class FincasDelAlcanceResponse(BaseModel):
+    """Fincas visibles para el usuario."""
     items: list[FincaDelAlcanceResponse]
 
 
 class InfraestructuraDelAlcanceResponse(BaseModel):
+    """Área visible para el usuario."""
     id_infraestructura: int
     nombre: str
 
 
 class InfraestructurasDelAlcanceResponse(BaseModel):
+    """Áreas visibles para el usuario."""
     items: list[InfraestructuraDelAlcanceResponse]
 
 

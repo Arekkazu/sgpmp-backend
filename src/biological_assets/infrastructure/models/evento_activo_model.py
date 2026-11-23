@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.eventos_activos``: cabecera de todo evento biológico; el
 detalle va en la tabla de su subtipo.
 """
@@ -22,6 +25,7 @@ if TYPE_CHECKING:
 
 
 class EventoActivoModel(Base):
+    """Modelo ORM de los eventos de un activo (tabla ``modulo2.eventos_activos``)."""
     __tablename__ = 'eventos_activos'
     __table_args__ = (
         CheckConstraint('fecha <= now()', name='chk_eventos_fecha_no_futura'),

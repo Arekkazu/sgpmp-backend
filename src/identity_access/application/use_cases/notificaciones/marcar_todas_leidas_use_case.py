@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: marcar como leídas todas las notificaciones internas propias.
 
 T-08 del reporte de usabilidad UAT (07/10/2026): hay usuarios con más de 169
@@ -18,6 +21,7 @@ class MarcarTodasLeidasUseCase:
         self.db = db
 
     def execute(self, id_usuario: int) -> int:
+        """Marca como leídas todas las notificaciones del usuario y devuelve cuántas cambiaron."""
         try:
             cambiadas = self.notificaciones_repo.marcar_todas_leidas(id_usuario)
             self.db.commit()

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.widgets` — catálogo de widgets del dashboard (RF-28).
 
 ``id_recurso`` apunta al recurso de ``modulo1.recursos`` cuyo permiso de lectura
@@ -22,6 +25,7 @@ from .base_model import Base
 
 
 class WidgetModel(Base):
+    """Modelo ORM de la tabla ``modulo9.widgets``."""
     __tablename__ = 'widgets'
     __table_args__ = (
         ForeignKeyConstraint(

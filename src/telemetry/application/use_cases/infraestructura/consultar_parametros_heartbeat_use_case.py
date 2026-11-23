@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-04 RF-60: parámetros de heartbeat por categoría y ventanas de visión de una cámara |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de lectura de los parámetros de heartbeat por categoría de dispositivo."""
 from __future__ import annotations
 
 from typing import Optional
@@ -21,9 +23,15 @@ class ConsultarParametrosHeartbeatUseCase:
         self._port = port
 
     def por_categoria(self) -> list[ParametrosHeartbeatCategoria]:
+        """Devuelve los parámetros de heartbeat vigentes de cada categoría."""
         return parametros_por_categoria(self._port.leer_configuracion())
 
     def ventanas_vision(self, id_dispositivo_iot: int, ids_fincas: Optional[list[int]], cantidad: int = 10) -> ResumenVentanasVision:
+        """Resume las últimas ventanas de visión de una cámara.
+
+        Raises:
+            ValidationError: Si cantidad está fuera del rango permitido.
+        """
         if not 1 <= cantidad <= CANTIDAD_MAXIMA_VENTANAS:
             raise ValidationError(code='CANTIDAD_INVALIDA',
                                   message=f'cantidad debe estar entre 1 y {CANTIDAD_MAXIMA_VENTANAS}.', field='cantidad')

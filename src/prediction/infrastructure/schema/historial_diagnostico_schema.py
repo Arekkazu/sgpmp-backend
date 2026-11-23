@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                                |
 # |------------|----------|------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-68: evento CONTAGIO sin inferencia     |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta del historial diagnóstico."""
 from __future__ import annotations
 
 import uuid
@@ -13,6 +15,7 @@ from src.prediction.domain.entities.historial_diagnostico import EventoHistorial
 
 
 class EventoHistorialResponse(BaseModel):
+    """Evento del historial diagnóstico."""
     id_evento: uuid.UUID
     tipo_evento: str
     id_activo_biologico: int
@@ -24,6 +27,7 @@ class EventoHistorialResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, e: EventoHistorial) -> "EventoHistorialResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_evento=e.id_evento,
             tipo_evento=e.tipo_evento,
@@ -35,12 +39,14 @@ class EventoHistorialResponse(BaseModel):
 
 
 class HistorialDiagnosticoResponse(BaseModel):
+    """Página del historial diagnóstico."""
     eventos: list[EventoHistorialResponse]
     cursor_siguiente: Optional[str]
     total_pagina: int
 
     @classmethod
     def from_pagina(cls, pagina: PaginaHistorial) -> "HistorialDiagnosticoResponse":
+        """Construye la respuesta a partir de la página del historial."""
         return cls(
             eventos=[EventoHistorialResponse.from_entity(e) for e in pagina.eventos],
             cursor_siguiente=pagina.cursor_siguiente,

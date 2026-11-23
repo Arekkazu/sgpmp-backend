@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`DependenciaPatologiaPort`.
 
 Consulta la vista ``vw_rf16_dependencias_patologias``. Solo cuenta como
@@ -15,11 +18,13 @@ from src.configuration.domain.repositories.dependencia_patologia_port import Dep
 
 
 class SqlAlchemyDependenciaPatologiaRepository(DependenciaPatologiaPort):
+    """Implementación SQLAlchemy de ``DependenciaPatologiaPort``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def tiene_dependencias_activas(self, id_patologia: int) -> bool:
+        """Retorna ``True`` si la patología tiene eventos sanitarios o predicciones asociadas."""
         row = self.db.execute(
             text(
                 "SELECT predicciones_asociadas, alertas_asociadas "

@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-19 | Leandro | INC-M07-371-G58 RF-102: programar archivado, reintentos y alerta crítica. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Tarea de fondo de RF-102. Los lotes confirmados se conservan si falla otro lote."""
 import asyncio
 import logging
@@ -20,6 +21,7 @@ _REINTENTO = 15 * 60
 
 
 def ejecutar_archivado() -> bool:
+    """Archiva todos los lotes vencidos; ``True`` si terminó sin errores."""
     alertar = alertador_administrador(sesion_sistema)
     total = 0
     cursor = None
@@ -46,6 +48,7 @@ def ejecutar_archivado() -> bool:
 
 
 async def archivar_auditoria_integracion_periodicamente() -> None:
+    """Ejecuta el archivado de auditoría de integración en bucle."""
     while True:
         tarea = asyncio.create_task(asyncio.to_thread(ejecutar_archivado))
         try:

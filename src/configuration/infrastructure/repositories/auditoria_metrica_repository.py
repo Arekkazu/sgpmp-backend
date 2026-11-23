@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaMetricaRepository`."""
 from __future__ import annotations
 
@@ -11,6 +14,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyAuditoriaMetricaRepository(AuditoriaMetricaRepository):
+    """Implementación SQLAlchemy de ``AuditoriaMetricaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -24,6 +28,7 @@ class SqlAlchemyAuditoriaMetricaRepository(AuditoriaMetricaRepository):
         valores_nuevos: dict[str, Any],
         valores_anteriores: Optional[dict[str, Any]] = None,
     ) -> None:
+        """Inserta un registro de auditoría append-only. Hace ``flush``."""
         orm = AuditoriaMetricaModel(
             id_metrica_produccion=id_metrica_produccion,
             id_usuario=id_usuario,

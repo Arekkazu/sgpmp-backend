@@ -4,6 +4,8 @@
 # | 2026-11-19 | Arekkazu | M08 RF-104 M8-12/M8-13: diseño de las plantillas V1.1, columnas sin partir palabras y fechas reales |
 # | 2026-11-20 | Arekkazu | A11Y-M08 TC-DIS-288 RF-104: PDF etiquetado, con idioma, título visible en el lector y fuentes incrustadas |
 # | 2026-11-22 | Arekkazu | USAB2 M812 RF-104: la columna del identificador del animal nunca parte el código |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+# | 2026-11-23 | Arekkazu | QA-M08 CU02 H-04 RF-104: la tabla que no cabe sin partir palabras se reparte en bloques de columnas |
 """Render de un :class:`ContenidoReporte` a PDF o Excel (RF-104 Fase 3, CA-4, CA-11).
 
 PDF (ReportLab): tamaño carta (horizontal si la tabla es ancha), letra de 10 puntos o más y la estructura de las
@@ -35,6 +37,7 @@ from src.reporting.domain.reportes.contenido import (
     NUMERO,
     PORCENTAJE,
     SIN_DATO,
+    Columna,
     ContenidoReporte,
     Tabla,
 )
@@ -83,14 +86,18 @@ def texto_celda(valor: Any, tipo: str) -> str:
 
 
 class RenderizadorReportes(RenderizadorReportePort):
+    """Genera reportes en PDF o Excel."""
 
     def tipo_contenido(self, formato: str) -> str:
+        """Tipo MIME del formato."""
         return _TIPOS[formato]
 
     def extension(self, formato: str) -> str:
+        """Extensión de archivo del formato."""
         return _EXTENSIONES[formato]
 
     def renderizar(self, contenido: ContenidoReporte, formato: str, ruta_logo: Optional[str]) -> bytes:
+        """Genera el archivo PDF o Excel del contenido."""
         return _pdf(contenido, ruta_logo) if formato == PDF else _excel(contenido)
 
 
@@ -123,10 +130,9 @@ _PALABRA_TEXTO_MAXIMA = 70  # un código largo (QA-M06-G52-SANITARIO, una huella
 _CLAVES_IDENTIFICADOR = {"id_activo", "identificador", "activo", "serial"}
 
 
-def _anchos_pdf(t: Tabla, ancho_util: float) -> list[float]:
-    """Cada columna mide al menos la palabra más larga de su título y, si es de números o fechas, la cifra más larga
-    (así no se parten, M8-12); lo que sobra se reparte según lo largo del contenido. Solo si ni así cabe, se encoge
-    todo en proporción."""
+def _medidas_pdf(t: Tabla) -> tuple[list[float], list[float], list[float], list[float]]:
+    """Por columna: el mínimo para no partir palabras, el mínimo apretado, lo que le sobraría con su texto típico y
+    lo que le falta para su palabra más larga."""
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
     registrar_fuentes()
@@ -146,6 +152,32 @@ def _anchos_pdf(t: Tabla, ancho_util: float) -> list[float]:
         ajustados.append(minimo if numerica or c.clave in _CLAVES_IDENTIFICADOR else max(titulo, 28) + 2 * _PADDING + _HOLGURA)
         extras.append(max(min(tipico, 220) + 2 * _PADDING - minimo, 0))
         faltantes.append(max(min(palabra, 150) + 2 * _PADDING + _HOLGURA - ajustados[-1], 0))
+    return minimos, ajustados, extras, faltantes
+
+
+def bloques_de_columnas(t: Tabla, ancho_util: float) -> list[list[Columna]]:
+    """CA-11 (QA M08 CU02 H-04): si las columnas no caben en la página sin partir palabras, la tabla se reparte en
+    bloques que caben, uno debajo del otro, y cada bloque repite la primera columna (la que dice de qué fila se
+    trata). Una tabla que cabe sale entera."""
+    minimos = _medidas_pdf(t)[0]
+    if sum(minimos) <= ancho_util or len(t.columnas) < 3:
+        return [list(t.columnas)]
+    bloques, actual, usado = [], [t.columnas[0]], minimos[0]
+    for columna, minimo in zip(t.columnas[1:], minimos[1:]):
+        if len(actual) > 1 and usado + minimo > ancho_util:
+            bloques.append(actual)
+            actual, usado = [t.columnas[0]], minimos[0]
+        actual.append(columna)
+        usado += minimo
+    bloques.append(actual)
+    return bloques
+
+
+def _anchos_pdf(t: Tabla, ancho_util: float) -> list[float]:
+    """Cada columna mide al menos la palabra más larga de su título y, si es de números o fechas, la cifra más larga
+    (así no se parten, M8-12); lo que sobra se reparte según lo largo del contenido. Solo si ni así cabe, se encoge
+    todo en proporción."""
+    minimos, ajustados, extras, faltantes = _medidas_pdf(t)
     if sum(minimos) > ancho_util:
         # Lo que sobre va primero a que quepa la palabra más larga del contenido de cada columna.
         minimos, extras = ajustados, faltantes
@@ -293,27 +325,35 @@ def _pdf(contenido: ContenidoReporte, ruta_logo: Optional[str]) -> bytes:
                                       ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
         return recuadro
 
+    def grilla(t: Tabla) -> Table:
+        montos = [c.tipo in (ENTERO, NUMERO, MONEDA, PORCENTAJE) for c in t.columnas]
+        datos = [[parrafo(c.titulo, cabecera_derecha if m else cabecera, etiquetar=False)
+                  for c, m in zip(t.columnas, montos)]]
+        datos += [[Paragraph(escape(_texto_pdf(f.get(c.clave), c.tipo)),
+                             derecha if m and not isinstance(f.get(c.clave), str) else normal)
+                   for c, m in zip(t.columnas, montos)] for f in t.filas]
+        tabla_pdf = Table(datos, colWidths=_anchos_pdf(t, ancho_util), repeatRows=1, renderCB=arbol.al_dibujar_tabla)
+        arbol.tabla(datos)
+        tabla_pdf.setStyle(TableStyle([_FUENTE_TABLA,
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(_CABECERA)),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor(_BORDE)),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), _PADDING), ("RIGHTPADDING", (0, 0), (-1, -1), _PADDING),
+            ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ]))
+        return tabla_pdf
+
     def tabla(t: Tabla, con_titulo: bool = True) -> list:
         elementos: list = [parrafo(t.titulo, subtitulo)] if con_titulo else []
         if not t.filas:
             elementos.append(parrafo("Sin registros para los filtros elegidos.", gris))
         else:
-            montos = [c.tipo in (ENTERO, NUMERO, MONEDA, PORCENTAJE) for c in t.columnas]
-            datos = [[parrafo(c.titulo, cabecera_derecha if m else cabecera, etiquetar=False)
-                      for c, m in zip(t.columnas, montos)]]
-            datos += [[Paragraph(escape(_texto_pdf(f.get(c.clave), c.tipo)),
-                                 derecha if m and not isinstance(f.get(c.clave), str) else normal)
-                       for c, m in zip(t.columnas, montos)] for f in t.filas]
-            grilla = Table(datos, colWidths=_anchos_pdf(t, ancho_util), repeatRows=1, renderCB=arbol.al_dibujar_tabla)
-            arbol.tabla(datos)
-            grilla.setStyle(TableStyle([_FUENTE_TABLA,
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(_CABECERA)),
-                ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor(_BORDE)),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), _PADDING), ("RIGHTPADDING", (0, 0), (-1, -1), _PADDING),
-                ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]))
-            elementos.append(grilla)
+            bloques = bloques_de_columnas(t, ancho_util)
+            for numero, columnas in enumerate(bloques, start=1):
+                if len(bloques) > 1:
+                    elementos.append(parrafo(f"Bloque de columnas {numero} de {len(bloques)}", gris))
+                elementos.append(grilla(Tabla(t.titulo, columnas, t.filas)))
+                elementos.append(Spacer(1, 6))
         if t.nota:
             elementos.append(parrafo(t.nota, gris))
         elementos.append(Spacer(1, 8))

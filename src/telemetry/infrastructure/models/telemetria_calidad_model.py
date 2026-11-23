@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de las evaluaciones de calidad de telemetría (``modulo3.telemetria_calidad``).
+
+Guarda el índice y la clasificación de calidad, la aptitud para IA/NIC 41 y los
+flags detectados, con versionado de evaluaciones superadas.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +20,8 @@ from .base_model import Base
 
 
 class TelemetriaCalidadModel(Base):
+    """Fila de la tabla ``modulo3.telemetria_calidad``."""
+
     __tablename__ = 'telemetria_calidad'
     __table_args__ = ({'schema': 'modulo3'},)
 

@@ -7,6 +7,7 @@
 # | 2026-11-08 | Leandro | INC-M05-275-G37 RF-80: auditar rechazos de negocio sin conservar escrituras parciales. |
 # | 2026-11-10 | Arekkazu | INC-M05-340-G27/341-G30 RF-78: unidad del tipo (CA-13) y réplicas simultáneas → YA_PROCESADO (CA-15) |
 # | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: tipo de suministro en los eventos de rechazo y de fallo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: registrar un suministro en el ledger de RF-78.
 
 Orden (RF-78): Fase 3 idempotencia (E8 → 200 YA_PROCESADO) → tipo de
@@ -98,10 +99,12 @@ class ResultadoRegistroDirecto:
 
     @property
     def ya_procesado(self) -> bool:
+        """Indica si la operación ya se había procesado (idempotencia)."""
         return self.estado == "YA_PROCESADO"
 
     @property
     def mensaje(self) -> str:
+        """Mensaje visible del resultado."""
         if self.estado == "YA_PROCESADO":
             return (
                 "Operación ya procesada. Se retorna el resultado original sin crear un nuevo registro."
@@ -136,6 +139,7 @@ class RegistrarSuministroDirectoUseCase:
     def execute(
         self, dto: RegistrarSuministroDirectoDTO, usuario_actual: UsuarioActual
     ) -> ResultadoRegistroDirecto:
+        """Registra un suministro con costo directo en el ciclo abierto del activo."""
         contexto: dict[str, Optional[CicloAbierto]] = {}
         try:
             return self._ejecutar(dto, usuario_actual, contexto)

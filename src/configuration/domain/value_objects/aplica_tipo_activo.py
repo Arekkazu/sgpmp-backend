@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Value object ``AplicaTipoActivo`` — scope de aplicación de una métrica."""
 from __future__ import annotations
 
@@ -16,6 +19,11 @@ class AplicaTipoActivo(str, Enum):
 
     @classmethod
     def desde_string(cls, valor: str) -> 'AplicaTipoActivo':
+        """Convierte el texto en el valor del catálogo.
+
+        Raises:
+            ValidationError: Si el valor no pertenece al catálogo.
+        """
         normalizado = valor.strip().upper()
         try:
             return cls(normalizado)

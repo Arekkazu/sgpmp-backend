@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: catálogo del motor IA armado desde la BD            |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Animales que atiende el motor IA (M02 + M09) y su versión de RF-69 (RFC-010).
 
 Un animal entra al catálogo si es INDIVIDUAL, sigue vivo (ACTIVO, EN_TRATAMIENTO o AISLADO),
@@ -62,10 +63,12 @@ _SQL_REFERENCIA = text("""
 
 
 class CatalogoMotorM02Adapter(CatalogoMotorPort):
+    """Lee los animales y su tipo de modelo asignado."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def animales(self, id_activo: Optional[int] = None) -> list[AnimalMotor]:
+        """Animales INDIVIDUAL vivos, con sensor directo, en un área de modelo individual."""
         try:
             filas = self._db.execute(_SQL_ANIMALES, {
                 "estados": list(ESTADOS_ATENDIDOS), "tipos": list(TIPOS_INDIVIDUALES), "activo": id_activo,
@@ -75,12 +78,14 @@ class CatalogoMotorM02Adapter(CatalogoMotorPort):
         return [AnimalMotor(*f) for f in filas]
 
     def version_referencia(self, tipo_modelo: str) -> Optional[int]:
+        """Versión ACTIVO o SOMBRA de algún animal de ese tipo de modelo, para copiarla."""
         try:
             return self._db.execute(_SQL_REFERENCIA, {"tipo": tipo_modelo}).scalar()
         except Exception as exc:
             raise_from_db_error(exc)
 
     def lecturas(self, id_activo: int, desde: datetime, hasta: datetime) -> list[dict]:
+        """Lecturas de ET-02 del animal en el formato largo del contrato IA-1."""
         try:
             return lecturas_activo(self._db, id_activo, desde, hasta)
         except Exception as exc:

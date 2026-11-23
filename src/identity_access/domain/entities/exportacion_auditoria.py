@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidades de dominio de la exportación asíncrona de auditoría (RF-10)."""
 from __future__ import annotations
 
@@ -34,6 +37,7 @@ class TrabajoExportacion:
 
     @property
     def descargable(self) -> bool:
+        """Indica si la exportación terminó y se puede descargar."""
         return self.estado == EstadoExportacion.COMPLETADO.value
 
 

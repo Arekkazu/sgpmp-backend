@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: respuesta de procesos de reentrenamiento y cuerpo del PATCH del motor |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-69 P-6: el motor recibe las variables I3P-1 de la versión de referencia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de procesos de reentrenamiento."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,6 +17,7 @@ from src.prediction.domain.entities.proceso_reentrenamiento import FASES, Proces
 
 
 class FaseProcesoResponse(BaseModel):
+    """Fase de un proceso de reentrenamiento."""
     fase: int
     nombre: str
     fecha_inicio: Optional[datetime] = None
@@ -24,6 +27,7 @@ class FaseProcesoResponse(BaseModel):
 
 
 class ProcesoReentrenamientoResponse(BaseModel):
+    """Proceso de reentrenamiento con sus fases."""
     model_config = ConfigDict(from_attributes=True)
 
     id_proceso_reentrenamiento: UUID
@@ -53,6 +57,7 @@ class ProcesoReentrenamientoResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, p: ProcesoReentrenamiento) -> "ProcesoReentrenamientoResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         por_numero = {f.get("fase"): f for f in p.fases}
         fases = [FaseProcesoResponse(fase=n, nombre=nombre, **{k: por_numero.get(n, {}).get(k) for k in ("fecha_inicio", "fecha_fin", "resultado")})
                  for n, nombre in enumerate(FASES, start=1)]
@@ -71,6 +76,7 @@ class ProcesoReentrenamientoMotorResponse(ProcesoReentrenamientoResponse):
 
 
 class ListaProcesosReentrenamientoResponse(BaseModel):
+    """Página de procesos de reentrenamiento."""
     items: list[ProcesoReentrenamientoResponse]
     total: int
     pagina: int
@@ -91,4 +97,5 @@ class ActualizarProcesoDTO(BaseModel):
 
 
 class RetroalimentacionesMotorResponse(BaseModel):
+    """Retroalimentaciones entregadas al motor."""
     retroalimentaciones: list[dict[str, Any]]

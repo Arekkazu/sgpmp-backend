@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: animal individual que el motor IA debe atender      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Read-model: un animal individual que el motor IA atiende y la versión que le toca."""
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class AnimalMotor:
+    """Animal con el tipo de modelo asignado a su área."""
     id_activo_biologico: int
     #: ``tipo_modelo_asignado`` del área (RF-20).
     tipo_modelo: str

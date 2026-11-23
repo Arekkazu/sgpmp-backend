@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para endpoints de configuración remota de dispositivos IoT (RF-23)."""
 from __future__ import annotations
 
@@ -27,6 +30,7 @@ class ConfiguracionRemotaResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, config, mensaje: Optional[str] = None) -> ConfiguracionRemotaResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_configuracion_remota=config.id_configuracion_remota,
             id_dispositivo_iot=config.id_dispositivo_iot,

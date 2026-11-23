@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: consulta limitada a las fincas     |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consultar/buscar aplicaciones de medicamento (RF-76).
 
 Permite filtrar por activo, rango de fechas y estado. Solo devuelve registros
@@ -36,6 +37,7 @@ class ConsultarMedicamentosUseCase:
         estado_registro: Optional[str] = None,
         id_finca: Optional[int] = None,
     ) -> list[Medicamento]:
+        """Lista las aplicaciones de medicamentos visibles con filtros."""
         return self.medicamento_repo.listar(
             id_activo_biologico=id_activo_biologico,
             fecha_desde=fecha_desde,

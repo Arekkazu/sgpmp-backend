@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: edita esperanza_vida_dias (omitida conserva); snapshot desde la entidad |
 # | 2026-10-20 | Arekkazu | DEV-21 RF-15: bajar la densidad que deja un área excedida → 422 (RFC-012) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Editar especie existente del catálogo (Flujo B — RF-15).
 
 Administrador e Ingeniero de Campo pueden editar. Concurrencia optimista
@@ -40,6 +41,7 @@ class EditarEspecieUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_especie: int, dto: EditarEspecieDTO, usuario_actual: UsuarioActual) -> Especie:
+        """Edita la especie y la audita."""
         especie = self.especies_repo.obtener_por_id(id_especie, bloquear=True)
         if especie is None:
             raise NotFoundError(

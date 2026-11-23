@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101 Fase 4: editar, suspender, reactivar, revocar y rotar el secreto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Operaciones administrativas sobre un cliente externo (RF-101 Fase 4). Efecto inmediato: cada
 solicitud con token relee el cliente. La auditoría va en la misma transacción (RF-102 4.1)."""
 from __future__ import annotations
@@ -22,6 +23,7 @@ _EVENTO = {"suspender": "CLIENTE_SUSPENDIDO", "reactivar": "CLIENTE_REACTIVADO",
 
 
 class GestionarClienteExternoUseCase:
+    """Edita, suspende, reactiva, revoca y rota el secreto de clientes externos."""
     def __init__(self, clientes: ClienteExternoRepository, auditoria: AuditoriaIntegracionRepository, db: Session):
         self.clientes = clientes
         self.auditoria = auditoria
@@ -43,6 +45,7 @@ class GestionarClienteExternoUseCase:
 
     def editar(self, id_cliente_externo: int, canales: dict[str, int], ip_permitida: Optional[str],
                ttl_token_canal_minutos: int, fecha_actualizacion: Optional[datetime], id_usuario: int) -> ClienteExterno:
+        """Edita la configuración del cliente con control de concurrencia."""
         cliente = self._cliente(id_cliente_externo)
         if cliente.fecha_actualizacion is None or fecha_actualizacion is None or (
                 cliente.fecha_actualizacion.astimezone(timezone.utc) != fecha_actualizacion.astimezone(timezone.utc)):
@@ -58,6 +61,11 @@ class GestionarClienteExternoUseCase:
         return cliente
 
     def cambiar_estado(self, id_cliente_externo: int, accion: str, motivo: Optional[str], id_usuario: int) -> ClienteExterno:
+        """Suspende, reactiva o revoca el cliente.
+
+        Raises:
+            ValidationError: Si falta el motivo al suspender o revocar.
+        """
         if accion != "reactivar" and not (motivo or "").strip():
             raise ValidationError(code="MOTIVO_REQUERIDO", field="motivo", message="Indique el motivo del cambio.")
         cliente = self._cliente(id_cliente_externo)

@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad de evento de auditoría del motor de inferencia."""
 from __future__ import annotations
 
 import uuid
@@ -8,6 +12,7 @@ from typing import Any, Optional
 
 @dataclass(frozen=True)
 class EventoAuditoriaM04:
+    """Evento de auditoría del motor de inferencia."""
     id_evento: uuid.UUID
     tipo_evento: str
     modulo: str

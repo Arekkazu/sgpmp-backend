@@ -2,6 +2,8 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: indicadores del sistema de alertas en SQL agregado |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de indicadores agregados del sistema de alertas (RF-57/RF-58)."""
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -81,6 +83,7 @@ LIMIT :limite
 
 
 class SqlAlchemyIndicadoresAlertasRepository(IndicadoresAlertasRepository):
+    """Calcula indicadores y lista alertas activas con SQL agregado."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -96,6 +99,7 @@ class SqlAlchemyIndicadoresAlertasRepository(IndicadoresAlertasRepository):
         }
 
     def calcular(self, filtro: FiltroIndicadoresAlertas) -> IndicadoresAlertas:
+        """Calcula los indicadores agregados del sistema de alertas."""
         parametros = self._parametros(filtro)
         fila = self.db.execute(_SQL_INDICADORES, parametros).mappings().one()
         por_tipo = {f['tipo']: f['total'] for f in self.db.execute(_SQL_POR_TIPO, parametros).mappings()}
@@ -112,9 +116,11 @@ class SqlAlchemyIndicadoresAlertasRepository(IndicadoresAlertasRepository):
         )
 
     def contar_vencidas_sin_atencion(self, filtro: FiltroIndicadoresAlertas) -> int:
+        """Cuenta las alertas vencidas que aún no han sido atendidas."""
         return self.db.execute(_SQL_VENCIDAS, self._parametros(filtro)).scalar_one()
 
     def listar_activas(self, filtro: FiltroIndicadoresAlertas, limite: int) -> tuple[list[AlertaActivaPanel], int]:
+        """Lista las alertas activas priorizadas por severidad y fecha."""
         filas = self.db.execute(_SQL_ACTIVAS, {**self._parametros(filtro), 'limite': limite}).mappings().all()
         total = filas[0]['total'] if filas else 0
         return [AlertaActivaPanel(**{k: v for k, v in f.items() if k != 'total'}) for f in filas], total

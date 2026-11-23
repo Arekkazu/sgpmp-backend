@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: registra esperanza_vida_dias; snapshot desde la entidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar nueva especie en el catálogo (Flujo A — RF-15).
 
 Solo el Administrador puede registrar especies nuevas.
@@ -35,6 +36,7 @@ class RegistrarEspecieUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarEspecieDTO, usuario_actual: UsuarioActual) -> Especie:
+        """Registra una especie en el catálogo."""
         nombre = NombreEspecie(dto.nombre)
 
         existente = self.especies_repo.obtener_por_nombre(nombre)

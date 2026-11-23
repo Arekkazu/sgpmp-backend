@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-SSO02 / RF-101: dependencia FastAPI de acceso por token de canal |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Dependencia para los endpoints que AgroFusion llama con el token de canal (RF-SSO02, RF-101 Fase 3).
 
 Si se rechaza, queda en la auditoría de integración (RF-101 5.10) antes de responder; si se acepta,
@@ -20,6 +21,7 @@ from src.shared.errors import AppError
 
 
 def requerir_canal(canal: str) -> Callable[..., AccesoCanal]:
+    """Crea la dependencia FastAPI que exige acceso verificado al canal."""
     def dependencia(request: Request, db: Session = Depends(get_db)) -> AccesoCanal:
         m07 = M07(db)
         ip = request.client.host if request.client else None

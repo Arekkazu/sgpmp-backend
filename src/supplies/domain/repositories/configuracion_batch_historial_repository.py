@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura de la configuración del motor async de historial de suministros (RF-81)."""
 from __future__ import annotations
 
@@ -23,6 +26,8 @@ class ConfiguracionBatchHistorial:
 
 
 class ConfiguracionBatchHistorialRepository(ABC):
+    """Puerto de la configuración del procesamiento asíncrono del historial."""
     @abstractmethod
     def obtener(self) -> ConfiguracionBatchHistorial:
+        """Devuelve la configuración vigente."""
         raise NotImplementedError

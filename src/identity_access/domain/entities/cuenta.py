@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | RFC-019 D-19.6: activación idempotente para las cuentas creadas por AgroFusion |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``Cuenta`` del contexto de identidad y acceso.
 
 Representa el estado operativo y de seguridad de la cuenta de un usuario
@@ -64,15 +65,19 @@ class Cuenta:
 
     # ── Consultas de estado ─────────────────────────────────────────────────
     def esta_activa(self) -> bool:
+        """Indica si la cuenta está activa."""
         return self.id_estado_cuenta == self.ESTADO_ACTIVO
 
     def esta_pendiente(self) -> bool:
+        """Indica si la cuenta está pendiente de activación."""
         return self.id_estado_cuenta == self.ESTADO_PENDIENTE
 
     def esta_bloqueada(self) -> bool:
+        """Indica si la cuenta está bloqueada."""
         return self.id_estado_cuenta == self.ESTADO_BLOQUEADO
 
     def esta_pendiente_datos(self) -> bool:
+        """Indica si la cuenta está pendiente de completar datos."""
         return self.id_estado_cuenta == self.ESTADO_PENDIENTE_DATOS
 
     # ── Activación / tokens ─────────────────────────────────────────────────
@@ -140,6 +145,7 @@ class Cuenta:
 
     # ── Contadores de seguridad (login) ─────────────────────────────────────
     def incrementar_intentos(self, ahora: datetime) -> None:
+        """Suma un intento fallido de inicio de sesión."""
         self.intentos_fallidos += 1
         self.ultimo_intento_fallido = ahora
 
@@ -175,18 +181,22 @@ class Cuenta:
         return hasta <= ahora
 
     def resetear_intentos(self) -> None:
+        """Reinicia el contador de intentos fallidos."""
         self.intentos_fallidos = 0
         self.ultimo_intento_fallido = None
 
     def registrar_acceso(self, ahora: datetime) -> None:
+        """Registra la fecha del último acceso."""
         self.ultimo_acceso = ahora
 
     # ── Contadores de seguridad (cambio de contraseña) ──────────────────────
     def bloquear_cambio_contrasena(self, ahora: datetime, minutos: Optional[int] = None) -> None:
+        """Bloquea temporalmente el cambio de contraseña."""
         minutos = self.MINUTOS_BLOQUEO_CONTRASENA if minutos is None else minutos
         self.bloqueado_hasta = ahora + timedelta(minutes=minutos)
 
     def resetear_cambio_contrasena(self) -> None:
+        """Reinicia los intentos y el bloqueo del cambio de contraseña."""
         self.intentos_fallidos = 0
         self.ultimo_intento_fallido = None
         self.bloqueado_hasta = None

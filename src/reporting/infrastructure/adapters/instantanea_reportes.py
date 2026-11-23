@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                             |
 # |------------|----------|-------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: instantánea de lectura con la identidad de quien pidió el reporte |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Instantánea de datos de un reporte (RF-104 Fase 2.1, CA-12, RNF-08).
 
 Abre una sesión aparte en ``REPEATABLE READ`` y solo lectura: todas las consultas del reporte ven la BD tal como
@@ -34,6 +35,7 @@ def _nombre_rol(id_usuario: int) -> str:
 
 @contextmanager
 def abrir_instantanea(id_usuario: int, zona_horaria: str) -> Generator[FuenteReportesRepository]:
+    """Abre una lectura consistente de los datos con la identidad y zona del usuario."""
     token = establecer_zona_usuario(zona_horaria)
     db = SessionLocal()
     try:

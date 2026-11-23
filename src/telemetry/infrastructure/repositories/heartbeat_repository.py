@@ -1,6 +1,8 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: persistir e hidratar el snapshot opcional junto a su heartbeat. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Repositorio de heartbeats de dispositivos IoT (RF-54)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -14,11 +16,13 @@ from src.telemetry.infrastructure.models.heartbeat_model import HeartbeatModel
 
 
 class SqlAlchemyHeartbeatRepository(HeartbeatRepository):
+    """Persiste los heartbeats recibidos de los dispositivos."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def guardar(self, heartbeat: Heartbeat) -> Heartbeat:
+        """Guarda un heartbeat y devuelve la entidad persistida."""
         try:
             orm = HeartbeatModel(
                 id_dispositivo_iot=heartbeat.id_dispositivo_iot,

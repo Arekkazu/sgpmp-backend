@@ -5,6 +5,7 @@
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: correos de alertas con nombres y rótulos legibles en vez de ids y códigos |
 # | 2026-11-14 | Arekkazu | M08 RF-105: pasa la alerta para el nivel y el destino del push |
 # | 2026-11-18 | Arekkazu | M08 RF-105: sin destinatarios en el área, la alerta va al Administrador |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: notificar las alertas nuevas (RF-57 Fase 8, E6, E7, E8).
 
 Corre cada pocos segundos fuera del request del broker:
@@ -61,6 +62,7 @@ VENTANA_AVISO_CONTEXTO = timedelta(hours=24)
 
 
 class NotificarAlertasUseCase:
+    """Envía las notificaciones de alertas pendientes a sus destinatarios."""
 
     def __init__(
         self,

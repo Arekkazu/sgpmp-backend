@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: historial de fases productivas de un activo (RF-37)."""
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ class ConsultarHistorialFasesUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[GestionFase]:
+        """Lista el historial de fases del activo."""
         activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

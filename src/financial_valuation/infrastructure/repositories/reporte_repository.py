@@ -14,6 +14,7 @@
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: valores al cierre por período, asientos que el cierre trasladó y riesgos climáticos |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-92/93: el nombre de quien aprobó sale aunque la RLS de usuarios lo oculte |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`ReporteRepository`."""
 from __future__ import annotations
 
@@ -80,12 +81,14 @@ _APROBADOR_INFORME = {"id_contador_aprobador": "nombre_aprobador"}
 
 
 class SqlAlchemyReporteRepository(ReporteRepository):
+    """Implementación SQLAlchemy de ``ReporteRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     # --- RF-93 ---------------------------------------------------------------------------------
 
     def movimientos(self, id_periodo_contable: int, filtros: dict) -> list[dict]:
+        """Líneas REGISTRADAS del período con activo, especie, finca e infraestructura."""
         condiciones, params = ["l.id_periodo_contable = :p", "l.estado = 'REGISTRADA'"], {"p": id_periodo_contable}
         for campo, sql in _FILTROS:
             if filtros.get(campo):
@@ -107,6 +110,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             WHERE {' AND '.join(condiciones)}""", params)
 
     def hechos_sin_asiento(self, id_periodo_contable: int) -> list[dict]:
+        """RF-93 FA-2: variaciones (RF-86) y productos agrícolas (RF-85) del período sin línea de asiento."""
         # La línea se busca por su origen, no por su período: el cierre traslada al siguiente las que excluye.
         return filas(self.db, f"""
             SELECT 'variaciones_valor_razonable' AS fuente, v.id_variacion_valor_razonable AS id_origen,
@@ -128,6 +132,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             ORDER BY 1, 2""", {"p": id_periodo_contable})
 
     def agregar_estado(self, datos: dict) -> int:
+        """Guarda un estado de resultados y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.estados_resultados_periodo (id_periodo_contable, total_ingresos_transformacion,
                 total_ingresos_precio_mercado, total_ingresos_cosecha, total_gastos_mantenimiento, total_bajas_deterioro,
@@ -138,6 +143,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
             RETURNING id_estado""", {**datos, "componentes": a_json(datos["componentes"]), "filtros": a_json(datos["filtros"])})
 
     def obtener_estado(self, id_estado: int) -> Optional[dict]:
+        """Devuelve el estado de resultados, o ``None``."""
         estado = fila(self.db, f"""SELECT id_estado, id_periodo_contable, total_ingresos, total_gastos, resultado_neto, estado,
                                          hash_consistencia, fecha_generacion, json_componentes AS componentes,
                                          json_filtros AS filtros, version, id_usuario, id_usuario_aprobador, fecha_aprobacion
@@ -146,11 +152,13 @@ class SqlAlchemyReporteRepository(ReporteRepository):
         return con_nombres(self.db, [estado], _APROBADOR_ESTADO)[0] if estado else None
 
     def aprobar_estado(self, id_estado: int, id_usuario: int) -> None:
+        """Aprueba el estado de resultados."""
         escribir(self.db, """UPDATE modulo6.estados_resultados_periodo
                              SET estado = 'APROBADO', id_usuario_aprobador = :u, fecha_aprobacion = now()
                              WHERE id_estado = :id AND estado = 'GENERADO'""", {"id": id_estado, "u": id_usuario})
 
     def listar_estados(self, id_periodo_contable: int) -> list[dict]:
+        """Lista los estados de resultados del periodo."""
         return filas(self.db, f"""SELECT id_estado, id_periodo_contable, total_ingresos, total_gastos, resultado_neto, estado,
                                         fecha_generacion, json_filtros AS filtros, version, fecha_aprobacion
                                  FROM modulo6.estados_resultados_periodo er
@@ -158,12 +166,14 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                                  ORDER BY version DESC""", {"p": id_periodo_contable})
 
     def siguiente_version_estado(self, id_periodo_contable: int) -> int:
+        """Siguiente número de versión del estado de resultados."""
         return fila(self.db, """SELECT COALESCE(max(version), 0) + 1 AS v FROM modulo6.estados_resultados_periodo
                                 WHERE id_periodo_contable = :p""", {"p": id_periodo_contable})["v"]
 
     # --- RF-92 ---------------------------------------------------------------------------------
 
     def datos_revelaciones(self, id_periodo_contable: int) -> dict:
+        """Insumos de RF-92: activos, rollforward, supuestos, precios, costo, riesgos."""
         p = {"p": id_periodo_contable}
         periodo = fila(self.db, """SELECT id_periodo_contable, numero_id_tributaria, fecha_inicio, fecha_fin,
                                           tipo_cierre::text AS tipo_cierre FROM modulo6.periodos_contables
@@ -312,6 +322,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                 "costos_mantenimiento": costos["total"]}
 
     def agregar_informe(self, datos: dict) -> int:
+        """Guarda un informe de revelaciones y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.informes_revelacion_nic41 (id_periodo_contable, version_informe, estado, contenido_jsonb,
                 supuestos_valuacion, activos_sin_mercado_json, riesgos_identificados, hash_informe, id_usuario_solicitante)
@@ -321,6 +332,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                                       "costo": a_json(datos["costo"]), "riesgos": a_json(datos["riesgos"])})
 
     def obtener_informe(self, id_informe: int) -> Optional[dict]:
+        """Devuelve el informe, o ``None``."""
         informe = fila(self.db, f"""SELECT i.id_informe, i.id_periodo_contable, i.version_informe, i.estado::text AS estado,
                                            i.contenido_jsonb AS contenido, i.hash_informe, i.id_contador_aprobador, i.fecha_aprobacion,
                                            i.razon_rechazo, i.id_usuario_solicitante, i.fecha_generacion
@@ -343,6 +355,7 @@ class SqlAlchemyReporteRepository(ReporteRepository):
         return f["id_periodo_contable"] if f else None
 
     def aprobar_informe(self, id_informe: int, id_usuario: int) -> None:
+        """Aprueba y archiva la versión APROBADA anterior del período (RF-92 R4)."""
         informe = self.obtener_informe(id_informe)
         escribir(self.db, """UPDATE modulo6.informes_revelacion_nic41 SET estado = 'ARCHIVADO'
                              WHERE id_periodo_contable = :p AND estado = 'APROBADO'""", {"p": informe["id_periodo_contable"]})
@@ -351,10 +364,12 @@ class SqlAlchemyReporteRepository(ReporteRepository):
                              WHERE id_informe = :id AND estado = 'BORRADOR'""", {"id": id_informe, "u": id_usuario})
 
     def rechazar_informe(self, id_informe: int, razon: str) -> None:
+        """Rechaza el informe con su razón."""
         escribir(self.db, """UPDATE modulo6.informes_revelacion_nic41 SET estado = 'RECHAZADO', razon_rechazo = :r
                              WHERE id_informe = :id AND estado = 'BORRADOR'""", {"id": id_informe, "r": razon})
 
     def listar_informes(self, id_periodo_contable: int) -> list[dict]:
+        """Lista los informes del periodo."""
         informes = con_nombres(self.db, filas(self.db, f"""
             SELECT i.id_informe, i.version_informe, i.estado::text AS estado, i.fecha_generacion, i.fecha_aprobacion,
                    i.razon_rechazo, i.hash_informe, i.id_contador_aprobador
@@ -366,5 +381,6 @@ class SqlAlchemyReporteRepository(ReporteRepository):
         return informes
 
     def siguiente_version_informe(self, id_periodo_contable: int) -> int:
+        """Siguiente número de versión del informe."""
         return fila(self.db, "SELECT count(*) + 1 AS v FROM modulo6.informes_revelacion_nic41 WHERE id_periodo_contable = :p",
                     {"p": id_periodo_contable})["v"]

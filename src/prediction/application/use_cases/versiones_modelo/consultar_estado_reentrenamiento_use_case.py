@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RF-71: aviso de datos insuficientes para reentrenar el modelo individual |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-71: ¿tiene cada modelo individual retroalimentaciones suficientes para reentrenarse?
 
 Por debajo del mínimo de solicitud (200 por defecto) se avisa que faltan datos; desde ahí se
@@ -28,6 +29,7 @@ from src.prediction.domain.repositories.retroalimentacion_clinica_repository imp
 
 
 class ConsultarEstadoReentrenamientoUseCase:
+    """Consulta si cada tipo de modelo tiene datos suficientes para reentrenar."""
     def __init__(
         self, *, retroalimentacion_repo: RetroalimentacionClinicaRepository, parametros_port: ParametrosMLOpsPort
     ) -> None:
@@ -35,6 +37,7 @@ class ConsultarEstadoReentrenamientoUseCase:
         self._parametros = parametros_port
 
     def execute(self) -> list[EstadoReentrenamiento]:
+        """Devuelve el estado de reentrenamiento de cada tipo de modelo."""
         parametros = self._parametros.obtener([RF71_MIN_SOLICITUD, RF71_MIN_REENTRENAMIENTO])
 
         def minimo(nombre: str, base: int) -> int:

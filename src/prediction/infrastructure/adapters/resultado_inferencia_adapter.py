@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                             |
 # |------------|----------|---------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M04-228-G068 RF-72: informa si el activo está en BAJA |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador de lectura de resultados de inferencia."""
 from __future__ import annotations
 
 import uuid
@@ -16,10 +18,12 @@ from src.prediction.infrastructure.models.resultado_inferencia_model import Resu
 
 
 class SqlAlchemyResultadoInferenciaAdapter(ResultadoInferenciaPort):
+    """Implementación SQLAlchemy de ``ResultadoInferenciaPort``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def obtener_por_id(self, id_resultado: uuid.UUID) -> Optional[dict]:
+        """Devuelve dict con fecha_inferencia, id_activo_biologico y activo_en_baja, o None si no existe."""
         orm = self._db.get(ResultadoInferenciaModel, id_resultado)
         if orm is None:
             return None

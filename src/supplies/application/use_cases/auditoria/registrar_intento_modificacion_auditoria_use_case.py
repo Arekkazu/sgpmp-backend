@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: registrar intentos de alterar la bitácora sin modificar el evento solicitado. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Audita el intento autenticado; no consulta ni modifica el registro objetivo."""
 from __future__ import annotations
 
@@ -18,11 +19,13 @@ _OPERACIONES = {'PUT': ('UPDATE', 'actualización'), 'PATCH': ('UPDATE', 'actual
 
 
 class RegistrarIntentoModificacionAuditoriaUseCase:
+    """Audita los intentos de modificar o borrar la auditoría."""
     def __init__(self, db: Session, auditoria_port: AuditoriaSuministroPort) -> None:
         self.db = db
         self.auditoria_port = auditoria_port
 
     def execute(self, *, id_usuario: int, id_registro_solicitado: int, metodo: str) -> None:
+        """Registra el intento rechazado de modificar un evento de auditoría."""
         operacion, accion = _OPERACIONES[metodo]
         evento = EventoAuditoriaSuministro(
             entidad_afectada='auditorias_suministros', tipo_operacion=operacion,

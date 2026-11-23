@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: ciclos productivos de la especie con sus fases en orden |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`CicloProductivoRepository`.
 
 ``ciclos_productivos.id_ciclo_biologico`` guarda la primera fase: de ahí sale la especie del ciclo (M02 la lee
@@ -41,6 +42,7 @@ _BORRAR = (
 
 
 class SqlAlchemyCicloProductivoRepository(CicloProductivoRepository):
+    """Implementación SQLAlchemy de ``CicloProductivoRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -56,16 +58,19 @@ class SqlAlchemyCicloProductivoRepository(CicloProductivoRepository):
         return ciclos
 
     def listar_por_especie(self, id_especie: int) -> list[CicloProductivo]:
+        """Ciclos de la especie por nombre, cada uno con sus fases en orden."""
         return self._con_fases(self.db.execute(
             text(_CICLOS + " WHERE cb.id_especie = :e ORDER BY lower(cp.nombre), cp.id_ciclo_productivo"),
             {"e": id_especie}).all())
 
     def obtener(self, id_ciclo_productivo: int) -> Optional[CicloProductivo]:
+        """El ciclo con sus fases, o ``None``."""
         ciclos = self._con_fases(self.db.execute(text(_CICLOS + " WHERE cp.id_ciclo_productivo = :id"),
                                                  {"id": id_ciclo_productivo}).all())
         return ciclos[0] if ciclos else None
 
     def existe_nombre(self, id_especie: int, nombre: str, excluir: Optional[int] = None) -> bool:
+        """Si la especie ya tiene un ciclo con ese nombre, sin distinguir mayúsculas."""
         return self.db.execute(text("""
             SELECT 1 FROM modulo9.ciclos_productivos cp
             JOIN modulo9.ciclos_biologicos cb ON cb.id_ciclo_biologico = cp.id_ciclo_biologico
@@ -74,6 +79,7 @@ class SqlAlchemyCicloProductivoRepository(CicloProductivoRepository):
             LIMIT 1"""), {"e": id_especie, "n": nombre, "x": excluir}).first() is not None
 
     def guardar(self, ciclo: CicloProductivo) -> CicloProductivo:
+        """Inserta o actualiza el ciclo y reescribe sus fases en orden. Hace ``flush``."""
         datos = {"n": ciclo.nombre, "d": ciclo.duracion_dias, "b": ciclo.fases[0].id_ciclo_biologico}
         try:
             if ciclo.id_ciclo_productivo is None:
@@ -103,6 +109,7 @@ class SqlAlchemyCicloProductivoRepository(CicloProductivoRepository):
         return ciclo
 
     def eliminar(self, id_ciclo_productivo: int) -> None:
+        """Borra el ciclo, sus fases y las métricas habilitadas en él. Hace ``flush``."""
         try:
             for sql in _BORRAR:
                 self.db.execute(sql, {"id": id_ciclo_productivo})

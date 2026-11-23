@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: editar regla de alerta con concurrencia optimista (412) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Editar una regla de alerta (RF-55/RF-57, BE-0).
 
 Concurrencia optimista con ``fecha_actualizacion`` (412), que el trigger
@@ -33,6 +34,7 @@ def _conflicto() -> PreconditionFailedError:
 
 
 class EditarReglaAlertaUseCase:
+    """Edita una regla de alerta con control de concurrencia optimista."""
 
     def __init__(
         self,
@@ -47,6 +49,11 @@ class EditarReglaAlertaUseCase:
     def execute(
         self, id_regla_alertas: int, dto: EditarReglaAlertaDTO, id_usuario: int,
     ) -> tuple[ReglaAlerta, Optional[ResultadoSincronizacionRegla]]:
+        """Actualiza la regla y, si es compuesta, la sincroniza con Edge.
+
+        Raises:
+            PreconditionFailedError: Si la regla fue modificada por otro usuario.
+        """
         try:
             regla = obtener_regla_o_404(self.regla_repo, id_regla_alertas, bloquear=True)
             ts_actual = regla.fecha_actualizacion

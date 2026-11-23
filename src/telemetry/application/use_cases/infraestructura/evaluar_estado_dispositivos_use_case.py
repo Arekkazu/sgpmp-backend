@@ -5,6 +5,7 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: evalua diagnosticos aunque no cambie estado |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: conserva al trigger como fuente unica de transiciones |
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: evaluar la cola reportada sin confundir contacto reciente con sincronización terminada. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """Evaluación periódica: parámetros reales y algoritmo único de RF-60."""
 from datetime import datetime, timezone
 
@@ -12,6 +13,8 @@ from .transicion_comunicacion import completar_transicion_comunicacion
 
 
 class EvaluarEstadoDispositivosUseCase:
+    """Evalúa los umbrales de comunicación y aplica las transiciones de estado."""
+
     def __init__(self, db, estado_repo, transicion_repo, periodo_repo,
                  alerta_repo, historico_alerta_repo, parametros_port):
         self.db = db
@@ -24,6 +27,7 @@ class EvaluarEstadoDispositivosUseCase:
         # historial y períodos dentro de la transacción del cambio de estado.
 
     def execute(self, id_dispositivo=None, *, confirmar=True) -> int:
+        """Evalúa uno o todos los dispositivos y devuelve cuántas transiciones aplicó."""
         ahora = datetime.now(timezone.utc)
         transiciones = 0
         try:

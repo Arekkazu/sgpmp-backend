@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar una etapa del ciclo productivo (Flujo A — RF-16)."""
 from typing import Optional
 import re
@@ -19,6 +22,7 @@ class RegistrarCicloDTO(BaseDTO):
     @field_validator("nombre")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         v = v.strip()
         if len(v) < 3 or len(v) > 50:
             raise ValueError("El nombre de la etapa debe tener entre 3 y 50 caracteres.")
@@ -31,6 +35,7 @@ class RegistrarCicloDTO(BaseDTO):
     @field_validator("descripcion")
     @classmethod
     def validar_descripcion(cls, v: Optional[str]) -> Optional[str]:
+        """Valida la descripción opcional."""
         if v is not None and len(v) > 255:
             raise ValueError("La descripción no puede superar los 255 caracteres.")
         return v
@@ -38,6 +43,7 @@ class RegistrarCicloDTO(BaseDTO):
     @field_validator("duracion_dias")
     @classmethod
     def validar_duracion(cls, v: int) -> int:
+        """Exige una duración mayor a cero."""
         if v <= 0:
             raise ValueError(
                 f"La duración estimada debe ser un número entero positivo mayor a 0. Valor recibido: {v}."

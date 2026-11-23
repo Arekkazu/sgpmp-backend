@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Implementación SQLAlchemy de ``HistorialCatalogoRepository``."""
 from __future__ import annotations
 
 from typing import Optional
@@ -10,6 +14,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyHistorialCatalogoRepository(HistorialCatalogoRepository):
+    """Implementación SQLAlchemy de ``HistorialCatalogoRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
@@ -23,6 +28,7 @@ class SqlAlchemyHistorialCatalogoRepository(HistorialCatalogoRepository):
         id_usuario: int,
         datos_anteriores: Optional[dict] = None,
     ) -> None:
+        """Registra una versión del catálogo."""
         try:
             self._db.add(
                 HistorialCatalogoModel(

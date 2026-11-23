@@ -2,6 +2,8 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: entrada para declarar una arista de transmisión |
 # | 2026-11-02 | Arekkazu | RF-110: entrada para editar una arista de transmisión              |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO de registro de una arista de transmisión."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -13,6 +15,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarAristaTransmisionDTO(BaseDTO):
+    """Datos de una arista de transmisión entre áreas."""
     id_infraestructura_origen: int = Field(gt=0, description="Área desde la que puede salir el contagio.")
     id_infraestructura_destino: int = Field(gt=0, description="Área expuesta (misma finca).")
     via: Literal["PROXIMIDAD", "AIRE", "AGUA", "PERSONAL", "FOMITES", "ALIMENTO", "MOVIMIENTO_ANIMAL"]

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``Calibracion`` — registro de calibración de un sensor (RF-24).
 
 Es inmutable una vez creada; la tabla `calibraciones` es el historial de trazabilidad.
@@ -43,6 +46,7 @@ class Calibracion:
         observaciones: Optional[str] = None,
         modo_calibracion: ModoCalibracion = ModoCalibracion.SENSOR,
     ) -> Calibracion:
+        """Crea la entidad validando sus datos."""
         # offset por defecto = valor_referencia (ajuste de cero), consistente con
         # el consumidor de telemetry cuando el modelo era de un solo parámetro.
         return cls(

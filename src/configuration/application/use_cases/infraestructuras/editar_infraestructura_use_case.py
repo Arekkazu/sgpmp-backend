@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: edita 1..N especies, retiro con activos y capacidad efectiva (422) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Editar área productiva (PATCH RF-20). Concurrencia optimista (FA-14)."""
 from __future__ import annotations
 
@@ -59,6 +60,7 @@ class EditarInfraestructuraUseCase:
     def execute(
         self, id_infraestructura: int, dto: EditarInfraestructuraDTO, usuario_actual: UsuarioActual
     ) -> Infraestructura:
+        """Edita el área, valida su coherencia con especies y modelo y la audita."""
         infra = self.infra_repo.obtener_por_id(id_infraestructura, bloquear=True)
         if infra is None:
             raise NotFoundError(

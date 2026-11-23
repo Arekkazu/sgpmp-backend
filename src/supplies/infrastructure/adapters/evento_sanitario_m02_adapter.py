@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de consulta de eventos sanitarios (RF-41) contra ``modulo2``.
 
 ``eventos_sanitarios`` comparte PK con ``eventos_activos`` (``id_evento`` =
@@ -21,6 +24,7 @@ class EventoSanitarioM02Adapter(EventoSanitarioConsultaPort):
         self.db = db
 
     def obtener_activo_de_evento(self, id_evento: int) -> Optional[int]:
+        """Devuelve el activo del evento sanitario, o ``None``."""
         row = self.db.execute(
             text(
                 "SELECT ea.id_activo_biologico "

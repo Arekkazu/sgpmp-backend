@@ -3,6 +3,7 @@
 # | 2026-11-18 | Arekkazu | M08 RF-104/RF-106: puerto de lectura de los datos de reportes |
 # | 2026-11-19 | Arekkazu | M08 RF-104: nombre de una referencia para los parámetros del PDF |
 # | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: valor del portafolio de un período cerrado, igual al NIC 41 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura de los datos que consolidan los reportes (RF-104) y el historial predictivo (RF-106).
 
 Todo es de solo lectura y se acota a ``fincas`` (``None`` = alcance global, una lista = esas fincas). Las
@@ -20,6 +21,7 @@ Fincas = Optional[list[int]]
 
 
 class FuenteReportesRepository(ABC):
+    """Puerto de lectura de los datos de los reportes."""
 
     # --- Referencias (validación de filtros) ----------------------------------------------------
 
@@ -60,79 +62,117 @@ class FuenteReportesRepository(ABC):
 
     @abstractmethod
     def inventario(self, *, fincas: Fincas, inicio: date, fin: date, hasta: datetime, especie: Optional[int],
-                   estado: Optional[str]) -> list[Fila]: ...
+                   estado: Optional[str]) -> list[Fila]:
+        """Filas del inventario de activos."""
+        ...
 
     @abstractmethod
     def costos(self, *, fincas: Fincas, inicio: Optional[date], fin: date, especie: Optional[int],
-               tipo: Optional[str], activo: Optional[int] = None) -> list[Fila]: ...
+               tipo: Optional[str], activo: Optional[int] = None) -> list[Fila]:
+        """Filas de costos de suministros."""
+        ...
 
     @abstractmethod
     def produccion(self, *, fincas: Fincas, desde: Optional[datetime], hasta: datetime, especie: Optional[int],
-                   activo: Optional[int]) -> list[Fila]: ...
+                   activo: Optional[int]) -> list[Fila]:
+        """Filas de producción."""
+        ...
 
     @abstractmethod
     def conversion(self, *, fincas: Fincas, inicio: date, fin: date, especie: Optional[int],
-                   activo: Optional[int]) -> list[Fila]: ...
+                   activo: Optional[int]) -> list[Fila]:
+        """Filas de conversión alimenticia."""
+        ...
 
     @abstractmethod
-    def salidas(self, *, fincas: Fincas, desde: datetime, hasta: datetime, especie: Optional[int]) -> list[Fila]: ...
+    def salidas(self, *, fincas: Fincas, desde: datetime, hasta: datetime, especie: Optional[int]) -> list[Fila]:
+        """Filas de bajas y salidas."""
+        ...
 
     # --- Contables -----------------------------------------------------------------------------
 
     @abstractmethod
-    def valoracion_periodo(self, *, id_periodo: int, fincas: list[int]) -> list[Fila]: ...
+    def valoracion_periodo(self, *, id_periodo: int, fincas: list[int]) -> list[Fila]:
+        """Filas de valoración del periodo."""
+        ...
 
     @abstractmethod
-    def exportaciones(self, id_periodo: int) -> list[Fila]: ...
+    def exportaciones(self, id_periodo: int) -> list[Fila]:
+        """Filas de exportaciones contables del periodo."""
+        ...
 
     @abstractmethod
-    def variacion_periodos(self, *, base: int, comparacion: int, fincas: list[int]) -> list[Fila]: ...
+    def variacion_periodos(self, *, base: int, comparacion: int, fincas: list[int]) -> list[Fila]:
+        """Filas de variación entre dos periodos."""
+        ...
 
     # --- Sanitarios ----------------------------------------------------------------------------
 
     @abstractmethod
     def eventos_sanitarios(self, *, fincas: Fincas, desde: Optional[datetime], hasta: datetime,
-                           especie: Optional[int], activo: Optional[int]) -> list[Fila]: ...
+                           especie: Optional[int], activo: Optional[int]) -> list[Fila]:
+        """Filas de eventos sanitarios."""
+        ...
 
     @abstractmethod
-    def ficha(self, id_activo: int) -> Optional[Fila]: ...
+    def ficha(self, id_activo: int) -> Optional[Fila]:
+        """Ficha del activo, o ``None``."""
+        ...
 
     @abstractmethod
-    def valoracion_por_periodo(self, id_activo: int) -> list[Fila]: ...
+    def valoracion_por_periodo(self, id_activo: int) -> list[Fila]:
+        """Valoración del activo en cada periodo."""
+        ...
 
     @abstractmethod
     def predicciones_activas(self, *, fincas: Fincas, especie: Optional[int], activo: Optional[int],
-                             desde: Optional[datetime]) -> list[Fila]: ...
+                             desde: Optional[datetime]) -> list[Fila]:
+        """Predicciones de riesgo vigentes."""
+        ...
 
     @abstractmethod
     def medicamentos(self, *, fincas: Fincas, inicio: date, fin: date, especie: Optional[int],
-                     activo: Optional[int]) -> list[Fila]: ...
+                     activo: Optional[int]) -> list[Fila]:
+        """Filas de vacunas y medicamentos aplicados."""
+        ...
 
     @abstractmethod
     def retiros_vigentes(self, *, fincas: Fincas, hoy: date, especie: Optional[int],
-                         activo: Optional[int]) -> list[Fila]: ...
+                         activo: Optional[int]) -> list[Fila]:
+        """Periodos de retiro vigentes a la fecha."""
+        ...
 
     # --- IoT -----------------------------------------------------------------------------------
 
     @abstractmethod
     def telemetria(self, *, infraestructura: int, desde: datetime, hasta: datetime, sensor: Optional[int],
-                   patron_variable: Optional[str]) -> list[Fila]: ...
+                   patron_variable: Optional[str]) -> list[Fila]:
+        """Lecturas de telemetría del área."""
+        ...
 
     @abstractmethod
     def dispositivos(self, *, fincas: Fincas, corte: datetime, es_hoy: bool,
-                     infraestructura: Optional[int]) -> list[Fila]: ...
+                     infraestructura: Optional[int]) -> list[Fila]:
+        """Estado de los dispositivos a la fecha de corte."""
+        ...
 
     @abstractmethod
     def calibraciones(self, *, fincas: Fincas, desde: datetime, hasta: datetime, sensor: Optional[int],
-                      infraestructura: Optional[int]) -> list[Fila]: ...
+                      infraestructura: Optional[int]) -> list[Fila]:
+        """Calibraciones de sensores del rango."""
+        ...
 
     @abstractmethod
     def sensores_sin_calibrar(self, *, fincas: Fincas, antes_de: datetime, sensor: Optional[int],
-                              infraestructura: Optional[int]) -> list[Fila]: ...
+                              infraestructura: Optional[int]) -> list[Fila]:
+        """Sensores sin calibración antes de la fecha."""
+        ...
 
     @abstractmethod
     def alertas_sensores(self, *, fincas: Fincas, desde: datetime, hasta: datetime,
-                         infraestructura: Optional[int]) -> list[Fila]: ...
+                         infraestructura: Optional[int]) -> list[Fila]:
+        """Alertas de sensores del rango."""
+        ...
 
     # --- Agregados (gerenciales: solo totales, RNF-11) -----------------------------------------
 
@@ -149,34 +189,50 @@ class FuenteReportesRepository(ABC):
         """Valor por finca de un período cerrado, sumado de las mismas filas que la valoración NIC 41 del período."""
 
     @abstractmethod
-    def bajas_por_tipo(self, *, fincas: Fincas, desde: datetime, hasta: datetime) -> list[Fila]: ...
+    def bajas_por_tipo(self, *, fincas: Fincas, desde: datetime, hasta: datetime) -> list[Fila]:
+        """Bajas agrupadas por tipo."""
+        ...
 
     @abstractmethod
-    def costos_por_tipo(self, *, fincas: Fincas, inicio: date, fin: date) -> list[Fila]: ...
+    def costos_por_tipo(self, *, fincas: Fincas, inicio: date, fin: date) -> list[Fila]:
+        """Costos agrupados por tipo."""
+        ...
 
     @abstractmethod
     def riesgo_por_nivel(self, *, fincas: Fincas, desde: datetime, hasta: datetime) -> list[Fila]:
         """Eventos sanitarios y predicciones del período por finca y nivel de riesgo."""
 
     @abstractmethod
-    def animales_con_riesgo_activo(self, *, fincas: Fincas) -> list[Fila]: ...
+    def animales_con_riesgo_activo(self, *, fincas: Fincas) -> list[Fila]:
+        """Animales con riesgo activo."""
+        ...
 
     @abstractmethod
-    def dispositivos_por_estado(self, *, fincas: Fincas) -> list[Fila]: ...
+    def dispositivos_por_estado(self, *, fincas: Fincas) -> list[Fila]:
+        """Dispositivos agrupados por estado."""
+        ...
 
     @abstractmethod
-    def variacion_total_periodo(self, *, id_periodo: int, fincas: list[int]) -> Any: ...
+    def variacion_total_periodo(self, *, id_periodo: int, fincas: list[int]) -> Any:
+        """Variación total de valor del periodo."""
+        ...
 
     @abstractmethod
-    def ultimo_periodo_cerrado(self, *, nit: str, hasta: date) -> Optional[Fila]: ...
+    def ultimo_periodo_cerrado(self, *, nit: str, hasta: date) -> Optional[Fila]:
+        """Último periodo cerrado del titular hasta la fecha."""
+        ...
 
     # --- Historial predictivo (RF-106) ---------------------------------------------------------
 
     @abstractmethod
-    def inferencias(self, *, activo: int, desde: datetime, hasta: datetime) -> list[Fila]: ...
+    def inferencias(self, *, activo: int, desde: datetime, hasta: datetime) -> list[Fila]:
+        """Inferencias del activo en el rango."""
+        ...
 
     @abstractmethod
-    def retroalimentaciones(self, *, activo: int, desde: datetime, hasta: datetime) -> list[Fila]: ...
+    def retroalimentaciones(self, *, activo: int, desde: datetime, hasta: datetime) -> list[Fila]:
+        """Retroalimentaciones del activo en el rango."""
+        ...
 
     @abstractmethod
     def eventos_sanitarios_aislados(self, *, activo: int, desde: datetime, hasta: datetime) -> list[Fila]:

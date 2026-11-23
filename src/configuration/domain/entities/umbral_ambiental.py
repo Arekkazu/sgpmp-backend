@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio: umbral ambiental por especie (agregado raíz CU03 RF-17)."""
 from __future__ import annotations
 
@@ -67,6 +68,7 @@ class UmbralAmbiental:
         id_usuario: int,
         tolerancia_semaforo: Optional[Decimal] = None,
     ) -> 'UmbralAmbiental':
+        """Crea la entidad validando sus datos."""
         return cls(
             id_especie=id_especie,
             id_variable_ambiental=id_variable_ambiental,
@@ -88,6 +90,7 @@ class UmbralAmbiental:
         ts_ahora: datetime.datetime,
         tolerancia_semaforo: Optional[Decimal] = None,
     ) -> None:
+        """Actualiza los datos editables validándolos."""
         self.valor_min = valor_min
         self.valor_max = valor_max
         self.niveles = niveles
@@ -107,18 +110,22 @@ class UmbralAmbiental:
         return ((self.valor_max - self.valor_min) * TOLERANCIA_SEMAFORO_DEFECTO_PCT).quantize(_ESCALA_SNAPSHOT)
 
     def desactivar(self) -> None:
+        """Marca la entidad como inactiva."""
         self.es_activo = False
 
     def marcar_pendiente_sincronizacion(self, motivo: str) -> None:
+        """Marca el umbral como pendiente de sincronizar con Edge."""
         self.estado_sincronizacion = 'PENDIENTE'
         self.motivo_fallo_sincronizacion = motivo
 
     def marcar_sincronizado(self, ts_ahora: datetime.datetime) -> None:
+        """Marca el umbral como sincronizado con Edge."""
         self.estado_sincronizacion = 'APLICADA'
         self.fecha_ultima_sincronizacion = ts_ahora
         self.motivo_fallo_sincronizacion = None
 
     def marcar_fallo_sincronizacion(self, motivo: str) -> None:
+        """Marca el fallo de sincronización con Edge y su motivo."""
         self.estado_sincronizacion = 'NO_CONF'
         self.motivo_fallo_sincronizacion = motivo
 

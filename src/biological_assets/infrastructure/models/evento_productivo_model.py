@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.eventos_productivos`` (subtipo de evento, RF-43)."""
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ if TYPE_CHECKING:
 
 
 class EventoProductivoModel(Base):
+    """Modelo ORM de los eventos productivos (tabla ``modulo2.eventos_productivos``)."""
     __tablename__ = 'eventos_productivos'
     __table_args__ = (
         CheckConstraint('cantidad > 0', name='chk_productivo_cantidad_positiva'),

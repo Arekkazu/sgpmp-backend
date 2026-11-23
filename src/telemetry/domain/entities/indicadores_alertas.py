@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: indicadores de estado del sistema de alertas |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Indicadores de estado del sistema de alertas (RF-57, Salida 3).
 
 Solo alertas operativas (las técnicas son de RF-60). "Abiertas" son las que siguen en el
@@ -21,6 +22,7 @@ ESTADOS_ABIERTOS = ('ACTIVA', 'EN_ATENCION')
 
 @dataclass(frozen=True)
 class FiltroIndicadoresAlertas:
+    """Filtros de los indicadores de alertas (área, fincas y fechas)."""
     id_infraestructura: Optional[int] = None
     ids_fincas_permitidas: Optional[list[int]] = None
     fecha_desde: Optional[datetime] = None
@@ -45,6 +47,7 @@ class AlertaActivaPanel:
 
 @dataclass
 class IndicadoresAlertas:
+    """Indicadores agregados de alertas activas, críticas, por tipo y vencidas."""
     alertas_activas_total: int = 0
     alertas_criticas_activas: int = 0
     alertas_por_tipo: dict[str, int] = field(default_factory=dict)

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.cola_calculo_ica`` (RF-74 / cola persistente).
 
 Cola de activos pendientes de cálculo ICA (FA-07 límite superado, FA-06 ventana
@@ -13,6 +16,7 @@ from .base_model import Base
 
 
 class ColaCalculoIcaModel(Base):
+    """Modelo ORM de la tabla ``modulo5.cola_calculo_ica``."""
     __tablename__ = 'cola_calculo_ica'
     __table_args__ = {'schema': 'modulo5'}
 

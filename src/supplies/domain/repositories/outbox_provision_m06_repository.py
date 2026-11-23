@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: outbox persistente hacia M06       |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto del outbox de provisiones hacia M06 (RF-79).
 
 El evento se escribe en la misma transacción del movimiento que lo origina
@@ -17,8 +18,10 @@ from src.supplies.domain.entities.evento_provision_m06 import EventoProvisionM06
 
 
 class OutboxProvisionM06Repository(ABC):
+    """Puerto de la bandeja de salida de provisiones hacia el módulo financiero."""
     @abstractmethod
     def encolar(self, evento: EventoProvisionM06) -> EventoProvisionM06:
+        """Encola la provisión para su entrega."""
         raise NotImplementedError
 
     @abstractmethod

@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: exponer el perfil aplicado independientemente de la calidad de ejecución. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta del riesgo de contagio."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -42,6 +44,7 @@ class RiesgoContagioResponse(BaseModel):
 
     @classmethod
     def from_resultado(cls, r: ResultadoRiesgoContagio) -> "RiesgoContagioResponse":
+        """Construye la respuesta a partir del resultado del cálculo."""
         return cls(
             id_resultado_contagio=r.id_resultado_contagio, id_lote_afectado=r.id_lote,
             id_area_productiva=r.id_area_productiva, probabilidad_contagio=r.probabilidad_contagio,

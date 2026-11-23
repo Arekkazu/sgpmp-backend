@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: SIN_DATOS, bajas y parámetros      |
 # | 2026-11-10 | Arekkazu         | H-M05-19 RF-77: mensaje sin datos sin ids ni nombres de columna |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidades del reporte de gastos acumulados (RF-77 / CU-04).
 
 Python puro, sin SQLAlchemy ni FastAPI. ``ReporteGasto`` es el agregado de
@@ -39,10 +40,12 @@ class FiltrosReporteGasto:
 
     @property
     def dias(self) -> int:
+        """Cantidad de días del rango."""
         return (self.fecha_fin - self.fecha_inicio).days + 1
 
     @property
     def meses(self) -> int:
+        """Cantidad aproximada de meses del rango (mínimo 1)."""
         return max(1, round(self.dias / 30.44))
 
     def a_dict(self) -> dict:
@@ -59,6 +62,7 @@ class FiltrosReporteGasto:
 
     @classmethod
     def desde_dict(cls, datos: dict) -> "FiltrosReporteGasto":
+        """Crea los filtros desde un diccionario serializado."""
         return cls(
             fecha_inicio=date.fromisoformat(datos["fecha_inicio"]),
             fecha_fin=date.fromisoformat(datos["fecha_fin"]),
@@ -89,6 +93,7 @@ class LineaGasto:
 
 @dataclass
 class DesgloseCategoria:
+    """Subtotal de gastos de una categoría."""
     categoria: str
     subtotal: Decimal
     num_registros: int
@@ -97,6 +102,7 @@ class DesgloseCategoria:
 
 @dataclass
 class DesglosePeriodo:
+    """Subtotal de gastos de un mes o semana."""
     etiqueta: str  # "2026-05" (MENSUAL) o "2026-W18" (SEMANAL)
     fecha_inicio: date
     fecha_fin: date
@@ -105,6 +111,7 @@ class DesglosePeriodo:
 
 @dataclass
 class TendenciaGasto:
+    """Comparación del gasto con el periodo anterior."""
     gasto_periodo_actual: Decimal
     gasto_periodo_anterior: Optional[Decimal]
     variacion_porcentual: Optional[Decimal]
@@ -114,6 +121,7 @@ class TendenciaGasto:
 
 @dataclass
 class RegistroSinCosto:
+    """Registro excluido del total por no tener costo."""
     categoria: str
     id_origen: int
     fecha: date
@@ -148,6 +156,7 @@ class ReporteGasto:
 
     @property
     def estado(self) -> str:
+        """Estado del reporte: con datos o sin datos."""
         return "SIN_DATOS" if self.sin_datos else "GENERADO"
 
     @property

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Value object ``NombreMetrica`` — nombre de una métrica de producción."""
 from __future__ import annotations
 
@@ -40,6 +43,7 @@ class NombreMetrica:
         object.__setattr__(self, "valor", v)
 
     def normalizado(self) -> str:
+        """Valor normalizado en minúsculas para comparar duplicados."""
         return self.valor.lower()
 
     def __str__(self) -> str:

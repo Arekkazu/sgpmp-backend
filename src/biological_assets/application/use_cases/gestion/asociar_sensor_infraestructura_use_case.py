@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: asociación ambiental de un sensor a una infraestructura completa (RF-49
 Tipo B).
 """
@@ -66,6 +69,7 @@ class AsociarSensorInfraestructuraUseCase:
         *,
         ids_fincas_permitidas: list[int] | None = None,
     ) -> AsociacionSensorActivo:
+        """Asocia un sensor al área validando su compatibilidad."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(
                 id_infraestructura,

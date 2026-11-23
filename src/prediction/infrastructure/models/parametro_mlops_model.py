@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.parametros_mlops``."""
 from sqlalchemy import DateTime, Integer, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -6,6 +10,7 @@ from .base_model import Base
 
 
 class ParametroMLOpsModel(Base):
+    """Modelo ORM de la tabla ``modulo4.parametros_mlops``."""
     __tablename__ = 'parametros_mlops'
     __table_args__ = {'schema': 'modulo4'}
 

@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Implementación SQLAlchemy de ``DespliegueOtaRepository``."""
 from __future__ import annotations
 
 from typing import Optional
@@ -12,6 +16,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
+    """Implementación SQLAlchemy de ``DespliegueOtaRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
@@ -21,6 +26,7 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
         id_dispositivo: Optional[int] = None,
         estado: Optional[str] = None,
     ) -> list[DespliegueOta]:
+        """Lista los despliegues de la versión."""
         stmt = select(DespliegueOtaModel).where(
             DespliegueOtaModel.id_version_modelo == id_version
         )
@@ -39,6 +45,7 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
         limit: int = 20,
         offset: int = 0,
     ) -> tuple[list[DespliegueOta], int]:
+        """Lista los despliegues con filtros."""
         base = select(DespliegueOtaModel)
         if id_version is not None:
             base = base.where(DespliegueOtaModel.id_version_modelo == id_version)
@@ -58,6 +65,7 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
         return [self._a_entidad(r) for r in rows], total
 
     def obtener_por_id(self, id_despliegue: int, *, bloquear: bool = False) -> Optional[DespliegueOta]:
+        """Devuelve el despliegue, opcionalmente bloqueado, o ``None``."""
         # bloquear: dos reportes del mismo nodo no deben pisarse (FOR UPDATE).
         orm = self._db.get(DespliegueOtaModel, id_despliegue, with_for_update=bloquear or None)
         return self._a_entidad(orm) if orm else None
@@ -65,6 +73,9 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
     # ── DEV-15: orquestador OTA ─────────────────────────────────────────────
 
     def crear(self, entidad: DespliegueOta) -> DespliegueOta:
+        """Inserta un despliegue PENDIENTE. Un despliegue vigente del mismo
+        (nodo, tipo_modelo, componente) viola la unicidad de DB-04 (409).
+        """
         try:
             orm = DespliegueOtaModel(
                 id_version_modelo=entidad.id_version_modelo,
@@ -92,6 +103,7 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
             raise_from_db_error(exc)
 
     def actualizar(self, entidad: DespliegueOta) -> DespliegueOta:
+        """Actualiza el despliegue."""
         try:
             orm = self._db.get(DespliegueOtaModel, entidad.id_despliegue_ota)
             orm.estado_despliegue = entidad.estado_despliegue
@@ -111,6 +123,7 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
             raise_from_db_error(exc)
 
     def listar_por_distribucion(self, id_distribucion: int, fase: Optional[str] = None) -> list[DespliegueOta]:
+        """Lista los despliegues de la distribución, opcionalmente de una fase."""
         stmt = select(DespliegueOtaModel).where(DespliegueOtaModel.id_distribucion_ota == id_distribucion)
         if fase is not None:
             stmt = stmt.where(DespliegueOtaModel.fase_rollout == fase)
@@ -120,6 +133,7 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
     def nodos_con_despliegue_vigente(
         self, ids_dispositivo: list[int], tipo_modelo: str, componente: Optional[str]
     ) -> list[int]:
+        """Nodos que ya tienen un despliegue PENDIENTE o EN_PROCESO de ese componente."""
         stmt = select(DespliegueOtaModel.id_dispositivo_iot).distinct().where(
             DespliegueOtaModel.id_dispositivo_iot.in_(ids_dispositivo),
             DespliegueOtaModel.tipo_modelo == tipo_modelo,
@@ -129,6 +143,7 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
         return sorted(self._db.execute(stmt).scalars().all())
 
     def version_instalada(self, id_dispositivo: int, tipo_modelo: str, componente: Optional[str]) -> Optional[int]:
+        """Versión del último despliegue EXITOSO de ese componente en el nodo (la que tiene hoy)."""
         stmt = (
             select(DespliegueOtaModel.id_version_modelo)
             .where(

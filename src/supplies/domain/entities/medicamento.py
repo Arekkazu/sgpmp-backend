@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: observaciones del registro         |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``Medicamento`` (RF-76).
 
 Python puro. Representa la aplicación de un medicamento a un activo biológico.
@@ -113,6 +114,7 @@ class Medicamento:
 
     @property
     def requiere_periodo_retiro(self) -> bool:
+        """Indica si el medicamento tiene periodo de retiro."""
         return bool(self.periodo_retiro_dias and self.periodo_retiro_dias > 0)
 
     def __eq__(self, other: object) -> bool:

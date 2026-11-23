@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de la cola de trabajos de generación async de reportes de gastos (RF-77)."""
 from __future__ import annotations
 
@@ -10,8 +13,10 @@ from src.supplies.domain.value_objects.estado_trabajo_async import EstadoTrabajo
 
 
 class TrabajoReporteGastoRepository(ABC):
+    """Puerto de la cola de trabajos del reporte de gastos."""
     @abstractmethod
     def encolar(self, trabajo: TrabajoReporteGasto) -> TrabajoReporteGasto:
+        """Encola el trabajo."""
         raise NotImplementedError
 
     @abstractmethod
@@ -21,26 +26,32 @@ class TrabajoReporteGastoRepository(ABC):
 
     @abstractmethod
     def obtener(self, id_cola: int) -> Optional[TrabajoReporteGasto]:
+        """Devuelve el trabajo, o ``None``."""
         raise NotImplementedError
 
     @abstractmethod
     def listar_pendientes(self, limite: int) -> list[TrabajoReporteGasto]:
+        """Lista los trabajos pendientes."""
         raise NotImplementedError
 
     @abstractmethod
     def marcar_estado(
         self, id_cola: int, estado: EstadoTrabajoAsync, *, fecha_procesado: Optional[datetime] = None
     ) -> None:
+        """Cambia el estado del trabajo."""
         raise NotImplementedError
 
     @abstractmethod
     def crear_ejecucion(self, ejecucion: EjecucionReporteGasto) -> EjecucionReporteGasto:
+        """Registra una ejecución del trabajo."""
         raise NotImplementedError
 
     @abstractmethod
     def guardar_ejecucion(self, ejecucion: EjecucionReporteGasto) -> EjecucionReporteGasto:
+        """Actualiza la ejecución."""
         raise NotImplementedError
 
     @abstractmethod
     def obtener_ultima_ejecucion(self, id_cola: int) -> Optional[EjecucionReporteGasto]:
+        """Devuelve la última ejecución del trabajo, o ``None``."""
         raise NotImplementedError

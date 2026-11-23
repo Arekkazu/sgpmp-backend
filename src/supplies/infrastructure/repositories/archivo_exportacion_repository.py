@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77/RF-81: archivos exportados          |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`ArchivoExportacionRepository`."""
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from src.supplies.infrastructure.models.archivo_exportacion_suministro_model imp
 
 
 class SqlAlchemyArchivoExportacionRepository(ArchivoExportacionRepository):
+    """Implementación SQLAlchemy de ``ArchivoExportacionRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -39,6 +41,7 @@ class SqlAlchemyArchivoExportacionRepository(ArchivoExportacionRepository):
         )
 
     def guardar(self, archivo: ArchivoExportacion) -> ArchivoExportacion:
+        """Guarda el archivo y lo devuelve."""
         orm = ArchivoExportacionSuministroModel(
             origen=archivo.origen,
             id_referencia=archivo.id_referencia,
@@ -61,10 +64,12 @@ class SqlAlchemyArchivoExportacionRepository(ArchivoExportacionRepository):
         return self._a_entidad(orm)
 
     def obtener(self, id_archivo: UUID) -> Optional[ArchivoExportacion]:
+        """Devuelve el archivo, o ``None``."""
         orm = self.db.get(ArchivoExportacionSuministroModel, id_archivo)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_referencia(self, origen: str, id_referencia: int) -> Optional[ArchivoExportacion]:
+        """El archivo más reciente generado para un trabajo/reporte."""
         orm = (
             self.db.query(ArchivoExportacionSuministroModel)
             .filter(
@@ -77,6 +82,7 @@ class SqlAlchemyArchivoExportacionRepository(ArchivoExportacionRepository):
         return self._a_entidad(orm) if orm else None
 
     def purgar_vencidos(self, ahora: datetime) -> list[ArchivoExportacion]:
+        """Borra el contenido de los archivos vencidos y devuelve los purgados (RF-81 RNF-06)."""
         vencidos = (
             self.db.query(ArchivoExportacionSuministroModel)
             .filter(

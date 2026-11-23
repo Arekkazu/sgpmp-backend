@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador que lista los activos ACTIVO para el batch ICA (RF-74) contra ``modulo2``."""
 from __future__ import annotations
 
@@ -15,6 +18,7 @@ class ActivosBatchM02Adapter(ActivosBatchPort):
         self.db = db
 
     def listar_activos_para_batch(self) -> list[ActivoBatchRef]:
+        """Lista los activos activos candidatos al cálculo de ICA."""
         filas = self.db.execute(
             text(
                 "SELECT id_activo_biologico, fecha_inicio_ciclo "

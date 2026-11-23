@@ -3,6 +3,8 @@
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
 # | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
 # | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto del monitor de predicciones."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -15,6 +17,7 @@ from src.prediction.domain.entities.monitor_prediccion import (
 
 
 class MonitorPrediccionRepository(ABC):
+    """Puerto de consulta de inferencias y riesgos para el monitor."""
 
     @abstractmethod
     def listar_inferencias(

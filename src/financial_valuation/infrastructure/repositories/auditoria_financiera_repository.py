@@ -9,6 +9,7 @@
 # | 2026-11-14 | Arekkazu | INC-M06-365-G93 RF-94: la auditoría se acota a los titulares de las fincas del usuario |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44: el nombre de quien firmó cada evento sale de la ayuda compartida nombres_usuarios |
 # | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-01 RF-94: el alcance por fincas se comparte con las cotizaciones |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`AuditoriaFinancieraRepository` sobre ``modulo6.auditorias_financieras``.
 
 El hash SHA-256 lo calcula el trigger ``trg_hash_auditoria``; ``tgr_m06_27`` corre antes y exige
@@ -76,10 +77,12 @@ def _donde(filtros: dict) -> tuple[str, dict]:
 
 
 class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
+    """Implementación SQLAlchemy de ``AuditoriaFinancieraRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def registrar(self, evento: EventoAuditoria) -> None:
+        """Registra un evento de auditoría."""
         payload = a_json(evento.payload) or "{}"
         truncado = len(payload.encode("utf-8")) > _LIMITE_PAYLOAD
         if truncado:  # RF-94 R5 / FA-4
@@ -108,6 +111,7 @@ class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
         })
 
     def consultar(self, filtros: dict, pagina: int, tamano: int, descendente: bool = False) -> tuple[int, list[dict]]:
+        """Consulta eventos filtrados y paginados; devuelve el total y la página."""
         donde, params = _donde(filtros)
         params.update(limite=tamano, offset=(pagina - 1) * tamano)
         orden = "DESC" if descendente else "ASC"
@@ -129,6 +133,7 @@ class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
         return total, eventos
 
     def actores(self, filtros: dict) -> list[dict]:
+        """Usuarios que firmaron eventos con esos filtros: ``id_usuario`` y ``nombre`` (RF-94 Fase 7)."""
         donde, params = _donde(filtros)
         ids = {f["id_usuario"] for f in filas(self.db, f"""SELECT DISTINCT a.id_usuario FROM modulo6.auditorias_financieras a
                                                          WHERE {donde} AND a.id_usuario IS NOT NULL""", params)}
@@ -137,6 +142,7 @@ class SqlAlchemyAuditoriaFinancieraRepository(AuditoriaFinancieraRepository):
                       key=lambda a: a["nombre"].lower())
 
     def en_alcance(self, id_periodo_contable: Optional[int], id_activo_biologico: Optional[int]) -> bool:
+        """El período y el activo (los que vengan) son de los titulares de las fincas del usuario, o es Administrador."""
         return fila(self.db, f"""SELECT {_ES_ADMINISTRADOR}
             OR ((CAST(:p AS integer) IS NULL OR :p IN ({_PERIODOS_PROPIOS}))
                 AND (CAST(:a AS integer) IS NULL OR :a IN (SELECT ab.id_activo_biologico FROM modulo2.activos_biologicos ab)))

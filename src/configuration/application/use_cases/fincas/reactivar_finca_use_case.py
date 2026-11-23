@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Reactivar finca inactiva (Flujo E — RF-19).
 
 Solo el Administrador puede reactivar. La operación se registra como
@@ -29,6 +32,7 @@ class ReactivarFincaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_finca: int, usuario_actual: UsuarioActual) -> Finca:
+        """Reactiva la finca y la audita."""
         finca = self.finca_repo.obtener_por_id(id_finca)
         if finca is None:
             raise NotFoundError(code="FINCA_NO_ENCONTRADA", message=f"No existe una finca con ID {id_finca}.")

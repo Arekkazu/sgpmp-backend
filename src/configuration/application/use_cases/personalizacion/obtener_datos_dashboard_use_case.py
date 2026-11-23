@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Datos de los widgets visibles del dashboard del usuario (GET RF-28).
 
 Devuelve una entrada por widget visible del layout. Un widget sin fuente de datos
@@ -46,6 +49,7 @@ class ObtenerDatosDashboardUseCase:
         self.datos_repo = datos_repo
 
     def execute(self, usuario_actual: UsuarioActual) -> list[WidgetConDatos]:
+        """Devuelve los widgets del tablero con sus datos."""
         layout = self.dashboard_repo.obtener_por_usuario(usuario_actual.id_usuario)
         if layout is None:
             layout = self.dashboard_repo.obtener_default_de_rol(

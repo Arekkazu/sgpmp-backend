@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-86 v2.0: persistencia de las líneas de asiento NIC 41 |
 # | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87: lectura de una línea y de sus ajustes posteriores |
 # | 2026-11-12 | Arekkazu | TC-DIS-256 RF-91: cada línea trae el nombre y el tipo de su activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`AsientoRepository`. Las líneas son inmutables salvo las
 transiciones que permite ``fn_proteger_linea_asiento_nic41`` (cuentas pendientes, trazabilidad,
 comprobante y traslado de período por exclusión autorizada)."""
@@ -30,10 +31,12 @@ def _linea(f: dict) -> LineaAsiento:
 
 
 class SqlAlchemyAsientoRepository(AsientoRepository):
+    """Implementación SQLAlchemy de ``AsientoRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def agregar(self, linea: LineaAsiento) -> LineaAsiento:
+        """Agrega una línea de asiento."""
         linea.id_linea_asiento_nic41 = escribir(self.db, """
             INSERT INTO modulo6.lineas_asiento_nic41 (
                 tipo_hecho, sentido, estado, tipo_evidencia, fecha_hecho, id_periodo_contable, id_activo_biologico,
@@ -58,20 +61,24 @@ class SqlAlchemyAsientoRepository(AsientoRepository):
         return linea
 
     def obtener(self, id_linea: int) -> Optional[LineaAsiento]:
+        """Devuelve la línea, o ``None``."""
         f = fila(self.db, f"SELECT {_COLUMNAS} FROM modulo6.lineas_asiento_nic41 WHERE id_linea_asiento_nic41 = :id",
                  {"id": id_linea})
         return _linea(f) if f else None
 
     def ajustes_de(self, id_linea: int) -> list[LineaAsiento]:
+        """Líneas que corrigen a ``id_linea`` (reversos y ajustes de período anterior)."""
         return [_linea(f) for f in filas(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.lineas_asiento_nic41
             WHERE id_linea_corregida = :id ORDER BY 1""", {"id": id_linea})]
 
     def lineas_de_origen(self, tabla_origen: str, id_origen: int) -> list[LineaAsiento]:
+        """Lista las líneas generadas por un registro de origen."""
         return [_linea(f) for f in filas(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.lineas_asiento_nic41
             WHERE tabla_origen = :t AND id_origen = :i AND id_linea_corregida IS NULL ORDER BY 1""",
             {"t": tabla_origen, "i": id_origen})]
 
     def pendientes_de_cuenta(self, id_periodo_contable: Optional[int] = None) -> list[LineaAsiento]:
+        """Lista las líneas sin cuenta asignada."""
         return [_linea(f) for f in filas(self.db, f"""
             SELECT {_COLUMNAS} FROM modulo6.lineas_asiento_nic41 l
             WHERE l.estado = 'PENDIENTE_CUENTA'
@@ -81,12 +88,14 @@ class SqlAlchemyAsientoRepository(AsientoRepository):
             ORDER BY 1""", {"p": id_periodo_contable})]
 
     def registrar_cuentas(self, id_linea: int, cuenta_debito: str, cuenta_credito: str) -> None:
+        """Asigna las cuentas débito y crédito a la línea."""
         escribir(self.db, """UPDATE modulo6.lineas_asiento_nic41
                              SET cuenta_debito = :d, cuenta_credito = :c, estado = 'REGISTRADA'
                              WHERE id_linea_asiento_nic41 = :id AND estado = 'PENDIENTE_CUENTA'""",
                  {"id": id_linea, "d": cuenta_debito, "c": cuenta_credito})
 
     def del_periodo(self, id_periodo_contable: int) -> list[LineaAsiento]:
+        """Lista las líneas del periodo."""
         resultado = []
         # TC-DIS-256: la línea trae el nombre y el tipo de su activo; quien solo lee la trazabilidad (el auditor)
         # no tiene acceso a la lista de activos valorados para buscarlos.
@@ -105,19 +114,23 @@ class SqlAlchemyAsientoRepository(AsientoRepository):
         return resultado
 
     def cambiar_trazabilidad(self, id_linea: int, estado: str) -> None:
+        """Cambia el estado de trazabilidad de la línea."""
         escribir(self.db, """UPDATE modulo6.lineas_asiento_nic41 SET estado_trazabilidad =
                                  CAST(:e AS modulo6.enum_variaciones_valor_razonable_estado_trazabilidad)
                              WHERE id_linea_asiento_nic41 = :id""", {"id": id_linea, "e": estado})
 
     def mover_a_periodo(self, ids_lineas: list[int], id_periodo_contable: int) -> None:
+        """Traslada las líneas a otro periodo."""
         if ids_lineas:
             escribir(self.db, """UPDATE modulo6.lineas_asiento_nic41 SET id_periodo_contable = :p
                                  WHERE id_linea_asiento_nic41 = ANY(:ids)""", {"p": id_periodo_contable, "ids": ids_lineas})
 
     def asignar_comprobante(self, ids_lineas: list[int], id_comprobante: int) -> None:
+        """Asocia las líneas a un comprobante."""
         escribir(self.db, """UPDATE modulo6.lineas_asiento_nic41 SET id_comprobante_nic41 = :c
                              WHERE id_linea_asiento_nic41 = ANY(:ids)""", {"c": id_comprobante, "ids": ids_lineas})
 
     def del_activo(self, id_activo_biologico: int) -> list[LineaAsiento]:
+        """Lista las líneas del activo."""
         return [_linea(f) for f in filas(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.lineas_asiento_nic41
             WHERE id_activo_biologico = :a ORDER BY 1""", {"a": id_activo_biologico})]

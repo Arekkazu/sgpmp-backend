@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar métrica de producción para una especie (Flujo I — RF-16).
 
 Reglas aplicadas:
@@ -64,6 +67,7 @@ class RegistrarMetricaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarMetricaDTO, usuario_actual: UsuarioActual) -> MetricaProduccion:
+        """Registra una métrica de producción de la especie."""
         especie = self.especies_repo.obtener_por_id(dto.id_especie)
         if especie is None:
             raise NotFoundError(

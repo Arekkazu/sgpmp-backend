@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60/18: valida cadena en creacion         |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Crear parámetros operativos globales (POST RF-18).
 
 Solo se permite si no existe ninguna configuración activa (FA-13).
@@ -41,6 +42,7 @@ class CrearConfiguracionUseCase:
         self.parametros_repo = parametros_repo
 
     def execute(self, dto: CrearConfiguracionDTO, usuario_actual: UsuarioActual) -> ConfiguracionGlobal:
+        """Crea la configuración global y la audita."""
         self.parametros_repo.bloquear_configuracion()
         existente = self.config_repo.obtener_activo()
         if existente is not None:

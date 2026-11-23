@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar métricas de producción por especie (Flujo L — RF-16)."""
 from __future__ import annotations
 
@@ -13,4 +16,5 @@ class ConsultarMetricasUseCase:
         self.metricas_repo = metricas_repo
 
     def execute(self, id_especie: int, *, solo_activas: bool = False) -> list[MetricaProduccion]:
+        """Lista las métricas de producción de la especie."""
         return self.metricas_repo.listar_por_especie(id_especie, solo_activas=solo_activas)

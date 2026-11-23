@@ -4,6 +4,8 @@
 # | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 # | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
 # | 2026-10-28 | Arekkazu | BE-1 RF-55: sensor, serial y sensor_id por variable involucrada |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTOs de eventos procesados por el nodo Edge."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -17,6 +19,7 @@ from src.telemetry.domain.entities.telemetria import CAMPOS_TRAZABILIDAD_REGLA
 
 
 class VariableInvolucradaDTO(BaseDTO):
+    """Variable involucrada en un evento Edge."""
     tipo_variable: str
     valor: Decimal
     unidad: str
@@ -29,6 +32,7 @@ class VariableInvolucradaDTO(BaseDTO):
 
 
 class RecibirEventoEdgeDTO(BaseDTO):
+    """Evento clasificado por el nodo Edge."""
     device_id: int
     sensor_id: int
     serial: str = Field(..., min_length=1, max_length=100)
@@ -75,6 +79,7 @@ class RecibirEventoEdgeDTO(BaseDTO):
     @field_validator('clasificacion_rf55')
     @classmethod
     def validar_clasificacion(cls, v: str) -> str:
+        """Valida la clasificación del evento Edge."""
         validos = {"NORMAL", "DESVIACION_SIMPLE", "DESVIACION_COMPUESTA", "ERROR_CONFIGURACION"}
         if v not in validos:
             raise ValueError(f"clasificacion_rf55 debe ser uno de: {', '.join(sorted(validos))}")
@@ -83,6 +88,7 @@ class RecibirEventoEdgeDTO(BaseDTO):
     @field_validator('severidad')
     @classmethod
     def validar_severidad(cls, v: Optional[str]) -> Optional[str]:
+        """Valida la severidad opcional."""
         if v is not None and v not in {"LEVE", "MODERADO", "CRITICO"}:
             raise ValueError("severidad debe ser LEVE, MODERADO o CRITICO")
         return v
@@ -90,12 +96,14 @@ class RecibirEventoEdgeDTO(BaseDTO):
     @field_validator('origen')
     @classmethod
     def validar_origen(cls, v: str) -> str:
+        """Valida el origen del evento."""
         if v not in {"TIEMPO_REAL", "BUFFER_LOCAL"}:
             raise ValueError("origen debe ser TIEMPO_REAL o BUFFER_LOCAL")
         return v
 
     @model_validator(mode='after')
     def validar_umbrales(self) -> 'RecibirEventoEdgeDTO':
+        """Exige que el umbral mínimo no supere al máximo."""
         if (self.umbral_min_aplicado is not None and self.umbral_max_aplicado is not None
                 and self.umbral_min_aplicado > self.umbral_max_aplicado):
             raise ValueError("umbral_min_aplicado no puede ser mayor que umbral_max_aplicado")

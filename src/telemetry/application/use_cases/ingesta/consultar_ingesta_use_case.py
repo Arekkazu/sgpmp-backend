@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: consulta del monitor de ingesta con rango acotado y paginación |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta paginada de la bitácora de ingesta."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -32,6 +34,11 @@ class ConsultarIngestaUseCase:
         estado_calidad: Optional[str] = None, origen: Optional[str] = None, id_dispositivo_iot: Optional[int] = None,
         id_sensor: Optional[int] = None, pagina: int = 1, por_pagina: int = 50, ahora: Optional[datetime] = None,
     ) -> tuple[list[LecturaIngesta], int, FiltrosIngesta]:
+        """Lista eventos de ingesta filtrados y paginados.
+
+        Returns:
+            Tupla con la página, el total y los filtros efectivamente aplicados.
+        """
         ahora = ahora or datetime.now(timezone.utc)
         hasta = hasta or ahora
         desde = desde or hasta - timedelta(hours=24)

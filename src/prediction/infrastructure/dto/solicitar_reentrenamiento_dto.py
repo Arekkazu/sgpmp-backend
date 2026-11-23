@@ -2,6 +2,8 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RF-71/RF-73: solicitud de reentrenamiento como evento de auditoría |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO de solicitud de reentrenamiento."""
 from __future__ import annotations
 
 from typing import Optional

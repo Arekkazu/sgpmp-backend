@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar catálogo de variables ambientales activas (RF-17)."""
 from __future__ import annotations
 
@@ -12,4 +15,5 @@ class ListarVariablesAmbientalesUseCase:
         self.variable_repo = variable_repo
 
     def execute(self) -> list[VariableAmbiental]:
+        """Lista las variables ambientales activas."""
         return self.variable_repo.listar_activas()

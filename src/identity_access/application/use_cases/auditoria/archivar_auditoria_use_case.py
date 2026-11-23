@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso del archivado automático de eventos de auditoría RF-10."""
 from __future__ import annotations
 
@@ -46,6 +49,7 @@ class ArchivarAuditoriaUseCase:
         self,
         fecha_referencia: datetime | None = None,
     ) -> ResultadoArchivadoAuditoria:
+        """Archiva los eventos de auditoría vencidos respecto a la fecha de referencia."""
         referencia = fecha_referencia or datetime.now(timezone.utc)
         if referencia.tzinfo is None:
             referencia = referencia.replace(tzinfo=timezone.utc)

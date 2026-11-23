@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Estado de la configuración del motor en cada nodo Edge (DEV-09, RF-65)."""
 from __future__ import annotations
 
@@ -13,6 +16,7 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarSincronizacionMotorUseCase:
+    """Consulta la sincronización de la configuración del motor con Edge."""
     def __init__(
         self,
         *,
@@ -23,6 +27,7 @@ class ConsultarSincronizacionMotorUseCase:
         self._sincronizacion_repo = sincronizacion_repo
 
     def execute(self, tipo_modelo: str) -> ResultadoSincronizacionMotor:
+        """Devuelve el estado de sincronización del tipo de modelo."""
         configuracion = self._repo.obtener_por_tipo(tipo_modelo)
         if configuracion is None:
             raise NotFoundError(

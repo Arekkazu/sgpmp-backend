@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.detalles_activos_biologicos_poblacionales``: conteo, peso,
 biomasa y densidad de un lote.
 """
@@ -17,6 +20,7 @@ if TYPE_CHECKING:
 
 
 class DetalleActivoPoblacionalModel(Base):
+    """Modelo ORM del detalle de un lote poblacional (tabla ``modulo2.detalles_activos_biologicos_poblacionales``)."""
     __tablename__ = 'detalles_activos_biologicos_poblacionales'
     __table_args__ = (
         PrimaryKeyConstraint('id_detalle_activo_biologico_poblacional', name='detalles_activos_biologicos_poblacionales_pkey'),

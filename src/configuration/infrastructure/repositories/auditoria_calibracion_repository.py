@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``AuditoriaCalibracionRepository`` (RF-24 / RF-10)."""
 from __future__ import annotations
 
@@ -10,6 +13,7 @@ from src.configuration.infrastructure.models.auditoria_calibracion_model import 
 
 
 class SqlAlchemyAuditoriaCalibracionRepository(AuditoriaCalibracionRepository):
+    """Implementación SQLAlchemy de ``AuditoriaCalibracionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -23,6 +27,9 @@ class SqlAlchemyAuditoriaCalibracionRepository(AuditoriaCalibracionRepository):
         valores_nuevos: dict,
         valores_anteriores: Optional[dict] = None,
     ) -> None:
+        """Inserta un registro de auditoría inmutable sobre la calibración con los
+        valores antes/después.
+        """
         orm = AuditoriaCalibracionModel(
             id_calibracion=id_calibracion,
             id_usuario=id_usuario,

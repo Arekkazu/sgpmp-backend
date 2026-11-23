@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: registro de producción del activo (leche, huevos...) (RF-43)."""
 
 from __future__ import annotations
@@ -54,6 +55,7 @@ class RegistrarEventoProductivoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: RegistrarEventoProductivoDTO, usuario: UsuarioActual) -> EventoActivo:
+        """Registra un evento productivo y audita el rechazo si falla."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario),
             db=self.db,

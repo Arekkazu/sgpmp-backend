@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``RangoCalibracionRepository`` (RF-24)."""
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ from src.configuration.infrastructure.models.rango_calibracion_model import Rang
 
 
 class SqlAlchemyRangoCalibracionRepository(RangoCalibracionRepository):
+    """Implementación SQLAlchemy de ``RangoCalibracionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -25,6 +29,7 @@ class SqlAlchemyRangoCalibracionRepository(RangoCalibracionRepository):
         )
 
     def obtener_por_categoria(self, categoria: str) -> Optional[RangoCalibracion]:
+        """Rango de calibración del tipo de sensor, o ``None`` si no está configurado."""
         orm = (
             self.db.query(RangoCalibracionModel)
             .filter(RangoCalibracionModel.categoria == categoria)
@@ -33,5 +38,6 @@ class SqlAlchemyRangoCalibracionRepository(RangoCalibracionRepository):
         return self._a_entidad(orm) if orm else None
 
     def listar(self) -> list[RangoCalibracion]:
+        """Todos los rangos de calibración configurados."""
         orms = self.db.query(RangoCalibracionModel).order_by(RangoCalibracionModel.categoria).all()
         return [self._a_entidad(orm) for orm in orms]

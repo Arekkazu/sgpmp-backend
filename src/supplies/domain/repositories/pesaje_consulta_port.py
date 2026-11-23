@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74 E6: pesajes fuera de rango          |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de consulta de pesaje del activo (RF-40) para el cálculo ICA (RF-74).
 
 El peso real vive en ``modulo2.eventos_crecimeinto`` enlazado al activo vía
@@ -19,6 +20,7 @@ from typing import Optional
 
 
 class PesajeConsultaPort(ABC):
+    """Puerto de consulta de pesajes de activos."""
     @abstractmethod
     def obtener_peso_en_o_antes(
         self, id_activo_biologico: int, fecha: date, es_poblacional: bool

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM del catálogo ``modulo2.estados_activos_biologicos`` (ver
 ``EstadoActivo``).
 """
@@ -11,6 +14,7 @@ from .base_model import Base
 
 
 class EstadoActivoBiologicoModel(Base):
+    """Modelo ORM del catálogo de estados de activo (tabla ``modulo2.estados_activos_biologicos``)."""
     __tablename__ = 'estados_activos_biologicos'
     __table_args__ = (
         PrimaryKeyConstraint('id_estado_activo_biologico', name='estados_activos_biologicos_pkey'),
