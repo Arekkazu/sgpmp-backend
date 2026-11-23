@@ -1,3 +1,9 @@
+## [1.4.5-rc.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.5-rc.1...v1.4.5-rc.2) (2026-11-23)
+
+### Bug Fixes
+
+* validaciones y limites en exportaciones, integracion, reportes y tablero ([b2924a6](https://github.com/Arekkazu/sgpmp-backend/commit/b2924a611415f261fc7d07f080ea5721237230f4))
+
 ## [1.4.5-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.4...v1.4.5-rc.1) (2026-11-23)
 
 ### Bug Fixes
