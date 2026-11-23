@@ -323,7 +323,7 @@
                 "exec": [
                   "pm.test('TC-M08-023 - consulta respondida (200)', () => pm.response.to.have.status(200));",
                   "const filas = (pm.response.json() || {}).data || []; console.log(JSON.stringify(filas));",
-                  "pm.test('TC-M08-023 - el cambio a leída deja su propio registro con fecha (evento 46)', () => { pm.expect(filas.length).to.be.at.least(1); pm.expect(filas[0].detalle.accion).to.equal('LEIDA'); pm.expect(filas[0].fecha_evento).to.be.a('string'); }});",
+                  "pm.test('TC-M08-023 - el cambio a leída deja su propio registro con fecha (evento 46)', () => { pm.expect(filas.length).to.be.at.least(1); pm.expect(filas[0].detalle.accion).to.equal('LEIDA'); pm.expect(filas[0].fecha_evento).to.be.a('string'); });",
                   "pm.test('TC-M08-023 - el registro tiene hash de integridad', () => pm.expect(filas[0] && filas[0].hash_integridad).to.be.a('string'));"
                 ]
               }

@@ -5,6 +5,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-380 RF-97: códigos ERROR_DATOS_FINANCIEROS / ERROR_INTERNO_RF97 y 503 si se agota el tiempo leyendo datos financieros |
 # | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE01: rechazar password y omitir la query del log de acceso AAEF. |
 # | 2026-11-19 | Arekkazu | M7-05 RF-102: los rechazos de la vista previa quedan en la auditoría |
+# | 2026-11-22 | Arekkazu | USAB2 M711 RF-102: todo rechazo deja su mensaje como detalle, también el error interno |
 """Gateway de la consulta AAEF (RF-95 v2.0): las cinco responsabilidades y nada más.
 
 1. Forma de la solicitud (400) y credenciales en la URL (400 + evento de seguridad).
@@ -76,10 +77,15 @@ def _consulta_cancelada(exc: Optional[BaseException]) -> bool:
     return isinstance(exc, OperationalError) and getattr(exc.orig, "pgcode", None) == _PG_CONSULTA_CANCELADA
 
 
+_ERROR_INTERNO = "Ocurrió un error inesperado al generar la información contable. Contacte al administrador del SGPMP."
+
+
 def _tiempo_agotado(m07: M07, evento: dict, inicio: float, exc: BaseException) -> ServiceUnavailableError:
-    _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 503, "SERVICIO_NO_DISPONIBLE", "ERROR")
-    return ServiceUnavailableError(code="SERVICIO_NO_DISPONIBLE", original_error=exc, message=(
+    error = ServiceUnavailableError(code="SERVICIO_NO_DISPONIBLE", original_error=exc, message=(
         "La consulta contable tardó más de lo permitido. Intente de nuevo en unos minutos."))
+    _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA", "json_detalle": {"mensaje": error.message}},
+             inicio, 503, "SERVICIO_NO_DISPONIBLE", "ERROR")
+    return error
 
 
 def _id_solicitud(request: Request) -> str:
@@ -135,19 +141,20 @@ def atender(request: Request, db: Session, nit: str, desde: Optional[str], hasta
         if _consulta_cancelada(exc.__cause__):  # el tiempo máximo se agotó leyendo los datos financieros
             raise _tiempo_agotado(m07, evento, inicio, exc.__cause__) from exc
         evento.setdefault("tipo_evento", "RATE_LIMIT_EXCEDIDO" if exc.status_code == 429 else "SOLICITUD_RECHAZADA")
-        if exc.detalle:  # RNF-96.4: Mapper, documento y campo quedan en RF-102
-            evento["json_detalle"] = {**exc.detalle, "campo": exc.field}
+        # M711: el mensaje que recibió AgroFusion queda como detalle; RNF-96.4: Mapper, documento y campo también.
+        evento["json_detalle"] = {"mensaje": exc.message, **({**exc.detalle, "campo": exc.field} if exc.detalle else {})}
         _auditar(m07, evento, inicio, exc.status_code, exc.code, "WARNING" if exc.status_code < 500 else "ERROR")
         raise
     except OperationalError as exc:
         if not _consulta_cancelada(exc):  # base de datos caída: el handler global responde 503
-            _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 500, "ERROR_INTERNO_RF97", "ERROR")
+            _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA", "json_detalle": {"mensaje": _ERROR_INTERNO}},
+                     inicio, 500, "ERROR_INTERNO_RF97", "ERROR")
             raise
         raise _tiempo_agotado(m07, evento, inicio, exc) from exc
     except Exception as exc:  # RF-97 FA-10: nunca un 500 genérico sin código propio
-        _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA"}, inicio, 500, "ERROR_INTERNO_RF97", "ERROR")
-        raise InfrastructureError(code="ERROR_INTERNO_RF97", original_error=exc, message=(
-            "Ocurrió un error inesperado al generar la información contable. Contacte al administrador del SGPMP.")) from exc
+        _auditar(m07, {**evento, "tipo_evento": "SOLICITUD_RECHAZADA", "json_detalle": {"mensaje": _ERROR_INTERNO}},
+                 inicio, 500, "ERROR_INTERNO_RF97", "ERROR")
+        raise InfrastructureError(code="ERROR_INTERNO_RF97", original_error=exc, message=_ERROR_INTERNO) from exc
     _auditar(m07, {**evento, "tipo_evento": "PAQUETE_AAEF_CONSULTADO", "version_contrato": resultado.contrato.contrato_version,
                    "hash_contenido": resultado.hash_contenido, "id_intercambio": resultado.id_intercambio,
                    "tamano_payload_bytes": len(resultado.cuerpo), "json_detalle": {"documentos": resultado.documentos}},

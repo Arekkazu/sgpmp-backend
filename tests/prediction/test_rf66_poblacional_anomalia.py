@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: puntaje de anomalía, resultado y RF-68        |
+# | 2026-11-22 | Arekkazu | RF-66 POBLACIONAL: componente con mediana base 0 no satura el puntaje |
 """RF-66 POBLACIONAL: vector D4 de la cámara contra la línea base RF-24 del área."""
 from __future__ import annotations
 
@@ -31,6 +32,11 @@ def test_puntaje_y_nivel():
     assert score_anomalia(ECHADOS, BASE) == D("0.6290")
     assert score_anomalia({"otra": 1}, BASE) is None
     assert score_anomalia({"tasa_movimiento": 5}, {"tasa_movimiento": 0.1}) == 1  # acotado
+    # Peces quietos: la mediana de densidad_actividad es 0 y una ventana normal trae 0,11. Ese componente
+    # cuenta como un cambio del 100 % (1), no 11 veces eso, y el área sigue en nivel 0.
+    peces_base = {"tasa_movimiento": 0.0052, "densidad_actividad": 0.0, "dispersion_espacial": 0.2251}
+    peces = {"tasa_movimiento": 0.0058, "densidad_actividad": 0.1111, "dispersion_espacial": 0.2197}
+    assert score_anomalia(peces, peces_base) < D("0.5")
     assert [nivel_poblacional(D(s), D("0.5")) for s in ("0.2", "0.5", "0.74", "0.75")] == [0, 2, 2, 3]
     assert nivel_poblacional(D("0.9"), None) == 0  # sin umbral no se clasifica
 

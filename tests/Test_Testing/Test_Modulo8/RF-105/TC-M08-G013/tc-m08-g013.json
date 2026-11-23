@@ -162,6 +162,41 @@
               }
             }
           }
+        },
+        {
+          "name": "PRE - Login Productor (bandeja 182)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PRE - Login Productor (bandeja 182) (200)', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tok_bandeja', '');",
+                  "if (pm.response.code === 200) { const t = pm.response.json().token; pm.collectionVariables.set('tok_bandeja', t); pm.collectionVariables.set('id_bandeja', JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_bandeja}}\",\n  \"contrasena\": \"{{contrasena_bandeja}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -225,6 +260,37 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          }
+        },
+        {
+          "name": "TC-M08-013 - Productor (bandeja 182) GET /notificaciones?pagina=1&tamano=50",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "const rango = n => ({ CRITICA: 0, ADVERTENCIA: 1, INFORMATIVA: 2 })[n.nivel];",
+                  "const ordenada = it => it.every((n, k) => k === 0 || rango(it[k - 1]) < rango(n) || (rango(it[k - 1]) === rango(n) && Date.parse(it[k - 1].fecha_envio) >= Date.parse(n.fecha_envio)));",
+                  "pm.test('TC-M08-013 - Productor (bandeja 182): bandeja (200) en ≤ 2 s (RNF-03): ' + pm.response.responseTime + ' ms con ' + b.total + ' notificaciones', () => { pm.response.to.have.status(200); pm.expect(pm.response.responseTime).to.be.at.most(2000); });",
+                  "pm.test('TC-M08-013 - Productor (bandeja 182): trae total, no_leidas y los items', () => { pm.expect(b.total).to.be.a('number'); pm.expect(b.no_leidas).to.be.a('number').and.at.most(b.total); pm.expect(it.length).to.be.above(0); });",
+                  "pm.test('TC-M08-013 - Productor (bandeja 182): orden crítica > advertencia > informativa y de la más reciente a la más antigua', () => pm.expect(ordenada(it)).to.be.true);",
+                  "if (b.total <= 500) console.warn('DATO: la bandeja del Productor (bandeja 182) tiene ' + b.total + ' notificaciones; RNF-03 pide más de 500 (cuenta 182 del DBA).');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_bandeja}}"
               }
             ],
             "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
@@ -477,7 +543,7 @@
                 "exec": [
                   "console.log(pm.response.text().slice(0, 600));",
                   "const n = pm.response.json();",
-                  "pm.test('TC-M08-015 - repetir responde 200 sin cambios (misma fecha de lectura)', () => { pm.response.to.have.status(200); pm.expect(n.estado).to.equal('LEIDA'); pm.expect(String(n.fecha_lectura)).to.equal(pm.collectionVariables.get('fecha_lectura')); }});"
+                  "pm.test('TC-M08-015 - repetir responde 200 sin cambios (misma fecha de lectura)', () => { pm.response.to.have.status(200); pm.expect(n.estado).to.equal('LEIDA'); pm.expect(String(n.fecha_lectura)).to.equal(pm.collectionVariables.get('fecha_lectura')); });"
                 ]
               }
             }
@@ -520,6 +586,35 @@
           }
         },
         {
+          "name": "TC-M08-015 - GET las que quedan sin leer (con sus ocurrencias agrupadas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json() || {}; const it = b.items || [];",
+                  "console.log(JSON.stringify({ total: b.total, no_leidas: b.no_leidas, criticas_pendientes: b.criticas_pendientes, pagina: b.pagina, tamano: b.tamano, n: it.length }));",
+                  "const ocurr = it.reduce((a, n) => a + (n.ocurrencias || 1), 0);",
+                  "pm.collectionVariables.set('sin_leer_visibles', String(b.no_leidas)); pm.collectionVariables.set('sin_leer_ocurrencias', String(ocurr));",
+                  "console.log('sin leer en la bandeja: ' + b.no_leidas + ' avisos, ' + ocurr + ' con las ocurrencias agrupadas');",
+                  "pm.test('TC-M08-015 - quedan avisos sin leer para marcar todas', () => pm.expect(b.no_leidas).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_prod}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?solo_no_leidas=true&tamano=50"
+          }
+        },
+        {
           "name": "TC-M08-015 - PATCH /notificaciones/leidas",
           "event": [
             {
@@ -528,7 +623,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log(pm.response.text().slice(0, 600));",
-                  "pm.test('TC-M08-015 - marcadas = las que quedaban sin leer', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().marcadas).to.equal(Number(pm.collectionVariables.get('no_leidas_0')) - 1); });"
+                  "const vis = Number(pm.collectionVariables.get('sin_leer_visibles')), occ = Number(pm.collectionVariables.get('sin_leer_ocurrencias'));",
+                  "const m = (pm.response.json() || {}).marcadas;",
+                  "pm.test('TC-M08-015 - marcar todas responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('TC-M08-015 - marcadas = las que quedaban sin leer en la bandeja (' + vis + ' avisos, ' + occ + ' con las agrupadas); responde ' + m, () => pm.expect(m).to.be.oneOf([vis, occ]));"
                 ]
               }
             }

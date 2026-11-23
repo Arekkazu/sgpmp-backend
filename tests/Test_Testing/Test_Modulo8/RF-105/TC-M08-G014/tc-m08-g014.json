@@ -443,7 +443,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log(pm.response.text().slice(0, 600));",
-                  "pm.test('TC-M08-017 - acción 'ok' (2 caracteres) rechazada (400 VAL_ENTRADA)', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                  "pm.test('TC-M08-017 - acción \\'ok\\' (2 caracteres) rechazada (400 VAL_ENTRADA)', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
                 ]
               }
             }
@@ -557,7 +557,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log(pm.response.text().slice(0, 600));",
-                  "pm.test('TC-M08-017 - acción 'Se revisó el galpón' (19 caracteres) rechazada (400 VAL_ENTRADA)', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
+                  "pm.test('TC-M08-017 - acción \\'Se revisó el galpón\\' (19 caracteres) rechazada (400 VAL_ENTRADA)', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA'); });"
                 ]
               }
             }
@@ -768,7 +768,7 @@
           }
         },
         {
-          "name": "TC-M08-017 - Administrador GET una INFORMATIVA nueva",
+          "name": "TC-M08-017 - Productor GET una INFORMATIVA nueva",
           "event": [
             {
               "listen": "test",
@@ -788,7 +788,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_admin}}"
+                "value": "Bearer {{tok_prod}}"
               }
             ],
             "url": "{{base_url}}/notificaciones?nivel=INFORMATIVA&estado=NUEVA&tamano=1"
@@ -813,7 +813,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_admin}}"
+                "value": "Bearer {{tok_prod}}"
               }
             ],
             "url": "{{base_url}}/notificaciones/{{id_informativa}}/descartada"
@@ -839,7 +839,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{tok_admin}}"
+                "value": "Bearer {{tok_prod}}"
               }
             ],
             "url": "{{base_url}}/notificaciones?nivel=INFORMATIVA&estado=DESCARTADA&tamano=50"
