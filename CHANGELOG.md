@@ -1,3 +1,14 @@
+## [1.4.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.3...v1.4.4) (2026-11-23)
+
+### Bug Fixes
+
+* **rf02-mod1:** un refresh rotado cuya respuesta se perdio no cierra la sesion (USAB2 M01) ([1117d91](https://github.com/Arekkazu/sgpmp-backend/commit/1117d9141ccf833c9f2dd40e78a31c8d337e8304))
+* **rf104-mod8:** el portafolio del reporte ejecutivo suma la misma valoracion NIC 41 del periodo cerrado (USAB2 M807) ([c8ed693](https://github.com/Arekkazu/sgpmp-backend/commit/c8ed6937eb50014de7f2825ea0730e7137f0e833))
+* **rf106-mod8:** pendientes del historial predictivo de cualquier nivel con mas de 48 h y marcar todas sin avisos de inicio de sesion (INC-M08-396-G022, INC-M08-394-G013) ([f27e4bb](https://github.com/Arekkazu/sgpmp-backend/commit/f27e4bb4fd10cd3015e381117e9280dd18bfdc7a)), closes [#1229](https://github.com/Arekkazu/sgpmp-backend/issues/1229) [#1221](https://github.com/Arekkazu/sgpmp-backend/issues/1221)
+* **rf66-mod4:** una mediana base 0 no satura el puntaje de anomalía por visión ([bafaaa9](https://github.com/Arekkazu/sgpmp-backend/commit/bafaaa996133b1e6b8c990118ad839866ba787a5))
+* **rf69-mod4:** crear el almacenamiento de modelos del usuario 1000 en la imagen ([885f39d](https://github.com/Arekkazu/sgpmp-backend/commit/885f39dee3e8f078d2a4ca863cf2568a53807381))
+* **rf69-mod4:** guardar la firma del artefacto al registrar una versión de modelo ([4200af8](https://github.com/Arekkazu/sgpmp-backend/commit/4200af801b03fee79dbd8acedc7e3dd53bdaaeeb))
+
 ## [1.4.4-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.3...v1.4.4-rc.1) (2026-11-23)
 
 ### Bug Fixes
