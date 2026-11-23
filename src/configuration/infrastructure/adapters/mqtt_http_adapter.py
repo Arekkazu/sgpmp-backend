@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador real de ``MqttPort`` -- llama a BROKER-MQTT-SGPMP por HTTP (RF-23).
 
 El broker publica el comando en MQTT y espera hasta ~30s el ACK del
@@ -98,12 +101,20 @@ _TIMEOUT_CREDENCIAL_SEGUNDOS = 10.0
 
 
 class MqttHttpAdapter(MqttPort):
+    """Envía configuraciones y credenciales al broker MQTT por HTTP."""
 
     def __init__(self) -> None:
         self._base_url = os.environ.get("MQTT_BROKER_URL", "")
         self._token = os.environ.get("MQTT_BROKER_TOKEN", "")
 
     def enviar_configuracion(self, serial: str, payload: dict) -> ResultadoEnvioMqtt:
+        """Intenta enviar la configuración al dispositivo identificado por `serial`.
+
+        Nunca lanza: ante cualquier fallo de comunicación (broker caído,
+        timeout de red) degrada a ResultadoEnvioMqtt(estado="PENDIENTE", ...)
+        para no romper el flujo de negocio -- la configuración ya quedó
+        persistida como PENDIENTE antes de llamar acá.
+        """
         if not self._base_url or not self._token:
             logger.error("MQTT_BROKER_URL/MQTT_BROKER_TOKEN no configurados -- broker omitido.")
             return ResultadoEnvioMqtt(estado="PENDIENTE", mensaje=_MENSAJE_BROKER_NO_DISPONIBLE)
@@ -126,6 +137,9 @@ class MqttHttpAdapter(MqttPort):
     # ── Credencial MQTT del Gateway Edge (TC-M09-250/251) ──────────────────────
 
     def emitir_credencial(self, serial: str) -> CredencialMqtt:
+        """Crea o rota la credencial de `serial` (usuario MQTT) con permiso sobre
+        sus topics y los de los dispositivos que atiende según modulo9.
+        """
         respuesta = self._credencial("POST", serial)
         if respuesta.status_code != 201:
             raise self._error_broker(respuesta, serial)
@@ -135,6 +149,7 @@ class MqttHttpAdapter(MqttPort):
         )
 
     def consultar_credencial(self, serial: str) -> Optional[EstadoCredencialMqtt]:
+        """None si `serial` no tiene credencial propia."""
         respuesta = self._credencial("GET", serial)
         if respuesta.status_code == 404:
             return None
@@ -149,11 +164,17 @@ class MqttHttpAdapter(MqttPort):
         )
 
     def revocar_credencial(self, serial: str) -> None:
+        """Deshabilita la credencial de `serial` y le quita sus topics a cualquier
+        Gateway Edge que lo atienda. Idempotente.
+        """
         respuesta = self._credencial("DELETE", serial)
         if respuesta.status_code != 204:
             raise self._error_broker(respuesta, serial)
 
     def sincronizar_credencial(self, serial: str) -> None:
+        """Recalcula desde modulo9 los topics de la credencial de `serial` sin
+        rotar la clave. No hace nada si `serial` no tiene credencial.
+        """
         respuesta = self._credencial("POST", serial, sufijo="/sync")
         if respuesta.status_code not in (204, 404):  # 404: el Edge aún no tiene credencial
             raise self._error_broker(respuesta, serial)

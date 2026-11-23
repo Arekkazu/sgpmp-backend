@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto DestinoEdgeRepository (RF-17).
 
 Llama a ``modulo9.fn_seriales_gateway_edge_por_especie`` (migración
@@ -36,10 +39,16 @@ _SQL_GATEWAYS_DEL_AREA = text(
 
 
 class SqlAlchemyDestinoEdgeRepository(DestinoEdgeRepository):
+    """Implementación SQLAlchemy de ``DestinoEdgeRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def listar_seriales_gateway_por_especie(self, id_especie: int) -> list[str]:
+        """Seriales de los Gateway Edge activos de las áreas activas de la especie.
+
+        No depende de la identidad de quien llama: la propagación de un umbral
+        no puede cambiar según el rol que lo editó.
+        """
         filas = self._db.execute(
             text("SELECT serial FROM modulo9.fn_seriales_gateway_edge_por_especie(:id_especie)"),
             {"id_especie": id_especie},
@@ -47,6 +56,11 @@ class SqlAlchemyDestinoEdgeRepository(DestinoEdgeRepository):
         return [serial for (serial,) in filas]
 
     def listar_gateways_por_infraestructura(self, id_infraestructura: int) -> list[GatewayEdgeDestino]:
+        """Gateway Edge activos del área: instalados en ella o que atienden un dispositivo activo de ella.
+
+        DEV-10 (RF-20, D-06): destino del ``tipo_modelo_asignado`` del área. No
+        depende de quién edita el área.
+        """
         # modulo9 tiene RLS forzada (FORCE ROW LEVEL SECURITY) y quien edita un
         # área no siempre ve dispositivos_iot: se busca como el usuario de servicio.
         with como_sistema(self._db):

@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad de cambio de estado de una versión de modelo."""
 from __future__ import annotations
 
 import uuid
@@ -8,6 +12,7 @@ from typing import Optional
 
 @dataclass(eq=False)
 class HistorialEstadoModelo:
+    """Cambio de estado de una versión de modelo."""
     id_version_modelo: int
     estado_nuevo: str
     tipo_actor: str

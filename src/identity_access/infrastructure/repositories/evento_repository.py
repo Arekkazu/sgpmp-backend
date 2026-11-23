@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: devolver el ID asignado al evento para asociar sus avisos. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto de dominio :class:`EventoRepository`.
 
 Mapea filas de la tabla ``eventos`` a la entidad :class:`Evento` y recalcula el
@@ -84,6 +85,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         categoria: Optional[EventoCategoria] = None,
         archivados: bool = False,
     ) -> list[tuple[Evento, str]]:
+        """Lista eventos de auditoría con filtros y paginación."""
         modelo = EventosArchivados if archivados else Eventos
         eventos = (
             self._query_con_filtros(
@@ -121,6 +123,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         categoria: Optional[EventoCategoria] = None,
         archivados: bool = False,
     ) -> dict[int, str]:
+        """Clasifica el conjunto filtrado para decidir cómo exportarlo."""
         modelo = EventosArchivados if archivados else Eventos
         clasificacion: dict[int, str] = {}
         for lote in self._lotes(
@@ -139,6 +142,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         categoria: Optional[EventoCategoria] = None,
         archivados: bool = False,
     ) -> Iterator[Evento]:
+        """Itera los eventos filtrados por lotes para exportarlos."""
         modelo = EventosArchivados if archivados else Eventos
         for lote in self._lotes(
             id_usuario, tipo_evento, categoria, fecha_desde, fecha_hasta, modelo, limite
@@ -182,6 +186,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         categoria: Optional[EventoCategoria] = None,
         archivados: bool = False,
     ) -> int:
+        """Cuenta los eventos que cumplen los filtros."""
         return self._query_con_filtros(
             id_usuario,
             tipo_evento,
@@ -289,6 +294,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         descripcion: Optional[str] = None,
         modulo: str = "MODULO1",
     ) -> int:
+        """Registra un evento de auditoría con su hash de integridad."""
         # El hash SHA-256 cubre los campos clave del evento para detectar
         # modificaciones posteriores en la tabla de auditoría.
         try:
@@ -411,6 +417,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         return (nombre_completo or fila.correo_electronico or "")[:80] or None
 
     def contar_solicitudes_recuperacion_por_ip(self, ip: str, desde: datetime) -> int:
+        """Cuenta las solicitudes de recuperación de contraseña desde una IP."""
         # .astext extrae el valor de texto de la columna JSONB sin comillas adicionales.
         # Cuenta solicitudes ajenas sin identidad: bajo RLS solo el
         # Administrador lee `eventos` (función de a7380032a23b).
@@ -430,6 +437,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         return primera_solicitud.astimezone(timezone.utc)
 
     def contar_consultas_detalle_usuario(self, id_usuario: int, desde: datetime) -> int:
+        """Cuenta las consultas exitosas del detalle de usuario desde una fecha."""
         # Solo las exitosas: los eventos de bloqueo (RF-12, 429) se registran con
         # resultado FALLIDO justamente para no realimentar su propia ventana.
         # Resuelto por el indice ix_eventos_usuario_fecha (id_usuario, fecha_evento DESC).

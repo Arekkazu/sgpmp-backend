@@ -9,6 +9,8 @@
 # | 2026-10-28 | Arekkazu | BE-0/BE-3 RF-55: conducta de ReglaAlerta y regla Edge {id, nombre} en la alerta |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-06 RF-57: acción sugerida en las alertas ambientales |
 # | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: tipo REGLA_SIMPLE para la lectura aislada fuera de NORMAL |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidades de dominio de alertas: catálogos, alerta, histórico de estados y reglas (RF-57/RF-60)."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -21,6 +23,7 @@ from src.shared.errors import BusinessRuleError, ValidationError
 
 
 class TipoAlerta(str, Enum):
+    """Tipos de alerta operativa que puede generar el sistema."""
     ESTRES_TERMICO = "ESTRES_TERMICO"
     SINDROME_RESPIRATORIO = "SINDROME_RESPIRATORIO"
     RIESGO_HIDRICO = "RIESGO_HIDRICO"
@@ -37,6 +40,7 @@ class TipoAlerta(str, Enum):
 
 
 class EstadoAlerta(str, Enum):
+    """Estados del ciclo de vida de una alerta."""
     ACTIVA = "ACTIVA"
     EN_ATENCION = "EN_ATENCION"
     RESUELTA = "RESUELTA"
@@ -46,12 +50,14 @@ class EstadoAlerta(str, Enum):
 
 
 class OrigenEventoAlerta(str, Enum):
+    """Componente que originó el evento de la alerta (Edge, backend o IA)."""
     EDGE = "EDGE"
     BACKEND = "BACKEND"
     IA = "IA"
 
 
 class ConflictoResolucion(str, Enum):
+    """Criterio para resolver conflictos de severidad entre Edge e IA."""
     SEVERIDAD_MAXIMA = "SEVERIDAD_MAXIMA"
     SEVERIDAD_COMPROMISO = "SEVERIDAD_COMPROMISO"
     IA_PREVALECE = "IA_PREVALECE"
@@ -152,10 +158,12 @@ class AmbitoAlerta(str, Enum):
     TECNICA = "TECNICA"
 
     def admite(self, tipo_alerta: str) -> bool:
+        """Indica si el tipo de alerta pertenece a este ámbito (técnico u operativo)."""
         return (tipo_alerta == TIPO_ALERTA_TECNICA) == (self is AmbitoAlerta.TECNICA)
 
 
 class SeveridadAlerta(str, Enum):
+    """Severidades de alerta, comparables por orden (LEVE < MODERADO < CRITICO)."""
     LEVE = "LEVE"
     MODERADO = "MODERADO"
     CRITICO = "CRITICO"
@@ -189,6 +197,7 @@ _TRANSICIONES_VALIDAS: dict[str, set[str]] = {
 
 @dataclass
 class Alerta:
+    """Alerta generada por telemetría con su contexto, severidad y estado."""
     tipo_alerta: str
     severidad: str
     estado_alerta: str
@@ -252,9 +261,15 @@ class Alerta:
         return base + timedelta(minutes=minutos)
 
     def es_transicion_valida(self, nuevo_estado: str) -> bool:
+        """Indica si la alerta puede pasar al estado indicado."""
         return nuevo_estado in _TRANSICIONES_VALIDAS.get(self.estado_alerta, set())
 
     def transicionar(self, nuevo_estado: str, id_usuario: Optional[int], motivo: Optional[str]) -> None:
+        """Cambia el estado de la alerta registrando usuario y motivo.
+
+        Raises:
+            BusinessRuleError: Si la transición no está permitida.
+        """
         if not self.es_transicion_valida(nuevo_estado):
             raise BusinessRuleError(
                 code="TRANSICION_INVALIDA",
@@ -275,6 +290,7 @@ class Alerta:
 
 @dataclass
 class HistoricoEstadoAlerta:
+    """Registro de un cambio de estado de una alerta."""
     id_alerta: int
     estado_anterior: str
     estado_nuevo: str
@@ -293,6 +309,7 @@ CLAVES_SEVERIDAD_EDGE = frozenset({"LEVE", "MODERADO", "CRITICO", "temperatura_c
 
 @dataclass
 class ReglaAlerta:
+    """Regla configurable que define umbrales y ventana de confirmación de una alerta."""
     nombre: str
     tipo_sensor: str
     es_regla_compuesta: bool
@@ -324,6 +341,11 @@ class ReglaAlerta:
         return self.es_regla_compuesta and self.tiene_ejecutar_edge
 
     def validar(self) -> None:
+        """Valida la coherencia de umbrales y severidades de la regla.
+
+        Raises:
+            ValidationError: Si la regla no tiene umbrales válidos.
+        """
         if self.umbral_min is None and self.umbral_max is None and not self.umbrales_severidad:
             raise ValidationError(
                 code="REGLA_SIN_UMBRAL",
@@ -372,6 +394,11 @@ class ReglaAlerta:
             )
 
     def actualizar(self, *, id_usuario: int, **campos: Any) -> None:
+        """Actualiza los campos indicados de una regla activa y la revalida.
+
+        Raises:
+            BusinessRuleError: Si la regla está inactiva.
+        """
         if not self.es_activa:
             raise BusinessRuleError(
                 code="REGLA_ALERTA_INACTIVA",
@@ -392,12 +419,22 @@ class ReglaAlerta:
         self.validar()
 
     def desactivar(self, id_usuario: int) -> None:
+        """Desactiva la regla.
+
+        Raises:
+            BusinessRuleError: Si ya estaba inactiva.
+        """
         if not self.es_activa:
             raise BusinessRuleError(code="REGLA_ALERTA_YA_INACTIVA", message="La regla ya está inactiva.")
         self.es_activa = False
         self.id_usuario = id_usuario
 
     def reactivar(self, id_usuario: int) -> None:
+        """Reactiva la regla.
+
+        Raises:
+            BusinessRuleError: Si ya estaba activa.
+        """
         if self.es_activa:
             raise BusinessRuleError(code="REGLA_ALERTA_YA_ACTIVA", message="La regla ya está activa.")
         self.es_activa = True
@@ -406,6 +443,7 @@ class ReglaAlerta:
 
 @dataclass
 class ResultadoGeneracionAlerta:
+    """Resultado de generar una alerta: si fue duplicada y la alerta resultante."""
     es_duplicado: bool
     id_alerta: Optional[int] = None
     tipo_alerta: Optional[str] = None

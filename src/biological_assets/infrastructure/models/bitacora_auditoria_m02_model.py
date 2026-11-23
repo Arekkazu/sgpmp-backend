@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.bitacora_auditoria_m02``: bitácora RF-52 con hash de
 integridad (inmutable por trigger).
 """
@@ -16,6 +19,7 @@ from .base_model import Base
 
 
 class BitacoraAuditoriaM02Model(Base):
+    """Modelo ORM de la bitácora de auditoría de activos biológicos (tabla ``modulo2.bitacora_auditoria_m02``)."""
     __tablename__ = 'bitacora_auditoria_m02'
     __table_args__ = (
         PrimaryKeyConstraint('id_bitacora', name='bitacora_auditoria_m02_pkey'),

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-140-G003 RF-64: nombre con espacios internos normalizados |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO de registro de una patología."""
 from __future__ import annotations
 
 from pydantic import field_validator
@@ -17,6 +19,7 @@ def normalizar_nombre_patologia(valor: str) -> str:
 
 
 class RegistrarPatologiaDTO(BaseDTO):
+    """Datos de una patología nueva."""
     nombre_patologia: str
     especie_aplicable: str = "TODAS"
     variables_sensoricas_asociadas: list[int]

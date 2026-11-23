@@ -7,12 +7,15 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: agrega progreso independiente para auditoria de fuentes |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope de la espera creciente entre reintentos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase, propiedades y métodos |
 """Progreso durable por responsabilidad, independiente del canal de entrada."""
 from enum import Enum
 from typing import Protocol
 
 
 class EtapaPostcommit(str, Enum):
+    """Etapas de procesamiento posterior al commit de la ingesta."""
+
     RF53_LECTURAS = 'RF53_LECTURAS'
     RF53_AUDITORIA = 'RF53_AUDITORIA'
     RF60_TRANSICIONES = 'RF60_TRANSICIONES'
@@ -33,14 +36,17 @@ class EtapaPostcommit(str, Enum):
 
     @property
     def es_heartbeat(self):
+        """Indica si la etapa pertenece al flujo de heartbeat."""
         return self.value.startswith('HEARTBEAT_')
 
     @property
     def es_vision(self):
+        """Indica si la etapa pertenece al flujo de visión."""
         return self in (EtapaPostcommit.VISION_CALIDAD, EtapaPostcommit.VISION_DETECCION)
 
     @property
     def requisito(self):
+        """Etapa que debe completarse antes, o ``None`` si no tiene requisito único."""
         if self is EtapaPostcommit.RF57:
             return EtapaPostcommit.RF17
         if self in (EtapaPostcommit.RF17, EtapaPostcommit.RF61_AVISOS):
@@ -53,16 +59,30 @@ class EtapaPostcommit(str, Enum):
 
     @property
     def requisitos(self):
+        """Todas las etapas que deben completarse antes de esta."""
         if self is EtapaPostcommit.RF57:
             return (EtapaPostcommit.RF17, EtapaPostcommit.RF62)
         return (self.requisito,) if self.requisito else ()
 
 
 class UnidadPostcommit(Protocol):
+    """Unidad de trabajo aislada para procesar una etapa postcommit."""
+
     db: object
 
     def pendientes(self, etapa: EtapaPostcommit, limite: int, reintento_seg: int,
-                   reintento_max_seg: int | None = None) -> list[int]: ...
-    def reclamar(self, etapa: EtapaPostcommit, identificador: int) -> bool: ...
-    def registrar(self, etapa: EtapaPostcommit, identificador: int, error: str | None = None, *, detalle: dict | None = None) -> None: ...
-    def confirmar(self) -> None: ...
+                   reintento_max_seg: int | None = None) -> list[int]:
+        """Devuelve los identificadores pendientes de la etapa listos para reintento."""
+        ...
+
+    def reclamar(self, etapa: EtapaPostcommit, identificador: int) -> bool:
+        """Marca un identificador como reclamado; ``False`` si otro lo tomó."""
+        ...
+
+    def registrar(self, etapa: EtapaPostcommit, identificador: int, error: str | None = None, *, detalle: dict | None = None) -> None:
+        """Registra el resultado o el error del procesamiento de un identificador."""
+        ...
+
+    def confirmar(self) -> None:
+        """Confirma los cambios realizados en la unidad."""
+        ...

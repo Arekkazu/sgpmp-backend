@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: política de visión configurable desde M09   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Los 7 parámetros de la política de visión de RF-62 (RFC-011), configurables por el administrador.
 
 Antes solo se sembraban con ``scripts/configurar_parametros_dev14.py --sembrar-vision``.
@@ -30,10 +31,12 @@ PARAMETROS_VISION = {nombre: (PREDETERMINADOS_VISION[nombre], d) for nombre, d i
 
 
 class PoliticaVisionUseCase(ParametrosAlertasUseCase):
+    """Consulta y actualiza la política de calidad de visión."""
     catalogo = PARAMETROS_VISION
     codigo_invalido, rf = "PARAMETRO_VISION_INVALIDO", "la política de visión (RF-62)"
 
     def actualizar(self, cambios: dict[str, Any], id_usuario: int) -> list[ParametroAlerta]:
+        """Actualiza la política validando el conjunto completo."""
         # DEV-14 valida los 7 juntos (pesos que suman 1, óptimo > degradado): en una BD sin
         # sembrar, los que no se envían toman el valor base de RFC-011.
         faltantes = set(self.catalogo) - set(self.parametros_repo.obtener(list(self.catalogo)))

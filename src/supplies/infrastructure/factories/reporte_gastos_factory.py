@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, exportación y avisos      |
 # | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: inyectar auditoria en generacion y regeneracion de reportes. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Fábricas de wiring de RF-77 (Reporte de Gastos Acumulados).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases
@@ -58,6 +59,7 @@ from src.supplies.infrastructure.repositories.trabajo_reporte_gasto_repository i
 
 
 def build_generar_reporte_gastos_use_case(db: Session) -> GenerarReporteGastosUseCase:
+    """Construye ``GenerarReporteGastosUseCase`` con sus dependencias."""
     return GenerarReporteGastosUseCase(
         db=db,
         detalle_port=SqlAlchemyDetalleGastoReadRepository(db),
@@ -71,6 +73,7 @@ def build_generar_reporte_gastos_use_case(db: Session) -> GenerarReporteGastosUs
 
 
 def build_exportar_reporte_gastos_use_case(db: Session) -> ExportarReporteGastosUseCase:
+    """Construye ``ExportarReporteGastosUseCase`` con sus dependencias."""
     return ExportarReporteGastosUseCase(
         db=db,
         reporte_repo=SqlAlchemyReporteGastoRepository(db),
@@ -82,6 +85,7 @@ def build_exportar_reporte_gastos_use_case(db: Session) -> ExportarReporteGastos
 
 
 def build_consultar_reporte_gastos_use_case(db: Session) -> ConsultarReporteGastosUseCase:
+    """Construye ``ConsultarReporteGastosUseCase`` con sus dependencias."""
     return ConsultarReporteGastosUseCase(
         db=db,
         auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
@@ -91,10 +95,12 @@ def build_consultar_reporte_gastos_use_case(db: Session) -> ConsultarReporteGast
 
 
 def build_listar_historial_reportes_use_case(db: Session) -> ListarHistorialReportesUseCase:
+    """Construye ``ListarHistorialReportesUseCase`` con sus dependencias."""
     return ListarHistorialReportesUseCase(reporte_repo=SqlAlchemyReporteGastoRepository(db))
 
 
 def build_consultar_estado_trabajo_reporte_use_case(db: Session) -> ConsultarEstadoTrabajoReporteUseCase:
+    """Construye ``ConsultarEstadoTrabajoReporteUseCase`` con sus dependencias."""
     return ConsultarEstadoTrabajoReporteUseCase(trabajo_repo=SqlAlchemyTrabajoReporteGastoRepository(db))
 
 

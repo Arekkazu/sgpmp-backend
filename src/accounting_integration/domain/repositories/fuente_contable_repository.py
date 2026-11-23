@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-97: puerto de lectura de M06/M09 para el envelope AAEF |
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: las líneas sin trazabilidad se devuelven con sus hechos, no solo el conteo |
 # | 2026-11-19 | Arekkazu | TC-M07-G019 RF-96: catálogo de LineType de la matriz contable |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de solo lectura sobre lo que M06 y M09 ya calcularon (RF-97 Fase 3)."""
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from src.accounting_integration.domain.services.aaef import ComprobanteNic41, Co
 
 
 class FuenteContableRepository(ABC):
+    """Puerto de lectura de los datos contables a exportar."""
     @abstractmethod
     def titular(self, nit: str) -> Optional[Titular]:
         """Titular tributario (RF-19) con al menos una finca activa, sin importar quién consulta."""
@@ -23,17 +25,23 @@ class FuenteContableRepository(ABC):
         """Fincas activas del titular, sin importar quién consulta (RLS no debe recortarlas)."""
 
     @abstractmethod
-    def fincas_usuario(self, id_usuario: int) -> set[int]: ...
+    def fincas_usuario(self, id_usuario: int) -> set[int]:
+        """Devuelve las fincas que puede ver el usuario."""
+        ...
 
     @abstractmethod
-    def periodos(self, nit: str) -> list[Periodo]: ...
+    def periodos(self, nit: str) -> list[Periodo]:
+        """Lista los periodos contables del titular."""
+        ...
 
     @abstractmethod
     def costos_factura(self, nit: str, desde: date, hasta: date) -> list[CostoFactura]:
         """Costos con vehículo factura de compra cuyo período contable está dentro del rango."""
 
     @abstractmethod
-    def comprobantes(self, nit: str, desde: date, hasta: date) -> list[ComprobanteNic41]: ...
+    def comprobantes(self, nit: str, desde: date, hasta: date) -> list[ComprobanteNic41]:
+        """Lista los comprobantes NIC 41 del titular en el rango."""
+        ...
 
     @abstractmethod
     def lineas_sin_trazabilidad(self, nit: str, desde: date, hasta: date) -> list[dict]:

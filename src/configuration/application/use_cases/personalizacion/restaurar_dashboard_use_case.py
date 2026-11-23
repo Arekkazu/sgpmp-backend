@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Restaurar dashboard a la configuración predeterminada del rol (POST RF-28)."""
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ class RestaurarDashboardUseCase:
         self.dashboard_repo = dashboard_repo
 
     def execute(self, usuario_actual: UsuarioActual) -> DashboardLayout:
+        """Restaura el tablero del usuario al de su rol por defecto."""
         default = self.dashboard_repo.obtener_default_de_rol(
             id_usuario=usuario_actual.id_usuario,
             id_rol=usuario_actual.id_rol,

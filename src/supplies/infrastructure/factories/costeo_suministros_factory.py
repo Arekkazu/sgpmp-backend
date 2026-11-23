@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78/79: movimiento del ledger y outbox  |
 # | 2026-11-08 | Leandro | INC-M05-275-G37 RF-80: consultar activos visibles al auditar rechazos de costeo directo. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Fábricas de wiring de RF-78 (Costeo Directo de Suministros — CU-05).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases listos.
@@ -39,6 +40,7 @@ from src.supplies.infrastructure.repositories.registro_suministro_repository imp
 
 
 def build_registrador_movimiento(db: Session) -> RegistradorMovimientoLedger:
+    """Construye ``RegistradorMovimientoLedger`` con sus dependencias."""
     return RegistradorMovimientoLedger(
         acumulado_repo=SqlAlchemyAcumuladoCicloRepository(db),
         auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
@@ -47,6 +49,7 @@ def build_registrador_movimiento(db: Session) -> RegistradorMovimientoLedger:
 
 
 def build_compensador_anulacion(db: Session) -> CompensadorAnulacion:
+    """Construye ``CompensadorAnulacion`` con sus dependencias."""
     return CompensadorAnulacion(
         registro_repo=SqlAlchemyRegistroSuministroRepository(db),
         ciclo_port=CicloM02Adapter(db),
@@ -55,6 +58,7 @@ def build_compensador_anulacion(db: Session) -> CompensadorAnulacion:
 
 
 def build_registrar_suministro_directo_use_case(db: Session) -> RegistrarSuministroDirectoUseCase:
+    """Construye ``RegistrarSuministroDirectoUseCase`` con sus dependencias."""
     return RegistrarSuministroDirectoUseCase(
         db=db,
         registro_repo=SqlAlchemyRegistroSuministroRepository(db),
@@ -66,6 +70,7 @@ def build_registrar_suministro_directo_use_case(db: Session) -> RegistrarSuminis
 
 
 def build_registrar_correccion_suministro_use_case(db: Session) -> RegistrarCorreccionSuministroUseCase:
+    """Construye ``RegistrarCorreccionSuministroUseCase`` con sus dependencias."""
     return RegistrarCorreccionSuministroUseCase(
         db=db,
         registro_repo=SqlAlchemyRegistroSuministroRepository(db),
@@ -77,6 +82,7 @@ def build_registrar_correccion_suministro_use_case(db: Session) -> RegistrarCorr
 
 
 def build_consultar_acumulado_ciclo_use_case(db: Session) -> ConsultarAcumuladoCicloUseCase:
+    """Construye ``ConsultarAcumuladoCicloUseCase`` con sus dependencias."""
     return ConsultarAcumuladoCicloUseCase(
         acumulado_repo=SqlAlchemyAcumuladoCicloRepository(db),
         ciclo_port=CicloM02Adapter(db),

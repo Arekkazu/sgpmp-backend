@@ -4,6 +4,7 @@
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04/CU06 H-02 RF-70/73: consultar la OTA no deja evento; nombre de versión |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-70: nombre del dispositivo en los despliegues |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-05 RF-70: equipos objetivo compatibles (ACTIVO y tipo de modelo del área) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para distribución OTA de modelos Edge (`/prediccion`).
 
 RF-70 CU-06: Consulta del estado OTA y listado de despliegues por dispositivo.
@@ -112,6 +113,7 @@ def consultar_ota_status(
     estado: Optional[str] = Query(None, description="Filtrar por estado: EXITOSO, FALLIDO, PENDIENTE, SIN_CAMBIOS, EN_PROCESO."),
     db: Session = Depends(get_db),
 ) -> OtaStatusResponse:
+    """Devuelve el estado de los despliegues OTA de una versión."""
     use_case = ConsultarOtaStatusUseCase(
         repo=SqlAlchemyDespliegueOtaRepository(db),
         version_port=VersionModeloAdapter(db),
@@ -147,6 +149,7 @@ def listar_despliegues(
     offset: int = Query(0, ge=0, description="Desplazamiento de la página."),
     db: Session = Depends(get_db),
 ) -> DespliegueOtaListResponse:
+    """Lista los despliegues OTA con filtros."""
     use_case = ListarDesplieguesUseCase(
         repo=SqlAlchemyDespliegueOtaRepository(db),
         version_port=VersionModeloAdapter(db),
@@ -176,6 +179,7 @@ def _ota_edge(db: Session) -> dict:
 
 
 class DispositivoObjetivoOtaResponse(BaseModel):
+    """Dispositivo candidato a recibir una actualización OTA."""
     id_dispositivo_iot: int
     serial: str
     descripcion: str
@@ -208,6 +212,7 @@ def listar_dispositivos_objetivo(
     tipo_modelo: str = Query(..., description="tipo_modelo de la versión a distribuir (RFC-009)."),
     db: Session = Depends(get_db),
 ) -> list[DispositivoObjetivoOtaResponse]:
+    """Lista los dispositivos candidatos para un tipo de modelo."""
     return [
         DispositivoObjetivoOtaResponse(
             id_dispositivo_iot=i, serial=serial, descripcion=desc, categoria=cat, nombre_infraestructura=infra,
@@ -265,6 +270,7 @@ def consultar_distribucion_ota(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DistribucionOtaResponse:
+    """Devuelve una distribución OTA con sus despliegues."""
     resultado = ConsultarDistribucionOtaUseCase(
         distribucion_repo=SqlAlchemyDistribucionOtaRepository(db),
         despliegue_repo=SqlAlchemyDespliegueOtaRepository(db),

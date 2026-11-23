@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: resultado que el motor IA devuelve al backend             |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-66 — Resultado de inferencia individual que entrega el motor IA (`motor-ia`).
 
 Inmutable una vez persistido (Restricción 5, `fn_historial_diagnostico_inmutable`).
@@ -21,6 +22,7 @@ LATENCIA_MAXIMA_MS = 2000
 
 @dataclass
 class ResultadoInferencia:
+    """Resultado de una inferencia del motor sobre un activo."""
     id_resultado_inferencia: uuid.UUID
     id_activo_biologico: int
     tipo_modelo: str
@@ -45,4 +47,5 @@ class ResultadoInferencia:
 
     @property
     def latencia_excedida(self) -> bool:
+        """Indica si la inferencia superó la latencia máxima."""
         return self.latencia_ms is not None and self.latencia_ms > LATENCIA_MAXIMA_MS

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Respaldo local de la bitácora de M04 (RF-73 E2 y E8, DEV-37).
 
 Cuando un evento no se puede persistir tras los reintentos, se guarda aquí con
@@ -16,6 +17,7 @@ from typing import Optional
 
 
 class RespaldoAuditoriaM04Port(ABC):
+    """Puerto del respaldo local de eventos de auditoría."""
     @abstractmethod
     def guardar(self, evento: dict) -> None:
         """Agrega el evento al respaldo. Lanza si no se pudo escribir."""

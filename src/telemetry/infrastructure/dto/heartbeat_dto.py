@@ -2,6 +2,8 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-42 RF-60: valida zona horaria y literales de buffer |
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: aceptar métricas de buffer opcionales preservando el contrato anterior. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTOs del heartbeat de dispositivos IoT y su diagnóstico."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -33,6 +35,7 @@ class DiagnosticoHeartbeatDTO(BaseDTO):
     @field_validator('temperatura_dispositivo', mode='before')
     @classmethod
     def validar_temperatura_numerica(cls, valor):
+        """Exige que la temperatura del dispositivo sea numérica."""
         if valor is not None and (isinstance(valor, bool) or not isinstance(valor, (int, float, Decimal))):
             raise ValueError('La temperatura del dispositivo debe ser un número finito en °C.')
         return valor
@@ -59,6 +62,7 @@ class HeartbeatDTO(DiagnosticoHeartbeatDTO):
     @field_validator('fecha_registro')
     @classmethod
     def validar_zona_horaria(cls, valor):
+        """Exige que la fecha del heartbeat traiga zona horaria."""
         if valor.utcoffset() is None:
             raise ValueError('La fecha del heartbeat debe incluir zona horaria.')
         return valor
@@ -66,6 +70,7 @@ class HeartbeatDTO(DiagnosticoHeartbeatDTO):
     @field_validator('estado_local_buffer')
     @classmethod
     def validar_buffer(cls, valor):
+        """Exige un estado de buffer I, A o L."""
         if valor is not None and valor not in ('I', 'A', 'L'):
             raise ValueError('El estado de buffer debe ser I, A o L.')
         return valor

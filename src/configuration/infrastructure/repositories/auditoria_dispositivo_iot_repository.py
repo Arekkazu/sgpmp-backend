@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``AuditoriaDispositivoIotRepository``."""
 from __future__ import annotations
 
@@ -10,6 +13,7 @@ from src.configuration.infrastructure.models.auditoria_dispositivo_iot_model imp
 
 
 class SqlAlchemyAuditoriaDispositivoIotRepository(AuditoriaDispositivoIotRepository):
+    """Implementación SQLAlchemy de ``AuditoriaDispositivoIotRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -23,6 +27,9 @@ class SqlAlchemyAuditoriaDispositivoIotRepository(AuditoriaDispositivoIotReposit
         valores_nuevos: dict,
         valores_anteriores: Optional[dict] = None,
     ) -> None:
+        """Inserta un registro de auditoría inmutable sobre el dispositivo con los
+        valores antes/después.
+        """
         orm = AuditoriaDispositivoIotModel(
             id_dispositivo_iot=id_dispositivo_iot,
             id_usuario=id_usuario,

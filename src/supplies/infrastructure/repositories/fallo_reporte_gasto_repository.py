@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`FalloReporteGastoRepository` (RF-77)."""
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ from src.supplies.infrastructure.models.fallo_generacion_reporte_gasto_model imp
 
 
 class SqlAlchemyFalloReporteGastoRepository(FalloReporteGastoRepository):
+    """Implementación SQLAlchemy de ``FalloReporteGastoRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -29,6 +33,7 @@ class SqlAlchemyFalloReporteGastoRepository(FalloReporteGastoRepository):
         )
 
     def registrar(self, fallo: FalloReporteGasto) -> FalloReporteGasto:
+        """Registra el fallo."""
         try:
             orm = FalloGeneracionReporteGastoModel(
                 id_cola=fallo.id_cola,
@@ -45,6 +50,7 @@ class SqlAlchemyFalloReporteGastoRepository(FalloReporteGastoRepository):
         return self._a_entidad(orm)
 
     def listar_no_resueltos(self) -> list[FalloReporteGasto]:
+        """Lista los fallos sin resolver."""
         registros = (
             self.db.query(FalloGeneracionReporteGastoModel)
             .filter(FalloGeneracionReporteGastoModel.resuelto.is_(False))

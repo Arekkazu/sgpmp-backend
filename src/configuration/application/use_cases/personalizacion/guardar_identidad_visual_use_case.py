@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Crear identidad visual institucional de una finca (POST RF-26).
 
 Valida que no exista ya una identidad para la finca (409 si ya existe).
@@ -40,6 +43,7 @@ class GuardarIdentidadVisualUseCase:
         logo_content_type: Optional[str],
         usuario_actual: UsuarioActual,
     ) -> IdentidadVisual:
+        """Crea la identidad visual de la finca."""
         existente = self.identidad_repo.obtener_por_finca(dto.id_finca)
         if existente is not None:
             raise ConflictError(

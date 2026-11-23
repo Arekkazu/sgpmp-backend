@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.historial_infraestructura_activo``: periodos de alojamiento
 del activo en cada infraestructura (RF-34).
 """
@@ -17,6 +20,7 @@ if TYPE_CHECKING:
 
 
 class HistorialInfraestructuraActivoModel(Base):
+    """Modelo ORM de la ubicación histórica de un activo (tabla ``modulo2.historial_infraestructura_activo``)."""
     __tablename__ = 'historial_infraestructura_activo'
     __table_args__ = (
         PrimaryKeyConstraint('id_historial', name='historial_infraestructura_activo_pkey'),

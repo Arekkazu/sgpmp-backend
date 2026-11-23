@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Guardar preferencia de tema visual personal del usuario (PATCH RF-27)."""
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ class GuardarTemaPersonalUseCase:
         self.tema_repo = tema_repo
 
     def execute(self, dto: GuardarTemaDTO, usuario_actual: UsuarioActual) -> TemaVisual:
+        """Guarda el tema visual personal del usuario."""
         existente = self.tema_repo.obtener_por_usuario(usuario_actual.id_usuario)
 
         try:

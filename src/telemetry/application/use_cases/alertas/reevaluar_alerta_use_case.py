@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: reevaluación por IA tras la recuperación del motor |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: la alerta reevaluada usa los plazos SLA configurados |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-57 E16 (y E3/CA-6): el motor de IA, ya recuperado, reevalúa el evento de una alerta generada sin él.
 
 - La alerta original no se modifica (inmutabilidad del historial).
@@ -38,6 +39,7 @@ ALERTA_GENERADA = "ALERTA_GENERADA"
 
 @dataclass
 class ResultadoReevaluacion:
+    """Resultado de reevaluar una alerta: decisión y alerta nueva generada, si la hay."""
     resultado: str
     id_alerta_original: int
     id_alerta_nueva: Optional[int] = None
@@ -46,6 +48,7 @@ class ResultadoReevaluacion:
 
 
 class ReevaluarAlertaUseCase:
+    """Reevalúa una alerta operativa con los parámetros vigentes."""
     def __init__(self, db: Session, alerta_repo: AlertaRepository, parametros_port: ParametrosAlertasPort,
                  auditoria_repo: Optional[BitacoraAuditoriaIotRepository] = None) -> None:
         self.db = db
@@ -55,6 +58,11 @@ class ReevaluarAlertaUseCase:
 
     def execute(self, id_alerta: int, dto: ReevaluarAlertaDTO,
                 ahora: Optional[datetime] = None) -> ResultadoReevaluacion:
+        """Reevalúa la alerta indicada y, si aplica, genera una alerta nueva.
+
+        Raises:
+            NotFoundError: Si la alerta no existe.
+        """
         ahora = ahora or datetime.now(timezone.utc)
         original = self.alerta_repo.obtener_por_id(id_alerta)
         if original is None:

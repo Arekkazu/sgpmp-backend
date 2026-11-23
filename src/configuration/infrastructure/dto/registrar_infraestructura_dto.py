@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: especies (1..N) con especie_id como alias deprecado, nivel_criticidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar un área productiva (POST RF-20)."""
 from __future__ import annotations
 
@@ -37,6 +38,7 @@ class RegistrarInfraestructuraDTO(BaseDTO):
     @field_validator("nombre_infraestructura")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         if not v.strip():
             raise ValueError("El nombre del área productiva es obligatorio.")
         if len(v.strip()) > 50:
@@ -46,6 +48,7 @@ class RegistrarInfraestructuraDTO(BaseDTO):
     @field_validator("tipo_area")
     @classmethod
     def validar_tipo_area(cls, v: str) -> str:
+        """Valida el tipo de área."""
         if not v.strip():
             raise ValueError("El tipo de área es obligatorio.")
         return v
@@ -53,6 +56,7 @@ class RegistrarInfraestructuraDTO(BaseDTO):
     @field_validator("superficie")
     @classmethod
     def validar_superficie(cls, v: Decimal) -> Decimal:
+        """Exige una superficie mayor a cero."""
         if v <= Decimal("0"):
             raise ValueError(f"La superficie debe ser mayor a cero. Valor recibido: {v}.")
         return v
@@ -60,12 +64,14 @@ class RegistrarInfraestructuraDTO(BaseDTO):
     @field_validator("descripcion_infraestructura")
     @classmethod
     def validar_descripcion(cls, v: Optional[str]) -> Optional[str]:
+        """Valida la descripción opcional."""
         if v is not None and len(v) > 100:
             raise ValueError("La descripción no puede superar los 100 caracteres.")
         return v
 
     @model_validator(mode="after")
     def unificar_especies(self):
+        """Unifica especies y el campo anterior especie_id en una sola lista."""
         if self.especies is None:
             if self.especie_id is None:
                 raise ValueError("Debe indicar al menos una especie del área (especies).")

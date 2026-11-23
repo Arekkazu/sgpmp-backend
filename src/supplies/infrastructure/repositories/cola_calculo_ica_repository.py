@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`ColaCalculoICARepository` (RF-74)."""
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ _ESTADOS_PENDIENTES = (EstadoItemCola.EN_COLA.value, EstadoItemCola.PROCESANDO.v
 
 
 class SqlAlchemyColaCalculoICARepository(ColaCalculoICARepository):
+    """Implementación SQLAlchemy de ``ColaCalculoICARepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -34,6 +38,9 @@ class SqlAlchemyColaCalculoICARepository(ColaCalculoICARepository):
         )
 
     def encolar(self, item: ItemColaICA) -> Optional[ItemColaICA]:
+        """Encola un activo. Devuelve ``None`` si ya estaba pendiente (idempotente
+        por el índice único parcial).
+        """
         # Idempotente: el índice único parcial rechaza duplicados pendientes. Se usa
         # un SAVEPOINT para que el conflicto no invalide la transacción externa (el
         # control transaccional global sigue en el use case).
@@ -56,6 +63,7 @@ class SqlAlchemyColaCalculoICARepository(ColaCalculoICARepository):
         return self._a_entidad(orm)
 
     def listar_pendientes(self, limite: Optional[int] = None) -> list[ItemColaICA]:
+        """Activos EN_COLA por prioridad y antigüedad."""
         query = (
             self.db.query(ColaCalculoIcaModel)
             .filter(ColaCalculoIcaModel.estado == EstadoItemCola.EN_COLA.value)
@@ -69,6 +77,7 @@ class SqlAlchemyColaCalculoICARepository(ColaCalculoICARepository):
         return [self._a_entidad(o) for o in query.all()]
 
     def contar_pendientes(self) -> int:
+        """Cuenta los ítems pendientes."""
         return (
             self.db.query(ColaCalculoIcaModel)
             .filter(ColaCalculoIcaModel.estado == EstadoItemCola.EN_COLA.value)
@@ -82,6 +91,7 @@ class SqlAlchemyColaCalculoICARepository(ColaCalculoICARepository):
         *,
         fecha_procesado: Optional[datetime] = None,
     ) -> None:
+        """Cambia el estado de un ítem de la cola."""
         orm = self.db.get(ColaCalculoIcaModel, id_cola)
         if orm is None:
             return

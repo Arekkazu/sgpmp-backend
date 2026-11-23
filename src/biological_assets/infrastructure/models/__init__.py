@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelos ORM del módulo de activos biológicos."""
 from .estado_activo_model import EstadoActivoBiologicoModel
 from .activo_biologico_model import ActivoBiologicoModel
 from .detalle_individual_model import DetalleActivoIndividualModel

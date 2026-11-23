@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.recursos`.
 
 Catálogo de módulos o funcionalidades del sistema a los que se pueden
@@ -17,6 +20,7 @@ if TYPE_CHECKING:
 
 
 class Recursos(Base):
+    """Modelo ORM de los recursos RBAC (tabla ``modulo1.recursos``)."""
     __tablename__ = 'recursos'
     __table_args__ = (
         PrimaryKeyConstraint('id_recurso', name='recursos_pkey'),

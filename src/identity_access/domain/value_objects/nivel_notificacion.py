@@ -3,6 +3,7 @@
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel por tipo de evento, módulo de origen y destino |
 # | 2026-11-18 | Arekkazu | M08 RF-104..106: nivel de avisos de reportes y degradación; canales por defecto (R6) |
 # | 2026-11-19 | Arekkazu | M8-05 RF-105: los inicios de sesión no entran a la bandeja                |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Nivel, módulo de origen y pantalla de destino de una notificación (RF-105).
 
 El nivel decide los canales: CRÍTICA va por la bandeja, push y correo; ADVERTENCIA por la bandeja y
@@ -36,6 +37,7 @@ TIPOS_FUERA_DE_BANDEJA = (3, 20)
 
 
 def canal_por_defecto(nivel: str, canal: str) -> bool:
+    """Indica si el canal está habilitado por defecto para el nivel."""
     return canal in CANALES_POR_DEFECTO.get(nivel, set())
 
 # Por nombre del tipo (``modulo1.tipos_eventos.nombre``): los ids no son iguales en todas las bases.
@@ -67,6 +69,7 @@ def nivel_para(tipo_evento: Optional[str], sugerido: Optional[str] = None) -> st
 
 
 def prioridad(nivel: str) -> int:
+    """Devuelve el orden de prioridad del nivel (menor es más prioritario)."""
     return _PRIORIDAD.get(nivel, len(_PRIORIDAD))
 
 
@@ -87,11 +90,13 @@ _DESTINO_POR_MODULO = {
 
 
 def modulo_desde(texto: Optional[str]) -> Optional[str]:
+    """Obtiene el nombre del módulo a partir de un texto con su número."""
     numero = "".join(c for c in (texto or "") if c.isdigit())
     return MODULOS.get(numero)
 
 
 def destino_por_defecto(modulo: Optional[str]) -> str:
+    """Devuelve la pantalla de destino por defecto del módulo."""
     return _DESTINO_POR_MODULO.get(modulo or "", "dashboard")
 
 

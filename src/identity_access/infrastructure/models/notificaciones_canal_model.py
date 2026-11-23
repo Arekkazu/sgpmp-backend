@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.notificaciones_canal`.
 
 Catálogo de canales de notificación disponibles (ej: EMAIL=1, INTERNO=2, PUSH=3).
@@ -16,6 +19,7 @@ if TYPE_CHECKING:
 
 
 class NotificacionesCanal(Base):
+    """Modelo ORM del catálogo de canales de notificación (tabla ``modulo1.notificaciones_canal``)."""
     __tablename__ = 'notificaciones_canal'
     __table_args__ = (
         PrimaryKeyConstraint('id_notificacion_canal', name='notificaciones_canal_pkey'),

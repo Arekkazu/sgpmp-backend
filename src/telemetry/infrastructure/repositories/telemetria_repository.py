@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de lecturas de telemetría (RF-53)."""
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
@@ -14,11 +18,13 @@ from src.telemetry.infrastructure.repositories.telemetria_calidad_repository imp
 
 
 class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
+    """Persiste lecturas de telemetría y consulta duplicados y series temporales."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def guardar(self, entidad: Telemetria) -> Telemetria:
+        """Guarda una lectura de telemetría y devuelve la entidad persistida."""
         try:
             orm = TelemetriaModel(
                 id_sensor=entidad.id_sensor,
@@ -67,6 +73,7 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
             })
 
     def obtener_por_id(self, id_telemetria: int) -> Optional[Telemetria]:
+        """Devuelve la lectura con su evaluación de calidad vigente, si existe."""
         orm = self.db.get(TelemetriaModel, id_telemetria)
         if orm is None:
             return None
@@ -81,6 +88,7 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
         origen: str,
         ventana_agregacion_min: Optional[int] = None,
     ) -> bool:
+        """Indica si ya existe una lectura con el mismo sensor, variable y timestamp."""
         if origen == 'EDGE_AGREGADO' and ventana_agregacion_min is not None:
             result = self.db.execute(
                 text(
@@ -121,6 +129,7 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
         n: int,
         hasta_timestamp: datetime,
     ) -> list[Decimal]:
+        """Devuelve los últimos ``n`` valores válidos del sensor antes del timestamp dado."""
         rows = self.db.execute(
             text(
                 'SELECT valor_crudo FROM modulo3.telemetrias '

@@ -4,12 +4,15 @@
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: ventana de reevaluación por IA (valor base 60 min) |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de parámetros configurables de alertas."""
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import Optional
 
 
 class ParametrosAlertasPort(ABC):
+    """Puerto para leer los parámetros de generación y reevaluación de alertas."""
     @abstractmethod
     def obtener_confianza_edge_ia(self) -> Decimal:
         """Umbral configurable de resolución de conflictos E12/E13 de RF-57."""

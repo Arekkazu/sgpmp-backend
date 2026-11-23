@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Implementación SQLAlchemy de ``ParametrosMLOpsPort``."""
 from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert
 
@@ -8,16 +12,19 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyParametrosMLOpsRepository(ParametrosMLOpsPort):
+    """Implementación SQLAlchemy de ``ParametrosMLOpsPort``."""
     def __init__(self, db):
         self.db = db
 
     def bloquear_configuracion(self):
+        """Serializa la validación y escritura administrativa del grupo de parámetros."""
         try:
             self.db.execute(text('SELECT pg_advisory_xact_lock(3514, 1)'))
         except Exception as exc:
             raise_from_db_error(exc)
 
     def obtener(self, nombres):
+        """Lee un snapshot de los parámetros solicitados, sin caché de proceso."""
         tabla = ParametroMLOpsModel.__table__
         try:
             # Columnas explícitas: no se devuelve una instancia ORM potencialmente
@@ -29,6 +36,7 @@ class SqlAlchemyParametrosMLOpsRepository(ParametrosMLOpsPort):
             raise_from_db_error(exc)
 
     def guardar(self, parametros, id_usuario):
+        """Inserta/actualiza la configuración; la aplicación controla el commit."""
         tabla = ParametroMLOpsModel.__table__
         try:
             for p in sorted(parametros, key=lambda p: p.nombre):

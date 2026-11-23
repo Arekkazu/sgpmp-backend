@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``ConfiguracionGlobalRepository``."""
 from __future__ import annotations
 
@@ -15,6 +18,7 @@ from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyConfiguracionGlobalRepository(ConfiguracionGlobalRepository):
+    """Implementación SQLAlchemy de ``ConfiguracionGlobalRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -31,6 +35,7 @@ class SqlAlchemyConfiguracionGlobalRepository(ConfiguracionGlobalRepository):
         )
 
     def obtener_activo(self) -> Optional[ConfiguracionGlobal]:
+        """Obtiene la configuración global activa, o ``None`` si no hay ninguna."""
         orm = (
             self.db.query(ConfiguracionGlobalModel)
             .filter(ConfiguracionGlobalModel.es_activo.is_(True))
@@ -42,10 +47,12 @@ class SqlAlchemyConfiguracionGlobalRepository(ConfiguracionGlobalRepository):
     def obtener_por_id(
         self, id_configuracion_global: int, *, bloquear: bool = False
     ) -> Optional[ConfiguracionGlobal]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         orm = self.db.get(ConfiguracionGlobalModel, id_configuracion_global, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, config: ConfiguracionGlobal) -> ConfiguracionGlobal:
+        """Inserta la configuración global y devuelve la entidad con su id asignado."""
         orm = ConfiguracionGlobalModel(
             frecuencia_muestreo=config.frecuencia_muestreo.valor,
             heartbeat=config.heartbeat.valor,
@@ -62,6 +69,9 @@ class SqlAlchemyConfiguracionGlobalRepository(ConfiguracionGlobalRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, config: ConfiguracionGlobal) -> ConfiguracionGlobal:
+        """Persiste los cambios de la configuración global y devuelve la entidad
+        actualizada.
+        """
         orm = self.db.get(ConfiguracionGlobalModel, config.id_configuracion_global)
         orm.frecuencia_muestreo = config.frecuencia_muestreo.valor
         orm.heartbeat = config.heartbeat.valor

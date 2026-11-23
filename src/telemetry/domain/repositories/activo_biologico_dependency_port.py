@@ -1,6 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: contrato de contexto y candidatos historicos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto hacia activos biológicos para vincular lecturas a su activo."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -11,6 +13,7 @@ from typing import List, Optional
 
 @dataclass
 class ActivoBiologicoInfo:
+    """Activo biológico presente en un área con su modelo de manejo."""
     id_activo_biologico: int
     modelo_manejo: str  # INDIVIDUAL | POBLACIONAL
     contexto: Optional[dict] = None
@@ -35,6 +38,7 @@ class ActivoBiologicoDependencyPort(ABC):
         raise NotImplementedError
 
     def historial_inconsistente(self, id_infraestructura: int, timestamp: datetime) -> bool:
+        """Indica si el historial de ubicación del área es inconsistente en el instante dado."""
         raise NotImplementedError
 
     def bloquear_activos(self, identificadores: list[int]) -> None:

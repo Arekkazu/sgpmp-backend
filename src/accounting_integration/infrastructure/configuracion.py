@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-97/RF-109: datos del sistema origen y límites de la exportación |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Configuración de M07 por variables de entorno (RF-109 sin ficha: ver el plan de M07).
 
 - ``SGPMP_ENTORNO``: ``DEV``, ``TEST`` o ``PROD``; va a ``SourceSystem.Environment`` y, en ``PROD``,
@@ -23,4 +24,5 @@ COMPROBANTE_NIC41_HABILITADO = os.getenv("M07_COMPROBANTE_NIC41_HABILITADO", "fa
 
 
 def es_produccion() -> bool:
+    """Indica si el entorno es producción."""
     return ENTORNO == "PROD"

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta de la credencial MQTT del Gateway Edge (RF-23, TC-M09-250/251)."""
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ class CredencialMqttResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, credencial: CredencialMqtt) -> CredencialMqttResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(usuario=credencial.usuario, password=credencial.password, seriales=credencial.seriales)
 
 
@@ -41,6 +45,7 @@ class EstadoCredencialMqttResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, estado: Optional[EstadoCredencialMqtt]) -> EstadoCredencialMqttResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         if estado is None:
             return cls(emitida=False)
         return cls(

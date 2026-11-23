@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla ``modulo5.tipos_alimentos``.
 
 Generado con sqlacodegen (reflexión de la BD) y adaptado a las convenciones del
@@ -16,6 +19,7 @@ from .base_model import Base
 
 
 class TipoAlimentoModel(Base):
+    """Modelo ORM de la tabla ``modulo5.tipos_alimentos``."""
     __tablename__ = 'tipos_alimentos'
     __table_args__ = (
         PrimaryKeyConstraint('id_tipo_elemento', name='tipos_alimentos_pkey'),

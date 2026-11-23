@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Desactivar finca (PATCH /desactivar RF-19 FA-04)."""
 from __future__ import annotations
 
@@ -29,6 +32,7 @@ class DesactivarFincaUseCase:
         self.dependency_port = dependency_port
 
     def execute(self, id_finca: int, usuario_actual: UsuarioActual) -> Finca:
+        """Desactiva la finca y la audita."""
         finca = self.finca_repo.obtener_por_id(id_finca)
         if finca is None:
             raise NotFoundError(code="FINCA_NO_ENCONTRADA", message=f"No existe una finca con ID {id_finca}.")

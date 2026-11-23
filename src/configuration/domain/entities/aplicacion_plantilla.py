@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Read-model ``AplicacionPlantilla`` — registro de aplicación de una plantilla (RF-32).
 
 Append-only: representa un evento de aplicación con antes/después.
@@ -32,6 +35,7 @@ class AplicacionPlantilla:
         before_snapshot: Optional[dict] = None,
         after_snapshot: Optional[dict] = None,
     ) -> AplicacionPlantilla:
+        """Crea la entidad validando sus datos."""
         return cls(
             id_usuario=id_usuario,
             id_plantilla=id_plantilla,

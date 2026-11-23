@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.alertas_patologicas``."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,6 +14,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class AlertaPatologicaModel(Base):
+    """Modelo ORM de la tabla ``modulo4.alertas_patologicas``."""
     __tablename__ = "alertas_patologicas"
     __table_args__ = {"schema": "modulo4"}
 

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: persistencia de los resultados del motor IA               |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Escritura de ``modulo4.resultados_inferencia``. Bajo RLS, solo el usuario de
 servicio puede insertar (``pol_resultado_inferencia_servicio_insert``): el router
 usa ``get_db_sistema``."""
@@ -25,14 +26,17 @@ _CAMPOS = (
 
 
 class SqlAlchemyResultadoInferenciaRepository(ResultadoInferenciaRepository):
+    """Implementación SQLAlchemy de ``ResultadoInferenciaRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def obtener(self, id_resultado: uuid.UUID) -> Optional[ResultadoInferencia]:
+        """Devuelve el resultado, o ``None``."""
         orm = self._db.get(ResultadoInferenciaModel, id_resultado)
         return None if orm is None else ResultadoInferencia(**{c: getattr(orm, c) for c in _CAMPOS})
 
     def guardar(self, resultado: ResultadoInferencia) -> ResultadoInferencia:
+        """Guarda el resultado."""
         try:
             orm = ResultadoInferenciaModel(
                 **{c: getattr(resultado, c) for c in _CAMPOS},

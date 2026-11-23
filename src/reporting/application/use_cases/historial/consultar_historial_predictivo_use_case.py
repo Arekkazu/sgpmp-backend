@@ -2,6 +2,7 @@
 # |------------|----------|------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: línea de tiempo de predicciones, eventos y retroalimentación |
 # | 2026-11-19 | Arekkazu | M8-01 RF-106: marca las predicciones en modo sombra |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: historial clínico predictivo de un animal para el Veterinario (RF-106).
 
 Une sobre un mismo eje de tiempo las predicciones guardadas de M04 (RF-67, nunca el motor en vivo), los eventos
@@ -42,6 +43,7 @@ SIN_INFERENCIAS = ("Este animal no tiene predicciones en el rango elegido. Prueb
 
 
 class ConsultarHistorialPredictivoUseCase:
+    """Consulta el historial de predicciones, eventos y retroalimentación de un activo."""
 
     def __init__(self, abrir_fuente: AbrirFuente) -> None:
         self.abrir_fuente = abrir_fuente
@@ -50,6 +52,7 @@ class ConsultarHistorialPredictivoUseCase:
                 fecha_fin: Optional[date] = None, niveles: Optional[list[int]] = None,
                 incluir_eventos: bool = True, incluir_retroalimentacion: bool = True, pagina: int = 1,
                 ahora: Optional[datetime] = None) -> dict[str, Any]:
+        """Devuelve la línea de tiempo predictiva del activo con su tasa de validación."""
         ahora = ahora or datetime.now(timezone.utc)
         with self.abrir_fuente(solicitante.id_usuario, solicitante.zona_horaria) as fuente:
             fin = fecha_fin or hoy_usuario()

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-90 5.9/FA-3: resolver un costo PENDIENTE_CLASIFICACION |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-90: el Contador declara la naturaleza de un costo ``OTRO`` pendiente."""
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class ClasificarCostoUseCase:
+    """Clasifica la naturaleza de un costo registrado."""
     def __init__(self, db: Session, costos: CostoRepository, activos: ActivoFinancieroPort,
                  contabilizador: Contabilizador) -> None:
         self.db = db
@@ -33,6 +35,7 @@ class ClasificarCostoUseCase:
         self.contabilizador = contabilizador
 
     def execute(self, id_registro_costo: int, naturaleza: str, justificacion: str, id_usuario: int) -> dict:
+        """Clasifica el costo y contabiliza su efecto."""
         costo = self.costos.obtener(id_registro_costo)
         if costo is None:
             raise NotFoundError(code="COSTO_NO_ENCONTRADO", message="El costo no existe.")

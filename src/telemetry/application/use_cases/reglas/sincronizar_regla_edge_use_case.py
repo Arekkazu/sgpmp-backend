@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: el CRUD de reglas ya llama la propagación |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Propagar una regla compuesta a los Gateway Edge (DEV-08, RF-55 Restricción 4, RF-57 E14/E15).
 
 Mismo patrón que los umbrales de RF-17 (``sincronizar_umbral_edge``): se
@@ -90,6 +91,7 @@ def _texto(valor: Optional[Decimal]) -> Optional[str]:
 
 
 def consolidar(nodos: list[SincronizacionReglaEdge]) -> tuple[str, str]:
+    """Consolida el estado de sincronización de varios nodos Edge en uno solo con su motivo."""
     if not nodos:
         return ESTADO_PENDIENTE, MOTIVO_SIN_GATEWAY_EDGE
     estados = {n.estado_sincronizacion for n in nodos}
@@ -105,6 +107,7 @@ def _detalle(nodos: list[SincronizacionReglaEdge], estado: str) -> str:
 
 
 class SincronizarReglaEdgeUseCase:
+    """Sincroniza una regla compuesta con los gateways Edge de su área."""
 
     def __init__(
         self,
@@ -119,6 +122,12 @@ class SincronizarReglaEdgeUseCase:
         self.edge_port = edge_port
 
     def execute(self, id_regla_alertas: int, id_usuario: Optional[int]) -> ResultadoSincronizacionRegla:
+        """Envía la regla a los gateways y registra el estado de sincronización.
+
+        Raises:
+            NotFoundError: Si la regla no existe.
+            BusinessRuleError: Si la regla no es compuesta.
+        """
         regla = self.regla_repo.obtener_por_id(id_regla_alertas)
         if regla is None:
             raise NotFoundError(code="REGLA_ALERTA_NO_ENCONTRADA", message="La regla de alerta no existe.")

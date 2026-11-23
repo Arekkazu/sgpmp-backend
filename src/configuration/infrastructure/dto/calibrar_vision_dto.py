@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para la calibración por visión (POST /configuracion/calibraciones-vision, RF-24 v2.0)."""
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ class VentanaObservacionDTO(BaseDTO):
 
     @model_validator(mode="after")
     def validar_rango(self) -> "VentanaObservacionDTO":
+        """Exige que la ventana termine después de empezar."""
         if self.fin <= self.inicio:
             raise ValueError("La ventana de observación debe terminar después de su inicio.")
         return self

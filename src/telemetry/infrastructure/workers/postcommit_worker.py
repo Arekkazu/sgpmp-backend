@@ -15,6 +15,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcular_semaforo_sensor para el cierre de alertas |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope configurable de la espera entre reintentos |
 # | 2026-10-26 | Arekkazu | FW-06 RF-60: la etapa de diagnostico devuelve su resultado a la bitacora |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -154,6 +155,7 @@ def _vision(db,identificador):
 
 
 def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, avisos_vinculacion=None, limite=50, reintento_seg=60, reintento_max_seg=None):
+    """Construye el procesador de etapas posteriores a la ingesta con sus acciones."""
     parametros = parametros_heartbeat
     acciones = {
             EtapaPostcommit.RF53_LECTURAS: auditar_lectura,
@@ -209,6 +211,7 @@ def reprocesar_pendientes_e9(engine_bd=engine, *, identidad=True, limite=20):
 
 
 async def procesar_postcommit_periodicamente():
+    """Ejecuta en bucle el procesamiento posterior a la ingesta."""
     procesador = construir_procesador(
         limite=int(os.getenv('IOT_POSTCOMMIT_LOTE', '50')),
         reintento_seg=int(os.getenv('IOT_POSTCOMMIT_REINTENTO_SEG', '60')),

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``DispositivoIot`` — dispositivo IoT registrado en una finca (RF-21)."""
 from __future__ import annotations
 
@@ -47,6 +50,7 @@ class DispositivoIot:
         fps: Optional[int] = None,
         area_cobertura_m2: Optional[Decimal] = None,
     ) -> DispositivoIot:
+        """Crea la entidad validando sus datos."""
         return cls(
             serial=serial,
             descripcion=descripcion,
@@ -61,9 +65,11 @@ class DispositivoIot:
         )
 
     def desactivar(self) -> None:
+        """Marca la entidad como inactiva."""
         self.es_activo = False
 
     def asignar_gateway(self, id_dispositivo_gateway: Optional[int]) -> None:
+        """Asigna o retira el gateway Edge del dispositivo."""
         self.id_dispositivo_gateway = id_dispositivo_gateway
 
     def _snapshot(self) -> dict:

@@ -3,6 +3,8 @@
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
 # | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
 # | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso del listado de inferencias del monitor."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -26,6 +28,7 @@ class ListarInferenciasUseCase:
         id_activo_biologico: Optional[int] = None, id_infraestructura: Optional[int] = None,
         solo_con_alerta: bool = False, incluir_sombra: bool = True,
     ) -> list[InferenciaMonitor]:
+        """Lista las inferencias del alcance con los filtros dados."""
         limite = validar_filtros(
             tipo_modelo=tipo_modelo, nivel_riesgo=nivel_riesgo, desde=desde, hasta=hasta, limite=limite,
         )

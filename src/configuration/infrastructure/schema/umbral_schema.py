@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: la variable ambiental devuelve es_critica (RFC-016) |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: catálogo de variables con código de telemetría |
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para los endpoints de umbrales ambientales (RF-17)."""
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ class NivelAlertaResponse(BaseModel):
     @field_validator('nivel', mode='before')
     @classmethod
     def extraer_nivel(cls, v: object) -> str:
+        """Convierte el nivel de alerta en texto."""
         if hasattr(v, 'value'):
             return v.value  # type: ignore[attr-defined]
         return str(v)

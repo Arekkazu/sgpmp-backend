@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``CalibracionRepository``."""
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyCalibracionRepository(CalibracionRepository):
+    """Implementación SQLAlchemy de ``CalibracionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -31,6 +35,7 @@ class SqlAlchemyCalibracionRepository(CalibracionRepository):
         )
 
     def guardar(self, calibracion: Calibracion) -> Calibracion:
+        """Inserta la calibración y devuelve la entidad con su id asignado."""
         orm = CalibracionModel(
             id_dispositivo_iot=calibracion.id_dispositivo_iot,
             id_sensor=calibracion.id_sensor,
@@ -50,6 +55,7 @@ class SqlAlchemyCalibracionRepository(CalibracionRepository):
         return self._a_entidad(orm)
 
     def listar_por_sensor(self, id_sensor: int) -> list[Calibracion]:
+        """Historial de calibraciones del sensor, de la más reciente a la más antigua."""
         return [
             self._a_entidad(orm)
             for orm in (

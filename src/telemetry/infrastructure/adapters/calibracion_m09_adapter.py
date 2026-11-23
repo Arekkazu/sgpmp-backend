@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador de calibración de sensores contra la configuración IoT (RF-24)."""
 from decimal import Decimal
 from typing import Optional
 
@@ -24,6 +28,7 @@ class CalibracionM09Adapter(CalibracionPort):
         sensor_id: int,
         id_dispositivo_iot: int,
     ) -> Optional[ParametrosCalibacion]:
+        """Devuelve ganancia y offset de la calibración vigente del sensor, o ``None``."""
         # Obtiene la calibración más reciente del sensor
         row = self.db.execute(
             text(

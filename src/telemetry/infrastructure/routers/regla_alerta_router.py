@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: CRUD de reglas de alerta sin SQL manual |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI del CRUD de reglas de alerta (`/iot/reglas-alertas`, RF-55/RF-57).
 
   POST  /iot/reglas-alertas                    — Crear regla
@@ -98,6 +99,7 @@ def listar_reglas_alertas(
     es_regla_compuesta: Optional[bool] = Query(default=None),
     db: Session = Depends(get_db),
 ) -> List[ReglaAlertaResponse]:
+    """Lista reglas de alerta con filtros."""
     reglas = ConsultarReglasAlertasUseCase(SqlAlchemyReglaAlertaRepository(db)).listar(
         tipo_sensor=tipo_sensor, es_activa=es_activa, es_regla_compuesta=es_regla_compuesta,
     )
@@ -112,6 +114,7 @@ def listar_reglas_alertas(
     summary="Obtener una regla de alerta (RF-55/RF-57)",
 )
 def obtener_regla_alerta(id_regla_alertas: int, db: Session = Depends(get_db)) -> ReglaAlertaResponse:
+    """Devuelve una regla de alerta."""
     return ReglaAlertaResponse.de(ConsultarReglasAlertasUseCase(SqlAlchemyReglaAlertaRepository(db)).obtener(id_regla_alertas))
 
 

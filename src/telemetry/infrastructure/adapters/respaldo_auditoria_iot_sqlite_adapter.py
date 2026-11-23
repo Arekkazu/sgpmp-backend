@@ -1,6 +1,8 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: resguardar solo auditoría en disco independiente con orden FIFO y transacciones durables. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Respaldo local en SQLite de eventos de auditoría que no se pudieron persistir."""
 from contextlib import closing, contextmanager
 from dataclasses import asdict
 from datetime import datetime
@@ -29,6 +31,11 @@ class RespaldoAuditoriaIotSqliteAdapter:
                 yield db
 
     def guardar(self, evento: EventoAuditoriaIot) -> None:
+        """Guarda una falla de persistencia en el respaldo local.
+
+        Raises:
+            ValueError: Si el evento no es una falla de persistencia con UUID.
+        """
         if evento.id_evento is None or evento.tipo_evento != 'FALLA_PERSISTENCIA':
             raise ValueError('El respaldo requiere una falla de persistencia con UUID estable.')
         contenido = json.dumps(asdict(evento), default=str, sort_keys=True, ensure_ascii=False)
@@ -40,12 +47,18 @@ class RespaldoAuditoriaIotSqliteAdapter:
                 raise ValueError('El UUID del respaldo ya corresponde a otra evidencia.')
 
     def hay_pendientes(self) -> bool:
+        """Indica si quedan eventos pendientes de sincronizar."""
         if not self.ruta.exists():
             return False
         with self._conexion() as db:
             return db.execute('SELECT 1 FROM pendientes LIMIT 1').fetchone() is not None
 
     def listar(self, limite: int) -> list[EventoAuditoriaIot]:
+        """Lista hasta ``limite`` eventos pendientes.
+
+        Raises:
+            ValueError: Si el límite no es positivo.
+        """
         if limite <= 0:
             raise ValueError('El límite de recuperación debe ser positivo.')
         if not self.ruta.exists():
@@ -63,6 +76,7 @@ class RespaldoAuditoriaIotSqliteAdapter:
         return eventos
 
     def confirmar(self, identificadores: list[UUID]) -> None:
+        """Elimina del respaldo los eventos ya sincronizados."""
         if not identificadores:
             return
         with self._conexion() as db:

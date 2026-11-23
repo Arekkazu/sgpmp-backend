@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.auditorias_configuraciones_globales`."""
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ from .base_model import Base
 
 
 class AuditoriaConfigModel(Base):
+    """Modelo ORM de la tabla ``modulo9.auditorias_configuraciones_globales``."""
     __tablename__ = 'auditorias_configuraciones_globales'
     __table_args__ = (
         CheckConstraint(

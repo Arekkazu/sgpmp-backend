@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-62: política vigente del índice de visión para el panel de calidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador de la política de calidad de visión configurada."""
 from __future__ import annotations
 
 from src.configuration.domain.entities.parametros_vision import (
@@ -20,6 +22,7 @@ class PoliticaVisionMLOpsAdapter(PoliticaVisionPort):
         self._repo = parametros_repo
 
     def vigente(self):
+        """Devuelve la política vigente, o ``None`` con el motivo si falta o es inválida."""
         try:
             v = vision_configurada(self._repo.obtener(tuple(LIMITES_VISION)))
         except AppError as exc:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para editar una finca (PATCH RF-19).
 
 Incluye ``fecha_actualizacion`` como token de concurrencia optimista.
@@ -29,6 +30,7 @@ class EditarFincaDTO(BaseDTO):
     @field_validator("nombre")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         if not v.strip():
             raise ValueError("El nombre de la finca es obligatorio.")
         if len(v.strip()) > 55:
@@ -38,6 +40,7 @@ class EditarFincaDTO(BaseDTO):
     @field_validator("tamano_h")
     @classmethod
     def validar_tamano(cls, v: Decimal) -> Decimal:
+        """Exige un tamaño mayor a cero."""
         if v <= Decimal("0"):
             raise ValueError(f"El tamaño debe ser mayor a cero. Valor recibido: {v}.")
         return v

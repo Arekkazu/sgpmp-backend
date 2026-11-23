@@ -5,6 +5,7 @@
 # | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-68/RF-67: cálculos de contagio del lote en el historial |
 # | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-67: id de CONTAGIO sin hash; id de alerta sin cambios (Bearer CWE-328) |
 # | 2026-10-30 | Arekkazu | RF-66/RF-67: la inferencia indica si fue en modo sombra |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Historial diagnóstico (RF-67) sobre resultados de inferencia, alertas y retroalimentación.
 
 - Orden y cursor por (fecha_evento, id_evento) DESC, sobre los tres tipos de
@@ -91,6 +92,7 @@ def _flotante(valor) -> Optional[float]:
 
 
 class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
+    """Implementación SQLAlchemy de ``HistorialDiagnosticoRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
@@ -106,6 +108,12 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
         cursor: Optional[tuple[datetime, uuid.UUID]],
         limite: int,
     ) -> list[EventoHistorial]:
+        """Hasta ``limite`` eventos (inferencias, alertas y retroalimentaciones)
+        ordenados por (fecha_evento, id_evento) DESC y anteriores al cursor.
+
+        ``id_evento`` es estable: el mismo evento tiene el mismo id en cada
+        consulta. ``nombre_patologia`` es el vigente a la fecha del evento.
+        """
         ri = ResultadoInferenciaModel
         rc = RetroalimentacionClinicaModel
         ap = AlertaPatologicaModel
@@ -260,6 +268,7 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
         return {(f.id_patologia, f.fecha): f.nombre for f in filas}
 
     def materializar_eventos(self, eventos: list[EventoHistorial]) -> None:
+        """Guarda los eventos que faltan; consultas simultáneas no los duplican."""
         hde = HistorialDiagnosticoEventoModel
         try:
             for evento in eventos:

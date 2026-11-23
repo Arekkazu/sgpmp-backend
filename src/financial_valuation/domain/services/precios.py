@@ -4,6 +4,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-310-G12 RF-83: motivo de la estimación y precio usado |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: el precio corregido sale del cálculo y queda CORREGIDO |
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43-05 RF-87: forma JSON del precio que congela el cierre |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Reglas de RF-89 sobre el repositorio de precios (NIC 41 ¶17). Python puro.
 
 El estado de un precio depende de la fecha (PROGRAMADO, ACTIVO, VENCIDO, SUPERADO) y el
@@ -22,6 +23,7 @@ from src.financial_valuation.domain.value_objects.nic41 import PRIORIDAD_FUENTES
 
 @dataclass(frozen=True)
 class Precio:
+    """Precio de mercado de una especie."""
     id_precio_mercado: int
     id_especie: int
     categoria: str
@@ -36,6 +38,7 @@ class Precio:
     id_precio_corregido: Optional[int] = None
 
     def vigente_en(self, dia: date) -> bool:
+        """Indica si el precio está vigente en el día."""
         return self.fecha_vigencia <= dia and (self.fecha_vencimiento is None or self.fecha_vencimiento >= dia)
 
 
@@ -49,6 +52,7 @@ def precio_a_dict(precio: Precio) -> dict:
 
 
 def precio_desde_dict(datos: dict) -> Precio:
+    """Crea el precio desde un diccionario."""
     vencimiento = datos.get("fecha_vencimiento")
     return Precio(id_precio_mercado=datos["id_precio_mercado"], id_especie=datos["id_especie"], categoria=datos["categoria"],
                   precio_unitario=Decimal(datos["precio_unitario"]), unidad_medida=datos["unidad_medida"],
@@ -122,4 +126,5 @@ def desviacion_pct(nuevo: Decimal, anterior: Decimal) -> Decimal:
 
 
 def es_fuente_valida(fuente: str) -> bool:
+    """Indica si la fuente de precio es válida."""
     return fuente in {f.value for f in FuentePrecio}

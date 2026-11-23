@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.auditorias_calibraciones` (RF-24 / RF-10).
 
 Historial de auditoría inmutable de las calibraciones (triggers de BD bloquean
@@ -16,6 +19,7 @@ from .base_model import Base
 
 
 class AuditoriaCalibracionModel(Base):
+    """Modelo ORM de la tabla ``modulo9.auditorias_calibraciones``."""
     __tablename__ = 'auditorias_calibraciones'
     __table_args__ = (
         CheckConstraint(

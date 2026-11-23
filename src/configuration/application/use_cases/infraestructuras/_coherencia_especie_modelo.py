@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: valida 1..N especies del mismo grupo de manejo (RFC-012) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Reglas de RF-20 compartidas por registrar y editar un área.
 
 RFC-009: cada especie debe existir y estar activa, y el `tipo_modelo_asignado`
@@ -22,6 +23,7 @@ from src.shared.tipo_modelo import TIPOS_MODELO_ASIGNABLES
 
 
 def a_especie_del_area(especie: Especie) -> EspecieDelArea:
+    """Convierte la especie en la especie asociada al área."""
     return EspecieDelArea(
         id_especie=especie.id_especie,
         nombre=especie.nombre.valor,

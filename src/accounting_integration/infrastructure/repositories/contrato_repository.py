@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-98/RF-AE02: persistencia de contratos AAEF y anexos |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: guardar los datos de una versión pendiente modificada |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Versiones del contrato (``modulo7.versiones_contrato_aaef``) y anexos (``mapeos_anexos_aaef``).
 Los triggers 03/04/05 de ``modulo7`` son la última defensa de las transiciones; el caso de uso las
 valida antes con mensajes legibles."""
@@ -30,14 +31,17 @@ _ANEXO = """
 
 
 class SqlAlchemyContratoRepository(ContratoRepository):
+    """Implementación SQLAlchemy de contratos y anexos."""
     def __init__(self, db: Session):
         self.db = db
 
     def listar_contratos(self, bloquear: bool = False) -> list[VersionContrato]:
+        """Lista las versiones del contrato, opcionalmente bloqueándolas."""
         bloqueo = " FOR UPDATE" if bloquear else ""
         return [VersionContrato(**f) for f in filas(self.db, f"{_CONTRATO} ORDER BY id_version_contrato_aaef{bloqueo}")]
 
     def guardar_contrato(self, contrato: VersionContrato) -> VersionContrato:
+        """Crea o actualiza la versión del contrato."""
         params = {**contrato.__dict__, "mapeadores": a_json(contrato.mapeadores)}
         if contrato.id_version_contrato_aaef is None:
             contrato.id_version_contrato_aaef = escribir(self.db, """
@@ -58,6 +62,7 @@ class SqlAlchemyContratoRepository(ContratoRepository):
         return contrato
 
     def guardar_datos_contrato(self, contrato: VersionContrato) -> VersionContrato:
+        """Actualiza los datos de una versión pendiente."""
         # ``estado = 'PENDIENTE'`` en el WHERE: el trigger 05 ya lo impide, esto evita llegar a él.
         escribir(self.db, """
             UPDATE modulo7.versiones_contrato_aaef
@@ -69,13 +74,16 @@ class SqlAlchemyContratoRepository(ContratoRepository):
         return contrato
 
     def obtener_anexo(self, id_mapeo_anexo_aaef: int) -> Optional[AnexoMapeo]:
+        """Devuelve el anexo por id, o ``None``."""
         f = fila(self.db, f"{_ANEXO} WHERE id_mapeo_anexo_aaef = :id", {"id": id_mapeo_anexo_aaef})
         return AnexoMapeo(**f) if f else None
 
     def listar_anexos(self) -> list[AnexoMapeo]:
+        """Lista los anexos de mapeo."""
         return [AnexoMapeo(**f) for f in filas(self.db, f"{_ANEXO} ORDER BY id_mapeo_anexo_aaef")]
 
     def guardar_anexo(self, anexo: AnexoMapeo) -> AnexoMapeo:
+        """Crea o actualiza el anexo."""
         params = {**anexo.__dict__, "evidencia": a_json(anexo.evidencia)}
         if anexo.id_mapeo_anexo_aaef is None:
             anexo.id_mapeo_anexo_aaef = escribir(self.db, """

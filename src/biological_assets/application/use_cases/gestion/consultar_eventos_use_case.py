@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: listado de eventos biológicos de un activo (RF-39)."""
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ class ConsultarEventosUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[EventoActivo]:
+        """Lista los eventos registrados del activo."""
         activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

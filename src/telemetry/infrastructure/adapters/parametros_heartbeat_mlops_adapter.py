@@ -5,6 +5,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-60: firmware con prefijo v (v2.0.1) se compara como 2.0.1 |
 # | 2026-10-26 | Arekkazu | FW-06 RF-60: firmware se compara con SemVer 2.0 (prerelease y +metadato) |
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: leer estado y pendientes del último heartbeat con el mismo criterio temporal. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """P-1 provisional: lectura dinámica DEV-14; ningún umbral se inventa al leer."""
 import re
 
@@ -25,12 +26,14 @@ from src.telemetry.domain.repositories.parametros_heartbeat_port import Parametr
 
 
 class ParametrosHeartbeatMLOpsAdapter:
+    """Lee los parámetros configurados de batería, señal y comunicación."""
     def __init__(self, db):
         self.db = db
         self.parametros_repo = SqlAlchemyParametrosMLOpsRepository(db)
         self.configuracion_repo = SqlAlchemyConfiguracionGlobalRepository(db)
 
     def obtener(self):
+        """Devuelve los umbrales de batería y señal configurados."""
         valores = self.parametros_repo.obtener((BATERIA_CRITICA, BATERIA_AVISO, RSSI, SNR))
         validar_heartbeat_configurado(valores)
         return ParametrosHeartbeat(
@@ -40,6 +43,7 @@ class ParametrosHeartbeatMLOpsAdapter:
         )
 
     def obtener_comunicacion(self, id_dispositivo):
+        """Devuelve los parámetros de comunicación y el último contacto del dispositivo."""
         try:
             dispositivo = self.db.execute(text('''
                 SELECT t.categoria, d.id_infraestructura,
@@ -113,10 +117,12 @@ def _clave_semver(nucleo, prerelease, ancho):
 
 
 class DiagnosticoHeartbeatMLOpsAdapter:
+    """Lee la política de temperatura y firmware de los dispositivos."""
     def __init__(self, db):
         self.parametros_repo = SqlAlchemyParametrosMLOpsRepository(db)
 
     def obtener_umbrales_temperatura(self, id_dispositivo):
+        """Devuelve los umbrales de temperatura configurados."""
         valores = self.parametros_repo.obtener((TEMPERATURA_MAXIMA, TEMPERATURA_CRITICA))
         validar_heartbeat_configurado(valores)
         return UmbralesTemperaturaDispositivo(
@@ -125,6 +131,11 @@ class DiagnosticoHeartbeatMLOpsAdapter:
         )
 
     def comparar_firmware(self, id_dispositivo, version_instalada):
+        """Compara la versión instalada con la versión mínima configurada.
+
+        Raises:
+            ServiceUnavailableError: Si no hay versión mínima configurada.
+        """
         valores = self.parametros_repo.obtener((FIRMWARE,))
         if FIRMWARE not in valores:
             raise ServiceUnavailableError('PARAMETRO_CONFIGURACION_AUSENTE', 'No se ha configurado la versión mínima de firmware.')

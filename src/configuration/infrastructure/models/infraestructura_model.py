@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: quita id_especie/capacidad_maxima, agrega nivel_criticidad y la puente de especies |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-06: PK id_infraestructura_especie y FK segun la convencion |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.infraestructuras` (RF-20).
 
 El tipo de área (`tipo`) referencia por nombre el catálogo administrable
@@ -24,6 +25,7 @@ from .base_model import Base
 
 
 class InfraestructuraModel(Base):
+    """Modelo ORM de la tabla ``modulo9.infraestructuras``."""
     __tablename__ = 'infraestructuras'
     __table_args__ = (
         ForeignKeyConstraint(

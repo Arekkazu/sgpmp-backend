@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""``modulo4.sincronizacion_nodos_edge`` (RF-65 E7/E8/E10, DEV-09)."""
 from __future__ import annotations
 
 from datetime import datetime

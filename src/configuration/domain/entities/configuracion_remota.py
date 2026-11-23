@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``ConfiguracionRemota`` — comando de configuración enviado a un dispositivo IoT (RF-23).
 
 Estado: PENDIENTE (guardado, en vuelo o dispositivo offline) / APLICADA
@@ -43,6 +46,7 @@ class ConfiguracionRemota:
         id_usuario: int,
         fps: Optional[int] = None,
     ) -> ConfiguracionRemota:
+        """Crea la entidad validando sus datos."""
         return cls(
             id_dispositivo_iot=id_dispositivo_iot,
             frecuencia_captura=frecuencia_captura,
@@ -62,20 +66,25 @@ class ConfiguracionRemota:
         }
 
     def marcar_aplicada(self, fecha: datetime.datetime) -> None:
+        """Marca la configuración como aplicada."""
         self.estado = "APLICADA"
         self.fecha_aplicacion = fecha
 
     def marcar_no_confirmada(self) -> None:
+        """Marca la configuración como no confirmada."""
         self.estado = "NO_CONF"
 
     def marcar_pendiente(self) -> None:
+        """Marca la configuración como pendiente."""
         self.estado = "PENDIENTE"
 
     def cancelar(self) -> None:
+        """Cancela la configuración."""
         self.estado = "CANCELADA"
 
     @property
     def sin_aplicar(self) -> bool:
+        """Indica si la configuración aún no se aplicó."""
         return self.estado in ("PENDIENTE", "NO_CONF")
 
     def __eq__(self, other: object) -> bool:

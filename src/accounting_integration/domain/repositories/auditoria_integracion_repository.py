@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-102: puerto de la auditoría de integración |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-98: la auditoría de la integración se filtra por el titular (NIT) de una finca del usuario |
 # | 2026-11-20 | Arekkazu | QA-M07 CU07 H-01/S-02 RF-102: días del filtro en la zona del usuario y filtro por versión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de la auditoría de M07 (RF-102): solo inserta y consulta, nunca modifica."""
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ class FiltrosAuditoria:
 
 
 class AuditoriaIntegracionRepository(ABC):
+    """Puerto de registro y consulta de la auditoría de integración."""
     @abstractmethod
     def registrar(self, evento: EventoIntegracion) -> None:
         """Inserta el evento con su hash, en la transacción de la sesión (sin ``commit``)."""

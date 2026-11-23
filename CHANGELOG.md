@@ -1,3 +1,32 @@
+## [1.4.5-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.4...v1.4.5-rc.1) (2026-11-23)
+
+### Bug Fixes
+
+* **rf103-mod8:** semaforo solo con alertas de lectura y prediccion, y todos los dispositivos de la finca en sin comunicacion (QA M08 CU01 H-02, H-04) ([061f1d2](https://github.com/Arekkazu/sgpmp-backend/commit/061f1d27331442864122f3c215c93b550fad40d3))
+* **rf104-mod8:** auditoria con filtros y checksum, tablas anchas en bloques sin partir palabras e ids de sensor y dispositivo (QA M08 CU02 H-02, H-04, H-05) ([38053d1](https://github.com/Arekkazu/sgpmp-backend/commit/38053d144c5f9aea19fe946769022de254ee314f))
+* **rf104-mod8:** el administrador solo genera los reportes de gerencia (QA M08 CU02 H-01, H-06) ([5836a15](https://github.com/Arekkazu/sgpmp-backend/commit/5836a154f3e0245614f5b618bb88e1067b40f282))
+* **rf107-mod8:** la prevalidacion del cierre dice cuantos activos revaluara (INC-M08-393-G028) ([3fc3328](https://github.com/Arekkazu/sgpmp-backend/commit/3fc33284bd450c9faac61624766fea7bc2b18449))
+
+## [1.4.4-rc.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.4-rc.1...v1.4.4-rc.2) (2026-11-23)
+
+### Bug Fixes
+
+* **rf103-mod8:** semaforo solo con alertas de lectura y prediccion, y todos los dispositivos de la finca en sin comunicacion (QA M08 CU01 H-02, H-04) ([061f1d2](https://github.com/Arekkazu/sgpmp-backend/commit/061f1d27331442864122f3c215c93b550fad40d3))
+* **rf104-mod8:** auditoria con filtros y checksum, tablas anchas en bloques sin partir palabras e ids de sensor y dispositivo (QA M08 CU02 H-02, H-04, H-05) ([38053d1](https://github.com/Arekkazu/sgpmp-backend/commit/38053d144c5f9aea19fe946769022de254ee314f))
+* **rf104-mod8:** el administrador solo genera los reportes de gerencia (QA M08 CU02 H-01, H-06) ([5836a15](https://github.com/Arekkazu/sgpmp-backend/commit/5836a154f3e0245614f5b618bb88e1067b40f282))
+* **rf107-mod8:** la prevalidacion del cierre dice cuantos activos revaluara (INC-M08-393-G028) ([3fc3328](https://github.com/Arekkazu/sgpmp-backend/commit/3fc33284bd450c9faac61624766fea7bc2b18449))
+
+## [1.4.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.3...v1.4.4) (2026-11-23)
+
+### Bug Fixes
+
+* **rf02-mod1:** un refresh rotado cuya respuesta se perdio no cierra la sesion (USAB2 M01) ([1117d91](https://github.com/Arekkazu/sgpmp-backend/commit/1117d9141ccf833c9f2dd40e78a31c8d337e8304))
+* **rf104-mod8:** el portafolio del reporte ejecutivo suma la misma valoracion NIC 41 del periodo cerrado (USAB2 M807) ([c8ed693](https://github.com/Arekkazu/sgpmp-backend/commit/c8ed6937eb50014de7f2825ea0730e7137f0e833))
+* **rf106-mod8:** pendientes del historial predictivo de cualquier nivel con mas de 48 h y marcar todas sin avisos de inicio de sesion (INC-M08-396-G022, INC-M08-394-G013) ([f27e4bb](https://github.com/Arekkazu/sgpmp-backend/commit/f27e4bb4fd10cd3015e381117e9280dd18bfdc7a)), closes [#1229](https://github.com/Arekkazu/sgpmp-backend/issues/1229) [#1221](https://github.com/Arekkazu/sgpmp-backend/issues/1221)
+* **rf66-mod4:** una mediana base 0 no satura el puntaje de anomalía por visión ([bafaaa9](https://github.com/Arekkazu/sgpmp-backend/commit/bafaaa996133b1e6b8c990118ad839866ba787a5))
+* **rf69-mod4:** crear el almacenamiento de modelos del usuario 1000 en la imagen ([885f39d](https://github.com/Arekkazu/sgpmp-backend/commit/885f39dee3e8f078d2a4ca863cf2568a53807381))
+* **rf69-mod4:** guardar la firma del artefacto al registrar una versión de modelo ([4200af8](https://github.com/Arekkazu/sgpmp-backend/commit/4200af801b03fee79dbd8acedc7e3dd53bdaaeeb))
+
 ## [1.4.4-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.3...v1.4.4-rc.1) (2026-11-23)
 
 ### Bug Fixes

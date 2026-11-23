@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Desactivar tipo de área del catálogo (RF-20).
 
 Solo el Administrador puede desactivar. Desactivar solo oculta el tipo de las
@@ -24,6 +27,7 @@ class DesactivarTipoAreaUseCase:
         self.tipo_area_repo = tipo_area_repo
 
     def execute(self, id_tipo_area: int) -> TipoArea:
+        """Desactiva el tipo de área."""
         tipo_area = self.tipo_area_repo.obtener_por_id(id_tipo_area)
         if tipo_area is None:
             raise NotFoundError(

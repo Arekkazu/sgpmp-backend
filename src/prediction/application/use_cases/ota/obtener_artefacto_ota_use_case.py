@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Resolver el artefacto de un despliegue OTA a partir de su URL firmada (DEV-15, D6 paso 4).
 
 El nodo no tiene JWT: la URL que recibió en ``ota/notify`` es la credencial. Se
@@ -18,6 +21,7 @@ from src.shared.errors import AuthenticationError, GoneError, NotFoundError
 
 
 class ObtenerArtefactoOtaUseCase:
+    """Entrega el artefacto de un despliegue OTA por URL firmada."""
 
     def __init__(
         self,
@@ -39,6 +43,7 @@ class ObtenerArtefactoOtaUseCase:
         )
 
     def execute(self, id_despliegue: int, expira: int, firma: str) -> Path:
+        """Valida la firma y devuelve la ruta del artefacto."""
         if not self._url_port.es_valida(id_despliegue, expira, firma, datetime.now(timezone.utc)):
             raise AuthenticationError(code="URL_DESCARGA_INVALIDA", message="La URL de descarga no es válida o venció.")
         despliegue = self._despliegue_repo.obtener_por_id(id_despliegue)

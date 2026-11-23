@@ -5,6 +5,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: PATCH/PUT de una versión del contrato; las protegidas responden MODIFICACION_NO_PERMITIDA |
 # | 2026-11-19 | Arekkazu | M7-02/M7-03 RF-98: justificación del anexo y condiciones de activación en el listado |
 # | 2026-11-20 | Arekkazu | QA-M07 CU07 H-01 RF-102: el archivo exportado lleva la hora del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Routers de M07 (``/integracion``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 - ``GET /integracion/aaef/productores/{nit}``: la consulta de AgroFusion (RF-AE01). Su autenticación
@@ -123,6 +124,7 @@ def _cliente(m07: M07, cliente: ClienteExterno) -> dict:
              summary="Registrar un cliente externo (el secreto se muestra una sola vez)")
 def registrar_cliente(dto: RegistrarClienteDTO, m07: M07 = Depends(_m07),
                       usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Registra un cliente externo y devuelve su secreto una sola vez."""
     cliente, secreto = m07.registrar_cliente().execute(SolicitudCliente(
         dto.codigo, dto.nombre, dto.identificador_publico, dto.fecha_vencimiento, dto.canales_dict(), dto.ip_permitida,
         dto.ttl_token_canal_minutos, dto.client_secret), usuario_actual.id_usuario)
@@ -133,6 +135,7 @@ def registrar_cliente(dto: RegistrarClienteDTO, m07: M07 = Depends(_m07),
 @router.get("/clientes", tags=[TAG_CLIENTES], dependencies=[Depends(permiso("clientes_externos", R))],
             summary="Listar los clientes externos")
 def listar_clientes(m07: M07 = Depends(_m07)):
+    """Lista los clientes externos."""
     return [_cliente(m07, c) for c in m07.clientes.listar()]
 
 
@@ -140,6 +143,7 @@ def listar_clientes(m07: M07 = Depends(_m07)):
               summary="Editar canales, IP permitida y vigencia del token")
 def editar_cliente(id_cliente_externo: int, dto: EditarClienteDTO, m07: M07 = Depends(_m07),
                    usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Edita la configuración de un cliente externo."""
     cliente = m07.gestionar_cliente().editar(id_cliente_externo, dto.canales_dict(), dto.ip_permitida,
                                              dto.ttl_token_canal_minutos, dto.fecha_actualizacion, usuario_actual.id_usuario)
     return _cliente(m07, cliente)
@@ -154,6 +158,7 @@ def _cambiar_estado(accion: str, id_cliente_externo: int, dto: MotivoDTO, m07: M
              dependencies=[Depends(permiso("clientes_externos", U))], summary="Suspender un cliente (sus tokens dejan de servir)")
 def suspender_cliente(id_cliente_externo: int, dto: MotivoDTO, m07: M07 = Depends(_m07),
                       usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Suspende un cliente externo."""
     return _cambiar_estado("suspender", id_cliente_externo, dto, m07, usuario_actual)
 
 
@@ -161,6 +166,7 @@ def suspender_cliente(id_cliente_externo: int, dto: MotivoDTO, m07: M07 = Depend
              dependencies=[Depends(permiso("clientes_externos", U))], summary="Reactivar un cliente suspendido")
 def reactivar_cliente(id_cliente_externo: int, dto: MotivoDTO, m07: M07 = Depends(_m07),
                       usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Reactiva un cliente externo."""
     return _cambiar_estado("reactivar", id_cliente_externo, dto, m07, usuario_actual)
 
 
@@ -168,6 +174,7 @@ def reactivar_cliente(id_cliente_externo: int, dto: MotivoDTO, m07: M07 = Depend
              dependencies=[Depends(permiso("clientes_externos", D))], summary="Revocar un cliente de forma definitiva")
 def revocar_cliente(id_cliente_externo: int, dto: MotivoDTO, m07: M07 = Depends(_m07),
                     usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Revoca un cliente externo de forma definitiva."""
     return _cambiar_estado("revocar", id_cliente_externo, dto, m07, usuario_actual)
 
 
@@ -175,6 +182,7 @@ def revocar_cliente(id_cliente_externo: int, dto: MotivoDTO, m07: M07 = Depends(
              dependencies=[Depends(permiso("clientes_externos", U))], summary="Rotar el secreto (el anterior deja de servir ya)")
 def rotar_secreto(id_cliente_externo: int, dto: RotarSecretoDTO, m07: M07 = Depends(_m07),
                   usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Rota el secreto de un cliente externo."""
     secreto = m07.gestionar_cliente().rotar(id_cliente_externo, dto.motivo, dto.fecha_vencimiento, dto.client_secret,
                                             usuario_actual.id_usuario)
     return {"client_secret": secreto, "aviso": "Guarde el secreto ahora: no se vuelve a mostrar."}
@@ -188,6 +196,7 @@ TAG_CONTRATOS = "M07 · Contrato AAEF y anexo de mapeo"
 @router.get("/anexos", tags=[TAG_CONTRATOS], dependencies=[Depends(permiso("contratos_aaef", R))],
             summary="Listar los anexos de mapeo")
 def listar_anexos(m07: M07 = Depends(_m07)):
+    """Lista los anexos de mapeo."""
     return m07.contratos.listar_anexos()
 
 
@@ -195,6 +204,7 @@ def listar_anexos(m07: M07 = Depends(_m07)):
              summary="Registrar un anexo de mapeo (queda en borrador)")
 def registrar_anexo(dto: RegistrarAnexoDTO, m07: M07 = Depends(_m07),
                     usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Registra un anexo de mapeo."""
     return m07.gestionar_anexos().registrar(dto.codigo_anexo, dto.version_anexo, dto.ruta_documento,
                                             dto.sha256_documento, usuario_actual.id_usuario)
 
@@ -204,6 +214,7 @@ def registrar_anexo(dto: RegistrarAnexoDTO, m07: M07 = Depends(_m07),
              summary="Aprobación interna del Contador: valida el mapeo y pasa el anexo a revisión")
 def enviar_anexo_a_revision(id_mapeo_anexo_aaef: int, dto: EnviarAnexoRevisionDTO, m07: M07 = Depends(_m07),
                             usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Envía un anexo a revisión."""
     return m07.gestionar_anexos().enviar_a_revision(id_mapeo_anexo_aaef, usuario_actual.id_usuario, dto.justificacion)
 
 
@@ -212,12 +223,14 @@ def enviar_anexo_a_revision(id_mapeo_anexo_aaef: int, dto: EnviarAnexoRevisionDT
              summary="Aprobar el anexo con la evidencia de la prueba de interoperabilidad")
 def aprobar_anexo(id_mapeo_anexo_aaef: int, dto: AprobarAnexoDTO, m07: M07 = Depends(_m07),
                   usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Aprueba un anexo en revisión."""
     return m07.gestionar_anexos().aprobar(id_mapeo_anexo_aaef, dto.model_dump(), usuario_actual.id_usuario)
 
 
 @router.get("/contratos", tags=[TAG_CONTRATOS], dependencies=[Depends(permiso("contratos_aaef", R))],
             summary="Listar las versiones del contrato AAEF")
 def listar_contratos(m07: M07 = Depends(_m07)):
+    """Lista las versiones del contrato con sus condiciones."""
     return m07.gestionar_contratos().listar_con_condiciones()
 
 
@@ -225,6 +238,7 @@ def listar_contratos(m07: M07 = Depends(_m07)):
              summary="Registrar una versión del contrato (queda pendiente hasta su fecha de vigencia)")
 def registrar_contrato(dto: RegistrarContratoDTO, m07: M07 = Depends(_m07),
                        usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Registra una versión del contrato."""
     return m07.gestionar_contratos().registrar(SolicitudContrato(
         dto.contrato_version, dto.tipo_cambio, dto.fecha_vigencia, dto.id_mapeo_anexo_aaef, list(dto.mapeadores),
         dto.periodo_gracia_dias, dto.descripcion), usuario_actual.id_usuario)
@@ -238,6 +252,7 @@ _MODIFICAR = dict(tags=[TAG_CONTRATOS], dependencies=[Depends(permiso("contratos
 @router.put("/contratos/{id_version_contrato_aaef}", **_MODIFICAR)
 def modificar_contrato(id_version_contrato_aaef: int, request: Request, dto: Optional[ModificarContratoDTO] = None,
                        m07: M07 = Depends(_m07), usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Modifica una versión pendiente del contrato."""
     # Sin cuerpo también se valida el estado: una versión protegida responde MODIFICACION_NO_PERMITIDA.
     cambios = dto.model_dump(exclude_none=True) if dto else {}
     return m07.gestionar_contratos().modificar(id_version_contrato_aaef, cambios, usuario_actual.id_usuario,
@@ -248,6 +263,7 @@ def modificar_contrato(id_version_contrato_aaef: int, request: Request, dto: Opt
              dependencies=[Depends(permiso("contratos_aaef", U))], summary="Activar ya una versión pendiente")
 def activar_contrato(id_version_contrato_aaef: int, m07: M07 = Depends(_m07),
                      usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Activa una versión del contrato."""
     return m07.gestionar_contratos().activar(id_version_contrato_aaef, usuario_actual.id_usuario)
 
 
@@ -255,6 +271,7 @@ def activar_contrato(id_version_contrato_aaef: int, m07: M07 = Depends(_m07),
              dependencies=[Depends(permiso("contratos_aaef", U))], summary="Deprecar una versión con período de gracia")
 def deprecar_contrato(id_version_contrato_aaef: int, dto: DeprecarContratoDTO, m07: M07 = Depends(_m07),
                       usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """Depreca una versión activa del contrato."""
     return m07.gestionar_contratos().deprecar(id_version_contrato_aaef, dto.dias_gracia, usuario_actual.id_usuario)
 
 
@@ -313,6 +330,7 @@ def exportar_auditoria(
     numero_id_tributaria: Optional[str] = Query(None, pattern=r"^\d{6,15}$", description="Titular (NIT, sin DV)."),
     m07: M07 = Depends(_m07),
 ):
+    """Exporta la auditoría de integración en CSV o JSON."""
     contenido = m07.consultar_auditoria().exportar(
         _filtros(tipo_evento, id_cliente_externo, desde, hasta, endpoint, codigo_http, numero_id_tributaria), formato)
     tipo = "application/json" if formato == "json" else "text/csv; charset=utf-8"

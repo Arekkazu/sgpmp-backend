@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura del alimento consumido VALIDADO en un período (RF-74).
 
 Suma ``cantidad_suministrada`` de ``modulo5.registros_consumo_alimentos`` para el
@@ -12,6 +15,7 @@ from typing import Optional
 
 
 class ConsumoICAReadPort(ABC):
+    """Puerto de lectura del alimento consumido para el cálculo de ICA."""
     @abstractmethod
     def sumar_alimento_validado(
         self, id_activo_biologico: int, fecha_desde: date, fecha_hasta: date

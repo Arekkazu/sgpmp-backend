@@ -2,6 +2,12 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: expone causa y snapshot DB-13 |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-61: nombres de activo, área, finca, variable y usuario (read-model) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y schemas |
+"""Schemas de respuesta de las vinculaciones lectura-activo (RF-61).
+
+Expone la vinculación con los nombres de activo, área, finca, variable y usuario
+para no mostrar solo identificadores.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +17,8 @@ from pydantic import BaseModel
 
 
 class VinculacionLecturaSchema(BaseModel):
+    """Vinculación de una lectura con su activo y contexto legibles."""
+
     id_vinculacion_lectura: int
     id_telemetria: int
     modelo_manejo: str
@@ -42,6 +50,8 @@ class VinculacionLecturaSchema(BaseModel):
 
 
 class ListaVinculacionesSchema(BaseModel):
+    """Página de vinculaciones de lectura."""
+
     total: int
     pagina: int
     por_pagina: int

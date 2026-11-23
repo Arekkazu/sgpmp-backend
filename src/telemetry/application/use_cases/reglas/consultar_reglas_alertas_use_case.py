@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: listar y obtener reglas de alerta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase, función y métodos |
 """Consultar reglas de alerta (RF-55/RF-57, BE-0)."""
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlert
 
 
 def obtener_regla_o_404(repo: ReglaAlertaRepository, id_regla_alertas: int, *, bloquear: bool = False) -> ReglaAlerta:
+    """Devuelve la regla o lanza ``NotFoundError`` si no existe."""
     regla = repo.obtener_por_id(id_regla_alertas, bloquear=bloquear)
     if regla is None:
         raise NotFoundError(code="REGLA_ALERTA_NO_ENCONTRADA", message="La regla de alerta no existe.")
@@ -19,6 +21,7 @@ def obtener_regla_o_404(repo: ReglaAlertaRepository, id_regla_alertas: int, *, b
 
 
 class ConsultarReglasAlertasUseCase:
+    """Consulta las reglas de alerta configuradas."""
 
     def __init__(self, regla_repo: ReglaAlertaRepository) -> None:
         self.regla_repo = regla_repo
@@ -29,9 +32,11 @@ class ConsultarReglasAlertasUseCase:
         es_activa: Optional[bool] = None,
         es_regla_compuesta: Optional[bool] = None,
     ) -> list[ReglaAlerta]:
+        """Lista reglas con filtros opcionales por sensor, actividad y composición."""
         return self.regla_repo.listar(
             tipo_sensor=tipo_sensor, es_activa=es_activa, es_regla_compuesta=es_regla_compuesta,
         )
 
     def obtener(self, id_regla_alertas: int) -> ReglaAlerta:
+        """Devuelve una regla por id o lanza ``NotFoundError``."""
         return obtener_regla_o_404(self.regla_repo, id_regla_alertas)

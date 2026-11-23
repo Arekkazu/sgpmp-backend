@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de la bandeja de retroalimentación."""
 from __future__ import annotations
 
 import uuid
@@ -14,6 +16,7 @@ from src.prediction.domain.entities.bandeja_retroalimentacion import InferenciaP
 
 
 class InferenciaPorEvaluarResponse(BaseModel):
+    """Inferencia de la bandeja de retroalimentación."""
     id_resultado_inferencia: uuid.UUID
     id_activo_biologico: int
     identificador_activo: Optional[str] = None
@@ -42,17 +45,20 @@ class InferenciaPorEvaluarResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, i: InferenciaPorEvaluar) -> "InferenciaPorEvaluarResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(**{k: getattr(i, k) for k in cls.model_fields if k != "puede_evaluar"},
                    puede_evaluar=i.puede_evaluar)
 
 
 class IndicadoresBandejaResponse(BaseModel):
+    """Conteos de la bandeja de retroalimentación."""
     pendientes: int
     evaluadas: int
     vencidas: int
 
 
 class BandejaRetroalimentacionResponse(BaseModel):
+    """Página de la bandeja con sus indicadores."""
     items: list[InferenciaPorEvaluarResponse]
     total: int
     pagina: int

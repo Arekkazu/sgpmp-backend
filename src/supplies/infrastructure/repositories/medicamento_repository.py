@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: observaciones y E11 tratamientos   |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`MedicamentoRepository` (RF-76).
 
 Usa ``flush()``/``refresh()`` (nunca ``commit()``) y traduce errores de BD con
@@ -82,6 +83,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         fecha_aplicacion: date,
         hora_aplicacion: Optional[time],
     ) -> bool:
+        """Indica si ya existe un medicamento VALIDADO con la misma clave de duplicidad."""
         hora = hora_aplicacion or _MEDIANOCHE
         existe = (
             self.db.query(RegistroMedicamentoModel.id_registro_medicamento)
@@ -97,6 +99,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         return existe is not None
 
     def guardar(self, medicamento: Medicamento) -> Medicamento:
+        """Persiste una aplicación nueva y devuelve la entidad con campos derivados."""
         # costo_total_medicamento lo calcula el trigger BEFORE INSERT — no se asigna.
         orm = RegistroMedicamentoModel(
             id_activo_biologico=medicamento.id_activo_biologico,
@@ -130,10 +133,12 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         return self._a_entidad(orm)
 
     def obtener_por_id(self, id_medicamento: int) -> Optional[Medicamento]:
+        """Devuelve la aplicación por id o ``None`` si no existe."""
         orm = self.db.get(RegistroMedicamentoModel, id_medicamento)
         return self._a_entidad(orm) if orm else None
 
     def anular(self, medicamento: Medicamento) -> Medicamento:
+        """Aplica la anulación (solo estado y campos de anulación)."""
         orm = self.db.get(RegistroMedicamentoModel, medicamento.id_registro_medicamento)
         # Solo se tocan estado y campos de anulación (el trigger protege el resto).
         orm.estado_registro = medicamento.estado_registro
@@ -147,6 +152,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         return self._a_entidad(orm)
 
     def max_fecha_fin_retiro_vigente(self, id_activo: int) -> Optional[date]:
+        """Devuelve la mayor ``fecha_fin_retiro`` entre los tratamientos VALIDADOS activos."""
         return (
             self.db.query(func.max(RegistroMedicamentoModel.fecha_fin_retiro))
             .filter(
@@ -158,6 +164,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         )
 
     def contar_tratamientos_activos(self, id_activo: int, hoy: date) -> int:
+        """Tratamientos VALIDADOS con retiro vigente (``fecha_fin_retiro >= hoy``) — RF-76 E11."""
         return (
             self.db.query(RegistroMedicamentoModel.id_registro_medicamento)
             .filter(
@@ -169,6 +176,13 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         )
 
     def obtener_tratamiento_vigente(self, id_activo: int) -> Optional[Medicamento]:
+        """Devuelve el tratamiento VALIDADO con la ``fecha_fin_retiro`` más lejana (o ``None``).
+
+        A diferencia de ``max_fecha_fin_retiro_vigente`` (que solo expone la
+        fecha), devuelve la entidad completa: el scheduler de reversión
+        (RF-76 pasos 11-13) necesita también su ``id_usuario`` como actor de
+        auditoría del cambio de estado.
+        """
         orm = (
             self.db.query(RegistroMedicamentoModel)
             .filter(
@@ -190,6 +204,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         estado_registro: Optional[str] = None,
         ids_permitidos: Optional[list[int]] = None,
     ) -> list[Medicamento]:
+        """Lista aplicaciones aplicando los filtros de búsqueda de RF-76."""
         query = self.db.query(RegistroMedicamentoModel)
         if ids_permitidos is not None:
             query = query.filter(RegistroMedicamentoModel.id_activo_biologico.in_(ids_permitidos))

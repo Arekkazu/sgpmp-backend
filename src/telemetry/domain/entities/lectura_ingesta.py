@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: read-model del monitor de ingesta (modulo3.bitacora_ingest) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """AJF-07: lo que el monitor de ingesta muestra de cada evento de la bitácora de ingesta.
 
 La fuente es ``modulo3.bitacora_ingest``; los datos de la lectura (valor, origen,
@@ -17,6 +18,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class LecturaIngesta:
+    """Evento de la bitácora de ingesta mostrado en el listado."""
     id_bitacora_ingest: int
     fecha_evento: datetime
     fecha_captura_dato: Optional[datetime]
@@ -49,6 +51,7 @@ class LecturaIngesta:
 
 @dataclass(frozen=True)
 class FiltrosIngesta:
+    """Filtros aplicados al listado de la bitácora de ingesta."""
     desde: datetime
     hasta: datetime
     ids_fincas: Optional[list[int]]

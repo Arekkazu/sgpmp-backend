@@ -2,6 +2,8 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: mapear el perfil persistido de cálculo de contagio. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""``modulo4.configuracion_ia_log`` (DB-14): snapshot OLD de cada UPDATE/DELETE."""
 from __future__ import annotations
 
 from datetime import datetime

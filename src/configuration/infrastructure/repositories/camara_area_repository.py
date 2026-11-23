@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``CamaraAreaRepository`` (RF-21 v2.0 / RF-22)."""
 from __future__ import annotations
 
@@ -13,11 +16,13 @@ from src.configuration.infrastructure.repositories.dispositivo_iot_repository im
 
 
 class SqlAlchemyCamaraAreaRepository(CamaraAreaRepository):
+    """Implementación SQLAlchemy de ``CamaraAreaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def listar_por_area(self, id_infraestructura: int) -> list[DispositivoIot]:
+        """Dispositivos de categoría CAMARA instalados en el área, activos o no."""
         # RF-22 v1.2: la asociación cámara → área es el id_infraestructura del dispositivo.
         filas = (
             self.db.query(DispositivoIotModel)

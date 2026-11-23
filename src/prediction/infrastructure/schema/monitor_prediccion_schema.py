@@ -5,6 +5,8 @@
 # | 2026-10-30 | Arekkazu | RF-66: modo_sombra y respuesta del registro desde el motor IA      |
 # | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
 # | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta del monitor de predicciones."""
 from __future__ import annotations
 
 import uuid
@@ -55,6 +57,7 @@ class InferenciaMonitorResponse(BaseModel):
     @computed_field
     @property
     def paradigma(self) -> Optional[str]:
+        """Paradigma del tipo de modelo."""
         return paradigma_de(self.tipo_modelo)
 
 

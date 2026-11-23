@@ -8,6 +8,7 @@
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43-05 RF-87: precios congelados al iniciar el cierre |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-87 FA-5: el nombre de quien cerró el período sale aunque la RLS de usuarios lo oculte |
 # | 2026-11-16 | Arekkazu | QA-M06 CU12 H-01 RF-92/93: el período consultado trae la razón social del titular para las descargas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`PeriodoRepository`."""
 from __future__ import annotations
 
@@ -39,10 +40,12 @@ _COLUMNAS_EJECUCION = f"""e.id_cierre, e.estado::text AS estado, e.paso_actual, 
 
 
 class SqlAlchemyPeriodoRepository(PeriodoRepository):
+    """Implementación SQLAlchemy de ``PeriodoRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener(self, id_periodo_contable: int, bloquear: bool = False) -> Optional[Periodo]:
+        """bloquear: SELECT ... FOR UPDATE NOWAIT (un solo cierre a la vez, RF-87)."""
         sql = f"""SELECT {_COLUMNAS}, {_RAZON_SOCIAL} FROM modulo6.periodos_contables pc
                   WHERE id_periodo_contable = :id"""
         try:
@@ -55,23 +58,27 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         return Periodo(**f) if f else None
 
     def que_contiene(self, numero_id_tributaria: str, dia: date) -> Optional[Periodo]:
+        """Devuelve el periodo del titular que contiene el día, o ``None``."""
         f = fila(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.periodos_contables
                               WHERE numero_id_tributaria = :n AND :d BETWEEN fecha_inicio AND fecha_fin""",
                  {"n": numero_id_tributaria, "d": dia})
         return Periodo(**f) if f else None
 
     def primero_abierto_desde(self, numero_id_tributaria: str, dia: date) -> Optional[Periodo]:
+        """Devuelve el primer periodo abierto desde el día, o ``None``."""
         f = fila(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.periodos_contables
                               WHERE numero_id_tributaria = :n AND estado = 'ABIERTO' AND fecha_fin >= :d
                               ORDER BY fecha_inicio LIMIT 1""", {"n": numero_id_tributaria, "d": dia})
         return Periodo(**f) if f else None
 
     def hay_posteriores(self, numero_id_tributaria: str, dia: date) -> bool:
+        """Indica si hay periodos posteriores al día."""
         return fila(self.db, """SELECT 1 AS ok FROM modulo6.periodos_contables
                                 WHERE numero_id_tributaria = :n AND fecha_inicio > :d LIMIT 1""",
                     {"n": numero_id_tributaria, "d": dia}) is not None
 
     def crear(self, numero_id_tributaria: str, tipo_cierre: str, inicio: date, fin: date, id_usuario: int) -> Periodo:
+        """Crea un periodo contable."""
         escribir(self.db, """
             INSERT INTO modulo6.periodos_contables (tipo_cierre, fecha_inicio, fecha_fin, estado, id_usuario,
                                                     fecha_creacion, numero_id_tributaria)
@@ -81,12 +88,14 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         return self.que_contiene(numero_id_tributaria, inicio)
 
     def cambiar_estado(self, id_periodo_contable: int, estado: str) -> None:
+        """Cambia el estado del periodo."""
         escribir(self.db, """UPDATE modulo6.periodos_contables
                              SET estado = CAST(:e AS modulo6.enum_periodo_contables_estado),
                                  fecha_cierre = CASE WHEN :e = 'CERRADO' THEN now() ELSE fecha_cierre END
                              WHERE id_periodo_contable = :id""", {"id": id_periodo_contable, "e": estado})
 
     def listar(self, numero_id_tributaria: Optional[str], sin_titular: bool = False) -> list[Periodo]:
+        """Del titular dado (todos si es None); con ``sin_titular`` solo los que no tienen titular."""
         return [Periodo(**f) for f in filas(self.db, f"""
             SELECT {_COLUMNAS},
                    {_RAZON_SOCIAL}
@@ -97,6 +106,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
             ORDER BY numero_id_tributaria, fecha_inicio DESC""", {"n": numero_id_tributaria, "sin": sin_titular})]
 
     def titulares(self) -> list[dict]:
+        """NIT y razón social de cada titular con períodos visibles; los períodos sin titular, al final (NIT None)."""
         return filas(self.db, f"""
             SELECT pc.numero_id_tributaria, max(f.razon_social) AS razon_social
             FROM modulo6.periodos_contables pc
@@ -106,6 +116,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
             ORDER BY pc.numero_id_tributaria IS NULL, max(f.razon_social) NULLS LAST, pc.numero_id_tributaria""")
 
     def abierto_anterior(self, periodo: Periodo) -> Optional[Periodo]:
+        """Devuelve un periodo abierto anterior al dado, o ``None``."""
         f = fila(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.periodos_contables
                               WHERE numero_id_tributaria = :n AND estado <> 'CERRADO' AND fecha_inicio < :i
                               ORDER BY fecha_inicio LIMIT 1""",
@@ -114,6 +125,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
 
     def iniciar_cierre(self, id_periodo_contable: int, id_usuario: int, incluir_sin_precio: bool,
                        precios_congelados: Optional[list[dict]] = None) -> int:
+        """``precios_congelados``: precios de RF-89 capturados al iniciar (RF-87 paso 2); el cierre los reusa al reanudar."""
         return escribir(self.db, """
             INSERT INTO modulo6.ejecuciones_cierre_periodo (id_periodo_contable, id_usuario_ejecutor, estado, paso_actual,
                                                             fecha_inicio, es_incluir_activos_sin_precio, intento_reintento,
@@ -122,6 +134,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         """, {"p": id_periodo_contable, "u": id_usuario, "i": incluir_sin_precio, "precios": a_json(precios_congelados)})
 
     def ejecucion_en_proceso(self, id_periodo_contable: int) -> Optional[dict]:
+        """Incluye ``esperando_autorizacion``, ``precios_congelados`` y ``nombre_usuario_ejecutor``."""
         en_curso = fila(self.db, f"""SELECT e.id_cierre, e.id_usuario_ejecutor, e.fecha_inicio,
                                             e.paso_actual = {_PASO_ESPERA} AS esperando_autorizacion,
                                             e.json_precios_congelados AS precios_congelados
@@ -130,14 +143,17 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         return con_nombres(self.db, [en_curso], _EJECUTOR)[0] if en_curso else None
 
     def esperar_autorizacion(self, id_cierre: int) -> None:
+        """El cierre queda EN_PROCESO esperando la decisión del Contador sobre las exclusiones."""
         escribir(self.db, f"UPDATE modulo6.ejecuciones_cierre_periodo SET paso_actual = {_PASO_ESPERA} WHERE id_cierre = :id",
                  {"id": id_cierre})
 
     def reanudar_cierre(self, id_cierre: int, incluir_sin_precio: bool) -> None:
+        """Reanuda un cierre interrumpido."""
         escribir(self.db, """UPDATE modulo6.ejecuciones_cierre_periodo SET paso_actual = 1, es_incluir_activos_sin_precio = :i
                              WHERE id_cierre = :id""", {"id": id_cierre, "i": incluir_sin_precio})
 
     def finalizar_cierre(self, id_cierre: int, estado: str, datos: dict) -> None:
+        """Finaliza el cierre con su estado y datos."""
         escribir(self.db, """
             UPDATE modulo6.ejecuciones_cierre_periodo
             SET estado = CAST(:e AS modulo6.enum_estado_cierre), paso_actual = :paso, activos_procesados = :proc,
@@ -150,6 +166,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
               "precios": a_json(datos.get("precios", [])), "error": datos.get("error"), "hash": datos.get("hash")})
 
     def guardar_comprobante(self, comprobante: Comprobante, id_periodo_contable: int, id_cierre: int) -> int:
+        """Guarda el comprobante del cierre y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.comprobantes_nic41 (codigo, id_periodo_contable, id_cierre, numero_id_tributaria,
                 tipo_hecho, id_especie, fecha_comprobante, json_lineas, valor_total, hash_integridad)
@@ -162,6 +179,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
               "h": comprobante.hash_integridad})
 
     def comprobantes(self, id_periodo_contable: int) -> list[dict]:
+        """Lista los comprobantes del periodo."""
         return filas(self.db, """
             SELECT c.id_comprobante_nic41, c.codigo, c.numero_id_tributaria, c.tipo_hecho::text AS tipo_hecho,
                    c.id_especie, e.nombre AS especie, c.fecha_comprobante, c.json_lineas AS lineas, c.valor_total,
@@ -170,6 +188,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
             WHERE c.id_periodo_contable = :p ORDER BY c.codigo""", {"p": id_periodo_contable})
 
     def ultima_ejecucion(self, id_periodo_contable: int) -> Optional[dict]:
+        """Devuelve la última ejecución de cierre del periodo, o ``None``."""
         ultima = fila(self.db, f"""
             SELECT {_COLUMNAS_EJECUCION}
             FROM modulo6.ejecuciones_cierre_periodo e WHERE e.id_periodo_contable = :p
@@ -177,6 +196,7 @@ class SqlAlchemyPeriodoRepository(PeriodoRepository):
         return con_nombres(self.db, [ultima], _EJECUTOR)[0] if ultima else None
 
     def ultimas_ejecuciones(self, ids_periodos: list[int]) -> dict[int, dict]:
+        """La última ejecución de cierre de cada período, en una sola consulta."""
         # Una consulta para todo el listado: antes era una por período (N+1).
         if not ids_periodos:
             return {}

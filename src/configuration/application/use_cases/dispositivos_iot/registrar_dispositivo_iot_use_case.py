@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar dispositivo IoT (POST RF-21).
 
 Un dispositivo puede registrarse ya vinculado a su Gateway Edge
@@ -79,6 +82,7 @@ class RegistrarDispositivoIotUseCase:
         self.bitacora = bitacora
 
     def execute(self, dto: RegistrarDispositivoIotDTO, usuario_actual: UsuarioActual) -> DispositivoIot:
+        """Registra un dispositivo IoT en el área."""
         area = self.infra_repo.obtener_por_id(dto.id_infraestructura)
         # RF-21, flujo alterno "Área productiva no encontrada o inactiva": 422 en
         # ambos casos (TC-M09-G56). El código de error sigue distinguiéndolos.

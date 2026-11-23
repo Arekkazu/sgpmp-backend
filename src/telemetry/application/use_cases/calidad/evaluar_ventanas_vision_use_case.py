@@ -1,6 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-60: evidencia tecnica de ventanas sin alerta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso que diagnostica secuencias de ventanas de visión sin detección."""
 from src.telemetry.domain.entities.secuencia_vision import ventanas_sin_deteccion
 from src.telemetry.domain.entities.evento_auditoria_iot import (
     EventoAuditoriaIot, ComponenteOrigen, EntidadAfectadaTipo, TipoResultado,
@@ -15,6 +17,7 @@ class EvaluarVentanasVisionUseCase:
         self.ventanas,self.parametros,self.auditoria=ventanas,parametros,auditoria
 
     def execute(self, identificador):
+        """Revisa las ventanas recientes de la cámara y audita la secuencia sin detección."""
         p=self.parametros.obtener_ventanas()
         secuencia=ventanas_sin_deteccion(self.ventanas.recientes(identificador,p.cantidad),p)
         if not secuencia:

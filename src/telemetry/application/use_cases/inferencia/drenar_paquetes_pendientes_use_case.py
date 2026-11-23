@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-56 Fase 6, envío batch y cola de reenvío: drena los paquetes PENDIENTE hacia el motor.
 
 Restricción 5 (máximo 500 registros por paquete, se permite fragmentación), 6 (orden
@@ -42,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ResultadoDrenado:
+    """Resumen del drenado: lotes intentados, enviados, fallidos y reprogramados."""
     lotes: list[int] = field(default_factory=list)   # tamaño de cada lote intentado
     enviados: int = 0
     fallidos: int = 0
@@ -50,6 +52,7 @@ class ResultadoDrenado:
 
 
 class DrenarPaquetesPendientesUseCase:
+    """Reenvía por lotes los paquetes de inferencia pendientes."""
 
     def __init__(
         self,
@@ -70,6 +73,7 @@ class DrenarPaquetesPendientesUseCase:
         self.tamano_lote = tamano_lote
 
     def execute(self, max_lotes: int = 20) -> ResultadoDrenado:
+        """Drena hasta max_lotes lotes pendientes y devuelve el resumen."""
         resultado = ResultadoDrenado()
         for _ in range(max_lotes):
             try:

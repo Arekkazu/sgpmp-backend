@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: contrato de parametros persistidos  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """P-1 provisional: claves RF-60 en DEV-14, sin valores de respaldo en ejecución.
 
 Los únicos defaults son los D expresos de RF-60/RF-56 para la siembra.
@@ -48,6 +49,7 @@ def _invalido(mensaje):
 
 
 def intervalos_configurados(parametros):
+    """Devuelve los intervalos de heartbeat por tipo de dispositivo."""
     parametro = parametros.get(INTERVALOS_TIPO)
     if parametro is None:
         return {}

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador en segundo plano para correos de recuperación de RF-08."""
 from __future__ import annotations
 
@@ -159,6 +162,7 @@ class CorreoRecuperacionBackgroundAdapter(CorreoRecuperacionPort):
         token: str,
         id_usuario: int,
     ) -> None:
+        """Programa en segundo plano el correo de recuperación de contraseña."""
         self._programar(correo, nombre, token, id_usuario, FLUJO_RECUPERACION)
 
     def programar_activacion(
@@ -168,6 +172,7 @@ class CorreoRecuperacionBackgroundAdapter(CorreoRecuperacionPort):
         token: str,
         id_usuario: int,
     ) -> None:
+        """Programa en segundo plano el correo de activación de cuenta."""
         self._programar(correo, nombre, token, id_usuario, FLUJO_ACTIVACION)
 
     def _programar(

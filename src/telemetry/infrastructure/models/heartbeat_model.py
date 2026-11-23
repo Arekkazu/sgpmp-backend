@@ -1,6 +1,12 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: mapear el snapshot JSONB opcional reportado por Edge. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de los heartbeats de dispositivos IoT (tabla ``modulo3.heartbeats``).
+
+Mapea batería, señal, estado del buffer, firmware, coordenadas y el snapshot
+opcional de métricas del buffer (RF-54).
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,6 +21,8 @@ from .base_model import Base
 
 
 class HeartbeatModel(Base):
+    """Fila de la tabla ``modulo3.heartbeats``."""
+
     __tablename__ = 'heartbeats'
     __table_args__ = {'schema': 'modulo3'}
 

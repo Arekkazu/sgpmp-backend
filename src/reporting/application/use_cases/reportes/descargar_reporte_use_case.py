@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: descarga solo del dueño, 48 h y verificación de integridad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: descargar una parte de un reporte generado (RF-104, CA-13, CA-14, RNF-05, RNF-10).
 
 Solo quien lo pidió (403 para otro usuario), cuantas veces quiera dentro de las 48 h (después, 410). Antes de
@@ -23,6 +24,7 @@ MENSAJE_INTEGRIDAD = "El archivo del reporte no pasó la verificación de integr
 
 
 class DescargarReporteUseCase:
+    """Descarga una parte de un reporte generado."""
 
     def __init__(self, db: Session, repo: SolicitudReporteRepository, avisos: AvisosReportesPort) -> None:
         self.db = db
@@ -31,6 +33,7 @@ class DescargarReporteUseCase:
 
     def execute(self, id_reporte: UUID, numero_parte: int, id_usuario: int,
                 ahora: Optional[datetime] = None) -> ArchivoReporte:
+        """Devuelve el archivo de la parte indicada y registra la descarga."""
         ahora = ahora or datetime.now(timezone.utc)
         solicitud = self.repo.obtener(id_reporte)
         if solicitud is None:

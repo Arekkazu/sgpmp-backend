@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: referenciar el primer evento real de la contingencia sincronizada. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-73 E8 / CA-14: al recuperarse la BD, el respaldo local vuelve a la bitácora de M04.
 
 Los eventos se insertan en orden FIFO con su ``id_evento`` y ``fecha_evento``
@@ -27,12 +28,14 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ResultadoSincronizacionRespaldo:
+    """Resultado de sincronizar el respaldo local de auditoría."""
     eventos_sincronizados: int = 0
     eventos_ya_presentes: int = 0
     en_curso_por_otro: bool = False
 
 
 class SincronizarRespaldoAuditoriaM04UseCase:
+    """Sincroniza con la base los eventos de auditoría respaldados localmente."""
     def __init__(
         self,
         *,
@@ -47,6 +50,7 @@ class SincronizarRespaldoAuditoriaM04UseCase:
         self._aviso = aviso
 
     def execute(self) -> ResultadoSincronizacionRespaldo:
+        """Persiste los eventos pendientes del respaldo y devuelve el resultado."""
         if not self._respaldo.hay_pendientes():
             return ResultadoSincronizacionRespaldo()
 

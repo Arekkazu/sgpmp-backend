@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: modelo ORM de modulo9.aristas_transmision  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de `modulo9.aristas_transmision` (migración 33ae7f41e560). Los enums de PostgreSQL se
 mapean como `String` (convención del proyecto)."""
 from __future__ import annotations
@@ -16,6 +17,7 @@ from .base_model import Base
 
 
 class AristaTransmisionModel(Base):
+    """Modelo ORM de la tabla ``modulo9.aristas_transmision``."""
     __tablename__ = 'aristas_transmision'
     __table_args__ = {'schema': 'modulo9'}
 

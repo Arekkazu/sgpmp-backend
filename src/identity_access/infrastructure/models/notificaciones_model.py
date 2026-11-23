@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                   |
 # |------------|----------|---------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, ciclo de vida, agrupación y reintentos push |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.notificaciones`.
 
 Registro de notificaciones enviadas o en cola por canal. Incluye el estado
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from .usuarios_model import Usuarios
 
 class Notificaciones(Base):
+    """Modelo ORM de las notificaciones (tabla ``modulo1.notificaciones``)."""
     __tablename__ = 'notificaciones'
     __table_args__ = (
         ForeignKeyConstraint(['id_evento'], ['modulo1.eventos.id_evento'], name='fk_evento'),

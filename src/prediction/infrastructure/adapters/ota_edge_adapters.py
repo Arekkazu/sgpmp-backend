@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptadores del orquestador OTA (DEV-15, D6 de AIOT-DEV-03).
 
 - ``NodoOtaM09Adapter``: serial de los nodos objetivo en ``modulo9.dispositivos_iot``.
@@ -43,22 +46,32 @@ _SQL_SERIALES_ACTIVOS = text(
 
 
 class NodoOtaM09Adapter(NodoOtaPort):
+    """Resuelve los seriales de los dispositivos destino OTA."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def obtener_seriales(self, ids_dispositivo: list[int]) -> dict[int, str]:
+        """Serial de cada dispositivo activo de la lista. Los que no existen o están
+        inactivos no aparecen. No depende de quién llama.
+        """
         with como_sistema(self._db):
             return dict(self._db.execute(_SQL_SERIALES_ACTIVOS, {"ids": ids_dispositivo}).tuples().all())
 
 
 class AvisoOtaBrokerAdapter(AvisoOtaPort):
+    """Avisa la actualización OTA a los dispositivos vía el broker."""
 
     def __init__(self) -> None:
         self._base_url = os.environ.get("MQTT_BROKER_URL", "")
         self._token = os.environ.get("MQTT_BROKER_TOKEN", "")
 
     def notificar(self, aviso: dict) -> ResultadoAvisoOta:
+        """Pide al broker publicar ``ota/notify`` a un nodo. Nunca lanza.
+
+        El broker publica y responde 202 sin esperar la instalación: el nodo
+        reporta después por ``ota/<evento>`` → ``POST /prediccion/ota/reportes``.
+        """
         if not self._base_url or not self._token:
             return ResultadoAvisoOta(
                 publicado=False,
@@ -89,6 +102,7 @@ class AvisoOtaBrokerAdapter(AvisoOtaPort):
 
 
 class UrlDescargaHmacAdapter(UrlDescargaPort):
+    """Firma y valida con HMAC las URL de descarga OTA."""
 
     def __init__(self) -> None:
         self._secreto = os.environ.get("OTA_URL_SECRET", "").encode("utf-8")
@@ -96,6 +110,7 @@ class UrlDescargaHmacAdapter(UrlDescargaPort):
         self._base = os.environ.get("OTA_URL_BASE", "").rstrip("/")
 
     def configurada(self) -> bool:
+        """Si el ambiente tiene con qué firmar URLs (clave y URL base)."""
         return bool(self._secreto and self._base)
 
     def _firmar(self, id_despliegue: int, expira_epoch: int) -> str:
@@ -103,11 +118,13 @@ class UrlDescargaHmacAdapter(UrlDescargaPort):
         return hmac.new(self._secreto, mensaje, hashlib.sha256).hexdigest()
 
     def generar(self, id_despliegue: int, expira: datetime) -> str:
+        """URL temporal y firmada para descargar el artefacto del despliegue (admite Range)."""
         expira_epoch = int(expira.timestamp())
         consulta = urlencode({"expira": expira_epoch, "firma": self._firmar(id_despliegue, expira_epoch)})
         return f"{self._base}/prediccion/ota/artefactos/{id_despliegue}?{consulta}"
 
     def es_valida(self, id_despliegue: int, expira_epoch: int, firma: str, ahora: datetime) -> bool:
+        """Firma correcta y sin vencer."""
         if not self._secreto or expira_epoch < int(ahora.timestamp()):
             return False
         return hmac.compare_digest(self._firmar(id_despliegue, expira_epoch), firma)

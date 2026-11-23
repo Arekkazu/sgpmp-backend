@@ -3,6 +3,7 @@
 # | 2026-11-18 | Arekkazu | M08 RF-104/RF-106: consultas de solo lectura de reportes e historial |
 # | 2026-11-19 | Arekkazu | M8-01/M8-07 RF-104/RF-106: predicciones en modo sombra y portafolio igual al NIC 41 |
 # | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: el ejecutivo suma las mismas filas que la valoración NIC 41 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`FuenteReportesRepository` (RF-104, RF-106).
 
 Corre en la sesión de la instantánea (``REPEATABLE READ READ ONLY``) con la identidad de quien pidió el reporte:
@@ -676,6 +677,7 @@ _SQL_PARAMETRO = text("SELECT COALESCE(valor_actual, valor_por_defecto) FROM mod
 
 
 class SqlAlchemyFuenteReportesRepository(FuenteReportesRepository):
+    """Lectura SQLAlchemy de los datos de los reportes."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -686,29 +688,36 @@ class SqlAlchemyFuenteReportesRepository(FuenteReportesRepository):
     # --- Referencias ---
 
     def nombre_referencia(self, tipo: str, id_referencia: int) -> Optional[str]:
+        """Devuelve el nombre visible de la referencia del filtro, o ``None``."""
         consulta = _SQL_NOMBRE_REFERENCIA.get("activo" if tipo == "lote" else tipo)
         return self.db.execute(consulta, {"id": id_referencia}).scalar() if consulta is not None else None
 
     def ubicar(self, tipo: str, id_referencia: int) -> Optional[Fila]:
+        """Devuelve la finca de la referencia sin aplicar RLS, o ``None``."""
         consulta = _SQL_UBICAR["activo" if tipo == "lote" else tipo]
         with como_sistema(self.db):  # 404 frente a 403: la RLS escondería la de otra finca
             filas = self._filas(consulta, {"id": id_referencia})
         return filas[0] if filas else None
 
     def opciones(self, tipo: str, fincas: Fincas) -> list[Fila]:
+        """Lista las opciones elegibles del filtro en las fincas dadas."""
         return self._filas(_SQL_OPCIONES[tipo], {"fincas": fincas})
 
     def periodo(self, id_periodo: int) -> Optional[Fila]:
+        """Devuelve el periodo contable, o ``None``."""
         filas = self._filas(_SQL_PERIODO, {"id": id_periodo})
         return filas[0] if filas else None
 
     def fincas(self, fincas: Fincas) -> list[Fila]:
+        """Lista las fincas dadas con su nombre."""
         return self._filas(_SQL_FINCAS, {"fincas": fincas})
 
     def fincas_de_titular(self, nit: str, fincas: Fincas) -> list[int]:
+        """Devuelve las fincas del titular dentro de las dadas."""
         return [f["id_finca"] for f in self._filas(_SQL_FINCAS_TITULAR, {"nit": nit, "fincas": fincas})]
 
     def ruta_logo(self, id_finca: int) -> Optional[str]:
+        """Devuelve la ruta del logo PNG/JPG de la finca, o ``None``."""
         logo = self.db.execute(_SQL_LOGO, {"f": id_finca}).scalar()
         if not logo or not logo.lower().endswith((".png", ".jpg", ".jpeg")):
             return None
@@ -716,100 +725,125 @@ class SqlAlchemyFuenteReportesRepository(FuenteReportesRepository):
         return ruta if os.path.isfile(ruta) else None
 
     def nombres_usuarios(self, ids: list[int]) -> dict[int, Optional[str]]:
+        """Devuelve los nombres de los usuarios por id."""
         return nombres_usuarios(self.db, ids)
 
     # --- Productivos ---
 
     def inventario(self, *, fincas, inicio, fin, hasta, especie, estado):
+        """Filas del inventario de activos."""
         return self._filas(_SQL_INVENTARIO, {"fincas": fincas, "inicio": inicio, "fin": fin, "hasta": hasta,
                                              "especie": especie, "estado": estado})
 
     def costos(self, *, fincas, inicio, fin, especie, tipo, activo=None):
+        """Filas de costos de suministros."""
         return self._filas(_SQL_COSTOS, {"fincas": fincas, "inicio": inicio, "fin": fin, "especie": especie,
                                          "tipo": tipo, "activo": activo})
 
     def produccion(self, *, fincas, desde, hasta, especie, activo):
+        """Filas de producción."""
         return self._filas(_SQL_PRODUCCION, {"fincas": fincas, "desde": desde, "hasta": hasta, "especie": especie,
                                              "activo": activo})
 
     def conversion(self, *, fincas, inicio, fin, especie, activo):
+        """Filas de conversión alimenticia."""
         return self._filas(_SQL_CONVERSION, {"fincas": fincas, "inicio": inicio, "fin": fin, "especie": especie,
                                              "activo": activo})
 
     def salidas(self, *, fincas, desde, hasta, especie):
+        """Filas de bajas y salidas."""
         return self._filas(_SQL_SALIDAS, {"fincas": fincas, "desde": desde, "hasta": hasta, "especie": especie})
 
     # --- Contables ---
 
     def valoracion_periodo(self, *, id_periodo, fincas):
+        """Filas de valoración del periodo."""
         return self._filas(_SQL_VALORACION_PERIODO, {"periodo": id_periodo, "fincas": fincas})
 
     def exportaciones(self, id_periodo):
+        """Filas de exportaciones contables del periodo."""
         return self._filas(_SQL_EXPORTACIONES, {"periodo": id_periodo})
 
     def variacion_periodos(self, *, base, comparacion, fincas):
+        """Filas de variación entre dos periodos."""
         return self._filas(_SQL_VARIACION, {"base": base, "comparacion": comparacion, "fincas": fincas})
 
     # --- Sanitarios ---
 
     def eventos_sanitarios(self, *, fincas, desde, hasta, especie, activo):
+        """Filas de eventos sanitarios."""
         return self._filas(_SQL_SANITARIOS, {"fincas": fincas, "desde": desde, "hasta": hasta, "especie": especie,
                                              "activo": activo})
 
     def ficha(self, id_activo):
+        """Ficha del activo, o ``None``."""
         filas = self._filas(_SQL_FICHA, {"activo": id_activo})
         return filas[0] if filas else None
 
     def valoracion_por_periodo(self, id_activo):
+        """Valoración del activo en cada periodo."""
         return self._filas(_SQL_VALORACION_ACTIVO, {"activo": id_activo})
 
     def predicciones_activas(self, *, fincas, especie, activo, desde):
+        """Predicciones de riesgo vigentes."""
         return self._filas(_SQL_PREDICCIONES, {"fincas": fincas, "especie": especie, "activo": activo, "desde": desde})
 
     def medicamentos(self, *, fincas, inicio, fin, especie, activo):
+        """Filas de vacunas y medicamentos aplicados."""
         return self._filas(_SQL_MEDICAMENTOS, {"fincas": fincas, "inicio": inicio, "fin": fin, "especie": especie,
                                                "activo": activo})
 
     def retiros_vigentes(self, *, fincas, hoy, especie, activo):
+        """Periodos de retiro vigentes a la fecha."""
         return self._filas(_SQL_RETIROS, {"fincas": fincas, "hoy": hoy, "especie": especie, "activo": activo})
 
     # --- IoT ---
 
     def telemetria(self, *, infraestructura, desde, hasta, sensor, patron_variable):
+        """Lecturas de telemetría del área."""
         return self._filas(_SQL_TELEMETRIA, {"infra": infraestructura, "desde": desde, "hasta": hasta,
                                              "sensor": sensor, "patron": patron_variable})
 
     def dispositivos(self, *, fincas, corte, es_hoy, infraestructura):
+        """Estado de los dispositivos a la fecha de corte."""
         return self._filas(_SQL_DISPOSITIVOS, {"fincas": fincas, "corte": corte, "es_hoy": es_hoy,
                                                "infra": infraestructura})
 
     def calibraciones(self, *, fincas, desde, hasta, sensor, infraestructura):
+        """Calibraciones de sensores del rango."""
         return self._filas(_SQL_CALIBRACIONES, {"fincas": fincas, "desde": desde, "hasta": hasta, "sensor": sensor,
                                                 "infra": infraestructura})
 
     def sensores_sin_calibrar(self, *, fincas, antes_de, sensor, infraestructura):
+        """Sensores sin calibración antes de la fecha."""
         return self._filas(_SQL_SIN_CALIBRAR, {"fincas": fincas, "antes": antes_de, "sensor": sensor,
                                                "infra": infraestructura})
 
     def alertas_sensores(self, *, fincas, desde, hasta, infraestructura):
+        """Alertas de sensores del rango."""
         return self._filas(_SQL_ALERTAS, {"fincas": fincas, "desde": desde, "hasta": hasta,
                                           "infra": infraestructura})
 
     # --- Agregados ---
 
     def animales_por_especie(self, *, fincas, fin):
+        """Animales por especie a la fecha."""
         return self._filas(_SQL_ANIMALES_POR_ESPECIE, {"fincas": fincas, "fin": fin})
 
     def valor_portafolio(self, *, fincas, fin):
+        """Valor del portafolio a la fecha."""
         return self._filas(_SQL_VALOR_PORTAFOLIO, {"fincas": fincas, "fin": fin})
 
     def valor_portafolio_periodo(self, *, id_periodo, fincas):
+        """Valor del portafolio en el periodo."""
         return self._filas(_SQL_VALOR_PORTAFOLIO_PERIODO, {"periodo": id_periodo, "fincas": fincas})
 
     def bajas_por_tipo(self, *, fincas, desde, hasta):
+        """Bajas agrupadas por tipo."""
         return self._filas(_SQL_BAJAS_POR_TIPO, {"fincas": fincas, "desde": desde, "hasta": hasta})
 
     def costos_por_tipo(self, *, fincas, inicio, fin):
+        """Costos sumados por finca y tipo."""
         totales: dict[tuple[str, str], Any] = {}
         for c in self.costos(fincas=fincas, inicio=inicio, fin=fin, especie=None, tipo=None):
             clave = (c["finca"], c["tipo"])
@@ -817,19 +851,24 @@ class SqlAlchemyFuenteReportesRepository(FuenteReportesRepository):
         return [{"finca": f, "tipo": t, "costo": v} for (f, t), v in sorted(totales.items())]
 
     def riesgo_por_nivel(self, *, fincas, desde, hasta):
+        """Predicciones agrupadas por nivel de riesgo."""
         return self._filas(_SQL_RIESGO_POR_NIVEL, {"fincas": fincas, "desde": desde, "hasta": hasta})
 
     def animales_con_riesgo_activo(self, *, fincas):
+        """Animales con riesgo activo."""
         return self._filas(_SQL_RIESGO_ACTIVO, {"fincas": fincas})
 
     def dispositivos_por_estado(self, *, fincas):
+        """Dispositivos agrupados por estado."""
         return self._filas(_SQL_DISPOSITIVOS_POR_ESTADO, {"fincas": fincas})
 
     def variacion_total_periodo(self, *, id_periodo, fincas):
+        """Variación total de valor del periodo."""
         return self.db.execute(_SQL_VARIACION_TOTAL, {"tz": nombre_zona_usuario(), "periodo": id_periodo,
                                                       "fincas": fincas}).scalar()
 
     def ultimo_periodo_cerrado(self, *, nit, hasta):
+        """Último periodo cerrado del titular hasta la fecha, o ``None``."""
         filas = self._filas(_SQL_ULTIMO_CERRADO, {"nit": nit, "hasta": hasta})
         return filas[0] if filas else None
 
@@ -841,14 +880,18 @@ class SqlAlchemyFuenteReportesRepository(FuenteReportesRepository):
             return self._filas(consulta, params)
 
     def inferencias(self, *, activo, desde, hasta):
+        """Inferencias del activo en el rango, en una transacción aislada."""
         return self._aislado(_SQL_INFERENCIAS, {"activo": activo, "desde": desde, "hasta": hasta})
 
     def retroalimentaciones(self, *, activo, desde, hasta):
+        """Retroalimentaciones del activo en el rango, en una transacción aislada."""
         return self._aislado(_SQL_RETROALIMENTACIONES, {"activo": activo, "desde": desde, "hasta": hasta})
 
     def eventos_sanitarios_aislados(self, *, activo, desde, hasta):
+        """Eventos sanitarios del activo en una transacción aislada."""
         return self._aislado(_SQL_SANITARIOS, {"fincas": None, "desde": desde, "hasta": hasta, "especie": None,
                                                "activo": activo})
 
     def parametro(self, nombre):
+        """Devuelve el valor de un parámetro configurado."""
         return self.db.execute(_SQL_PARAMETRO, {"n": nombre}).scalar()

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: ciclos productivos de la especie con sus fases en orden |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Ciclo productivo de una especie (RF-16): la secuencia ordenada de etapas que RF-37 usa como fases.
 
 Las etapas son el catálogo (``ciclos_biologicos``); el ciclo productivo fija su orden. RF-37 abre el ciclo
@@ -15,6 +16,7 @@ from src.shared.errors import ConflictError, ValidationError
 
 @dataclass(frozen=True)
 class FaseCicloProductivo:
+    """Etapa de un ciclo productivo."""
     id_ciclo_biologico: int
     nombre: str
     duracion_dias: int
@@ -22,6 +24,7 @@ class FaseCicloProductivo:
 
 @dataclass(eq=False)
 class CicloProductivo:
+    """Ciclo productivo de una especie con sus fases."""
     nombre: str
     id_especie: int
     fases: list[FaseCicloProductivo] = field(default_factory=list)
@@ -30,10 +33,12 @@ class CicloProductivo:
 
     @property
     def duracion_dias(self) -> int:
+        """Duración total del ciclo en días."""
         return sum(f.duracion_dias for f in self.fases)
 
     @classmethod
     def crear(cls, nombre: str, id_especie: int, fases: list[FaseCicloProductivo]) -> "CicloProductivo":
+        """Crea la entidad validando sus datos."""
         ciclo = cls(nombre="", id_especie=id_especie)
         ciclo._definir(nombre, fases)
         return ciclo

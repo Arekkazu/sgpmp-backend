@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para los endpoints de métricas de producción (RF-16)."""
 from __future__ import annotations
 
@@ -29,6 +32,7 @@ class MetricaProduccionResponse(BaseModel):
     @field_validator("nombre", mode="before")
     @classmethod
     def extraer_nombre(cls, v: object) -> str:
+        """Convierte el value object del nombre en texto."""
         if hasattr(v, "valor"):
             return v.valor  # type: ignore[attr-defined]
         return str(v)
@@ -36,6 +40,7 @@ class MetricaProduccionResponse(BaseModel):
     @field_validator("tipo_medicion", mode="before")
     @classmethod
     def extraer_tipo_medicion(cls, v: object) -> str:
+        """Convierte el tipo de medición en texto."""
         if hasattr(v, "value"):
             return v.value  # type: ignore[attr-defined]
         return str(v)
@@ -43,6 +48,7 @@ class MetricaProduccionResponse(BaseModel):
     @field_validator("aplica_a_tipo_activo", mode="before")
     @classmethod
     def extraer_aplica(cls, v: object) -> str:
+        """Convierte el tipo de activo al que aplica en texto."""
         if hasattr(v, "value"):
             return v.value  # type: ignore[attr-defined]
         return str(v)
@@ -50,6 +56,7 @@ class MetricaProduccionResponse(BaseModel):
     @field_validator("tipo_dato", mode="before")
     @classmethod
     def extraer_tipo_dato(cls, v: object) -> str:
+        """Convierte el tipo de dato en texto."""
         if hasattr(v, "value"):
             return v.value  # type: ignore[attr-defined]
         return str(v)
@@ -71,5 +78,6 @@ class CicloMetricaResponse(BaseModel):
 
 
 class CiclosMetricaResponse(BaseModel):
+    """Ciclos productivos en que aplica una métrica."""
     id_metrica_produccion: int
     items: list[CicloMetricaResponse]

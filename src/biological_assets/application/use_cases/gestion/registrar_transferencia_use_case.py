@@ -5,6 +5,7 @@
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: transferencia interna de un activo entre infraestructuras (RF-48)."""
 
 from __future__ import annotations
@@ -61,6 +62,7 @@ class RegistrarTransferenciaUseCase:
         self.vinculacion_traslado_port=vinculacion_traslado_port
 
     def execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
+        """Traslada el activo a otra área y audita el rechazo si falla."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario),
             db=self.db,

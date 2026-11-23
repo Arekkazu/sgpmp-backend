@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``FincaRepository``."""
 from __future__ import annotations
 
@@ -19,6 +22,7 @@ from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyFincaRepository(FincaRepository):
+    """Implementación SQLAlchemy de ``FincaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -37,10 +41,12 @@ class SqlAlchemyFincaRepository(FincaRepository):
         )
 
     def obtener_por_id(self, id_finca: int, *, bloquear: bool = False) -> Optional[Finca]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         orm = self.db.get(FincaModel, id_finca, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre(self, nombre: NombreFinca) -> Optional[Finca]:
+        """Busca case-insensitive para verificar unicidad global."""
         orm = (
             self.db.query(FincaModel)
             .filter(func.lower(FincaModel.nombre) == nombre.normalizado())
@@ -49,6 +55,7 @@ class SqlAlchemyFincaRepository(FincaRepository):
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, finca: Finca, id_creador: Optional[int] = None) -> Finca:
+        """``id_creador`` también queda registrado como acceso de la finca."""
         orm = FincaModel(
             nombre=finca.nombre.valor,
             ubicacion=finca.ubicacion.to_dict(),
@@ -82,6 +89,7 @@ class SqlAlchemyFincaRepository(FincaRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, finca: Finca) -> Finca:
+        """Persiste los cambios de la finca y devuelve la entidad actualizada."""
         orm = self.db.get(FincaModel, finca.id_finca)
         orm.nombre = finca.nombre.valor
         orm.ubicacion = finca.ubicacion.to_dict()
@@ -96,6 +104,7 @@ class SqlAlchemyFincaRepository(FincaRepository):
         return self._a_entidad(orm)
 
     def listar(self, *, ids_fincas: Optional[list[int]] = None, solo_activas: bool = False) -> list[Finca]:
+        """Lista fincas; ``ids_fincas`` limita el resultado (``None`` = todas)."""
         query = self.db.query(FincaModel)
         if ids_fincas is not None:
             query = query.filter(FincaModel.id_finca.in_(ids_fincas))

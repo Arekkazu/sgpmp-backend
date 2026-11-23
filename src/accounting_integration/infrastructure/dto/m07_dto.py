@@ -5,6 +5,7 @@
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: el mínimo de gracia lo valida el caso de uso con el valor de M09 |
 # | 2026-11-19 | Leandro | INC-M07-372-G36 RF-98: delegar al caso de uso la validación de mapeadores. |
 # | 2026-11-19 | Arekkazu | M7-02 RF-98: justificación de la aprobación interna del anexo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTOs de entrada de la administración de M07 (clientes, anexos y contratos)."""
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ Canal = Literal["IDENTIDAD_M2M", "CONSULTA_AAEF"]
 
 
 class CanalDTO(BaseDTO):
+    """Canal habilitado para el cliente con su límite por minuto."""
     canal: Canal
     limite_por_minuto: int = Field(60, ge=1, le=6000)
 
@@ -52,6 +54,7 @@ class _ConfiguracionClienteDTO(BaseDTO):
 
 
 class RegistrarClienteDTO(_ConfiguracionClienteDTO):
+    """Datos para registrar un cliente externo."""
     codigo: str = Field(pattern=r"^[A-Z][A-Z0-9_]{1,49}$", examples=["AGROFUSION"],
                         description="Identificador interno en mayúsculas; viaja en el token de canal.")
     nombre: str = Field(min_length=2, max_length=150, examples=["AgroFusion"])
@@ -63,20 +66,24 @@ class RegistrarClienteDTO(_ConfiguracionClienteDTO):
 
 
 class EditarClienteDTO(_ConfiguracionClienteDTO):
+    """Datos para editar un cliente externo."""
     fecha_actualizacion: datetime = Field(description="La que devolvió la última consulta (control de concurrencia).")
 
 
 class MotivoDTO(BaseDTO):
+    """Motivo opcional de un cambio de estado."""
     motivo: Optional[str] = Field(None, max_length=500)
 
 
 class RotarSecretoDTO(BaseDTO):
+    """Datos para rotar el secreto de un cliente."""
     motivo: str = Field(min_length=3, max_length=500)
     fecha_vencimiento: date
     client_secret: Optional[str] = None
 
 
 class RegistrarAnexoDTO(BaseDTO):
+    """Datos para registrar un anexo de mapeo."""
     codigo_anexo: str = Field(min_length=3, max_length=40, examples=["AAEF-ANEXO-3.0"])
     version_anexo: str = Field(pattern=r"^\d{1,3}\.\d{1,3}$", examples=["3.0"])
     ruta_documento: str = Field(min_length=3, max_length=500, description="Dónde está el documento formal del anexo.")
@@ -84,11 +91,13 @@ class RegistrarAnexoDTO(BaseDTO):
 
 
 class EnviarAnexoRevisionDTO(BaseDTO):
+    """Justificación para enviar un anexo a revisión."""
     justificacion: str = Field(min_length=20, max_length=1000,
                                description="Por qué el Contador aprueba el mapeo; queda en la auditoría.")
 
 
 class AprobarAnexoDTO(BaseDTO):
+    """Evidencia de la prueba para aprobar un anexo."""
     id_intercambio: str = Field(min_length=5, max_length=80, description="ExchangeId de la prueba en TEST.")
     ack_aceptado: bool = Field(description="SIGCON aceptó el 100 % de los documentos.")
     observaciones: Optional[str] = Field(None, max_length=1000)
@@ -102,6 +111,7 @@ class AprobarAnexoDTO(BaseDTO):
 
 
 class RegistrarContratoDTO(BaseDTO):
+    """Datos para registrar una versión del contrato."""
     contrato_version: str = Field(pattern=r"^\d{1,3}\.\d{1,3}$", examples=["3.0"])
     tipo_cambio: Literal["MAJOR", "MINOR"]
     fecha_vigencia: date
@@ -128,5 +138,6 @@ class ModificarContratoDTO(BaseDTO):
 
 
 class DeprecarContratoDTO(BaseDTO):
+    """Periodo de gracia para deprecar una versión del contrato."""
     dias_gracia: Optional[int] = Field(None, ge=1, le=3650, description=(
         "Vacío = el período por defecto configurado; el mínimo también se configura."))

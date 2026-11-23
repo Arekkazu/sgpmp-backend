@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-38→RF-74/76/77/78/79: cierre de ciclo  |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Efectos en M05 del cierre del ciclo productivo (RF-38 en M02).
 
 Corre dentro de la transacción del cierre (no hace ``commit``), así el cierre y
@@ -40,6 +41,7 @@ _DIAS_REPORTE_SINCRONO = 366
 
 
 class ProcesarCierreCicloSuministrosUseCase:
+    """Ejecuta las validaciones y la consolidación de suministros al cerrar un ciclo."""
     def __init__(
         self,
         activo_port: ActivoConsultaPort,
@@ -56,6 +58,7 @@ class ProcesarCierreCicloSuministrosUseCase:
         self._provision: Optional[ProvisionNic41] = None
 
     def antes_de_cerrar(self, id_activo: int, id_usuario: int, fecha_cierre: date) -> None:
+        """Impide cerrar el ciclo si hay un periodo de retiro vigente."""
         vigente = self.medicamento_repo.max_fecha_fin_retiro_vigente(id_activo)
         if vigente is not None and vigente >= hoy_usuario():
             raise ConflictError(
@@ -77,6 +80,7 @@ class ProcesarCierreCicloSuministrosUseCase:
             )
 
     def despues_de_cerrar(self, id_activo: int, id_gestion_fases: int, id_usuario: int, fecha_cierre: date) -> None:
+        """Consolida la provisión del ciclo dentro de la transacción del cierre."""
         self._provision = self.consolidar.consolidar_sin_commit(id_gestion_fases, id_usuario, exigir_registros=False)
 
         activo = self.activo_port.obtener(id_activo)
@@ -96,4 +100,5 @@ class ProcesarCierreCicloSuministrosUseCase:
         self.generar_reporte.reporte_repo.guardar(self.generar_reporte.construir(filtros, id_usuario, activo))
 
     def despues_del_commit(self) -> None:
+        """Avisa si la provisión del ciclo quedó incompleta."""
         self.consolidar.avisar_si_incompleto(self._provision)

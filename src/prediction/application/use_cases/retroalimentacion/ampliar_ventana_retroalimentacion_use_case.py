@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: ampliación de ventana por resultado  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-72: el administrador amplía la ventana de un resultado específico (registrado en RF-73).
 
 Solo habilita ese resultado: la ventana global (``ventana_retroalimentacion_dias``) no cambia.
@@ -22,6 +23,7 @@ from src.shared.errors import NotFoundError
 
 
 class AmpliarVentanaRetroalimentacionUseCase:
+    """Amplía el plazo para retroalimentar una inferencia."""
     def __init__(
         self,
         *,
@@ -38,6 +40,7 @@ class AmpliarVentanaRetroalimentacionUseCase:
     def execute(
         self, *, id_resultado_inferencia: uuid.UUID, dias_habilitados: int, justificacion: str, id_usuario: int,
     ) -> AmpliacionVentanaRetroalimentacion:
+        """Registra la ampliación con su justificación."""
         if self._resultado_port.obtener_por_id(id_resultado_inferencia) is None:
             raise NotFoundError(
                 code="RESULTADO_INFERENCIA_NO_ENCONTRADO",

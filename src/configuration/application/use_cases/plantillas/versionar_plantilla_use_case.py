@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Generar la versión siguiente de una plantilla (RF-30, RF-31).
 
 Las plantillas son inmutables: el RF resuelve la actualización creando una
@@ -52,6 +55,7 @@ class VersionarPlantillaUseCase:
     def execute(
         self, id_plantilla: int, dto: VersionarPlantillaDTO, usuario_actual: UsuarioActual
     ) -> Plantilla:
+        """Crea una versión nueva de la plantilla y la audita."""
         # INC-M09-01-109 (#319): auditar también los intentos fallidos de versionado.
         try:
             return self._ejecutar(id_plantilla, dto, usuario_actual)

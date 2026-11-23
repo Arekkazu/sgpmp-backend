@@ -2,6 +2,7 @@
 # |------------|----------|------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: atender y descartar comparten la búsqueda de la propia |
 # | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: notificación ajena → 403 con el mensaje del RF |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso del ciclo de vida de una notificación interna propia (RF-14, RF-105).
 
 NUEVA → LEÍDA al abrirla; ATENDIDA con la acción documentada; DESCARTADA solo si no es crítica. Una
@@ -32,6 +33,7 @@ class MarcarNotificacionLeidaUseCase:
         id_notificacion: int,
         id_usuario: int,
     ) -> Notificacion:
+        """Marca como leída una notificación del usuario."""
         return self._aplicar(id_notificacion, id_usuario, lambda n, ahora: n.marcar_como_leida(ahora))
 
     def _aplicar(self, id_notificacion: int, id_usuario: int, cambio) -> Notificacion:
@@ -65,6 +67,7 @@ class AtenderNotificacionUseCase(MarcarNotificacionLeidaUseCase):
     """→ ATENDIDA. En una crítica exige la acción documentada (400 si no dice qué se hizo)."""
 
     def execute(self, id_notificacion: int, id_usuario: int, accion_documentada: Optional[str] = None) -> Notificacion:
+        """Marca como atendida una notificación del usuario con la acción documentada."""
         return self._aplicar(id_notificacion, id_usuario,
                              lambda n, ahora: n.atender(accion_documentada, ahora))
 
@@ -73,4 +76,5 @@ class DescartarNotificacionUseCase(MarcarNotificacionLeidaUseCase):
     """→ DESCARTADA. Una crítica responde 422: se cierra atendiéndola."""
 
     def execute(self, id_notificacion: int, id_usuario: int) -> Notificacion:
+        """Descarta una notificación no crítica del usuario."""
         return self._aplicar(id_notificacion, id_usuario, lambda n, ahora: n.descartar(ahora))

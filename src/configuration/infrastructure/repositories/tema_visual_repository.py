@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``TemaVisualRepository`` (RF-27)."""
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyTemaVisualRepository(TemaVisualRepository):
+    """Implementación SQLAlchemy de ``TemaVisualRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -27,6 +31,7 @@ class SqlAlchemyTemaVisualRepository(TemaVisualRepository):
         )
 
     def obtener_por_usuario(self, id_usuario: int) -> Optional[TemaVisual]:
+        """Obtiene el tema visual personal del usuario, o ``None`` si no tiene."""
         orm = (
             self.db.query(TemaVisualModel)
             .filter(
@@ -42,6 +47,7 @@ class SqlAlchemyTemaVisualRepository(TemaVisualRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_global(self) -> Optional[TemaVisual]:
+        """Obtiene el tema visual global del sistema, o ``None`` si no está definido."""
         orm = (
             self.db.query(TemaVisualModel)
             .filter(TemaVisualModel.es_global.is_(True))
@@ -54,6 +60,7 @@ class SqlAlchemyTemaVisualRepository(TemaVisualRepository):
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, entidad: TemaVisual) -> TemaVisual:
+        """Inserta el tema visual y devuelve la entidad con su id asignado."""
         orm = TemaVisualModel(
             id_usuario=entidad.id_usuario,
             theme_mode=entidad.theme_mode.value,
@@ -69,6 +76,7 @@ class SqlAlchemyTemaVisualRepository(TemaVisualRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, entidad: TemaVisual) -> TemaVisual:
+        """Persiste los cambios del tema visual y devuelve la entidad actualizada."""
         orm = self.db.get(TemaVisualModel, entidad.id_tema_visual)
         orm.theme_mode = entidad.theme_mode.value
         orm.fecha_actualizacion = entidad.fecha_actualizacion

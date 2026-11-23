@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Stub de parámetros de calidad con valores por defecto."""
 from typing import Optional
 
 from src.telemetry.domain.repositories.parametros_calidad_port import ParametrosCalidad, ParametrosCalidadPort
@@ -11,6 +15,7 @@ class ParametrosCalidadStubAdapter(ParametrosCalidadPort):
         id_sensor: int,
         tipo_variable: Optional[str] = None,
     ) -> ParametrosCalidad:
+        """Devuelve parámetros de calidad por defecto."""
         return ParametrosCalidad(
             k=3.0,
             M=5,

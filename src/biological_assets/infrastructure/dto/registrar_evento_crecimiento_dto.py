@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/crecimiento``
 (RF-40).
 """
@@ -51,6 +52,7 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     @field_validator('tipo_medicion')
     @classmethod
     def tipo_valido(cls, v: str) -> str:
+        """Exige un tipo de medición permitido."""
         if v not in _TIPOS_MEDICION:
             raise ValueError(f"El tipo de medición debe ser uno de: {', '.join(sorted(_TIPOS_MEDICION))}.")
         return v
@@ -58,6 +60,7 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     @field_validator('valor_medicion')
     @classmethod
     def valor_positivo(cls, v: Decimal) -> Decimal:
+        """Exige un valor de medición mayor a cero."""
         if v <= 0:
             raise ValueError('El valor de medición debe ser mayor a cero.')
         return v
@@ -65,6 +68,7 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     @field_validator('unidad_medida')
     @classmethod
     def unidad_valida(cls, v: str) -> str:
+        """Normaliza y valida la unidad de medida."""
         # M09 (RF-16) escribe los gramos como "g"; la tabla de crecimiento los
         # guarda como "gr" (CHECK de eventos_crecimeinto). Sin esto una métrica
         # de peso en gramos (p. ej. camarón) respondía 400.
@@ -76,6 +80,7 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     @field_validator('nuevo_peso_promedio')
     @classmethod
     def nuevo_peso_positivo(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Exige un nuevo peso promedio mayor a cero."""
         if v is not None and v <= 0:
             raise ValueError('El nuevo peso promedio debe ser mayor a cero.')
         return v
@@ -83,12 +88,14 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     @field_validator('cantidad_medida')
     @classmethod
     def cantidad_medida_positiva(cls, v: Optional[int]) -> Optional[int]:
+        """Exige una cantidad medida mayor a cero."""
         if v is not None and v <= 0:
             raise ValueError('La cantidad medida debe ser mayor a cero.')
         return v
 
     @model_validator(mode='after')
     def validar_unidad_por_tipo(self) -> RegistrarEventoCrecimientoDTO:
+        """Exige que la unidad corresponda al tipo de medición."""
         tipo = self.tipo_medicion
         unidad = self.unidad_medida
         if tipo and unidad and tipo in _UNIDADES_POR_TIPO:

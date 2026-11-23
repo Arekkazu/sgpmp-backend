@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: mantiene alcance en modificaciones manuales |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de los endpoints |
 """Router FastAPI para vinculación de lecturas teleméricas a activos biológicos.
 
 RF-61 — CU05 Dev scope:
@@ -79,6 +80,7 @@ def listar_vinculaciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaVinculacionesSchema:
+    """Lista las vinculaciones visibles con filtros y paginación."""
     use_case = ListarVinculacionesUseCase(
         db=db,
         vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
@@ -122,6 +124,7 @@ def obtener_vinculacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VinculacionLecturaSchema:
+    """Devuelve el detalle de una vinculación visible."""
     repo = SqlAlchemyVinculacionLecturaRepository(db)
     vinculacion = repo.obtener_por_id(
         id_vinculacion_lectura,
@@ -156,6 +159,7 @@ def resolver_vinculacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VinculacionLecturaSchema:
+    """Resuelve manualmente una vinculación ambigua."""
     use_case = ResolverVinculacionUseCase(
         db=db,
         vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
@@ -191,6 +195,7 @@ def corregir_vinculacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VinculacionLecturaSchema:
+    """Registra una corrección inmutable de la vinculación."""
     use_case = CorregirVinculacionUseCase(
         db=db,
         vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),

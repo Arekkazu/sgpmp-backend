@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: capacidad_maxima derivada y especies del área desde la tabla puente |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adapter de ``InfraestructuraConsultaPort`` que lee infraestructuras, ocupación y
 sensores de M09.
 """
@@ -57,15 +58,18 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
         )
 
     def obtener_activa(self, id_infraestructura: int) -> Optional[InfraestructuraConsulta]:
+        """Devuelve el área si existe y está activa, o ``None``."""
         orm = self.db.get(InfraestructuraModel, id_infraestructura)
         if orm is None or not orm.es_activo:
             return None
         return self._a_consulta(orm)
 
     def existe(self, id_infraestructura: int) -> bool:
+        """Indica si el área existe."""
         return self.db.get(InfraestructuraModel, id_infraestructura) is not None
 
     def listar_activas(self, excluir_id: Optional[int] = None) -> list[InfraestructuraConsulta]:
+        """Lista las áreas activas, opcionalmente excluyendo una."""
         q = self.db.query(InfraestructuraModel).filter(InfraestructuraModel.es_activo.is_(True))
         if excluir_id is not None:
             q = q.filter(InfraestructuraModel.id_infraestructura != excluir_id)
@@ -88,6 +92,7 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
         return int(row.total) if row else 0
 
     def obtener_especie(self, id_especie: int) -> Optional[EspecieDelArea]:
+        """Devuelve la especie activa, o ``None``."""
         orm = self.db.get(EspecieModel, id_especie)
         if orm is None or not orm.es_activo:
             return None
@@ -99,6 +104,7 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
         )
 
     def asociar_especie(self, id_infraestructura: int, id_especie: int) -> None:
+        """Asocia la especie al área."""
         try:
             self.db.add(InfraestructuraEspecieModel(id_infraestructura=id_infraestructura, id_especie=id_especie))
             self.db.flush()
@@ -106,6 +112,7 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
             raise_from_db_error(exc)
 
     def bloquear_capacidad(self, id_infraestructura: int) -> None:
+        """Serializa con un lock asesor los cambios de capacidad del área."""
         # Advisory lock y no SELECT ... FOR UPDATE: con RLS, FOR UPDATE aplica la
         # política UPDATE de infraestructuras (solo Administrador) y un Productor
         # no podría registrar. El lock se libera solo al terminar la transacción.
@@ -139,6 +146,7 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
         ]
 
     def es_tipo_compatible(self, tipo_infraestructura: str, id_especie: int) -> bool:
+        """Indica si el tipo de área admite la especie."""
         total_reglas = self.db.execute(
             text(
                 'SELECT COUNT(*) FROM modulo9.compatibilidades_tipo_area_especie c '
@@ -164,6 +172,7 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
         )
 
     def limite_etapa_del_activo(self, id_activo_biologico: int) -> Optional[LimiteEtapa]:
+        """Devuelve los límites de densidad y biomasa de la etapa actual del activo."""
         fila = self.db.execute(text("""
             SELECT cb.nombre, cb.densidad_maxima, cb.biomasa_maxima, cb.aviso_preventivo_pct
             FROM modulo2.gestiones_fases gf

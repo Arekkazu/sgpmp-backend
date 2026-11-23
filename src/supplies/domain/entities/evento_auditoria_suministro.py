@@ -3,6 +3,7 @@
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: transportar UUID y versión del hash sin objetos ORM. |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 # | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: registro y tipo de suministro del evento, leídos de datos_nuevos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de lectura de un evento de ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Distinta de ``EventoAuditoriaSuministro`` (``auditoria_suministro_port.py``),
@@ -21,6 +22,7 @@ from uuid import UUID
 
 @dataclass(frozen=True)
 class EventoAuditoriaSuministroConsulta:
+    """Evento de auditoría de suministros para consulta."""
     id_auditoria_suministro: int
     entidad_afectada: str
     tipo_operacion: str

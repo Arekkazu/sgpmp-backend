@@ -6,6 +6,7 @@
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: registrar intentos autenticados conservando el rechazo 405. |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI de la bitácora de auditoría de M05 (RF-80, CU-06).
 
   GET  /suministros/auditoria             — Listar bitácora con filtros
@@ -76,6 +77,7 @@ def listar_auditoria(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AuditoriaSuministrosListResponse:
+    """Lista la auditoría de suministros con filtros y paginación."""
     filtros = FiltrosAuditoriaSuministro(
         tipo_operacion=tipo_operacion,
         id_usuario=id_usuario,
@@ -110,6 +112,7 @@ def listar_auditoria(
     summary="Usuarios que aparecen en la bitácora de M05, por nombre, para el filtro (RF-80)",
 )
 def listar_actores(db: Session = Depends(get_db)) -> list[ActorAuditoriaResponse]:
+    """Lista los usuarios que aparecen en la auditoría."""
     return [ActorAuditoriaResponse(id_usuario=i, nombre=n) for i, n in build_consultar_auditoria_use_case(db).actores()]
 
 
@@ -139,6 +142,7 @@ def exportar_auditoria(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> StreamingResponse:
+    """Exporta la auditoría de suministros filtrada."""
     filtros = FiltrosAuditoriaSuministro(
         tipo_operacion=tipo_operacion,
         id_usuario=id_usuario,
@@ -177,6 +181,7 @@ def obtener_evento(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EventoAuditoriaSuministroResponse:
+    """Devuelve un evento de la auditoría de suministros."""
     use_case = build_consultar_auditoria_use_case(db)
     entidad = use_case.obtener_por_id(id_auditoria_suministro)
     return EventoAuditoriaSuministroResponse.model_validate(entidad)
@@ -193,6 +198,7 @@ def rechazar_modificacion_auditoria(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> None:
+    """Rechaza y audita el intento de modificar o borrar la auditoría."""
     # No es una operación de escritura pública: nunca lee ni altera el objetivo.
     # No exige permiso de edición ni concede lectura al actor que lo intenta.
     build_registrar_intento_modificacion_auditoria_use_case(db).execute(

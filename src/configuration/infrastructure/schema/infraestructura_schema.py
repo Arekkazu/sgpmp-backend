@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: la salida trae especies, nivel_criticidad y capacidad_maxima derivada |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para los endpoints de infraestructura productiva (RF-20)."""
 from __future__ import annotations
 
@@ -35,6 +36,7 @@ class InfraestructuraResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, infra) -> InfraestructuraResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_infraestructura=infra.id_infraestructura,
             nombre_infraestructura=infra.nombre.valor,

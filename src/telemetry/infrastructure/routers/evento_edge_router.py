@@ -5,6 +5,7 @@
 # | 2026-10-27 | destroyerban | INC-M03-120-G63 RF-56: usa el cliente HTTPS hacia M04 cuando está configurado |
 # | 2026-10-28 | Arekkazu | BE-2/BE-3 RF-55: inyecta el repositorio de reglas al recibir eventos Edge |
 # | 2026-10-30 | Arekkazu | RF-66: el paquete al motor IA lleva la ventana del activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings del endpoint |
 """Router FastAPI para recepción de eventos Edge IoT (`/iot/eventos-edge`).
 
 RF-56 — CU02 Dev scope:
@@ -77,6 +78,7 @@ def recibir_evento_edge(
     db: Session = Depends(get_db_sistema),
     x_gateway_id: Optional[str] = Header(default=None, alias="X-Gateway-Id"),
 ) -> EventoEdgeResponse:
+    """Recibe el evento clasificado por RF-55 y consolida el paquete hacia M04."""
     use_case = RecibirEventoEdgeUseCase(
         db=db,
         evento_edge_repo=SqlAlchemyEventoEdgeRepository(db),

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``Sensor`` — sensor perteneciente a un dispositivo IoT (RF-22)."""
 from __future__ import annotations
 
@@ -24,6 +27,7 @@ class Sensor:
         id_dispositivo_iot: int,
         categoria: Optional[str] = None,
     ) -> Sensor:
+        """Crea la entidad validando sus datos."""
         return cls(
             nombre=nombre,
             id_dispositivo_iot=id_dispositivo_iot,

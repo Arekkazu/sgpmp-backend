@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-53: captura de la cámara que reenvía el broker                |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y clase |
 """Captura de una ventana de visión: la manda el nodo junto al sobre D4 y el broker la separa."""
 from typing import Optional
 
@@ -10,6 +11,8 @@ from src.shared.base_dto import BaseDTO
 
 
 class CapturaVisionDTO(BaseDTO):
+    """Captura JPEG de una ventana de visión enviada por una cámara."""
+
     serial: StrictStr = Field(min_length=1, max_length=50)
     area_id: StrictInt = Field(gt=0)
     ventana_fin: AwareDatetime

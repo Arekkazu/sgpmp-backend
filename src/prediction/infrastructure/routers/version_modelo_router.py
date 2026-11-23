@@ -10,6 +10,7 @@
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
 # | 2026-11-03 | Arekkazu     | QA-M04 RF-69: la versión trae el identificador del animal además del id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
@@ -123,6 +124,7 @@ async def registrar_version_modelo(
     db: Session = Depends(get_db_sistema),
     dto: RegistrarVersionModeloDTO = Depends(),
 ) -> VersionModeloResponse:
+    """Registra una versión de modelo con su artefacto."""
     use_case = RegistrarVersionModeloUseCase(
         db=db,
         repo=SqlAlchemyVersionModeloRepository(db),
@@ -154,6 +156,7 @@ def listar_versiones(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ) -> VersionModeloListResponse:
+    """Lista las versiones de modelo."""
     use_case = ConsultarVersionesUseCase(repo=SqlAlchemyVersionModeloRepository(db))
     items, total = use_case.listar(
         tipo_modelo=tipo_modelo,
@@ -277,6 +280,7 @@ def listar_procesos_reentrenamiento(
     summary="Un proceso de reentrenamiento con sus fases (RF-71)",
 )
 def obtener_proceso_reentrenamiento(id_proceso: UUID, db: Session = Depends(get_db)) -> ProcesoReentrenamientoResponse:
+    """Devuelve un proceso de reentrenamiento."""
     return ProcesoReentrenamientoResponse.from_entity(
         ConsultarProcesosReentrenamientoUseCase(SqlAlchemyProcesoReentrenamientoRepository(db)).obtener(id_proceso))
 
@@ -296,6 +300,7 @@ def obtener_version(
     id_version: int,
     db: Session = Depends(get_db),
 ) -> VersionModeloResponse:
+    """Devuelve una versión de modelo."""
     use_case = ConsultarVersionesUseCase(repo=SqlAlchemyVersionModeloRepository(db))
     entidad = use_case.obtener_por_id(id_version)
     return _respuestas(db, [entidad])[0]
@@ -319,6 +324,7 @@ def registrar_notas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VersionModeloResponse:
+    """Registra las notas de validación de una versión."""
     use_case = RegistrarNotasVersionUseCase(
         db=db,
         repo=SqlAlchemyVersionModeloRepository(db),
@@ -346,6 +352,7 @@ def activar_version(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VersionModeloResponse:
+    """Activa una versión de modelo."""
     use_case = ActivarVersionModeloUseCase(
         db=db,
         repo=SqlAlchemyVersionModeloRepository(db),

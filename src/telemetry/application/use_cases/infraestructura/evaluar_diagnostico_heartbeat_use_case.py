@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                    |
 # |------------|----------|----------------------------------------------------------------|
 # | 2026-10-26 | Arekkazu | FW-06 RF-60: firmware no comparable cierra la etapa sin reintento |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Evaluación del heartbeat confirmado, común a HTTP y MQTT (DEV-05).
 
 Sin commits: las alertas y la evidencia RF-63 se confirman en la transacción de
@@ -13,11 +14,13 @@ from src.telemetry.infrastructure.dto.heartbeat_dto import DiagnosticoHeartbeatD
 
 
 class EvaluarDiagnosticoHeartbeatUseCase:
+    """Genera alertas técnicas a partir del diagnóstico enviado en el heartbeat."""
     def __init__(self, alerta_repo, diagnostico_port: DiagnosticoHeartbeatPort | None = None):
         self.alerta_repo = alerta_repo
         self.diagnostico_port = diagnostico_port
 
     def sensores(self, heartbeat, id_infraestructura):
+        """Alerta los sensores reportados como no operativos."""
         if heartbeat.sensores_operativos is None:
             return
         # El broker escribe directo: también se valida la forma persistida.
@@ -28,6 +31,7 @@ class EvaluarDiagnosticoHeartbeatUseCase:
                             {'sensores_fallidos': fallidos}, sensores_fallidos=fallidos)
 
     def temperatura(self, heartbeat, id_infraestructura):
+        """Alerta el sobrecalentamiento del dispositivo según sus umbrales."""
         if heartbeat.temperatura_dispositivo is None:
             return
         valor = DiagnosticoHeartbeatDTO(temperatura_dispositivo=heartbeat.temperatura_dispositivo).temperatura_dispositivo
@@ -39,6 +43,7 @@ class EvaluarDiagnosticoHeartbeatUseCase:
                 {'temperatura_dispositivo': str(valor), 'umbral_maximo_operativo': str(limites.maximo_operativo)})
 
     def firmware(self, heartbeat, id_infraestructura):
+        """Alerta un firmware desactualizado según la política vigente."""
         if heartbeat.version_firmware is None:
             return
         politica = self._politica('POLITICA_FIRMWARE_NO_DISPONIBLE')

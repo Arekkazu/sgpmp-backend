@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: cálculo de indicadores zootécnicos del activo (RF-51)."""
 
 from __future__ import annotations
@@ -61,6 +62,7 @@ class ConsultarIndicadoresUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ResultadoIndicadores:
+        """Calcula los indicadores del activo en el rango de fechas."""
         activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

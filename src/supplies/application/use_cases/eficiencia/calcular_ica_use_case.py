@@ -4,6 +4,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-12 | Leandro | INC-M05-357-G02 RF-74: mostrar el identificador, el período y el CA legibles en el aviso crítico. |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso núcleo: calcular el ICA de un activo para un período (RF-74).
 
 Reutilizado por el cálculo manual (Flujo A), el batch nocturno (Flujo C) y los
@@ -56,6 +57,7 @@ _PERIODO_EN_AVISO = {
 
 
 class CalcularICAUseCase:
+    """Calcula el índice de conversión alimenticia (ICA) de un activo."""
     def __init__(
         self,
         db: Session,
@@ -89,6 +91,7 @@ class CalcularICAUseCase:
         id_usuario: Optional[int] = None,
         intento: int = 1,
     ) -> ResultadoICA:
+        """Calcula y guarda el ICA del activo para el periodo indicado."""
         paso = ["validar_activo"]
         try:
             guardado, activo = self._calcular(

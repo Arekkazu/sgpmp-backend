@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI del CU-02 — Eficiencia Alimenticia / ICA (RF-74).
 
 Expone los flujos de cálculo manual (Flujo A) y consulta (Flujo B):
@@ -63,6 +66,7 @@ def calcular_ica(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ResultadoICAResponse:
+    """Calcula el ICA de un activo."""
     use_case = build_calcular_ica_use_case(db)
     resultado = use_case.execute(
         id_activo_biologico=dto.id_activo_biologico,
@@ -85,6 +89,7 @@ def consultar_vigente(
     periodo: PeriodoEvaluacion = Query(..., description="Período de evaluación."),
     db: Session = Depends(get_db),
 ) -> ConsultaVigenteResponse:
+    """Devuelve el ICA vigente de un activo para el periodo."""
     use_case = ConsultarICAVigenteUseCase(SqlAlchemyResultadoICARepository(db))
     resultado = use_case.execute(id_activo_biologico, periodo)
     if resultado is None:
@@ -116,6 +121,7 @@ def consultar_historial(
     periodo: Optional[PeriodoEvaluacion] = Query(None, description="Filtrar por período."),
     db: Session = Depends(get_db),
 ) -> HistorialICAResponse:
+    """Lista el historial de ICA de un activo."""
     use_case = ConsultarHistorialICAUseCase(SqlAlchemyResultadoICARepository(db))
     resultados = use_case.execute(id_activo_biologico, periodo)
     items = [ResultadoICAResponse.desde_entidad(r) for r in resultados]

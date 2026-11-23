@@ -6,6 +6,7 @@
 # | 2026-11-12 | Arekkazu | TC-DIS-259/264 RF-92/93: Excel con encabezados en la fila 1 y título y totales en otra hoja |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: PDF/A-1b opcional para los documentos que se conservan |
 # | 2026-11-20 | Arekkazu         | A11Y-M08 TC-DIS-288 RF-104: el árbol de etiquetas del PDF pasa a src/shared (lo usan los reportes) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Generación de archivos de exportación de M05 (RF-77 y RF-81).
 
 - CSV en bloques de 1.000 filas (RF-77 "chunking" para > 5.000 registros): el
@@ -55,6 +56,7 @@ class Documento:
 
 
 def generar_csv(doc: Documento) -> bytes:
+    """Genera el documento en CSV."""
     salida = io.StringIO()
     escritor = csv.writer(salida)
     escritor.writerow(doc.columnas)
@@ -64,6 +66,7 @@ def generar_csv(doc: Documento) -> bytes:
 
 
 def generar_excel(doc: Documento) -> bytes:
+    """Genera el documento en Excel."""
     from openpyxl import Workbook
     from openpyxl.styles import Font
 

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para tipos de dispositivo IoT y sus rangos (RF-23)."""
 from __future__ import annotations
 
@@ -16,6 +19,7 @@ class TipoDispositivoIotResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, tipo) -> TipoDispositivoIotResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_tipo_dispositivo=tipo.id_tipo_dispositivo,
             nombre=tipo.nombre,

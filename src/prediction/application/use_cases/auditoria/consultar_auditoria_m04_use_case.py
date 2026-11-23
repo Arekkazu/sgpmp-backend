@@ -6,6 +6,8 @@
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la bitácora no emite HISTORIAL_CONSULTADO |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
 # | 2026-11-03 | Arekkazu | QA-M04 RF-73: rango de fechas invertido en la bitácora responde 400 RANGO_FECHAS_INVALIDO |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta de la auditoría del motor de inferencia."""
 from __future__ import annotations
 
 import uuid
@@ -50,6 +52,7 @@ class ConsultarAuditoriaM04UseCase:
         tipo_modelo: Optional[str] = None,
         entidad_referencia: Optional[str] = None,
     ) -> tuple[list[EventoAuditoriaM04], int]:
+        """Lista los eventos de auditoría filtrados con su total."""
         validar_rango_fechas(fecha_desde, fecha_hasta)
         items, total = self._repo.consultar(
             tipo_evento=tipo_evento,
@@ -68,4 +71,5 @@ class ConsultarAuditoriaM04UseCase:
         return items, total
 
     def obtener_por_id(self, id_evento: uuid.UUID) -> EventoAuditoriaM04:
+        """Devuelve un evento de auditoría."""
         return self._repo.obtener_por_id(id_evento)

@@ -7,6 +7,7 @@
 # | 2026-11-12 | Arekkazu | TC-DIS-211 RF-75: el duplicado (E8) nombra el activo por su identificador, no por su id |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: registrar un consumo de alimento (RF-75).
 
 Orquesta las validaciones de negocio que requieren datos cross-module (estado
@@ -68,6 +69,7 @@ class RegistrarConsumoAlimentoUseCase:
         self.movimiento = movimiento
 
     def execute(self, dto: RegistrarConsumoAlimentoDTO, usuario_actual: UsuarioActual) -> ConsumoAlimento:
+        """Registra un consumo de alimento del activo."""
         activo = self.activo_port.obtener(dto.id_activo_biologico)
         if activo is None:
             raise NotFoundError(

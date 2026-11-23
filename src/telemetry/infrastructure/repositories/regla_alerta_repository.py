@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: crear, actualizar y listar reglas de alerta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de reglas de alerta simples y compuestas (RF-55)."""
 from __future__ import annotations
 
 from typing import Optional
@@ -36,11 +38,13 @@ _CONFLICTOS = {"uq_regla_nombre": _NOMBRE_DUPLICADO, "uq_reglas_alerta_combre": 
 
 
 class SqlAlchemyReglaAlertaRepository(ReglaAlertaRepository):
+    """CRUD y consultas de reglas de alerta."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener_reglas_activas_por_variable(self, tipo_variable: str) -> list[ReglaAlerta]:
+        """Devuelve las reglas simples activas del tipo de sensor de la variable."""
         tipo_sensor = _VARIABLE_A_TIPO_SENSOR.get(tipo_variable.upper())
         if tipo_sensor is None:
             return []
@@ -56,6 +60,7 @@ class SqlAlchemyReglaAlertaRepository(ReglaAlertaRepository):
         return [self._a_entidad(o) for o in orms]
 
     def obtener_reglas_compuestas_activas(self) -> list[ReglaAlerta]:
+        """Devuelve las reglas compuestas activas."""
         orms = (
             self.db.query(ReglaAlertaModel)
             .filter(
@@ -67,6 +72,7 @@ class SqlAlchemyReglaAlertaRepository(ReglaAlertaRepository):
         return [self._a_entidad(o) for o in orms]
 
     def obtener_por_id(self, id_regla_alertas: int, *, bloquear: bool = False) -> Optional[ReglaAlerta]:
+        """Devuelve una regla por id, opcionalmente con bloqueo de fila."""
         orm = self.db.get(ReglaAlertaModel, id_regla_alertas, with_for_update=bloquear)
         return self._a_entidad(orm) if orm is not None else None
 
@@ -77,6 +83,7 @@ class SqlAlchemyReglaAlertaRepository(ReglaAlertaRepository):
         es_activa: Optional[bool] = None,
         es_regla_compuesta: Optional[bool] = None,
     ) -> list[ReglaAlerta]:
+        """Lista reglas aplicando filtros opcionales por sensor, actividad y composición."""
         consulta = self.db.query(ReglaAlertaModel)
         if tipo_sensor is not None:
             consulta = consulta.filter(ReglaAlertaModel.tipo_sensor == tipo_sensor)
@@ -87,6 +94,7 @@ class SqlAlchemyReglaAlertaRepository(ReglaAlertaRepository):
         return [self._a_entidad(o) for o in consulta.order_by(ReglaAlertaModel.id_regla_alertas).all()]
 
     def crear(self, regla: ReglaAlerta) -> ReglaAlerta:
+        """Crea una regla de alerta; los valores de versión y fechas los pone la BD."""
         try:
             # id, fecha_creacion, fecha_actualizacion y version_regla: defaults de la BD.
             orm = ReglaAlertaModel(**self._columnas(regla))
@@ -98,6 +106,7 @@ class SqlAlchemyReglaAlertaRepository(ReglaAlertaRepository):
             raise_from_db_error(exc, _CONFLICTOS)
 
     def actualizar(self, regla: ReglaAlerta) -> ReglaAlerta:
+        """Actualiza una regla existente; el trigger reescribe versión y fecha."""
         try:
             orm = self.db.get(ReglaAlertaModel, regla.id_regla_alertas)
             for columna, valor in self._columnas(regla).items():

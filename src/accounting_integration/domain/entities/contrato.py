@@ -4,6 +4,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: estado antes que anexo al activar y solo una versión pendiente se modifica |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: el mínimo de gracia lo fija M09 |
 # | 2026-11-20 | Arekkazu | QA-M07 CU04 H-02 RF-98: el límite de versiones no manda a retirar una que ya está en retiro |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Contrato AAEF (RF-98 v1.1) y anexo de mapeo (RF-AE02 v3.0).
 
 El contrato avanza PENDIENTE → ACTIVO → DEPRECADO → INACTIVO, sin retrocesos ni saltos. Un MAJOR
@@ -30,6 +31,7 @@ _FORMATO_VERSION = re.compile(r"^(\d{1,3})\.(\d{1,3})$")
 
 @dataclass
 class AnexoMapeo:
+    """Anexo de mapeo contable de la exportación con su estado de aprobación."""
     id_mapeo_anexo_aaef: Optional[int]
     codigo_anexo: str
     version_anexo: str
@@ -46,11 +48,21 @@ class AnexoMapeo:
         return self.estado == "APROBADO" or (not es_produccion and self.estado == "EN_REVISION")
 
     def enviar_a_revision(self, ahora: datetime) -> None:
+        """Pasa el anexo de borrador a revisión.
+
+        Raises:
+            FlowError: Si el anexo no está en borrador.
+        """
         if self.estado != "BORRADOR":
             raise FlowError(code="TRANSICION_NO_PERMITIDA", message="Solo un anexo en borrador puede pasar a revisión.")
         self.estado, self.fecha_aprobacion_interna = "EN_REVISION", ahora
 
     def aprobar(self, ahora: datetime, evidencia: dict) -> None:
+        """Aprueba el anexo en revisión con su evidencia.
+
+        Raises:
+            FlowError: Si el anexo no está en revisión.
+        """
         if self.estado != "EN_REVISION":
             raise FlowError(code="TRANSICION_NO_PERMITIDA",
                             message="Solo un anexo en revisión, con la aprobación del Contador, puede aprobarse.")
@@ -59,6 +71,7 @@ class AnexoMapeo:
 
 @dataclass
 class VersionContrato:
+    """Versión del contrato de la exportación contable con su ciclo de vida."""
     id_version_contrato_aaef: Optional[int]
     contrato_version: str
     tipo_cambio: str
@@ -75,6 +88,7 @@ class VersionContrato:
 
     @property
     def numero(self) -> tuple[int, int]:
+        """Número de versión como tupla (mayor, menor)."""
         return numero_version(self.contrato_version)
 
     def exigir_activable(self) -> None:
@@ -83,6 +97,7 @@ class VersionContrato:
         self._exigir("PENDIENTE", "activar")
 
     def activar(self, ahora: datetime) -> None:
+        """Activa la versión pendiente."""
         self._exigir("PENDIENTE", "activar")
         self.estado, self.fecha_activacion = "ACTIVO", ahora
 
@@ -115,6 +130,11 @@ class VersionContrato:
             self.descripcion = descripcion
 
     def deprecar(self, ahora: datetime, dias_gracia: int, minimo_dias: int = GRACIA_MINIMA_DIAS) -> None:
+        """Depreca la versión activa con su periodo de gracia.
+
+        Raises:
+            ValidationError: Si el periodo de gracia es menor al mínimo.
+        """
         self._exigir("ACTIVO", "deprecar")
         if dias_gracia < minimo_dias:
             raise ValidationError(code="PERIODO_GRACIA_INVALIDO", field="dias_gracia",
@@ -123,6 +143,11 @@ class VersionContrato:
         self.fecha_inactivacion = ahora + timedelta(days=dias_gracia)
 
     def inactivar(self, ahora: datetime) -> None:
+        """Inactiva la versión deprecada una vez vencida la gracia.
+
+        Raises:
+            FlowError: Si la gracia sigue vigente.
+        """
         self._exigir("DEPRECADO", "inactivar")
         if self.fecha_inactivacion and ahora < self.fecha_inactivacion:
             raise FlowError(code="PERIODO_GRACIA_VIGENTE", message=(
@@ -140,11 +165,17 @@ class VersionContrato:
 
 
 def numero_version(version: str) -> tuple[int, int]:
+    """Convierte una versión ``mayor.menor`` en tupla de enteros."""
     mayor, menor = _FORMATO_VERSION.match(version).groups()
     return int(mayor), int(menor)
 
 
 def validar_formato_version(version: str, campo: str = "contrato_version") -> str:
+    """Valida el formato ``mayor.menor`` de la versión.
+
+    Raises:
+        ValidationError: Si el formato es inválido.
+    """
     version = (version or "").strip()
     if not _FORMATO_VERSION.match(version):
         raise ValidationError(code="VERSION_FORMATO_INVALIDO", field=campo,

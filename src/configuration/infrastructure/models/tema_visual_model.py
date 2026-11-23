@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.temas_visuales` (RF-27)."""
 from __future__ import annotations
 
@@ -10,6 +13,7 @@ from .base_model import Base
 
 
 class TemaVisualModel(Base):
+    """Modelo ORM de la tabla ``modulo9.temas_visuales``."""
     __tablename__ = 'temas_visuales'
     __table_args__ = (
         ForeignKeyConstraint(

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`ConfiguracionBatchHistorialRepository` (RF-81)."""
 from __future__ import annotations
 
@@ -27,10 +30,12 @@ _DEFAULTS = ConfiguracionBatchHistorial(
 
 
 class SqlAlchemyConfiguracionBatchHistorialRepository(ConfiguracionBatchHistorialRepository):
+    """Implementación SQLAlchemy de ``ConfiguracionBatchHistorialRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener(self) -> ConfiguracionBatchHistorial:
+        """Devuelve la configuración vigente."""
         orm = (
             self.db.query(ConfiguracionBatchHistorialSuministroModel)
             .order_by(ConfiguracionBatchHistorialSuministroModel.id_configuracion.asc())

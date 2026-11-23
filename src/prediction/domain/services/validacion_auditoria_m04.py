@@ -5,6 +5,7 @@
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72/RF-73: VENTANA_RETROALIMENTACION_AMPLIADA |
 # | 2026-10-31 | Arekkazu | RF-71/RF-73: REENTRENAMIENTO_SOLICITADO |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-73 E1 y CA-13/15: contrato del evento sin dependencias de persistencia."""
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from src.shared.tipo_modelo import POBLACIONAL, paradigma_de
 
 
 class TipoEventoM04(StrEnum):
+    """Tipos de evento de la auditoría del motor de inferencia."""
     CATALOGO_PATOLOGIA_AGREGADA = "CATALOGO_PATOLOGIA_AGREGADA"
     CATALOGO_PATOLOGIA_MODIFICADA = "CATALOGO_PATOLOGIA_MODIFICADA"
     CATALOGO_PATOLOGIA_INACTIVADA = "CATALOGO_PATOLOGIA_INACTIVADA"
@@ -106,6 +108,7 @@ _METRICAS_SUPERVISADAS = ("f1_score_global", "recall_clase_riesgo_alto")
 
 
 def campos_requeridos(tipo_evento: str, payload: dict) -> list[str]:
+    """Devuelve los campos obligatorios que faltan en el payload del evento."""
     TipoEventoM04(tipo_evento)  # Un tipo desconocido nunca equivale a un esquema vacío.
     requeridos = list(_PAYLOAD_REQUERIDO.get(tipo_evento, ()))
     tipo_modelo = payload.get("tipo_modelo")
@@ -125,6 +128,11 @@ def campos_requeridos(tipo_evento: str, payload: dict) -> list[str]:
 
 def validar_evento(*, tipo_evento: str, tipo_actor: str, id_usuario: Optional[int],
                    id_sistema: Optional[str], id_referencia: Optional[str], payload_evento: object) -> tuple[str, ...]:
+    """Valida actor, referencias y payload del evento de auditoría.
+
+    Raises:
+        ValidationError: Si el evento está incompleto o es inconsistente.
+    """
     errores: list[str] = []
     try:
         TipoEventoM04(tipo_evento)

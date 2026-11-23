@@ -15,6 +15,7 @@
 # | 2026-11-14 | destroyerban | INC-M06-034B-G64 RF-92: la declaración sin novedad no admite compromisos ni pignorados |
 # | 2026-11-14 | destroyerban | INC-M06-043B-G65 RF-92: monto de compromisos y garantías mayor que cero |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de M06 (formato; las reglas de negocio están en los casos de uso)."""
 from __future__ import annotations
 
@@ -41,12 +42,14 @@ Cuenta = Field(pattern=r"^[0-9]{1,20}$", description="Cuenta del plan contable (
 
 
 class ConfiguracionContableDTO(BaseDTO):
+    """Configuración contable general."""
     tipo_cierre: TipoCierre
     pct_umbral_desviacion_precio: Decimal = Field(gt=0, le=1000)
     dias_alerta_vencimiento_precio: Literal[7, 15, 30]
 
 
 class ParametroEspecieDTO(BaseDTO):
+    """Parámetros de valoración de una especie."""
     clasificacion: Clasificacion
     categoria_precio: CategoriaActivo = "PESO_KG"
     vida_util_meses: Optional[int] = Field(default=None, gt=0, le=1200)
@@ -63,6 +66,7 @@ class CostosVentaDTO(BaseDTO):
 
 
 class AsignacionCuentaDTO(BaseDTO):
+    """Asignación de cuentas a un tipo de hecho."""
     tipo_hecho: TipoHecho
     sentido: Sentido
     id_especie: Optional[int] = Field(default=None, gt=0)
@@ -78,6 +82,7 @@ class AsignacionCuentaDTO(BaseDTO):
 
 
 class PrecioDTO(BaseDTO):
+    """Precio de mercado a registrar."""
     id_especie: int = Field(gt=0)
     categoria: Categoria
     id_metrica_produccion: Optional[int] = Field(default=None, gt=0)
@@ -93,6 +98,7 @@ class PrecioDTO(BaseDTO):
 
 
 class CostosManualesDTO(BaseDTO):
+    """Costos de venta ingresados manualmente."""
     # numeric(18,4): un 5.º decimal se rechaza (400) en vez de redondearse al guardar (INC-M06-303-G04).
     transporte: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
     comisiones: Optional[Decimal] = Field(default=None, ge=0, max_digits=18, decimal_places=4)
@@ -105,6 +111,7 @@ class CostosManualesDTO(BaseDTO):
 
 
 class ConfirmarReconocimientoDTO(BaseDTO):
+    """Datos para confirmar el reconocimiento inicial."""
     clasificacion: Optional[Clasificacion] = None
     costos_manuales: Optional[CostosManualesDTO] = None
     justificacion: Optional[str] = Field(default=None, max_length=1000,
@@ -126,12 +133,14 @@ class ConfirmarReconocimientoDTO(BaseDTO):
 
 
 class ValidarCalculoDTO(BaseDTO):
+    """Justificación para aceptar un cálculo no positivo."""
     # Opcional en el formato: ausente, vacía o en blanco responde el mismo 400 desde el caso de uso.
     justificacion: Optional[str] = Field(default=None, max_length=2000,
                                          description="Por qué se acepta un valor neto menor o igual a cero (mín. 20).")
 
 
 class ReconocerCosechaDTO(BaseDTO):
+    """Costos de venta para reconocer una cosecha pendiente."""
     # RF-85 FA-2: costos de venta del producto ingresados por el Contador. Las reglas (al menos un costo,
     # justificación de 20 caracteres) van en el caso de uso para responder un solo 400 con su campo.
     costos_manuales: Optional[CostosManualesDTO] = None
@@ -139,19 +148,23 @@ class ReconocerCosechaDTO(BaseDTO):
 
 
 class SolicitarCorrectivoDTO(BaseDTO):
+    """Motivo para solicitar la corrección de una variación."""
     # RF-86 CA-13. El mínimo de 20 caracteres va en el caso de uso: ausente, vacío o corto responde el mismo 400.
     motivo: Optional[str] = Field(default=None, max_length=2000)
 
 
 class RechazarCorrectivoDTO(BaseDTO):
+    """Motivo para rechazar una solicitud de corrección."""
     motivo_rechazo: Optional[str] = Field(default=None, max_length=2000)
 
 
 class RevertirReconocimientoDTO(BaseDTO):
+    """Motivo para revertir un reconocimiento."""
     motivo_reversion: str = Field(min_length=20, max_length=2000)
 
 
 class CostoDTO(BaseDTO):
+    """Costo a registrar."""
     subtipo_costo: Subtipo
     origen_costo: Literal["MANO_OBRA_PROPIA", "COMPRA_PROVEEDOR", "SERVICIO_TERCERO", "CONSUMO_INVENTARIO"]
     monto_costo: Decimal = Field(gt=0, max_digits=18, decimal_places=4)
@@ -176,17 +189,20 @@ class CostoDTO(BaseDTO):
 
 
 class ClasificarCostoDTO(BaseDTO):
+    """Clasificación de un costo con su justificación."""
     naturaleza_costo: Literal["MANTENIMIENTO", "INVERSION", "VENTA"]
     justificacion: str = Field(min_length=10, max_length=2000)
 
 
 class AjustePeriodoAnteriorDTO(BaseDTO):
+    """Ajuste sobre un periodo cerrado."""
     tipo_ajuste: Literal["AUMENTAR", "DISMINUIR"]
     valor: Decimal = Field(gt=0, max_digits=18, decimal_places=4)
     justificacion: str = Field(min_length=20, max_length=1000)
 
 
 class CierreDTO(BaseDTO):
+    """Opciones del cierre de periodo."""
     autorizar_exclusiones: bool = False
     incluir_activos_sin_precio: bool = False
     # RF-87 FA-2 por activo: los sin precio listados entran estimados; el resto se excluye (con autorización).
@@ -194,12 +210,14 @@ class CierreDTO(BaseDTO):
 
 
 class DeterioroDTO(BaseDTO):
+    """Deterioro por un evento sanitario."""
     id_evento_sanitario: int = Field(gt=0)
     impacto_economico_cop: Decimal = Field(gt=0, max_digits=18, decimal_places=4)
     justificacion: str = Field(min_length=30, max_length=2000)
 
 
 class CotizacionDTO(BaseDTO):
+    """Cotización a registrar."""
     activos_cotizados: list[int] = Field(min_length=1, max_length=500)
     valor_cotizacion_propuesto: Decimal = Field(max_digits=18, decimal_places=4)
     condiciones: Optional[str] = Field(default=None, max_length=2000)
@@ -207,6 +225,7 @@ class CotizacionDTO(BaseDTO):
 
 
 class ModificarCotizacionDTO(BaseDTO):
+    """Cambios de una cotización con su versión."""
     version: int = Field(ge=1)
     justificacion: str = Field(min_length=10, max_length=2000)
     valor_cotizacion_propuesto: Optional[Decimal] = Field(default=None, gt=0)
@@ -215,11 +234,13 @@ class ModificarCotizacionDTO(BaseDTO):
 
 
 class AnularCotizacionDTO(BaseDTO):
+    """Motivo para anular una cotización."""
     version: int = Field(ge=1)
     motivo_anulacion: str = Field(min_length=20, max_length=2000)
 
 
 class FiltrosEstadoDTO(BaseDTO):
+    """Filtros del estado de resultados."""
     id_especie: Optional[int] = Field(default=None, gt=0)
     id_activo_biologico: Optional[int] = Field(default=None, gt=0)
     id_infraestructura: Optional[int] = Field(default=None, gt=0)
@@ -234,6 +255,7 @@ def _monto_positivo(valor: Optional[Decimal]) -> Optional[Decimal]:
 
 
 class CompromisoDTO(BaseDTO):
+    """Compromiso vigente para el informe de revelaciones."""
     descripcion: str = Field(min_length=3, max_length=500)
     monto_estimado: Optional[Decimal] = Field(default=None, max_digits=18, decimal_places=4)
     contraparte: Optional[str] = Field(default=None, max_length=200)
@@ -246,6 +268,7 @@ class CompromisoDTO(BaseDTO):
 
 
 class PignoracionDTO(BaseDTO):
+    """Activo pignorado para el informe de revelaciones."""
     id_activo_biologico: int = Field(gt=0)
     entidad_acreedora: str = Field(min_length=2, max_length=200)
     monto_garantia: Optional[Decimal] = Field(default=None, max_digits=18, decimal_places=4)
@@ -258,6 +281,7 @@ class PignoracionDTO(BaseDTO):
 
 
 class InformeRevelacionesDTO(BaseDTO):
+    """Datos manuales del informe de revelaciones."""
     compromisos_vigentes: list[CompromisoDTO] = Field(default_factory=list)
     activos_pignorados: list[PignoracionDTO] = Field(default_factory=list)
     declaracion_sin_novedad: bool = False
@@ -274,5 +298,6 @@ class InformeRevelacionesDTO(BaseDTO):
 
 
 class ResolverInformeDTO(BaseDTO):
+    """Decisión sobre un informe de revelaciones."""
     aprobar: bool
     razon_rechazo: Optional[str] = Field(default=None, max_length=2000)

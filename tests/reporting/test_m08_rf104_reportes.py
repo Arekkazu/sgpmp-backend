@@ -4,6 +4,7 @@
 # | 2026-11-19 | Arekkazu | M08 RF-104: plantillas V1.1, indicadores, parámetros y encabezado del animal |
 # | 2026-11-20 | Arekkazu | A11Y-M08 TC-DIS-288 RF-104: PDF etiquetado, con idioma y título |
 # | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: el portafolio del ejecutivo viene de la valoración del período cerrado |
+# | 2026-11-23 | Arekkazu | QA-M08 ronda 3 RF-104: tablas anchas en bloques, auditoría legible, IDs de sensor y dispositivo |
 """RF-104 — reportes: validación, ciclo de la solicitud, contenido de los reportes, archivos y casos de uso.
 
 Sin BD: la fuente, el repositorio y los avisos son dobles en memoria. Las consultas SQL tienen su prueba de
@@ -529,3 +530,63 @@ def test_descarga_con_checksum_alterado_marca_fallido_y_avisa():
     with pytest.raises(BusinessRuleError):
         DescargarReporteUseCase(Db(), repo, avisos).execute(s.id_solicitud_reporte, 1, 5, AHORA)
     assert s.estado == FALLIDO and avisos.registros[0][:2] == (FALLIDO, True)
+
+
+# --- QA M08 ronda 3 ----------------------------------------------------------------------------
+
+def test_tabla_que_no_cabe_se_reparte_en_bloques_que_repiten_la_primera_columna():
+    """CU02 H-04 (CA-11): ninguna columna queda más angosta que su palabra más larga; la tabla se reparte."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    from src.reporting.infrastructure.adapters import renderizador_reportes as rr
+
+    palabras = ["Antiparasitario", "Intramuscular", "Subcutánea", "Medicamento", "Veterinario", "Laboratorio"]
+    ancha = Tabla("x", [Columna("id_activo", "ID activo")] + [Columna(f"t{i}", f"Columna {i}") for i in range(14)],
+                  [{"id_activo": "BOV119TIL", **{f"t{i}": palabras[i % len(palabras)] for i in range(14)}}])
+    bloques = rr.bloques_de_columnas(ancha, 720)
+    assert len(bloques) > 1 and all(b[0].clave == "id_activo" for b in bloques)
+    assert [c.clave for b in bloques for c in b[1:]] == [f"t{i}" for i in range(14)]
+    for bloque in bloques:
+        sub = Tabla("x", bloque, ancha.filas)
+        for columna, ancho in zip(bloque, rr._anchos_pdf(sub, 720)):
+            texto = str(ancha.filas[0][columna.clave])
+            assert ancho - 2 * rr._PADDING >= stringWidth(texto, rr.FUENTE, 10), columna.clave
+
+    angosta = Tabla("x", [Columna("a", "A"), Columna("b", "B"), Columna("c", "C")], [{"a": 1, "b": 2, "c": 3}])
+    assert rr.bloques_de_columnas(angosta, 720) == [angosta.columnas]
+    assert RenderizadorReportes().renderizar(
+        ContenidoReporte(titulo="Ancha", detalle=ancha), PDF, None).startswith(b"%PDF")
+
+
+def test_auditoria_dice_formato_filtros_elegidos_y_checksum():
+    """CU02 H-02 (CA-15): la descripción del evento, que es lo que muestra la auditoría."""
+    from src.reporting.infrastructure.adapters.avisos_reportes_m01_adapter import descripcion_evento
+
+    p = preparar(FuenteFalsa(predicciones_activas=[]), "REPORTE_RIESGO_SANITARIO", {"nivel_riesgo": "ALTO"},
+                 _solicitante(), AHORA)
+    detalle = generacion.detalle_auditoria(p, PDF, GENERADO, "a" * 64, 3, "r1")
+    assert detalle["filtros_aplicados"] == {"nivel_riesgo": "ALTO"}
+    assert detalle["filtros_legibles"] == ["Nivel de riesgo: Alto"]
+    assert descripcion_evento("Riesgo sanitario", detalle) == (
+        f"Reporte Riesgo sanitario en PDF. Filtros: Nivel de riesgo: Alto. Checksum SHA-256: {'a' * 64}.")
+    sin_filtros = {**detalle, "filtros_legibles": [], "formato": "EXCEL", "checksum": None}
+    assert descripcion_evento("Riesgo sanitario", sin_filtros) == (
+        "Reporte Riesgo sanitario en Excel. Filtros: ninguno, todos los registros.")
+
+
+def test_telemetria_trae_id_del_sensor_y_alertas_el_id_del_dispositivo():
+    """CU02 H-05: matriz de REPORTE_TELEMETRIA y de REPORTE_ALERTAS_SENSORES."""
+    lectura = {"id_sensor": 31, "sensor": "Termómetro", "variable": "Temperatura", "valor": Decimal("21.5"),
+               "unidad": "°C", "timestamp_captura": AHORA, "estado": "ACTIVO", "area": "Galpón", "finca": "La Esperanza"}
+    fuente = FuenteFalsa(telemetria=[lectura], ubicaciones={("infraestructura", 4): {"id_finca": 1}})
+    contenido = ARMADORES["REPORTE_TELEMETRIA"](_ctx("REPORTE_TELEMETRIA", fuente, {
+        "fecha_inicio": date(2026, 11, 1), "fecha_fin": HOY, "infraestructura_id": 4}))
+    assert contenido.detalle.columnas[0].titulo == "ID sensor" and contenido.detalle.filas[0]["id_sensor"] == "31"
+
+    alerta = {"id_alerta": 9, "id_dispositivo_iot": 12, "serial": "ESP-12", "tipo_alerta": "REGLA_SIMPLE",
+              "tipo_variable": "TEMPERATURA", "severidad": "MODERADO", "valor": Decimal("35"), "umbral_min": None,
+              "umbral_max": None, "fecha": AHORA, "duracion_min": None, "estado": "ACTIVA", "fecha_resolucion": None,
+              "accion": None, "area": "Galpón", "finca": "La Esperanza"}
+    contenido = ARMADORES["REPORTE_ALERTAS_SENSORES"](_ctx("REPORTE_ALERTAS_SENSORES",
+                                                           FuenteFalsa(alertas_sensores=[alerta])))
+    assert "ID dispositivo" in [c.titulo for c in contenido.detalle.columnas]
+    assert contenido.detalle.filas[0]["dispositivo"] == "12"

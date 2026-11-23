@@ -4,6 +4,7 @@
 # | 2026-10-30 | Arekkazu | RF-66: resuelve la patología base por código RF-64               |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-02 | Arekkazu     | RF-64/RF-66: claves de probabilidad_enfermedad del motor a id_patologia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-66 — Registrar un resultado del motor IA (`motor-ia`) en ``modulo4.resultados_inferencia``.
 
 Postcondición 1: el resultado queda persistido de forma inmutable y alimenta RF-67
@@ -45,11 +46,13 @@ _ORIGEN_POR_MODO = {"EDGE": "EDGE", "SERVIDOR": "BACKEND", "HIBRIDO": "HIBRIDO"}
 
 @dataclass(frozen=True)
 class ResultadoRegistro:
+    """Resultado de inferencia registrado y si ya existía."""
     resultado: ResultadoInferencia
     duplicado: bool
 
 
 class RegistrarResultadoInferenciaUseCase:
+    """Registra los resultados del motor de inferencia."""
     def __init__(
         self,
         *,
@@ -68,6 +71,7 @@ class RegistrarResultadoInferenciaUseCase:
         self.patologia_repo = patologia_repo
 
     def execute(self, dto: RegistrarResultadoInferenciaDTO) -> ResultadoRegistro:
+        """Registra el resultado, o devuelve el existente si es un duplicado."""
         existente = self.repo.obtener(dto.id_resultado_inferencia)
         if existente is not None:
             return ResultadoRegistro(existente, duplicado=True)

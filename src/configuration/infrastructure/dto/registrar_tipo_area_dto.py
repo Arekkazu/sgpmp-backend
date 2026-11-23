@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar un tipo de área en el catálogo (RF-20)."""
 from __future__ import annotations
 
@@ -15,6 +18,7 @@ class RegistrarTipoAreaDTO(BaseDTO):
     @field_validator("nombre")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         if len(v) < 3 or len(v) > 30:
             raise ValueError("El nombre debe tener entre 3 y 30 caracteres.")
         if not NOMBRE.match(v):

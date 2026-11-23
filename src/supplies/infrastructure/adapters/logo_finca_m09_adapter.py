@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: logo de la finca (RF-26, M09)      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`LogoInstitucionalPort` contra ``modulo9.identidad_visuales`` (RF-26).
 
 Toma la versión más reciente de la identidad visual de la finca del activo o de
@@ -33,11 +34,13 @@ _SQL_LOGO = text(
 
 
 class LogoFincaM09Adapter(LogoInstitucionalPort):
+    """Obtiene el logo de la finca de un activo o área."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def ruta_logo(self, *, id_activo_biologico: Optional[int] = None,
                   id_infraestructura: Optional[int] = None) -> Optional[str]:
+        """Devuelve la ruta del logo de la finca, o ``None``."""
         if id_activo_biologico is None and id_infraestructura is None:
             return None
         logo = self.db.execute(

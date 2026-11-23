@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81 R8: límite por usuario              |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`TrabajoHistorialSuministroRepository` (RF-81)."""
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ _ACTIVOS = (EstadoTrabajoAsync.PENDIENTE.value, EstadoTrabajoAsync.EN_PROCESO.va
 
 
 class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroRepository):
+    """Implementación SQLAlchemy de ``TrabajoHistorialSuministroRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -60,6 +62,7 @@ class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroR
         )
 
     def encolar(self, trabajo: TrabajoHistorialSuministro) -> TrabajoHistorialSuministro:
+        """Encola el trabajo."""
         try:
             orm = ColaTrabajoHistorialSuministroModel(
                 tipo_trabajo=trabajo.tipo_trabajo,
@@ -75,6 +78,7 @@ class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroR
         return self._trabajo_a_entidad(orm)
 
     def contar_activos(self, tipo_trabajo: str, id_usuario: Optional[int] = None) -> int:
+        """Trabajos en PENDIENTE + EN_PROCESO del tipo dado (control de concurrencia 429)."""
         query = self.db.query(ColaTrabajoHistorialSuministroModel).filter(
             ColaTrabajoHistorialSuministroModel.tipo_trabajo == tipo_trabajo,
             ColaTrabajoHistorialSuministroModel.estado.in_(_ACTIVOS),
@@ -84,10 +88,12 @@ class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroR
         return query.count()
 
     def obtener(self, id_cola: int) -> Optional[TrabajoHistorialSuministro]:
+        """Devuelve el trabajo, o ``None``."""
         orm = self.db.get(ColaTrabajoHistorialSuministroModel, id_cola)
         return self._trabajo_a_entidad(orm) if orm else None
 
     def listar_pendientes(self, limite: int) -> list[TrabajoHistorialSuministro]:
+        """Lista los trabajos pendientes."""
         registros = (
             self.db.query(ColaTrabajoHistorialSuministroModel)
             .filter(ColaTrabajoHistorialSuministroModel.estado == EstadoTrabajoAsync.PENDIENTE.value)
@@ -100,6 +106,7 @@ class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroR
     def marcar_estado(
         self, id_cola: int, estado: EstadoTrabajoAsync, *, fecha_procesado: Optional[datetime] = None
     ) -> None:
+        """Cambia el estado del trabajo."""
         orm = self.db.get(ColaTrabajoHistorialSuministroModel, id_cola)
         if orm is None:
             return
@@ -112,6 +119,7 @@ class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroR
             raise_from_db_error(exc, {})
 
     def crear_ejecucion(self, ejecucion: EjecucionHistorialSuministro) -> EjecucionHistorialSuministro:
+        """Registra una ejecución del trabajo."""
         try:
             orm = EjecucionTrabajoHistorialSuministroModel(
                 id_cola=ejecucion.id_cola,
@@ -126,6 +134,7 @@ class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroR
         return self._ejecucion_a_entidad(orm)
 
     def guardar_ejecucion(self, ejecucion: EjecucionHistorialSuministro) -> EjecucionHistorialSuministro:
+        """Actualiza la ejecución."""
         orm = self.db.get(EjecucionTrabajoHistorialSuministroModel, ejecucion.id_ejecucion)
         if orm is None:
             raise_from_db_error(ValueError(f"Ejecución {ejecucion.id_ejecucion} inexistente"), {})
@@ -143,6 +152,7 @@ class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroR
         return self._ejecucion_a_entidad(orm)
 
     def obtener_ultima_ejecucion(self, id_cola: int) -> Optional[EjecucionHistorialSuministro]:
+        """Devuelve la última ejecución del trabajo, o ``None``."""
         orm = (
             self.db.query(EjecucionTrabajoHistorialSuministroModel)
             .filter(EjecucionTrabajoHistorialSuministroModel.id_cola == id_cola)

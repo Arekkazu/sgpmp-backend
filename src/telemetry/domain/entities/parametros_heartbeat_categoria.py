@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-04 RF-60: parámetros de heartbeat por categoría para la pantalla de dispositivos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """AJF-04: lo que explica al Ingeniero por qué un dispositivo pasó a SIN_SEÑAL o INACTIVO.
 
 Mismas fórmulas que ``ParametrosComunicacionHeartbeat`` (RF-60): umbral_activo =
@@ -28,6 +29,7 @@ class ConfiguracionHeartbeatLeida:
 
 @dataclass(frozen=True)
 class ParametrosHeartbeatCategoria:
+    """Parámetros de heartbeat de una categoría de dispositivo y los que faltan."""
     categoria: str
     intervalo_heartbeat_seg: Optional[int]
     frecuencia_muestreo_seg: Optional[int]
@@ -40,10 +42,12 @@ class ParametrosHeartbeatCategoria:
 
     @property
     def configurado(self) -> bool:
+        """Indica si la categoría tiene todos sus parámetros configurados."""
         return not self.faltantes
 
 
 def parametros_por_categoria(c: ConfiguracionHeartbeatLeida) -> list[ParametrosHeartbeatCategoria]:
+    """Arma los parámetros de heartbeat de cada categoría a partir de la configuración."""
     categorias = sorted({*c.categorias, *c.intervalos_por_tipo, 'CAMARA'})
     resultado = []
     for categoria in categorias:
@@ -81,6 +85,7 @@ class VentanaObservada:
 
 @dataclass(frozen=True)
 class ResumenVentanasVision:
+    """Resumen de las ventanas de visión observadas de una cámara."""
     es_camara: bool
     ventanas: list[VentanaObservada]
     ventanas_consecutivas: Optional[int]

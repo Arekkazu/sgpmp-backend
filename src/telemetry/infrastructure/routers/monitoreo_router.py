@@ -9,6 +9,7 @@
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-58: catálogo de sensores para filtrar por nombre |
 # | 2026-10-31 | Arekkazu | TC-DIS-160 RF-59: la exportación conserva su regla (cualquier filtro) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y endpoints |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
@@ -96,6 +97,8 @@ def _panel_alertas(use_case: ObtenerDashboardUseCase, id_infraestructura, ids_fi
 
 
 class SensorCatalogoSchema(BaseModel):
+    """Sensor activo con su ubicación, para elegirlo por nombre."""
+
     id_sensor: int
     nombre_sensor: str
     nombre_infraestructura: Optional[str] = None
@@ -125,6 +128,7 @@ def listar_sensores_catalogo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> list[SensorCatalogoSchema]:
+    """Lista los sensores activos de las fincas del usuario."""
     fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     return [
         SensorCatalogoSchema(id_sensor=i, nombre_sensor=n, nombre_infraestructura=a, nombre_finca=f)
@@ -151,6 +155,7 @@ def obtener_dashboard(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardResponseSchema:
+    """Devuelve el dashboard de monitoreo de todas las unidades visibles."""
     use_case = ObtenerDashboardUseCase(
         monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
         # G57B (CA-13): el aviso E7 (bitácora + SMTP) corre después de responder.
@@ -198,6 +203,7 @@ def obtener_dashboard_por_unidad(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardResponseSchema:
+    """Devuelve el dashboard de monitoreo acotado a una unidad productiva."""
     use_case = ObtenerDashboardUseCase(
         monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
         # G57B (CA-13): el aviso E7 (bitácora + SMTP) corre después de responder.
@@ -258,6 +264,7 @@ def exportar_historial(
     id_activo_biologico: Optional[int] = Query(default=None),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> None:
+    """Valida los filtros de exportación; la exportación aún no está disponible."""
     filtros = FiltrosHistorial(
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
@@ -317,6 +324,7 @@ def consultar_historial(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialPageSchema:
+    """Consulta el historial de lecturas con filtros, series y estadísticas."""
     if orden.upper() not in ('ASC', 'DESC'):
         raise BusinessRuleError(code='ORDEN_INVALIDO', message="El parámetro 'orden' debe ser ASC o DESC.", field='orden')
 

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso de la exportación asíncrona de auditoría (RF-10).
 
 La exportación síncrona mantiene la petición abierta mientras arma el archivo.
@@ -43,6 +44,11 @@ class SolicitarExportacionAuditoriaUseCase:
         self.cola_repo = cola_repo
 
     def execute(self, filtros: dict, id_usuario: int) -> TrabajoExportacion:
+        """Encola una exportación de auditoría con los filtros dados.
+
+        Raises:
+            TooManyRequestsError: Si se alcanzó el límite de exportaciones simultáneas.
+        """
         config = self.cola_repo.obtener_configuracion()
 
         if self.cola_repo.contar_activos() >= config.limite_concurrencia:
@@ -74,6 +80,11 @@ class ConsultarExportacionAuditoriaUseCase:
         self.cola_repo = cola_repo
 
     def execute(self, id_cola: int) -> TrabajoExportacion:
+        """Devuelve el estado de una exportación.
+
+        Raises:
+            NotFoundError: Si la exportación no existe.
+        """
         trabajo = self.cola_repo.obtener(id_cola)
         if trabajo is None:
             raise NotFoundError(
@@ -90,6 +101,11 @@ class DescargarExportacionAuditoriaUseCase:
         self.cola_repo = cola_repo
 
     def execute(self, id_cola: int) -> ResultadoExportacion:
+        """Devuelve el archivo de una exportación completada.
+
+        Raises:
+            NotFoundError: Si la exportación no existe.
+        """
         trabajo = self.cola_repo.obtener(id_cola)
         if trabajo is None:
             raise NotFoundError(

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.fallos_trabajos_historial_suministros`` (RF-81 / motor async).
 
 Generado con sqlacodegen y adaptado (Base compartida, sin relationships). Fallos
@@ -13,6 +16,7 @@ from .base_model import Base
 
 
 class FalloTrabajoHistorialSuministroModel(Base):
+    """Modelo ORM de la tabla ``modulo5.fallos_trabajos_historial_suministros``."""
     __tablename__ = 'fallos_trabajos_historial_suministros'
     __table_args__ = (
         ForeignKeyConstraint(['id_cola'], ['modulo5.cola_trabajos_historial_suministros.id_cola'], name='fallos_trabajos_historial_suministros_id_cola_fkey'),

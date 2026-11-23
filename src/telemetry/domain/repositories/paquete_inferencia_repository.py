@@ -3,6 +3,8 @@
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: consulta del paquete por id con alcance por finca |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de paquetes de inferencia."""
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -11,6 +13,7 @@ from src.telemetry.domain.entities.telemetria import PaqueteInferencia
 
 
 class PaqueteInferenciaRepository(ABC):
+    """Puerto de persistencia y envío pendiente de paquetes de inferencia."""
     @abstractmethod
     def obtener_por_evento(
         self, id_evento: int, *, bloquear_evento: bool = False,
@@ -33,7 +36,9 @@ class PaqueteInferenciaRepository(ABC):
         ...
 
     @abstractmethod
-    def guardar(self, paquete: PaqueteInferencia) -> PaqueteInferencia: ...
+    def guardar(self, paquete: PaqueteInferencia) -> PaqueteInferencia:
+        """Guarda el paquete y lo devuelve con su id."""
+        ...
 
     @abstractmethod
     def actualizar_estado(

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.versiones_modelos``."""
 from __future__ import annotations
 
 import uuid
@@ -16,6 +18,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class VersionModeloModel(Base):
+    """Modelo ORM de la tabla ``modulo4.versiones_modelos``."""
     __tablename__ = "versiones_modelos"
     __table_args__ = {"schema": "modulo4"}
 

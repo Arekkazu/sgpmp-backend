@@ -15,6 +15,7 @@
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
 # | 2026-11-14 | destroyerban | INC-M06-361-G24 RF-85 FA-4: la baja del activo cosechado usa la sesión de M06 |
 # | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Fábrica de M06: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -124,107 +125,191 @@ class M06:
 
     # --- Repositorios ---
     @cached_property
-    def activos(self): return ActivoFinancieroM02Adapter(self.db)
+    def activos(self):
+        """``ActivoFinancieroM02Adapter`` con las dependencias del módulo."""
+        return ActivoFinancieroM02Adapter(self.db)
     @cached_property
-    def eventos(self): return EventoM02Adapter(self.db)
+    def eventos(self):
+        """``EventoM02Adapter`` con las dependencias del módulo."""
+        return EventoM02Adapter(self.db)
     @cached_property
-    def config(self): return SqlAlchemyConfiguracionContableRepository(self.db)
+    def config(self):
+        """``SqlAlchemyConfiguracionContableRepository`` con las dependencias del módulo."""
+        return SqlAlchemyConfiguracionContableRepository(self.db)
     @cached_property
-    def asientos(self): return SqlAlchemyAsientoRepository(self.db)
+    def asientos(self):
+        """``SqlAlchemyAsientoRepository`` con las dependencias del módulo."""
+        return SqlAlchemyAsientoRepository(self.db)
     @cached_property
-    def auditoria(self): return SqlAlchemyAuditoriaFinancieraRepository(self.db)
+    def auditoria(self):
+        """``SqlAlchemyAuditoriaFinancieraRepository`` con las dependencias del módulo."""
+        return SqlAlchemyAuditoriaFinancieraRepository(self.db)
     @cached_property
-    def periodos(self): return SqlAlchemyPeriodoRepository(self.db)
+    def periodos(self):
+        """``SqlAlchemyPeriodoRepository`` con las dependencias del módulo."""
+        return SqlAlchemyPeriodoRepository(self.db)
     @cached_property
-    def precios(self): return SqlAlchemyPrecioRepository(self.db)
+    def precios(self):
+        """``SqlAlchemyPrecioRepository`` con las dependencias del módulo."""
+        return SqlAlchemyPrecioRepository(self.db)
     @cached_property
-    def valoraciones(self): return SqlAlchemyValoracionRepository(self.db)
+    def valoraciones(self):
+        """``SqlAlchemyValoracionRepository`` con las dependencias del módulo."""
+        return SqlAlchemyValoracionRepository(self.db)
     @cached_property
-    def correctivos(self): return SqlAlchemyCorrectivoVariacionRepository(self.db)
+    def correctivos(self):
+        """``SqlAlchemyCorrectivoVariacionRepository`` con las dependencias del módulo."""
+        return SqlAlchemyCorrectivoVariacionRepository(self.db)
     @cached_property
-    def costos(self): return SqlAlchemyCostoRepository(self.db)
+    def costos(self):
+        """``SqlAlchemyCostoRepository`` con las dependencias del módulo."""
+        return SqlAlchemyCostoRepository(self.db)
     @cached_property
-    def cotizaciones(self): return SqlAlchemyCotizacionRepository(self.db)
+    def cotizaciones(self):
+        """``SqlAlchemyCotizacionRepository`` con las dependencias del módulo."""
+        return SqlAlchemyCotizacionRepository(self.db)
     @cached_property
-    def reportes(self): return SqlAlchemyReporteRepository(self.db)
+    def reportes(self):
+        """``SqlAlchemyReporteRepository`` con las dependencias del módulo."""
+        return SqlAlchemyReporteRepository(self.db)
     @cached_property
-    def trazabilidad(self): return SqlAlchemyTrazabilidadRepository(self.db)
+    def trazabilidad(self):
+        """``SqlAlchemyTrazabilidadRepository`` con las dependencias del módulo."""
+        return SqlAlchemyTrazabilidadRepository(self.db)
     @cached_property
-    def notificador(self): return NotificacionFinancieraM01Adapter(sesion_sistema, self.db)
+    def notificador(self):
+        """``NotificacionFinancieraM01Adapter`` con las dependencias del módulo."""
+        return NotificacionFinancieraM01Adapter(sesion_sistema, self.db)
 
     # --- Servicios ---
     @cached_property
     def contabilizador(self):
+        """``Contabilizador`` con las dependencias del módulo."""
         return Contabilizador(self.config, self.periodos, self.asientos, self.auditoria, self.notificador, self.activos)
     @cached_property
-    def valorador(self): return Valorador(self.precios, self.config)
+    def valorador(self):
+        """``Valorador`` con las dependencias del módulo."""
+        return Valorador(self.precios, self.config)
     @cached_property
-    def medidor(self): return Medidor(self.valorador, self.valoraciones, self.contabilizador)
+    def medidor(self):
+        """``Medidor`` con las dependencias del módulo."""
+        return Medidor(self.valorador, self.valoraciones, self.contabilizador)
     @cached_property
-    def proponedor(self): return ProponedorReconocimiento(self.valorador, self.config)
+    def proponedor(self):
+        """``ProponedorReconocimiento`` con las dependencias del módulo."""
+        return ProponedorReconocimiento(self.valorador, self.config)
     @cached_property
-    def verificador(self): return VerificadorTrazabilidad(self.asientos, self.trazabilidad, self.auditoria)
+    def verificador(self):
+        """``VerificadorTrazabilidad`` con las dependencias del módulo."""
+        return VerificadorTrazabilidad(self.asientos, self.trazabilidad, self.auditoria)
     @cached_property
-    def constructor_estado(self): return ConstructorEstadoResultados(self.reportes, self.costos)
+    def constructor_estado(self):
+        """``ConstructorEstadoResultados`` con las dependencias del módulo."""
+        return ConstructorEstadoResultados(self.reportes, self.costos)
     @cached_property
-    def constructor_informe(self): return ConstructorInformeRevelaciones(self.reportes)
+    def constructor_informe(self):
+        """``ConstructorInformeRevelaciones`` con las dependencias del módulo."""
+        return ConstructorInformeRevelaciones(self.reportes)
 
     # --- Casos de uso ---
-    def actualizar_configuracion(self): return ActualizarConfiguracionContableUseCase(self.db, self.config, self.auditoria)
-    def guardar_parametro_especie(self): return GuardarParametroEspecieUseCase(self.db, self.config, self.auditoria)
-    def guardar_costos_venta(self): return GuardarCostosVentaUseCase(self.db, self.config, self.auditoria)
-    def guardar_asignacion(self): return GuardarAsignacionCuentaUseCase(self.db, self.config, self.asientos, self.auditoria)
+    def actualizar_configuracion(self):
+        """``ActualizarConfiguracionContableUseCase`` con las dependencias del módulo."""
+        return ActualizarConfiguracionContableUseCase(self.db, self.config, self.auditoria)
+    def guardar_parametro_especie(self):
+        """``GuardarParametroEspecieUseCase`` con las dependencias del módulo."""
+        return GuardarParametroEspecieUseCase(self.db, self.config, self.auditoria)
+    def guardar_costos_venta(self):
+        """``GuardarCostosVentaUseCase`` con las dependencias del módulo."""
+        return GuardarCostosVentaUseCase(self.db, self.config, self.auditoria)
+    def guardar_asignacion(self):
+        """``GuardarAsignacionCuentaUseCase`` con las dependencias del módulo."""
+        return GuardarAsignacionCuentaUseCase(self.db, self.config, self.asientos, self.auditoria)
     def registrar_precio(self):
+        """``RegistrarPrecioUseCase`` con las dependencias del módulo."""
         return RegistrarPrecioUseCase(self.db, self.precios, self.config, self.auditoria, self.activos, self.notificador)
-    def listar_precios(self): return ListarPreciosUseCase(self.precios)
-    def propuestas(self): return ListarPropuestasReconocimientoUseCase(self.activos, self.proponedor)
+    def listar_precios(self):
+        """``ListarPreciosUseCase`` con las dependencias del módulo."""
+        return ListarPreciosUseCase(self.precios)
+    def propuestas(self):
+        """``ListarPropuestasReconocimientoUseCase`` con las dependencias del módulo."""
+        return ListarPropuestasReconocimientoUseCase(self.activos, self.proponedor)
     def confirmar_reconocimiento(self):
+        """``ConfirmarReconocimientoUseCase`` con las dependencias del módulo."""
         return ConfirmarReconocimientoUseCase(self.db, self.activos, self.valoraciones, self.proponedor, self.contabilizador,
                                               self.notificador)
     def validar_calculo(self):
+        """``ValidarCalculoNoPositivoUseCase`` con las dependencias del módulo."""
         return ValidarCalculoNoPositivoUseCase(self.db, self.valoraciones, self.contabilizador)
     def revertir_reconocimiento(self):
+        """``RevertirReconocimientoUseCase`` con las dependencias del módulo."""
         return RevertirReconocimientoUseCase(self.db, self.activos, self.valoraciones, self.contabilizador)
     def procesar_eventos(self):
+        """``ProcesarEventosM02UseCase`` con las dependencias del módulo."""
         return ProcesarEventosM02UseCase(self.db, self.eventos, self.activos, self.valoraciones, self.precios,
                                          self.medidor, self.contabilizador, id_usuario_servicio(self.db),
                                          notificador=self.notificador, bajas=BajaActivoM02Adapter(self.db))
     def reconocer_cosecha_pendiente(self):
+        """``ReconocerCosechaPendienteUseCase`` con las dependencias del módulo."""
         return ReconocerCosechaPendienteUseCase(self.db, self.eventos, self.procesar_eventos())
     def solicitar_correctivo(self):
+        """``SolicitarCorrectivoVariacionUseCase`` con las dependencias del módulo."""
         return SolicitarCorrectivoVariacionUseCase(self.db, self.correctivos, self.valoraciones, self.contabilizador)
     def resolver_correctivo(self):
+        """``ResolverCorrectivoVariacionUseCase`` con las dependencias del módulo."""
         return ResolverCorrectivoVariacionUseCase(self.db, self.correctivos, self.valoraciones, self.contabilizador)
     def procesar_provisiones(self):
+        """``ProcesarProvisionesM05UseCase`` con las dependencias del módulo."""
         return ProcesarProvisionesM05UseCase(self.db, self.costos, self.activos, self.contabilizador, id_usuario_servicio(self.db))
     def registrar_costo(self):
+        """``RegistrarCostoUseCase`` con las dependencias del módulo."""
         return RegistrarCostoUseCase(self.db, self.costos, self.activos, self.valoraciones, self.contabilizador,
                                      notificador=self.notificador)
-    def clasificar_costo(self): return ClasificarCostoUseCase(self.db, self.costos, self.activos, self.contabilizador)
+    def clasificar_costo(self):
+        """``ClasificarCostoUseCase`` con las dependencias del módulo."""
+        return ClasificarCostoUseCase(self.db, self.costos, self.activos, self.contabilizador)
     def cierre(self):
+        """``EjecutarCierrePeriodoUseCase`` con las dependencias del módulo."""
         return EjecutarCierrePeriodoUseCase(
             self.db, self.periodos, self.activos, self.valoraciones, self.costos, self.cotizaciones, self.eventos,
             self.medidor, self.contabilizador, self.verificador, self.constructor_estado, self.constructor_informe,
             self.notificador, self.procesar_eventos())
-    def ajuste_periodo_anterior(self): return RegistrarAjustePeriodoAnteriorUseCase(self.db, self.contabilizador)
-    def verificar_trazabilidad(self): return VerificarTrazabilidadUseCase(self.db, self.asientos, self.verificador, self.periodos)
+    def ajuste_periodo_anterior(self):
+        """``RegistrarAjustePeriodoAnteriorUseCase`` con las dependencias del módulo."""
+        return RegistrarAjustePeriodoAnteriorUseCase(self.db, self.contabilizador)
+    def verificar_trazabilidad(self):
+        """``VerificarTrazabilidadUseCase`` con las dependencias del módulo."""
+        return VerificarTrazabilidadUseCase(self.db, self.asientos, self.verificador, self.periodos)
     def registrar_deterioro(self):
+        """``RegistrarDeterioroUseCase`` con las dependencias del módulo."""
         return RegistrarDeterioroUseCase(self.db, self.activos, self.valoraciones, self.contabilizador,
                                          notificador=self.notificador)
     def cambiar_a_valor_razonable(self):
+        """``CambiarAValorRazonableUseCase`` con las dependencias del módulo."""
         return CambiarAValorRazonableUseCase(self.db, self.activos, self.valoraciones, self.valorador, self.contabilizador)
     def consultar_depreciacion(self):
+        """``ConsultarDepreciacionUseCase`` con las dependencias del módulo."""
         return ConsultarDepreciacionUseCase(self.activos, self.valoraciones, self.config)
     def registrar_cotizacion(self):
+        """``RegistrarCotizacionUseCase`` con las dependencias del módulo."""
         return RegistrarCotizacionUseCase(self.db, self.cotizaciones, self.activos, self.valoraciones, self.contabilizador)
-    def modificar_cotizacion(self): return ModificarCotizacionUseCase(self.db, self.cotizaciones, self.auditoria)
+    def modificar_cotizacion(self):
+        """``ModificarCotizacionUseCase`` con las dependencias del módulo."""
+        return ModificarCotizacionUseCase(self.db, self.cotizaciones, self.auditoria)
     def estado_resultados(self):
+        """``GenerarEstadoResultadosUseCase`` con las dependencias del módulo."""
         return GenerarEstadoResultadosUseCase(self.db, self.periodos, self.reportes, self.constructor_estado, self.auditoria,
                                               self.notificador)
     def informe_revelaciones(self):
+        """``GenerarInformeRevelacionesUseCase`` con las dependencias del módulo."""
         return GenerarInformeRevelacionesUseCase(
             self.db, self.periodos, self.reportes, self.constructor_informe, self.auditoria, self.notificador,
         )
-    def exportar(self): return ExportarReporteUseCase(self.periodos, self.reportes)
-    def consultar_auditoria(self): return ConsultarAuditoriaFinancieraUseCase(self.auditoria)
-    def consultar_productos(self): return ConsultarProductosAgricolasUseCase(self.valoraciones)
+    def exportar(self):
+        """``ExportarReporteUseCase`` con las dependencias del módulo."""
+        return ExportarReporteUseCase(self.periodos, self.reportes)
+    def consultar_auditoria(self):
+        """``ConsultarAuditoriaFinancieraUseCase`` con las dependencias del módulo."""
+        return ConsultarAuditoriaFinancieraUseCase(self.auditoria)
+    def consultar_productos(self):
+        """``ConsultarProductosAgricolasUseCase`` con las dependencias del módulo."""
+        return ConsultarProductosAgricolasUseCase(self.valoraciones)

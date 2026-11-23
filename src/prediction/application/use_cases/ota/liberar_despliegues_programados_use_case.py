@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: libera los despliegues PROGRAMADO al abrir su ventana |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Avisar ``ota/notify`` a los despliegues PROGRAMADO pospuestos cuando abre su ventana (RF-70 E1).
 
 ``CrearDistribucionOtaUseCase`` deja PENDIENTE con FUERA_VENTANA_ACTUALIZACION a los nodos
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class LiberarDesplieguesProgramadosUseCase:
+    """Libera los despliegues OTA cuya hora programada ya llegó."""
 
     def __init__(
         self,

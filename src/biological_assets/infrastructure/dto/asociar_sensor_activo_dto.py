@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/sensores`` (RF-49)."""
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ class AsociarSensorActivoDTO(BaseDTO):
     @field_validator('motivo', mode='before')
     @classmethod
     def limpiar_motivo(cls, v: object) -> Optional[str]:
+        """Quita espacios del motivo y lo deja en ``None`` si queda vacío."""
         if v is None:
             return None
         s = str(v).strip()
@@ -46,4 +48,5 @@ class AsociarSensorActivoDTO(BaseDTO):
     @field_validator('fecha_fin', mode='before')
     @classmethod
     def validar_fecha_fin(cls, v: object) -> Optional[datetime]:
+        """Acepta la fecha fin; su coherencia la valida el caso de uso."""
         return v  # La validación de coherencia fecha_inicio < fecha_fin se hace en el use case

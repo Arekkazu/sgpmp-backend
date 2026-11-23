@@ -4,6 +4,8 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: respuesta de la reevaluación por IA |
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: schema de indicadores del sistema de alertas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de alertas."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,6 +16,7 @@ from pydantic import BaseModel
 
 
 class AlertaSchema(BaseModel):
+    """Alerta en los listados."""
     id_alerta: int
     tipo_alerta: str
     severidad: str
@@ -63,6 +66,7 @@ class AlertaSchema(BaseModel):
 
 
 class HistoricoEstadoAlertaSchema(BaseModel):
+    """Cambio de estado de una alerta."""
     id_historico_estado_alerta: Optional[int] = None
     id_alerta: int
     estado_anterior: str
@@ -76,6 +80,7 @@ class HistoricoEstadoAlertaSchema(BaseModel):
 
 
 class AlertaDetalleSchema(AlertaSchema):
+    """Alerta con su histórico de estados."""
     historico_estados: list[HistoricoEstadoAlertaSchema] = []
 
 
@@ -91,6 +96,7 @@ class ResultadoReevaluacionSchema(BaseModel):
 
 
 class ResultadoGeneracionAlertaSchema(BaseModel):
+    """Resultado de procesar un evento de alerta."""
     es_duplicado: bool
     id_alerta: Optional[int] = None
     tipo_alerta: Optional[str] = None
@@ -102,6 +108,7 @@ class ResultadoGeneracionAlertaSchema(BaseModel):
 
 
 class ListaAlertasSchema(BaseModel):
+    """Página de alertas."""
     total: int
     pagina: int
     por_pagina: int

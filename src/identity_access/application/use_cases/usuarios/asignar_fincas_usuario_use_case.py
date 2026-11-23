@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: asignar/desasignar fincas a un usuario (RF-25).
 
 Operación exclusiva de administración (RBAC ``U`` sobre el recurso Usuarios).
@@ -35,6 +38,7 @@ class AsignarFincasUsuarioUseCase:
         dto: AsignarFincasDTO,
         usuario_actual: UsuarioActual,
     ) -> dict:
+        """Reemplaza las fincas asignadas al usuario."""
         usuario = self._estado_usuario(id_usuario)
         if usuario is None:
             raise NotFoundError(

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101: cliente externo, credencial y canales |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Cliente externo de la integración (RF-101 v2.0)."""
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ ESTADOS = ("ACTIVO", "SUSPENDIDO", "REVOCADO")
 
 @dataclass
 class Credencial:
+    """Credencial del cliente externo (hash del secreto y vigencia)."""
     id_identificador_api: Optional[int]
     hash_secreto: str
     fecha_emision: datetime
@@ -26,6 +28,7 @@ class Credencial:
 
 @dataclass
 class ClienteExterno:
+    """Sistema externo autorizado a consumir los canales de integración."""
     id_cliente_externo: Optional[int]
     codigo: str
     nombre: str
@@ -38,18 +41,26 @@ class ClienteExterno:
     fecha_actualizacion: Optional[datetime] = None
 
     def suspender(self) -> None:
+        """Suspende el cliente."""
         self.exigir_no_revocado("suspender")
         self.estado = "SUSPENDIDO"
 
     def reactivar(self) -> None:
+        """Reactiva el cliente."""
         self.exigir_no_revocado("reactivar")  # FA-7
         self.estado = "ACTIVO"
 
     def revocar(self) -> None:
+        """Revoca el cliente de forma definitiva."""
         self.exigir_no_revocado("revocar")
         self.estado = "REVOCADO"
 
     def exigir_no_revocado(self, accion: str) -> None:
+        """Exige que el cliente no esté revocado.
+
+        Raises:
+            ConflictError: Si el cliente está revocado.
+        """
         if self.estado == "REVOCADO":
             raise ConflictError(code="CLIENTE_REVOCADO",
                                 message=f"El cliente {self.nombre} está revocado de forma definitiva; no se puede {accion}.")
@@ -64,5 +75,6 @@ class ClienteExterno:
             return False
 
     def snapshot(self) -> dict:
+        """Estado auditable del cliente."""
         return {"estado": self.estado, "ip_permitida": self.ip_permitida, "ttl_token_canal_minutos": self.ttl_token_canal_minutos,
                 "canales": dict(sorted(self.canales.items()))}

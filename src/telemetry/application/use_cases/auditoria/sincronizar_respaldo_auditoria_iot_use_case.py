@@ -1,15 +1,28 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: confirmar evidencias FIFO solo después del commit con identidad estable entre reintentos. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Caso de uso que sincroniza el respaldo de auditoría IoT con PostgreSQL (RF-53/RF-63).
+
+Registra los eventos pendientes de forma idempotente, verifica su integridad y
+solo confirma el respaldo después del commit.
+"""
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
 from src.telemetry.domain.repositories.respaldo_auditoria_iot_port import RespaldoAuditoriaIotPort, DestinoRespaldoAuditoriaIotPort
 
 
 class SincronizarRespaldoAuditoriaIotUseCase:
+    """Sincroniza los eventos respaldados hacia el destino definitivo."""
+
     def __init__(self, db, destino: DestinoRespaldoAuditoriaIotPort, respaldo: RespaldoAuditoriaIotPort):
         self.db, self.destino, self.respaldo = db, destino, respaldo
 
     def execute(self, limite: int = 100) -> int:
+        """Registra hasta ``limite`` eventos y devuelve cuántos sincronizó.
+
+        Raises:
+            ValueError: Si el hash de integridad de un evento no coincide.
+        """
         try:
             if not self.destino.bloquear_respaldo():
                 self.db.rollback()

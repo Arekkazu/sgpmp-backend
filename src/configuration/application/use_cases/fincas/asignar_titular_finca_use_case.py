@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | RF-19 v1.1: asignar o quitar el titular tributario de una finca |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-19 v1.1: los cuatro campos del titular se informan juntos o ninguno, y todas las
 fincas con el mismo número deben tener la misma razón social y el mismo DV (forman un titular)."""
 from __future__ import annotations
@@ -15,11 +16,17 @@ from src.shared.errors import ConflictError, NotFoundError
 
 
 class AsignarTitularFincaUseCase:
+    """Asigna el titular tributario de una finca."""
     def __init__(self, db: Session, repo: TitularFincaRepository) -> None:
         self.db = db
         self.repo = repo
 
     def execute(self, id_finca: int, titular: Optional[TitularTributario]) -> dict:
+        """Asigna o retira el titular de la finca.
+
+        Raises:
+            NotFoundError: Si la finca no existe.
+        """
         if self.repo.obtener(id_finca) is None:
             raise NotFoundError(code="FINCA_NO_ENCONTRADA", message="La finca no existe.")
         if titular is not None:

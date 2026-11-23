@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: mapea es_critica (RFC-016) |
 # | 2026-10-21 | Leandro  | DEV-40 RF-53: mapea metadatos de catalogo dinamico |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.variables_ambientales` (catálogo de M09; solo `es_critica` es editable)."""
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ from .base_model import Base
 
 
 class VariableAmbientalModel(Base):
+    """Modelo ORM de la tabla ``modulo9.variables_ambientales``."""
     __tablename__ = 'variables_ambientales'
     __table_args__ = (
         PrimaryKeyConstraint('id_variable_ambiental', name='variables_ambientales_pkey'),

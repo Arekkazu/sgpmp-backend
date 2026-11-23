@@ -4,6 +4,7 @@
 # | 2026-11-05 | Arekkazu | M06 RF-88: eventos sanitarios del activo para elegir el del deterioro |
 # | 2026-11-10 | Arekkazu | INC-M06-350-G44 RF-87: fincas del período que perdieron el titular |
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura de M02/M09 para M06: el activo, su finca y su titular."""
 from __future__ import annotations
 
@@ -14,8 +15,11 @@ from src.financial_valuation.domain.entities.activo_financiero import DatosActiv
 
 
 class ActivoFinancieroPort(ABC):
+    """Puerto de lectura de activos biológicos para la valoración."""
     @abstractmethod
-    def obtener(self, id_activo_biologico: int) -> Optional[DatosActivo]: ...
+    def obtener(self, id_activo_biologico: int) -> Optional[DatosActivo]:
+        """Devuelve el activo, o ``None``."""
+        ...
 
     @abstractmethod
     def listar_sin_reconocimiento(self, numero_id_tributaria: Optional[str] = None) -> list[DatosActivo]:
@@ -26,14 +30,18 @@ class ActivoFinancieroPort(ABC):
         """Activos ACTIVO/EN_TRATAMIENTO del titular con reconocimiento CONFIRMADO (cierre, RF-87)."""
 
     @abstractmethod
-    def especie(self, id_especie: int) -> Optional[dict]: ...
+    def especie(self, id_especie: int) -> Optional[dict]:
+        """Devuelve los datos de la especie, o ``None``."""
+        ...
 
     @abstractmethod
     def metrica_produccion(self, id_metrica_produccion: int) -> Optional[dict]:
         """Producto de RF-43 (nombre y unidad de medida) de un evento productivo."""
 
     @abstractmethod
-    def evento_sanitario_del_activo(self, id_evento: int, id_activo_biologico: int) -> bool: ...
+    def evento_sanitario_del_activo(self, id_evento: int, id_activo_biologico: int) -> bool:
+        """Indica si el evento sanitario pertenece al activo."""
+        ...
 
     @abstractmethod
     def eventos_sanitarios_del_activo(self, id_activo_biologico: int) -> list[dict]:

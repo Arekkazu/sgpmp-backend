@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: version_catalogo es la del catálogo, no por patología |
 # | 2026-10-25 | Arekkazu | USAB-M04 M4-02 RF-64: nombre y unidad de variables y nombre de la especie (read-model) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad del catálogo de patologías del motor de inferencia."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,6 +44,7 @@ class PatologiaM04:
         id_usuario_creador: int,
         version_catalogo: int,
     ) -> PatologiaM04:
+        """Crea una patología validando sus datos."""
         return cls(
             nombre=nombre,
             especie_aplicable=especie_aplicable,
@@ -62,6 +65,7 @@ class PatologiaM04:
         fecha_actualizacion: datetime,
         version_catalogo: int,
     ) -> None:
+        """Actualiza la patología como una versión nueva del catálogo."""
         self.nombre = nombre
         self.descripcion_clinica = descripcion_clinica
         self.variables = variables
@@ -69,6 +73,7 @@ class PatologiaM04:
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self, *, version_catalogo: int) -> None:
+        """Desactiva la patología en una versión nueva del catálogo."""
         # RF-64 regla 10: toda modificación de una patología no base es una versión nueva.
         self.es_activo = False
         self.version_catalogo = version_catalogo

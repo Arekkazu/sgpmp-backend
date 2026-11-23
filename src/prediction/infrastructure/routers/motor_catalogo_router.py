@@ -3,6 +3,7 @@
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: rutas para que el motor IA arme su catálogo solo    |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-69 P-6: tomar devuelve las variables I3P-1 de la versión de referencia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Rutas internas del motor IA (``motor-ia``): con ellas arma su catálogo sin ``catalogo.json``.
 
 Token ``IOT_INFERENCIA_M04_TOKEN``, sin usuario ni RBAC (como ``POST /prediccion/inferencias``).
@@ -63,6 +64,7 @@ MAX_HORAS_LECTURAS = 24 * 14
 
 
 class VersionMotorResponse(BaseModel):
+    """Versión de modelo asignada a un animal."""
     id_version_modelo: int
     nombre_version: str
     hash_artefacto_sha256: str
@@ -70,6 +72,7 @@ class VersionMotorResponse(BaseModel):
 
 
 class AnimalMotorResponse(BaseModel):
+    """Animal con su tipo de modelo y versión."""
     id_activo_biologico: int
     tipo_modelo: str
     #: None: el animal todavía no tiene versión; el motor pide la copia con el POST.
@@ -77,10 +80,12 @@ class AnimalMotorResponse(BaseModel):
 
 
 class CatalogoMotorResponse(BaseModel):
+    """Catálogo de animales para el motor."""
     animales: list[AnimalMotorResponse]
 
 
 class LecturasMotorResponse(BaseModel):
+    """Lecturas de un animal para el motor."""
     #: Formato largo del contrato IA-1: ``{"timestamp", "variable", "valor", "apto_para_ia"}``.
     lecturas: list[dict[str, Any]]
 
@@ -94,6 +99,7 @@ def _version(v: VersionModelo) -> VersionMotorResponse:
 
 @router.get("/catalogo", response_model=CatalogoMotorResponse, summary="Animales que atiende el motor IA")
 def catalogo(db: Session = Depends(get_db_sistema)) -> CatalogoMotorResponse:
+    """Devuelve el catálogo de animales y modelos para el motor."""
     return CatalogoMotorResponse(animales=[
         AnimalMotorResponse(
             id_activo_biologico=a.id_activo_biologico, tipo_modelo=a.tipo_modelo,
@@ -130,6 +136,7 @@ def asignar_version(id_activo: int, db: Session = Depends(get_db_sistema)) -> Ve
     summary="Artefacto .onnx de una versión ACTIVO o SOMBRA",
 )
 def artefacto(id_version: int, db: Session = Depends(get_db_sistema)) -> FileResponse:
+    """Descarga el artefacto de una versión de modelo."""
     archivo = ObtenerArtefactoVersionUseCase(SqlAlchemyVersionModeloRepository(db)).execute(id_version)
     return FileResponse(archivo, media_type="application/octet-stream", filename=archivo.name)
 
@@ -144,6 +151,7 @@ def lecturas(
     horas: float = Query(..., gt=0, le=MAX_HORAS_LECTURAS),
     db: Session = Depends(get_db_sistema),
 ) -> LecturasMotorResponse:
+    """Devuelve las lecturas recientes de un animal."""
     hasta = datetime.now(timezone.utc)
     return LecturasMotorResponse(
         lecturas=CatalogoMotorM02Adapter(db).lecturas(id_activo, hasta - timedelta(hours=horas), hasta)
@@ -173,6 +181,7 @@ def retroalimentaciones(id_activo: int, db: Session = Depends(get_db_sistema)) -
     summary="Tomar el reentrenamiento pendiente más antiguo (AJF-14, RF-71)",
 )
 def tomar_reentrenamiento(db: Session = Depends(get_db_sistema)):
+    """Reclama el siguiente proceso de reentrenamiento pendiente."""
     proceso = _procesar(db).tomar()
     if proceso is None:
         return Response(status_code=204)
@@ -193,6 +202,7 @@ def tomar_reentrenamiento(db: Session = Depends(get_db_sistema)):
 )
 def actualizar_reentrenamiento(id_proceso: uuid.UUID, dto: ActualizarProcesoDTO,
                                db: Session = Depends(get_db_sistema)) -> ProcesoReentrenamientoResponse:
+    """Actualiza el avance de un proceso de reentrenamiento."""
     proceso = _procesar(db).actualizar(id_proceso, ActualizacionProceso(**dto.model_dump()))
     return ProcesoReentrenamientoResponse.from_entity(proceso)
 

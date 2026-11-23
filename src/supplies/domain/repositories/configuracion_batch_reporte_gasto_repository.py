@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura de la configuración del motor async de reportes de gastos (RF-77)."""
 from __future__ import annotations
 
@@ -18,6 +21,8 @@ class ConfiguracionBatchReporteGasto:
 
 
 class ConfiguracionBatchReporteGastoRepository(ABC):
+    """Puerto de la configuración del procesamiento asíncrono de reportes de gastos."""
     @abstractmethod
     def obtener(self) -> ConfiguracionBatchReporteGasto:
+        """Devuelve la configuración vigente."""
         raise NotImplementedError

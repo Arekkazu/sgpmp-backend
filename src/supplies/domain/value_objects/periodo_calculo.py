@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Value object que resuelve la ventana de fechas de un período ICA (RF-74).
 
 Traduce un ``PeriodoEvaluacion`` a un par ``(fecha_inicio, fecha_fin)`` concreto:
@@ -40,6 +41,7 @@ class PeriodoCalculo:
         fecha_inicio_ciclo: Optional[date] = None,
         fecha_cierre_ciclo: Optional[date] = None,
     ) -> "PeriodoCalculo":
+        """Resuelve las fechas del periodo de cálculo de ICA."""
         if periodo == PeriodoEvaluacion.SEMANAL:
             return cls(periodo, hoy - timedelta(days=6), hoy)
 

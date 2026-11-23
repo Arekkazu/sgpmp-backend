@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: E4/E6, observaciones y longitudes  |
 # | 2026-11-07 | Leandro | INC-M05-270-G14 RF-76: validar dosis decimal(10,4) y rechazar precisión excesiva sin redondear. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar una aplicación de medicamento (RF-76).
 
 ``descripcion_clinica`` (NOT NULL en BD, ausente en el RF) se puebla en el caso
@@ -47,6 +48,7 @@ class RegistrarMedicamentoDTO(BaseDTO):
     @field_validator("motivo_aplicacion")
     @classmethod
     def validar_motivo(cls, v: str) -> str:
+        """Exige un motivo de al menos 10 caracteres."""
         if len(v.strip()) < 10:
             raise ValueError(_MENSAJE_E6)
         return v
@@ -54,12 +56,14 @@ class RegistrarMedicamentoDTO(BaseDTO):
     @field_validator("nombre_veterinario")
     @classmethod
     def validar_veterinario(cls, v: str) -> str:
+        """Exige el nombre del veterinario responsable."""
         if not v.strip():
             raise ValueError("El nombre del veterinario responsable es obligatorio.")
         return v
 
     @model_validator(mode="after")
     def validar_dosis(self) -> "RegistrarMedicamentoDTO":
+        """Exige una dosis mayor a cero."""
         if self.dosis_aplicada <= 0:
             raise ValueError(
                 f"La dosis aplicada debe ser mayor a cero. Valor ingresado: {self.dosis_aplicada} {self.unidad_dosis}."

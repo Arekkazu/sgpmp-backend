@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`MetricaProduccionRepository`."""
 from __future__ import annotations
 
@@ -19,6 +22,7 @@ from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
+    """Implementación SQLAlchemy de ``MetricaProduccionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -45,12 +49,17 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
         )
 
     def obtener_por_id(self, id_metrica_produccion: int, *, bloquear: bool = False) -> Optional[MetricaProduccion]:
+        """Obtiene una métrica por su identidad. Retorna ``None`` si no existe.
+
+        ``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498).
+        """
         orm = self.db.get(MetricaProduccionModel, id_metrica_produccion, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre_y_especie(
         self, nombre: NombreMetrica, id_especie: int
     ) -> Optional[MetricaProduccion]:
+        """Busca una métrica por nombre normalizado dentro de una especie (unicidad por especie)."""
         orm = (
             self.db.query(MetricaProduccionModel)
             .filter(
@@ -64,6 +73,7 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
     def listar_por_especie(
         self, id_especie: int, *, solo_activas: bool = False
     ) -> list[MetricaProduccion]:
+        """Retorna las métricas de una especie ordenadas por nombre."""
         query = self.db.query(MetricaProduccionModel).filter(
             MetricaProduccionModel.id_especie == id_especie
         )
@@ -75,6 +85,7 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
         ]
 
     def guardar(self, metrica: MetricaProduccion) -> MetricaProduccion:
+        """Inserta una métrica nueva. Hace ``flush``. El ``commit`` lo emite el use case."""
         orm = MetricaProduccionModel(
             nombre=metrica.nombre.valor,
             unidad_medida=metrica.unidad_medida,
@@ -98,6 +109,7 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, metrica: MetricaProduccion) -> MetricaProduccion:
+        """Persiste cambios de una métrica existente. Hace ``flush``."""
         orm = self.db.get(MetricaProduccionModel, metrica.id_metrica_produccion)
         orm.nombre = metrica.nombre.valor
         orm.unidad_medida = metrica.unidad_medida
@@ -117,6 +129,7 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
         return self._a_entidad(orm)
 
     def desactivar_todas_por_especie(self, id_especie: int) -> None:
+        """Marca como inactivas todas las métricas activas de una especie. Hace ``flush``."""
         try:
             self.db.query(MetricaProduccionModel).filter(
                 MetricaProduccionModel.id_especie == id_especie,
@@ -127,6 +140,7 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
             raise_from_db_error(exc, {})
 
     def guardar_desde_snapshot(self, datos: dict, id_especie: int, id_usuario: int) -> None:
+        """Inserta una métrica a partir de un dict del params_snapshot. Hace ``flush``."""
         tipo_dato = datos.get('tipo_dato') or TipoDatoAtributo.inferir_desde_tipo_medicion(
             datos['tipo_medicion']
         ).value

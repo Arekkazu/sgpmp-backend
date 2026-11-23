@@ -3,6 +3,8 @@
 # | 2026-11-14 | Arekkazu | M08 RF-103: datos de un widget con las opciones del usuario |
 # | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: el valor del inventario se acota a las fincas permitidas |
 # | 2026-11-22 | Arekkazu | A11Y2-M08 TC-DIS-278 RF-103: el semáforo trae el total de alertas por área |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+# | 2026-11-23 | Arekkazu | QA-M08 CU01 H-04 RF-103: sin comunicación incluye buffer, sin reporte y más de 24 h callado; total de calibrados |
 """Caso de uso: datos de un widget del dashboard para la finca activa (RF-103).
 
 Cada widget se pide por separado: si uno falla o tarda, los demás siguen (CA-5, CA-8, CA-9). El
@@ -48,7 +50,11 @@ _HORAS_PERIODO = {"24h": 24, "7d": 24 * 7, "30d": 24 * 30}
 # Rango del histórico → (desde cuánto, ancho de cada punto): a lo sumo ~60 puntos por sensor.
 _RANGOS = {"6h": (timedelta(hours=6), "10 minutes"), "24h": (timedelta(hours=24), "30 minutes"),
            "7d": (timedelta(days=7), "3 hours")}
-_ESTADOS_SIN_SENAL = ("SIN_SEÑAL", "INACTIVO")
+# QA M08 CU01 H-04: sin comunicación es todo el que no manda heartbeat, también el que guarda los datos en su
+# buffer mientras no tiene señal, el que nunca reportó y el que lleva más de un día callado aunque su estado no
+# haya cambiado todavía. El que está en mantenimiento no cuenta: se apagó a propósito.
+_ESTADOS_SIN_SENAL = ("SIN_SEÑAL", "INACTIVO", "BUFFER_ACTIVO", "DESCONOCIDO")
+_SILENCIO_MAXIMO = timedelta(hours=24)
 
 
 @dataclass
@@ -61,6 +67,7 @@ class Resultado:
 
 @dataclass
 class DatosWidget:
+    """Datos de un widget del tablero con su estado y mensaje."""
     clave: str
     estado: str
     mensaje: Optional[str]
@@ -116,6 +123,7 @@ class ObtenerDatosWidgetUseCase:
 
     def execute(self, clave: str, id_finca: Optional[int], usuario: UsuarioActual,
                 ahora: Optional[datetime] = None) -> DatosWidget:
+        """Devuelve los datos del widget para la finca indicada."""
         ahora = ahora or datetime.now(timezone.utc)
         definicion, id_widget = self.autorizar(clave, usuario)
         permitidas = self.validar_finca(id_finca, definicion, usuario)
@@ -144,6 +152,11 @@ class ObtenerDatosWidgetUseCase:
     # --- Validaciones compartidas con el caso de uso de opciones ---------------------------------
 
     def autorizar(self, clave: str, usuario: UsuarioActual) -> tuple[DefinicionWidget, int]:
+        """Valida que el widget exista, esté activo y el rol del usuario lo pueda ver.
+
+        Returns:
+            Tupla con la definición del widget y su id.
+        """
         definicion = DEFINICIONES.get(clave)
         widget = next((w for w in self.widget_repo.obtener_activos() if w.clave == clave), None)
         if definicion is None or widget is None:
@@ -301,7 +314,10 @@ class ObtenerDatosWidgetUseCase:
 
     def _sin_senal(self, id_finca, parametros, **_) -> Resultado:
         filas, alcance = self._dispositivos(id_finca, parametros)
-        caidos = sorted((f for f in filas if f["estado"] in _ESTADOS_SIN_SENAL),
+        limite = datetime.now(timezone.utc) - _SILENCIO_MAXIMO
+        caidos = sorted((f for f in filas if f["estado"] != "EN_MANTENIMIENTO" and (
+                            f["estado"] in _ESTADOS_SIN_SENAL or f["fecha_ultimo_contacto"] is None
+                            or f["fecha_ultimo_contacto"] < limite)),
                         key=lambda f: (f["fecha_ultimo_contacto"] is not None,
                                        f["fecha_ultimo_contacto"] or datetime.min.replace(tzinfo=timezone.utc)))
         return Resultado({"items": caidos[:_LIMITE_LISTA], "total": len(caidos)}, alcance=alcance)
@@ -310,7 +326,8 @@ class ObtenerDatosWidgetUseCase:
         filas, alcance = self._dispositivos(id_finca, parametros)
         recientes = sorted((f for f in filas if f["ultima_calibracion"] is not None),
                            key=lambda f: f["ultima_calibracion"], reverse=True)
-        return Resultado({"items": recientes[:_LIMITE_LISTA], "total": len(filas)},
+        # El total es el de calibrados (lo que la lista resume), no el de dispositivos de la finca.
+        return Resultado({"items": recientes[:_LIMITE_LISTA], "total": len(recientes)},
                          sin_datos=not filas, alcance=alcance)
 
     def _configuracion_pendiente(self, id_finca, parametros, **_) -> Resultado:

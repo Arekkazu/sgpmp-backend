@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | INC-M05-340-G27 RF-78 CA-13: unidad de medida de cada tipo directo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Tipos de suministro acumulables por RF-78.
 
 Mapea el ``CHECK`` de ``modulo5.registro_suministro.tipo_suministro``. ALIMENTO
@@ -14,6 +15,7 @@ from enum import Enum
 
 
 class TipoSuministro(str, Enum):
+    """Tipo de suministro costeado."""
     ALIMENTO = "ALIMENTO"
     MEDICAMENTO = "MEDICAMENTO"
     SERVICIO_VETERINARIO = "SERVICIO_VETERINARIO"

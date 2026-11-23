@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: rol del usuario sin id quemado     |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto para saber si un usuario es el Veterinario responsable (RF-76 paso 9).
 
 No decide acceso (eso es RBAC en el router): solo identifica a quién notificar
@@ -12,6 +13,8 @@ from abc import ABC, abstractmethod
 
 
 class RolUsuarioPort(ABC):
+    """Puerto de consulta del rol del usuario."""
     @abstractmethod
     def es_veterinario(self, id_usuario: int) -> bool:
+        """Indica si el usuario tiene rol de veterinario."""
         raise NotImplementedError

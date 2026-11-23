@@ -8,6 +8,8 @@
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: valor de la condición actual (lectura fuera de rango) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta del tablero y el historial de monitoreo."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -178,6 +180,7 @@ class AlertaCorrelacionadaSchema(BaseModel):
 
 
 class PuntoSerieSchema(BaseModel):
+    """Punto de una serie histórica con su semáforo."""
     timestamp_captura: datetime
     valor: Optional[Decimal] = None
     estado_semaforo_historico: str

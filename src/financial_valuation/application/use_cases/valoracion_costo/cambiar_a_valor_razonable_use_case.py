@@ -4,6 +4,7 @@
 # | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
 # | 2026-11-16 | Arekkazu | QA-M06 CU07 H-02 RF-87/88: el paso a valor razonable no entra a un período cerrado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-88 paso 9: cuando hay precio confiable, el activo pasa a valor razonable (¶30 lo
 exige). La diferencia entre el valor por costo y el valor razonable neto va a resultados.
 
@@ -28,6 +29,7 @@ from src.shared.fechas import hoy_usuario
 
 
 class CambiarAValorRazonableUseCase:
+    """Pasa un activo valorado al costo a valor razonable."""
     def __init__(self, db: Session, activos: ActivoFinancieroPort, valoraciones: ValoracionRepository,
                  valorador: Valorador, contabilizador: Contabilizador) -> None:
         self.db = db
@@ -37,6 +39,7 @@ class CambiarAValorRazonableUseCase:
         self.contabilizador = contabilizador
 
     def execute(self, id_activo_biologico: int, id_usuario: int) -> dict:
+        """Cierra la valoración al costo y reconoce el valor razonable."""
         activo = self.activos.obtener(id_activo_biologico)
         costo = self.valoraciones.valoracion_costo_activa(id_activo_biologico)
         if activo is None or costo is None:

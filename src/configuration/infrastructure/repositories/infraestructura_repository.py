@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: especies del área en la puente y capacidad_maxima derivada |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``InfraestructuraRepository``."""
 from __future__ import annotations
 
@@ -24,11 +25,13 @@ from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
+    """Implementación SQLAlchemy de ``InfraestructuraRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def especies_del_area(self, orm: InfraestructuraModel) -> list[EspecieDelArea]:
+        """Devuelve las especies asociadas al área."""
         ids = [fila.id_especie for fila in orm.especies]
         if not ids:
             return []
@@ -70,6 +73,9 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
         ids_fincas_permitidas: Optional[list[int]] = None,
         bloquear: bool = False,
     ) -> Optional[Infraestructura]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` para que dos
+        ediciones simultáneas no pasen ambas el control de concurrencia (#498).
+        """
         orm = self.db.get(
             InfraestructuraModel, id_infraestructura, with_for_update=bloquear, populate_existing=bloquear,
         )
@@ -80,6 +86,7 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
         return self._a_entidad(orm)
 
     def guardar(self, infraestructura: Infraestructura) -> Infraestructura:
+        """Inserta la infraestructura y devuelve la entidad con su id asignado."""
         orm = InfraestructuraModel(
             nombre=infraestructura.nombre.valor,
             tipo=infraestructura.tipo,
@@ -105,6 +112,9 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, infraestructura: Infraestructura) -> Infraestructura:
+        """Persiste los cambios de la infraestructura y devuelve la entidad
+        actualizada.
+        """
         orm = self.db.get(InfraestructuraModel, infraestructura.id_infraestructura)
         orm.nombre = infraestructura.nombre.valor
         orm.tipo = infraestructura.tipo
@@ -139,6 +149,9 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
         solo_activas: bool = False,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[Infraestructura]:
+        """Lista las infraestructuras de la finca, opcionalmente solo activas y dentro
+        del alcance permitido.
+        """
         if ids_fincas_permitidas is not None and id_finca not in ids_fincas_permitidas:
             return []
         query = self.db.query(InfraestructuraModel).filter(InfraestructuraModel.id_finca == id_finca)

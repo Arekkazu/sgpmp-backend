@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de las lecturas de telemetría (tabla ``modulo3.telemetrias``).
+
+Mapea valor crudo y ajustado, calidad, calibración, ubicación y los indicadores
+de latencia, drift y bufferización de cada lectura.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +20,8 @@ from .base_model import Base
 
 
 class TelemetriaModel(Base):
+    """Fila de la tabla ``modulo3.telemetrias``."""
+
     __tablename__ = 'telemetrias'
     __table_args__ = (
         PrimaryKeyConstraint('id_telemetria', name='telemetrias_pkey'),

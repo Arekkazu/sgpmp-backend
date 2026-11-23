@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                   |
 # |------------|----------|---------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: valores elegibles de las opciones de un widget      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: qué se puede elegir en cada opción de un widget (RF-103, "Configurar widget").
 
 Las áreas, especies y sensores son los de la finca activa; las opciones de lista devuelven sus
@@ -22,6 +23,7 @@ class ObtenerOpcionesWidgetUseCase:
         self.datos_widget = datos_widget
 
     def execute(self, clave: str, id_finca: Optional[int], usuario: UsuarioActual) -> dict[str, list[dict[str, Any]]]:
+        """Devuelve las opciones elegibles de configuración del widget para la finca."""
         definicion, _ = self.datos_widget.autorizar(clave, usuario)
         self.datos_widget.validar_finca(id_finca, definicion, usuario)
         datos = self.datos_widget.datos

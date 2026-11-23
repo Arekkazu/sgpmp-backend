@@ -2,6 +2,7 @@
 # |------------|----------|---------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: entrega por push con reintentos, correo de críticas y purga |
 # | 2026-11-18 | Arekkazu | M08 RF-105 R6: respeta las preferencias de canal del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entrega en segundo plano de las notificaciones (RF-105 Fase 3) y su retención (restricción 3).
 
 La fila interna es la fuente de verdad: ya está en la bandeja apenas se registra. Este proceso
@@ -43,6 +44,7 @@ _RETENCION_INFORMATIVAS = timedelta(days=30)
 
 
 class EntregarNotificacionesUseCase:
+    """Entrega por push y correo las notificaciones pendientes."""
 
     def __init__(
         self,
@@ -57,6 +59,7 @@ class EntregarNotificacionesUseCase:
         self.enviar_correo = enviar_correo
 
     def execute(self, ahora: Optional[datetime] = None, limite: int = 50) -> int:
+        """Entrega hasta ``limite`` notificaciones pendientes y devuelve cuántas se procesaron."""
         ahora = ahora or datetime.now(timezone.utc)
         correos: list[EntregaPendiente] = []
         try:
@@ -133,6 +136,7 @@ class PurgarNotificacionesUseCase:
         self.repo = notificaciones_repo
 
     def execute(self, ahora: Optional[datetime] = None) -> int:
+        """Borra las notificaciones informativas vencidas y devuelve cuántas se borraron."""
         ahora = ahora or datetime.now(timezone.utc)
         try:
             borradas = self.repo.purgar_informativas(ahora - _RETENCION_INFORMATIVAS)

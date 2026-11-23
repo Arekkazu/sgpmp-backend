@@ -7,6 +7,7 @@
 # | 2026-11-10 | Arekkazu | #394 RF-36: estado de la densidad del lote frente al límite de su etapa o especie |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta de los endpoints de activos biológicos (M02)."""
 
 from __future__ import annotations
@@ -103,11 +104,13 @@ class PatologiaActivoResponse(BaseModel):
 
 
 class PatologiasActivoResponse(BaseModel):
+    """Patologías de la especie del activo."""
     id_activo_biologico: int
     items: list[PatologiaActivoResponse]
 
 
 class MetricasActivoResponse(BaseModel):
+    """Métricas productivas aplicables al activo."""
     id_activo_biologico: int
     total: int
     items: list[MetricaActivoResponse]

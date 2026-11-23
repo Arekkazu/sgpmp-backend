@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | RF-SSO02: UPDATE_USER de AgroFusion sobre la edición administrativa de perfil |
 # | 2026-11-06 | Arekkazu | RF-SSO02: usuario por id o correo y roles como lista de ids |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: actualización de un usuario pedida por AgroFusion (`UPDATE_USER`, RF-SSO02).
 
 Reutiliza la edición administrativa de perfil (RF-05) con el usuario del token de canal como
@@ -25,6 +26,7 @@ from src.shared.errors import ValidationError
 
 
 class ActualizarUsuarioAgroFusionUseCase:
+    """Actualiza desde AgroFusion los datos y el rol de un usuario existente."""
     def __init__(self, usuarios_repo: UsuarioRepository, roles_repo: RolRepository, editar_perfil: EditarPerfilUseCase):
         self.usuarios_repo = usuarios_repo
         self.roles_repo = roles_repo

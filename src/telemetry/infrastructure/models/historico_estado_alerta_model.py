@@ -1,3 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM del histórico de estados de alertas (tabla ``modulo3.historico_estados_alertas``).
+
+Registra cada transición de estado con su usuario y motivo.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,6 +17,8 @@ from .base_model import Base
 
 
 class HistoricoEstadoAlertaModel(Base):
+    """Fila de la tabla ``modulo3.historico_estados_alertas``."""
+
     __tablename__ = 'historico_estados_alertas'
     __table_args__ = {'schema': 'modulo3'}
 

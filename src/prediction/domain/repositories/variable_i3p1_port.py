@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: variables que admite una patología |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de las variables admitidas en las patologías."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -16,6 +18,7 @@ CODIGOS_VARIABLES_PATOLOGIA = frozenset({
 
 
 class VariableI3P1Port(ABC):
+    """Puerto para validar las variables de una patología."""
     @abstractmethod
     def obtener_ids_activos(self, ids: list[int]) -> list[int]:
         """Devuelve los ids que existen y están activos en el catálogo I3P-1."""

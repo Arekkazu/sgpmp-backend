@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de los periodos de inactividad (tabla ``modulo3.periodos_inactividad``).
+
+Delimita el intervalo sin reporte de un dispositivo, los sensores afectados y
+su diagnóstico.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +19,8 @@ from .base_model import Base
 
 
 class PeriodoInactividadModel(Base):
+    """Fila de la tabla ``modulo3.periodos_inactividad``."""
+
     __tablename__ = 'periodos_inactividad'
     __table_args__ = {'schema': 'modulo3'}
 

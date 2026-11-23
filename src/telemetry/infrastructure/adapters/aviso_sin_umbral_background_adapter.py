@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: aviso E7 fuera del GET del dashboard (BackgroundTasks) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """Aviso de RF-58 E7 en segundo plano: el dashboard no espera al SMTP.
 
 INC-M03-177-G57B (CA-13, 500 ms): ``AvisoSinUmbralEmailAdapter`` corría dentro del GET.
@@ -48,10 +49,13 @@ def _procesar_aviso_sin_umbral(sensores: list[EstadoSensorActual]) -> None:
 
 
 class AvisoSinUmbralBackgroundAdapter(AvisoSinUmbralPort):
+    """Agenda el aviso de variables sin umbral en tareas de fondo."""
+
     def __init__(self, background_tasks: BackgroundTasks) -> None:
         self._background_tasks = background_tasks
 
     def avisar(self, sensores: list[EstadoSensorActual]) -> int:
+        """Agenda el aviso para los sensores aún no en curso y devuelve cuántos agendó."""
         with _CANDADO:
             nuevos = [s for s in sensores if s.id_sensor not in _EN_CURSO]
             _EN_CURSO.update(s.id_sensor for s in nuevos)

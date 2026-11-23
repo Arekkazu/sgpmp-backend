@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-01 RF-46: historial con alertas IoT, cambios de riesgo, diagnósticos clínicos y contagio alto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Filtros de ``GET /activos-biologicos/{id_activo}/historial`` (RF-46)."""
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ class ConsultarHistorialDTO(BaseDTO):
     @field_validator('categoria_evento', mode='before')
     @classmethod
     def validar_categoria(cls, v: object) -> Optional[str]:
+        """Normaliza y valida la categoría opcional."""
         if v is None:
             return None
         v_str = str(v).strip().upper()
@@ -50,6 +52,7 @@ class ConsultarHistorialDTO(BaseDTO):
     @field_validator('pagina', mode='before')
     @classmethod
     def validar_pagina(cls, v: object) -> int:
+        """Exige una página mayor o igual a 1."""
         val = int(v)
         if val < 1:
             raise ValueError('La página debe ser mayor o igual a 1.')
@@ -58,6 +61,7 @@ class ConsultarHistorialDTO(BaseDTO):
     @field_validator('page_size', mode='before')
     @classmethod
     def validar_page_size(cls, v: object) -> int:
+        """Exige un tamaño de página entre 1 y 100."""
         val = int(v)
         if val < 1 or val > 100:
             raise ValueError('El tamaño de página debe estar entre 1 y 100.')

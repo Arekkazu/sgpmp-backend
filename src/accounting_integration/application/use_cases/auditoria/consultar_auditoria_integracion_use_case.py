@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-102 Fases 6-9: consulta y exportación de la auditoría con verificación de integridad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Consulta de la auditoría de integración (RF-102).
 
 Cada registro se verifica al leerlo: si el hash recalculado no coincide se marca ``CORRUPTO`` y se
@@ -26,6 +27,7 @@ _LIMITE_EXPORTACION = 50_000
 
 
 class ConsultarAuditoriaIntegracionUseCase:
+    """Consulta la auditoría de integración y verifica la integridad de lo listado."""
     def __init__(self, auditoria: AuditoriaIntegracionRepository, alertar: Callable[[str, dict], None]):
         self.auditoria = auditoria
         self.alertar = alertar
@@ -54,6 +56,7 @@ class ConsultarAuditoriaIntegracionUseCase:
         return resultado
 
     def execute(self, filtros: FiltrosAuditoria, pagina: int, tamano: int, restringida: bool) -> dict:
+        """Devuelve la página de eventos filtrados con su total."""
         tamano = max(1, min(tamano, TAMANO_MAXIMO))
         filtros = self._filtros(filtros, restringida)
         filas, total = self.auditoria.consultar(filtros, pagina, tamano)

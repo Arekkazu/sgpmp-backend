@@ -2,6 +2,8 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: evita FK invalidas al auditar estructura |
 # | 2026-11-19 | Arekkazu | SEG-M03-01 RF-53: retira registrar_exito, que descartaba el fallo en silencio y no tenía llamadores |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Repositorio de la bitácora de ingesta de telemetría (RF-53)."""
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -28,6 +30,7 @@ _SEVERIDAD_POR_ESTADO: dict[str, str] = {
 
 
 class SqlAlchemyBitacoraIngestRepository(BitacoraIngestRepository):
+    """Registra los eventos de error de la ingesta de telemetría."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -42,6 +45,11 @@ class SqlAlchemyBitacoraIngestRepository(BitacoraIngestRepository):
         timestamp_captura: Optional[datetime] = None,
         gateway_id: Optional[str] = None,
     ) -> None:
+        """Registra un error de ingesta con severidad derivada del estado de calidad.
+
+        En ``ERROR_ESTRUCTURA`` solo enlaza sensores y dispositivos que existan,
+        para no violar claves foráneas con referencias no confiables.
+        """
         try:
             if estado_calidad == 'ERROR_ESTRUCTURA' and (id_sensor is not None or id_dispositivo_iot is not None):
                 # El body rechazado no garantiza referencias válidas. La sesión

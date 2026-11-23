@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: marcar o desmarcar una variable como crítica, con auditoría (RFC-016) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: marcar una variable ambiental como crítica (RFC-016 B.7, RF-17).
 
 El permiso (solo Administrador, DB-08) lo exige el router. El cambio queda en la
@@ -20,6 +21,7 @@ TIPO_EVENTO_CAMBIO_VARIABLE_CRITICA = 31  # modulo1.tipos_eventos 'CAMBIO_VARIAB
 
 
 class ActualizarVariableCriticaUseCase:
+    """Marca o desmarca una variable ambiental como crítica."""
 
     def __init__(self, db: Session, variable_repo: VariableAmbientalRepository, eventos_repo: EventoRepository) -> None:
         self.db = db
@@ -27,6 +29,7 @@ class ActualizarVariableCriticaUseCase:
         self.eventos_repo = eventos_repo
 
     def execute(self, id_variable_ambiental: int, es_critica: bool, usuario_actual: UsuarioActual) -> VariableAmbiental:
+        """Cambia la criticidad de la variable y la audita."""
         variable = self.variable_repo.obtener_por_id(id_variable_ambiental)
         if variable is None:
             raise NotFoundError(

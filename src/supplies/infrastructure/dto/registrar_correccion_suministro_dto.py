@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: corrección aditiva (R12/RNF-09)    |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para una CORRECCION del ledger de RF-78.
 
 La corrección es un ajuste que SUMA al acumulado (R12, CA-8): su costo es
@@ -20,6 +21,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarCorreccionSuministroDTO(BaseDTO):
+    """Datos de la corrección de un suministro costeado."""
     id_idempotencia: UUID
     cantidad: Decimal = Field(description="Cantidad del ajuste (> 0).")
     precio_unitario: Decimal = Field(description="Precio unitario del ajuste; negativo si compensa (≠ 0).")

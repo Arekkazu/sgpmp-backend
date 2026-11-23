@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-SSO02 / RF-101 Fase 2: token de canal para AgroFusion (GET_AUTHORIZATION) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Emite el token de canal a nombre de un usuario de SGPMP (RF-SSO02, RF-101 Fase 2).
 
 Las credenciales del cliente llegan solo en el cuerpo de esta llamada. El token no crea sesión: la
@@ -21,6 +22,7 @@ EmisorToken = Callable[[int, int, int, str, int], tuple[str, int]]
 
 
 class EmitirTokenCanalUseCase:
+    """Emite el token de canal para un cliente externo y un usuario."""
     def __init__(self, clientes: ClienteExternoRepository, usuarios: UsuarioCanalRepository, emitir: EmisorToken,
                  limitar: Limitador, auditar: Callable[[EventoIntegracion], None]):
         self.clientes = clientes
@@ -30,6 +32,7 @@ class EmitirTokenCanalUseCase:
         self.auditar = auditar
 
     def execute(self, client_id: str, client_secret: str, correo: str, ip: Optional[str]) -> tuple[str, int]:
+        """Valida cliente, secreto y usuario y devuelve el token con su vigencia en segundos."""
         id_cliente = id_usuario = None
         try:
             cliente = self.clientes.obtener_por_identificador(client_id)

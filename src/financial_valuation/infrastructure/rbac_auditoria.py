@@ -4,6 +4,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-351 RF-87: el 403 auditado también nombra el rol del usuario |
 # | 2026-11-10 | Arekkazu | TC-DIS-262 RF-93: variante «alguno de» para lecturas compartidas |
 # | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Dependencia RBAC de M06 que registra en RF-94 cada rechazo 403 (RNF-82-05).
 
 La autorización sigue siendo ``require_permission_sobre``; esta capa solo agrega el evento
@@ -38,6 +39,7 @@ def _id_de_ruta(request: Request, nombre: str) -> Optional[int]:
 
 
 def require_permission_m06(nombre_recurso: str, id_accion: int, *, mensaje_denegado: Optional[str] = None) -> Callable:
+    """Dependencia RBAC que además audita los accesos denegados."""
     return _auditada(require_permission_sobre(nombre_recurso, id_accion, mensaje_denegado=mensaje_denegado), nombre_recurso, id_accion)
 
 

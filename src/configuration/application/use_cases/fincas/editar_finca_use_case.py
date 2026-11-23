@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Editar finca existente (PATCH RF-19). Concurrencia optimista (FA-14)."""
 from __future__ import annotations
 
@@ -30,6 +33,7 @@ class EditarFincaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_finca: int, dto: EditarFincaDTO, usuario_actual: UsuarioActual) -> Finca:
+        """Edita la finca y la audita."""
         finca = self.finca_repo.obtener_por_id(id_finca, bloquear=True)
         if finca is None:
             raise NotFoundError(code="FINCA_NO_ENCONTRADA", message=f"No existe una finca con ID {id_finca}.")

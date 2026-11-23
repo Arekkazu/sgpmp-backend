@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM del estado de sincronización de reglas por gateway Edge."""
 from __future__ import annotations
 
 from datetime import datetime

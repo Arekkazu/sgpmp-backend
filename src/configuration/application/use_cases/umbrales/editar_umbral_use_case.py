@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Editar umbral ambiental y sus niveles de alerta (Flujo B — RF-17).
 
 Concurrencia optimista mediante ``fecha_actualizacion`` (FA-09 → HTTP 412).
@@ -56,6 +57,7 @@ class EditarUmbralUseCase:
         dto: EditarUmbralDTO,
         usuario_actual: UsuarioActual,
     ) -> UmbralAmbiental:
+        """Edita el umbral con control de concurrencia y lo audita."""
         umbral = self.umbral_repo.obtener_por_id(id_umbral_ambiental, bloquear=True)
         if umbral is None:
             raise NotFoundError(

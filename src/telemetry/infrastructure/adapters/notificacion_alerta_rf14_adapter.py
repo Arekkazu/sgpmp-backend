@@ -4,6 +4,7 @@
 # | 2026-11-03 | Arekkazu | RF-57 E7: un reintento por minuto elegido y pausa de 1 min si el SMTP falla (bucle de SMTP en dev) |
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: nombres del área, finca, animal y sensor para los correos de alertas |
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel por severidad, animal y datos del push de la alerta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`NotificacionAlertaPort` sobre el servicio de notificaciones de RF-14.
 
 Cada notificación cuelga de un evento en ``modulo1.eventos`` (tipo 32
@@ -70,11 +71,13 @@ _SQL_FALLIDAS = text(
 
 
 class NotificacionAlertaRf14Adapter(NotificacionAlertaPort):
+    """Notifica alertas mediante el sistema de notificaciones de usuarios."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def destinatarios(self, id_infraestructura: Optional[int], *, escalamiento: bool) -> list[int]:
+        """Devuelve los usuarios con permiso sobre las alertas del área."""
         if id_infraestructura is None:
             return []
         accion = _ACCION_DESCARTAR if escalamiento else _ACCION_LEER
@@ -85,6 +88,7 @@ class NotificacionAlertaRf14Adapter(NotificacionAlertaPort):
         self, *, id_infraestructura: Optional[int] = None, id_activo_biologico: Optional[int] = None,
         id_sensor: Optional[int] = None,
     ) -> ContextoAlerta:
+        """Devuelve los nombres de área, activo y sensor para el texto de la alerta."""
         try:
             fila = self.db.execute(_SQL_CONTEXTO, {
                 "area": id_infraestructura, "activo": id_activo_biologico, "sensor": id_sensor,
@@ -97,10 +101,12 @@ class NotificacionAlertaRf14Adapter(NotificacionAlertaPort):
         return ContextoAlerta(area=fila.area, finca=fila.finca, activo=fila.activo, sensor=fila.sensor)
 
     def administradores(self) -> list[int]:
+        """Devuelve los ids de los usuarios administradores."""
         return list(self.db.execute(_SQL_ADMINISTRADORES).scalars().all())
 
     def enviar(self, id_usuario: int, titulo: str, cuerpo: str, *, agrupable: bool,
                alerta: Optional[Alerta] = None) -> Optional[bool]:
+        """Registra y envía la notificación al usuario; ``None`` si no se pudo registrar."""
         try:
             SqlAlchemyEventoRepository(self.db).registrar(
                 tipo_evento=TIPO_EVENTO_NOTIFICACION_ALERTA,
@@ -140,6 +146,7 @@ class NotificacionAlertaRf14Adapter(NotificacionAlertaPort):
         }
 
     def reintentar_fallidas(self, ahora: datetime) -> int:
+        """Reintenta las notificaciones fallidas y devuelve cuántas se reenviaron."""
         global _pausa_hasta
         if _pausa_hasta is not None and ahora < _pausa_hasta:
             return 0

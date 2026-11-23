@@ -2,11 +2,14 @@
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: definir consulta del último reporte dentro del alcance por finca. |
 # | 2026-10-29 | Arekkazu | TC-DIS-148 RF-54: listado del buffer de todos los dispositivos del alcance |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de consulta del estado de buffer reportado por los dispositivos."""
 from abc import ABC, abstractmethod
 from src.telemetry.domain.entities.estado_buffer import EstadoBufferReportado
 
 
 class EstadoBufferRepository(ABC):
+    """Puerto de lectura del estado de buffer de un dispositivo."""
     @abstractmethod
     def obtener(self, id_dispositivo_iot: int, ids_fincas_permitidas: list[int] | None) -> EstadoBufferReportado | None:
         """None indica dispositivo inexistente o fuera del alcance; no implica buffer vacío."""

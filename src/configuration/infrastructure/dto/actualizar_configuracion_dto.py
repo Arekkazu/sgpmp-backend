@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para actualizar la configuración operativa global (PATCH RF-18).
 
 Incluye ``fecha_actualizacion`` como token de concurrencia optimista.
@@ -27,11 +28,13 @@ class ActualizarConfiguracionDTO(BaseDTO):
     @model_validator(mode='before')
     @classmethod
     def comprobar_alias(cls, datos):
+        """Rechaza el payload si trae el umbral sin señal con dos nombres distintos."""
         return validar_alias_umbral(datos)
 
     @field_validator("frecuencia_muestreo", "heartbeat")
     @classmethod
     def validar_entero_positivo(cls, v: int) -> int:
+        """Exige un entero positivo."""
         if not isinstance(v, int) or isinstance(v, bool) or v <= 0:
             raise ValueError(
                 f"Debe ser un número entero positivo mayor a 0. Valor recibido: {v}."

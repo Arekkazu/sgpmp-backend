@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para los endpoints de patologías por especie (RF-16)."""
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ class PatologiaEspecieItemResponse(BaseModel):
     @field_validator("nombre", mode="before")
     @classmethod
     def extraer_nombre(cls, v: object) -> str:
+        """Convierte el value object del nombre en texto."""
         if hasattr(v, "valor"):
             return v.valor  # type: ignore[attr-defined]
         return str(v)

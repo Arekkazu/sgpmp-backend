@@ -2,6 +2,8 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: admitir el perfil MVP separado del modo de despliegue. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO de configuración del motor de IA."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -14,6 +16,7 @@ from src.shared.tipo_modelo import Componente
 
 
 class ConfigurarMotorDTO(BaseDTO):
+    """Parámetros de configuración del motor de un tipo de modelo."""
     tipo_modelo: str
     # RF-65 v2.0 (RFC-009): obligatorios según el paradigma del tipo_modelo; el use
     # case exige los que aplican y descarta los que no.
