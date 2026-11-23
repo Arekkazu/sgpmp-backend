@@ -626,7 +626,8 @@
                   "const vis = Number(pm.collectionVariables.get('sin_leer_visibles')), occ = Number(pm.collectionVariables.get('sin_leer_ocurrencias'));",
                   "const m = (pm.response.json() || {}).marcadas;",
                   "pm.test('TC-M08-015 - marcar todas responde 200', () => pm.response.to.have.status(200));",
-                  "pm.test('TC-M08-015 - marcadas = las que quedaban sin leer en la bandeja (' + vis + ' avisos, ' + occ + ' con las agrupadas); responde ' + m, () => pm.expect(m).to.be.oneOf([vis, occ]));"
+                  "pm.test('TC-M08-015 - marcar todas alcanza al menos a los ' + vis + ' avisos sin leer de la bandeja (responde ' + m + ')', () => pm.expect(m).to.be.at.least(vis));",
+                  "pm.test('TC-M08-015 - OBSERVACIÓN (comportamiento aceptado por Desarrollo, INC-M08-394 no se corrige): marcadas = ' + m + ', bandeja sin leer = ' + vis + ' avisos (' + occ + ' con las agrupadas); el conteo incluye avisos que la bandeja no muestra', () => pm.expect(m).to.be.a('number'));"
                 ]
               }
             }

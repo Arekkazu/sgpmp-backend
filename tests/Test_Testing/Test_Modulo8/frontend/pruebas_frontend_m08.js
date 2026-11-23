@@ -1,6 +1,7 @@
 // | Fecha      | Nombre           | Que se hizo                                                        |
 // |------------|------------------|--------------------------------------------------------------------|
 // | 2026-11-19 | Juan Manuel      | TC-M08 RF-103/RF-105: pasos de frontend con Playwright (Chrome)    |
+// | 2026-11-22 | Juan Manuel      | TC-M08-017: «Descartar» de no críticas se mira en la bandeja del Productor |
 /*
  * Pasos de navegador de RF-103 (G001-G005) y RF-105 (G013, G014) contra el frontend de TEST.
  * Solo mira y mide: no marca, atiende ni descarta notificaciones (eso se prueba por API dentro del sandbox).
@@ -187,8 +188,21 @@ async function g013_g014(browser) {
   anotar('G014', 'RF-105', 'TC-M08-017', 'En la bandeja una crítica no tiene «Descartar» y sí «Marcar como atendida»',
     criticas.length > 0 && criticas.every(t => !/Descartar/.test(t) && /Marcar como atendida/.test(t)),
     `${criticas.length} críticas visibles; con «Descartar»: ${criticas.filter(t => /Descartar/.test(t)).length}`, capB);
-  anotar('G014', 'RF-105', 'TC-M08-017', 'Una advertencia o informativa sí ofrece «Descartar»', otras.some(t => /Descartar/.test(t)),
-    `${otras.length} advertencias/informativas visibles; con «Descartar»: ${otras.filter(t => /Descartar/.test(t)).length}`);
+  // El admin ya no tiene informativas (eran inicios de sesión, ocultos de la bandeja): se miran en la del Productor.
+  {
+    const p = await nuevaSesion(browser, 'prod');
+    await esperarDashboard(p.page, p.red);
+    const camP = await p.page.$('button[aria-controls="notification-tray"]');
+    if (camP) await camP.click();
+    await p.page.waitForSelector('#notification-tray', { timeout: 8000 }).catch(() => {});
+    await p.page.waitForTimeout(2500);
+    const itemsP = await p.page.$$eval('#notification-tray article.notification-tray__item', es => es.map(e => e.innerText));
+    const otrasP = itemsP.filter(t => /Advertencia|Informativa/.test(t));
+    const capP = await captura(p.page);
+    anotar('G014', 'RF-105', 'TC-M08-017', 'Una advertencia o informativa sí ofrece «Descartar» (bandeja del Productor)', otrasP.length > 0 && otrasP.every(t => /Descartar/.test(t)),
+      `${otrasP.length} advertencias/informativas visibles; con «Descartar»: ${otrasP.filter(t => /Descartar/.test(t)).length}`, capP);
+    await p.ctx.close();
+  }
   if (criticas.length) {
     // «Marcar como atendida» solo abre un formulario dentro de la tarjeta (no envía nada); se cierra con su Cancelar.
     const tarjeta = s.page.locator('#notification-tray article.notification-tray__item', { hasText: 'Crítica' }).first();
