@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: modo PROGRAMADO espera su ventana (E1) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Avisar ``ota/notify`` a los nodos de una fase del rollout (DEV-15, D6 paso 3).
 
 Lo usan crear la distribución (fase CANARY) y el avance de fase al llegar el
@@ -29,6 +30,7 @@ MOTIVO_FUERA_VENTANA = "FUERA_VENTANA_ACTUALIZACION"
 
 
 def ttl_url() -> timedelta:
+    """Vigencia de las URL firmadas de descarga OTA."""
     return timedelta(seconds=int(os.environ.get("OTA_URL_TTL_SEGUNDOS", _TTL_URL_DEFAULT_SEGUNDOS)))
 
 

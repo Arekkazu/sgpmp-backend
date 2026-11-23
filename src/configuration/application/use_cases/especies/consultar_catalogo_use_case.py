@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar catálogo de especies productivas (Flujo E — RF-15).
 
 Disponible para cualquier usuario autenticado. Permite filtrar por estado
@@ -17,4 +20,5 @@ class ConsultarCatalogoUseCase:
         self.especies_repo = especies_repo
 
     def execute(self, *, solo_activas: bool = False) -> list[Especie]:
+        """Lista las especies del catálogo."""
         return self.especies_repo.listar(solo_activas=solo_activas)

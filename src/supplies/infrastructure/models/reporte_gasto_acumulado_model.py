@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: parámetros completos del reporte   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.reporte_gastos_acumulados`` (RF-77 / CU-04).
 
 Generado con sqlacodegen (reflexión de la BD) y adaptado a las convenciones del
@@ -34,6 +35,7 @@ from .base_model import Base
 
 
 class ReporteGastoAcumuladoModel(Base):
+    """Modelo ORM de la tabla ``modulo5.reporte_gastos_acumulados``."""
     __tablename__ = 'reporte_gastos_acumulados'
     __table_args__ = (
         ForeignKeyConstraint(['id_activo_biologico'], ['modulo2.activos_biologicos.id_activo_biologico'], name='fk_registro_gasto_acumulado_activo_biologico'),

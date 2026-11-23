@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``WidgetDatosRepository`` (RF-28).
 
 Lee las vistas ``modulo9.vw_rf28_widget_*`` que ya existían en el esquema y que
@@ -25,11 +28,13 @@ _FUENTES_PERMITIDAS = {
 
 
 class SqlAlchemyWidgetDatosRepository:
+    """Lee los datos de los widgets del tablero desde su vista."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener(self, fuente_datos: str) -> list[dict[str, Any]]:
+        """Devuelve las filas de la fuente de datos del widget."""
         vista = _FUENTES_PERMITIDAS.get(fuente_datos)
         if vista is None:
             return []

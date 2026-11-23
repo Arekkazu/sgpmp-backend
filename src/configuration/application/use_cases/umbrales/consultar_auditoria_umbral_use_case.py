@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar la auditoría de un umbral ambiental (RF-17 — TC-M09-64).
 
 INC-M09-30-G30: la auditoría se persistía en ``modulo9.auditorias_umbrales_ambientales``
@@ -24,6 +27,11 @@ class ConsultarAuditoriaUmbralUseCase:
         self.umbral_repo = umbral_repo
 
     def execute(self, id_umbral_ambiental: int) -> list[AuditoriaUmbral]:
+        """Lista la auditoría del umbral.
+
+        Raises:
+            NotFoundError: Si el umbral no existe.
+        """
         if self.umbral_repo.obtener_por_id(id_umbral_ambiental) is None:
             raise NotFoundError(
                 code="UMBRAL_NO_ENCONTRADO",

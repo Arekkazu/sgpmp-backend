@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: ciclos productivos de la especie con sus fases en orden |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Fases de un ciclo productivo a partir de las etapas elegidas, en el orden en que llegan."""
 from __future__ import annotations
 
@@ -10,6 +11,11 @@ from src.shared.errors import BusinessRuleError
 
 
 def resolver_fases(etapas: CicloBiologicoRepository, id_especie: int, ids: list[int]) -> list[FaseCicloProductivo]:
+    """Convierte los ids de etapas activas de la especie en fases ordenadas.
+
+    Raises:
+        ValidationError: Si alguna etapa no es activa de la especie.
+    """
     activas = {e.id_ciclo_biologico: e for e in etapas.listar_por_especie(id_especie, solo_activas=True)}
     if any(i not in activas for i in ids):
         raise BusinessRuleError(code="ETAPA_NO_DISPONIBLE", field="id_ciclos_biologicos", message=(

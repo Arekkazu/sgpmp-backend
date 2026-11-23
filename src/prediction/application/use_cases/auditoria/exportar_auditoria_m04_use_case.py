@@ -4,6 +4,8 @@
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: la exportación respeta el filtro tipo_modelo |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
 # | 2026-11-03 | Arekkazu | QA-M04 RF-73: rango de fechas invertido en la bitácora responde 400 RANGO_FECHAS_INVALIDO |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de exportación de la auditoría del motor de inferencia."""
 from __future__ import annotations
 
 import uuid
@@ -33,6 +35,7 @@ _CAMPOS_CSV = [
 
 
 class ExportarAuditoriaM04UseCase:
+    """Exporta la auditoría del motor de inferencia a archivo."""
     def __init__(self, db: Session, repo: EventoAuditoriaM04Repository) -> None:
         self._db = db
         self._repo = repo
@@ -52,6 +55,7 @@ class ExportarAuditoriaM04UseCase:
         tipo_modelo: Optional[str] = None,
         entidad_referencia: Optional[str] = None,
     ) -> tuple[str | bytes, str, str]:
+        """Genera el archivo de la auditoría filtrada y registra la exportación."""
         validar_rango_fechas(fecha_desde, fecha_hasta)
         items, _ = self._repo.consultar(
             tipo_evento=tipo_evento,

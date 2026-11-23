@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75 E5 / RF-76 R5: edición → 405        |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: rechazar la modificación de un consumo o medicamento (RF-75 E5, RF-76 R5).
 
 Los registros son inmutables: un VALIDADO solo se anula y un ANULADO no se
@@ -17,6 +18,7 @@ from src.supplies.domain.value_objects.estado_registro import EstadoRegistro
 
 
 class RechazarModificacionUseCase:
+    """Rechaza la modificación de registros de suministros (son inmutables)."""
     def __init__(
         self,
         consumo_repo: ConsumoAlimentoRepository,
@@ -26,6 +28,11 @@ class RechazarModificacionUseCase:
         self.medicamento_repo = medicamento_repo
 
     def consumo(self, id_consumo: int) -> None:
+        """Rechaza modificar un consumo de alimento.
+
+        Raises:
+            NotFoundError: Si el consumo no existe.
+        """
         registro = self.consumo_repo.obtener_por_id(id_consumo)
         if registro is None:
             raise NotFoundError(
@@ -35,6 +42,11 @@ class RechazarModificacionUseCase:
         self._rechazar("El registro de consumo", registro.estado_registro)
 
     def medicamento(self, id_medicamento: int) -> None:
+        """Rechaza modificar una aplicación de medicamento.
+
+        Raises:
+            NotFoundError: Si la aplicación no existe.
+        """
         registro = self.medicamento_repo.obtener_por_id(id_medicamento)
         if registro is None:
             raise NotFoundError(

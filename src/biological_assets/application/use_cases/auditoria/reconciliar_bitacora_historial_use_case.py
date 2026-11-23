@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-52 E5: reconciliación diaria entre el historial RF-46 y la bitácora RF-52.
 
 Cada corrida deja una marca (``RECONCILIACION_RF46_RF52``) con el último id de
@@ -63,6 +66,7 @@ class ReconciliarBitacoraHistorialUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self) -> ResultadoReconciliacion:
+        """Reconcilia la bitácora con el historial si obtiene el turno y devuelve el resultado."""
         try:
             if not self.repo.adquirir_turno():
                 self.db.rollback()

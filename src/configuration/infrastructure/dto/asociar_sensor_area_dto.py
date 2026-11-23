@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para asociar un sensor a un área productiva (POST /{id}/asociar RF-22)."""
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ class AsociarSensorAreaDTO(BaseDTO):
     @field_validator("punto_instalacion")
     @classmethod
     def validar_punto(cls, v: str) -> str:
+        """Exige el punto de instalación."""
         if not v.strip():
             raise ValueError("El punto de instalación es obligatorio.")
         if len(v.strip()) > 100:

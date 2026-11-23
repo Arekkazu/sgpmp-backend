@@ -2,6 +2,7 @@
 # |------------|----------|-------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: validación común, armado y partición en archivos de 50 MB   |
 # | 2026-11-19 | Arekkazu | M08 RF-104: autor, rol y parámetros de selección como en las plantillas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 # | 2026-11-23 | Arekkazu | QA-M08 CU02 H-02 RF-104: la auditoría lleva los filtros elegidos como se leen        |
 """Pasos comunes de RF-104 que comparten la vista previa, la generación inmediata y el proceso en segundo plano.
 
@@ -63,6 +64,7 @@ class Solicitante:
 
 @dataclass
 class Preparado:
+    """Reporte validado y con su contenido armado."""
     definicion: DefinicionReporte
     filtros: dict[str, Any]
     contenido: ContenidoReporte
@@ -71,6 +73,11 @@ class Preparado:
 
 
 def exigir_permiso(tipo: str, solicitante: Solicitante) -> DefinicionReporte:
+    """Devuelve la definición del reporte si el solicitante lo puede generar.
+
+    Raises:
+        NotFoundError: Si el reporte no existe o no está permitido.
+    """
     definicion = CATALOGO.get(tipo)
     if definicion is None:
         raise NotFoundError(code="REPORTE_INEXISTENTE", message="Ese reporte no existe.", field="tipo_reporte")

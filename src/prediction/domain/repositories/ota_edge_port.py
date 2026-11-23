@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puertos hacia afuera del orquestador OTA (DEV-15, D6 de AIOT-DEV-03)."""
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ class ResultadoAvisoOta:
 
 
 class NodoOtaPort(ABC):
+    """Puerto para resolver los seriales de los dispositivos OTA."""
     @abstractmethod
     def obtener_seriales(self, ids_dispositivo: list[int]) -> dict[int, str]:
         """Serial de cada dispositivo activo de la lista. Los que no existen o están
@@ -25,6 +29,7 @@ class NodoOtaPort(ABC):
 
 
 class AvisoOtaPort(ABC):
+    """Puerto de aviso de actualización a los dispositivos."""
     @abstractmethod
     def notificar(self, aviso: dict) -> ResultadoAvisoOta:
         """Pide al broker publicar ``ota/notify`` a un nodo. Nunca lanza.
@@ -36,6 +41,7 @@ class AvisoOtaPort(ABC):
 
 
 class UrlDescargaPort(ABC):
+    """Puerto de URL firmadas de descarga OTA."""
     @abstractmethod
     def configurada(self) -> bool:
         """Si el ambiente tiene con qué firmar URLs (clave y URL base)."""

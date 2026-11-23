@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: ciclos productivos de la especie con sus fases en orden |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router de ciclos productivos (`/configuracion/ciclos-productivos`, RF-16).
 
 Un ciclo productivo ordena etapas de la especie; RF-37 lo usa para abrir y avanzar las fases de un activo,
@@ -52,6 +53,7 @@ _ERRORES = {c: {"model": ErrorResponse} for c in (400, 401, 403, 404, 409, 422)}
 @router.get("", response_model=CiclosProductivosResponse, dependencies=[Depends(require_permission(_RECURSO, 2))],
             responses=_ERRORES, summary="Ciclos productivos de una especie con sus fases en orden")
 def listar_ciclos_productivos(id_especie: int = Query(..., gt=0), db: Session = Depends(get_db)) -> CiclosProductivosResponse:
+    """Lista los ciclos productivos de una especie."""
     items = [CicloProductivoResponse.desde(c)
              for c in ListarCiclosProductivosUseCase(SqlAlchemyCicloProductivoRepository(db)).execute(id_especie)]
     return CiclosProductivosResponse(total=len(items), items=items)
@@ -62,6 +64,7 @@ def listar_ciclos_productivos(id_especie: int = Query(..., gt=0), db: Session = 
              summary="Registrar un ciclo productivo con sus fases en orden")
 def registrar_ciclo_productivo(dto: RegistrarCicloProductivoDTO, db: Session = Depends(get_db),
                                usuario_actual: UsuarioActual = Depends(get_current_user)) -> CicloProductivoResponse:
+    """Registra un ciclo productivo."""
     ciclo = RegistrarCicloProductivoUseCase(
         db, SqlAlchemyCicloProductivoRepository(db), SqlAlchemyCicloBiologicoRepository(db), SqlAlchemyEspecieRepository(db),
     ).execute(dto.id_especie, dto.nombre, dto.id_ciclos_biologicos)
@@ -73,6 +76,7 @@ def registrar_ciclo_productivo(dto: RegistrarCicloProductivoDTO, db: Session = D
             summary="Editar nombre y fases (si ya hay activos en el ciclo, solo el nombre)")
 def editar_ciclo_productivo(id_ciclo_productivo: int, dto: EditarCicloProductivoDTO, db: Session = Depends(get_db),
                             usuario_actual: UsuarioActual = Depends(get_current_user)) -> CicloProductivoResponse:
+    """Edita un ciclo productivo."""
     ciclo = EditarCicloProductivoUseCase(
         db, SqlAlchemyCicloProductivoRepository(db), SqlAlchemyCicloBiologicoRepository(db),
     ).execute(id_ciclo_productivo, dto.nombre, dto.id_ciclos_biologicos)
@@ -83,5 +87,6 @@ def editar_ciclo_productivo(id_ciclo_productivo: int, dto: EditarCicloProductivo
                responses=_ERRORES, summary="Eliminar un ciclo productivo que ningún activo ha usado")
 def eliminar_ciclo_productivo(id_ciclo_productivo: int, db: Session = Depends(get_db),
                               usuario_actual: UsuarioActual = Depends(get_current_user)) -> Response:
+    """Elimina un ciclo productivo sin uso."""
     EliminarCicloProductivoUseCase(db, SqlAlchemyCicloProductivoRepository(db)).execute(id_ciclo_productivo)
     return Response(status_code=204)

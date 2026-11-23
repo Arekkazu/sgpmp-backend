@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-78/79/80: efectos de cada movimiento   |
 # | 2026-11-04 | Arekkazu         | M06 RF-90: la provisión a M06 lleva la fecha del consumo |
 # | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: registro y tipo de suministro en cada evento del movimiento |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Efectos de un movimiento del ledger de RF-78, comunes a todos los caminos.
 
 Cada fila nueva de ``registro_suministro`` — un consumo (RF-75) o medicamento
@@ -37,6 +38,7 @@ from src.supplies.domain.value_objects.eventos_auditoria_suministro_enums import
 
 
 class RegistradorMovimientoLedger:
+    """Registra los movimientos de costo de suministros en el acumulado del ciclo."""
     def __init__(
         self,
         acumulado_repo: AcumuladoCicloRepository,
@@ -48,6 +50,7 @@ class RegistradorMovimientoLedger:
         self.outbox_repo = outbox_repo
 
     def registrar(self, registro: RegistroSuministroDirecto, *, id_usuario: int, precio_manual: bool) -> None:
+        """Registra el movimiento del suministro en el acumulado del ciclo."""
         ahora = datetime.now(timezone.utc)
         es_correccion = registro.tipo_operacion == "CORRECCION"
         self._auditar(

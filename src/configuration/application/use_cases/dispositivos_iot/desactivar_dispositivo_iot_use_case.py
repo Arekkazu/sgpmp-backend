@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Desactivar dispositivo IoT (PATCH /{id}/desactivar RF-21).
 
 Si el dispositivo es un Gateway Edge, sus dispositivos activos se desactivan en
@@ -51,6 +54,7 @@ class DesactivarDispositivoIotUseCase:
         self.bitacora = bitacora
 
     def execute(self, id_dispositivo_iot: int, usuario_actual: UsuarioActual) -> DispositivoIot:
+        """Desactiva el dispositivo y sus sensores y lo audita."""
         dispositivo = self.dispositivo_repo.obtener_por_id(id_dispositivo_iot)
         if dispositivo is None:
             raise NotFoundError(

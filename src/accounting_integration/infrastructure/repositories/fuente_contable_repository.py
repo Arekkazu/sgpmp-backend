@@ -4,6 +4,7 @@
 # | 2026-11-19 | LuisfNarvaez01 | TC-M07-379 RF-97: las líneas sin trazabilidad se devuelven con su hecho, activo y fecha |
 # | 2026-11-19 | Arekkazu | TC-M07-G019 RF-96: catálogo de LineType de la matriz contable |
 # | 2026-11-19 | Arekkazu | M7-05 RF-95: el Administrador tiene todas las fincas del titular |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Lectura de M06 y M09 para RF-97, como el usuario de servicio.
 
 El acceso ya se autorizó antes (permiso y todas las fincas del titular, RF-95 5.3). Leer como
@@ -25,10 +26,12 @@ _RANGO = "p.numero_id_tributaria = :nit AND p.fecha_inicio >= :desde AND p.fecha
 
 
 class SqlAlchemyFuenteContableRepository(FuenteContableRepository):
+    """Lectura SQLAlchemy de los datos contables a exportar."""
     def __init__(self, db: Session):
         self.db = db
 
     def titular(self, nit: str) -> Optional[Titular]:
+        """Devuelve el titular con fincas activas, o ``None``."""
         with como_sistema(self.db):
             f = fila(self.db, """
                 SELECT numero_id_tributaria AS nit,
@@ -38,23 +41,27 @@ class SqlAlchemyFuenteContableRepository(FuenteContableRepository):
         return Titular(f["nit"], f["razon_social"]) if f else None
 
     def fincas_titular(self, nit: str) -> set[int]:
+        """Devuelve las fincas activas del titular."""
         with como_sistema(self.db):
             return {f["id_finca"] for f in filas(self.db, "SELECT id_finca FROM modulo9.fincas "
                                                           "WHERE numero_id_tributaria = :nit AND es_activo", {"nit": nit})}
 
     def fincas_usuario(self, id_usuario: int) -> set[int]:
+        """Devuelve las fincas que puede ver el usuario."""
         with como_sistema(self.db):
             # La regla de la RLS: el Administrador (rol protegido) tiene todas; el resto, las asignadas (M7-05).
             return {f["id_finca"] for f in filas(self.db, "SELECT id_finca FROM modulo9.fn_fincas_del_usuario(:u)",
                                                  {"u": id_usuario})}
 
     def periodos(self, nit: str) -> list[Periodo]:
+        """Lista los periodos contables del titular."""
         return [Periodo(f["fecha_inicio"], f["fecha_fin"], f["estado"]) for f in filas(self.db, """
             SELECT fecha_inicio, fecha_fin, estado::text AS estado FROM modulo6.periodos_contables
             WHERE numero_id_tributaria = :nit ORDER BY fecha_inicio
         """, {"nit": nit})]
 
     def costos_factura(self, nit: str, desde: date, hasta: date) -> list[CostoFactura]:
+        """Lista los costos con factura del titular en el rango."""
         # Por período del costo, no por fecha de factura: el contenido de un rango cerrado no cambia.
         with como_sistema(self.db):
             resultado = filas(self.db, f"""
@@ -71,6 +78,7 @@ class SqlAlchemyFuenteContableRepository(FuenteContableRepository):
         return [CostoFactura(**f) for f in resultado]
 
     def comprobantes(self, nit: str, desde: date, hasta: date) -> list[ComprobanteNic41]:
+        """Lista los comprobantes NIC 41 del titular en el rango."""
         with como_sistema(self.db):
             resultado = filas(self.db, """
                 SELECT cp.codigo, cp.tipo_hecho::text AS tipo_hecho, e.nombre AS especie, cp.fecha_comprobante,
@@ -82,6 +90,7 @@ class SqlAlchemyFuenteContableRepository(FuenteContableRepository):
         return [ComprobanteNic41(**f) for f in resultado]
 
     def lineas_sin_trazabilidad(self, nit: str, desde: date, hasta: date) -> list[dict]:
+        """Lista las líneas contables del rango sin trazabilidad completa."""
         with como_sistema(self.db):
             return filas(self.db, f"""
                 SELECT l.id_linea_asiento_nic41, l.tipo_hecho::text AS tipo_hecho, l.id_activo_biologico,
@@ -94,6 +103,7 @@ class SqlAlchemyFuenteContableRepository(FuenteContableRepository):
             """, {"nit": nit, "desde": desde, "hasta": hasta})
 
     def linetypes_catalogados(self) -> tuple[frozenset, frozenset]:
+        """Devuelve los tipos de línea catalogados activos e inactivos."""
         # Misma regla con la que RF-90 resuelve la cuenta de una factura: CONSUMO_INSUMO / UNICO por subtipo.
         with como_sistema(self.db):
             activas = filas(self.db, """

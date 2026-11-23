@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: tabla de seguimiento y docstrings de clase y métodos |
 """Implementación SQLAlchemy de ``SincronizacionReglaEdgeRepository`` (DEV-08).
 
 Los destinos salen de ``modulo3.fn_gateways_edge_por_regla_alerta`` (migración
@@ -36,11 +39,13 @@ _SQL_SERIALES = text(
 
 
 class SqlAlchemySincronizacionReglaEdgeRepository(SincronizacionReglaEdgeRepository):
+    """Persistencia del estado de sincronización de reglas en cada Gateway Edge."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def listar_gateways_destino(self, id_regla_alertas: int) -> list[GatewayEdge]:
+        """Devuelve los Gateway Edge a los que se propaga la regla."""
         with como_sistema(self.db):
             filas = self.db.execute(_SQL_GATEWAYS_DESTINO, {"id_regla_alertas": id_regla_alertas}).all()
         return [GatewayEdge(id_dispositivo_iot=f.id_dispositivo_iot, serial=f.serial) for f in filas]
@@ -56,6 +61,7 @@ class SqlAlchemySincronizacionReglaEdgeRepository(SincronizacionReglaEdgeReposit
         fecha_intento: datetime,
         id_usuario: Optional[int],
     ) -> SincronizacionReglaEdge:
+        """Registra un intento de propagación, creando el estado si no existe."""
         try:
             orm = (
                 self.db.query(SincronizacionReglaEdgeModel)
@@ -88,6 +94,7 @@ class SqlAlchemySincronizacionReglaEdgeRepository(SincronizacionReglaEdgeReposit
             raise_from_db_error(exc)
 
     def listar_por_regla(self, id_regla_alertas: int) -> list[SincronizacionReglaEdge]:
+        """Devuelve el estado de la regla en cada Gateway, ordenado por serial."""
         orms = (
             self.db.query(SincronizacionReglaEdgeModel)
             .filter(SincronizacionReglaEdgeModel.id_regla_alertas == id_regla_alertas)

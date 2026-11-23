@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RF-71/RF-73: solicitud de reentrenamiento como evento de auditoría |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-71: solicitar el reentrenamiento de un modelo individual.
 
 La solicitud no ejecuta el pipeline: queda en la bitácora de M04 (RF-73) como
@@ -23,6 +24,7 @@ from src.shared.errors import BusinessRuleError, InfrastructureError, Validation
 
 
 class SolicitarReentrenamientoUseCase:
+    """Solicita el reentrenamiento de un tipo de modelo."""
     def __init__(
         self, *, db: Session, estado_use_case: ConsultarEstadoReentrenamientoUseCase,
         auditoria_repo: EventoAuditoriaM04Repository,
@@ -32,6 +34,7 @@ class SolicitarReentrenamientoUseCase:
         self._auditoria = auditoria_repo
 
     def execute(self, tipo_modelo: str, motivo: Optional[str], id_usuario: int) -> tuple[EstadoReentrenamiento, UUID]:
+        """Encola el reentrenamiento y devuelve el estado con el id del proceso."""
         if tipo_modelo not in TIPOS_MODELO_INDIVIDUAL:
             raise ValidationError(
                 "TIPO_MODELO_NO_INDIVIDUAL",

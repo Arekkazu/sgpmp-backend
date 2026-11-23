@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-07 RF-74: recalcular el ICA consolida la alerta abierta en vez de duplicarla |
 # | 2026-11-10 | Arekkazu | INC-M05-338-G02 RF-74: la alerta crítica lleva la infraestructura del activo (RLS) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador para generar la alerta de conversión alimenticia crítica (RF-74 / CA-3).
 
 Inserta una alerta ``CONVERSION_ALIMENTICIA`` / ``CRITICO`` en ``modulo3.alertas``
@@ -94,6 +95,7 @@ class AlertaICAM03Adapter(AlertaICAPort):
         origen_evento: str,
         fecha_evento: datetime,
     ) -> Optional[int]:
+        """Genera la alerta de conversión alimenticia crítica del activo."""
         ahora = datetime.now(timezone.utc)
         metadato = json.dumps(
             {"periodo_evaluacion": periodo_evaluacion, "regla": "CA > 5.0 (CRITICA)"}

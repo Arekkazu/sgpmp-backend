@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: período de gracia del contrato contable configurable desde M09 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Período de gracia de las versiones del contrato contable (RF-98 / RNF-98.10), configurable desde M09.
 
 Mismo almacén y validación que los demás parámetros de M09 (``modulo4.parametros_mlops``). M07 lee
@@ -27,6 +28,7 @@ PARAMETROS_INTEGRACION_CONTABLE = {
 
 
 class ParametrosIntegracionContableUseCase(ParametrosAlertasUseCase):
+    """Consulta y actualiza los parámetros de la integración contable."""
     catalogo = PARAMETROS_INTEGRACION_CONTABLE
     codigo_invalido, rf = "PARAMETRO_INTEGRACION_CONTABLE_INVALIDO", "la integración contable"
 

@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: filtros por nivel, estado y módulo, y archivo a 90 días |
 # | 2026-11-21 | destroyerban | INC-M08-382-G013 RF-105: la bandeja se pagina de 50 en 50 por defecto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso para consultar la bandeja interna del usuario autenticado.
 
 RF-105: sin filtro de estado se ve el panel principal (nuevas y leídas); lo atendido o descartado
@@ -39,6 +40,7 @@ class ListarNotificacionesUseCase:
         incluir_archivadas: bool = False,
         ahora: Optional[datetime] = None,
     ) -> dict:
+        """Lista la bandeja de notificaciones del usuario con filtros y paginación."""
         tamano = min(tamano, TAMANO_PAGINA_BANDEJA)
         offset = (pagina - 1) * tamano
         desde = None if incluir_archivadas else (ahora or datetime.now(timezone.utc)) - _ARCHIVO

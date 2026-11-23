@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: registro de un activo biológico nuevo (RF-33)."""
 
 from __future__ import annotations
@@ -200,6 +201,7 @@ class RegistrarActivoBiologicoUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ActivoBiologico:
+        """Registra un activo biológico nuevo con su fase inicial."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(dto, usuario, ids_fincas_permitidas),
             db=self.db,

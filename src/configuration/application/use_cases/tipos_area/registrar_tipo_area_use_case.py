@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar nuevo tipo de área en el catálogo (RF-20).
 
 Solo el Administrador puede registrar tipos de área nuevos.
@@ -22,6 +25,7 @@ class RegistrarTipoAreaUseCase:
         self.tipo_area_repo = tipo_area_repo
 
     def execute(self, dto: RegistrarTipoAreaDTO) -> TipoArea:
+        """Registra un tipo de área."""
         existente = self.tipo_area_repo.obtener_por_nombre(dto.nombre)
         if existente is not None:
             raise ConflictError(

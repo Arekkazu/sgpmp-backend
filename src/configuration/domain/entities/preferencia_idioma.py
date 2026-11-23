@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``PreferenciaIdioma`` — preferencia de idioma del usuario (RF-29).
 
 Jerarquía de resolución: preferencia individual → idioma global → 'es-CO'.
@@ -33,6 +36,7 @@ class PreferenciaIdioma:
         id_usuario: int,
         locale_code: str,
     ) -> PreferenciaIdioma:
+        """Crea la preferencia personal del usuario validándola."""
         cls._validar_locale(locale_code)
         return cls(
             id_usuario=id_usuario,
@@ -48,6 +52,7 @@ class PreferenciaIdioma:
         id_usuario: int,
         locale_code: str,
     ) -> PreferenciaIdioma:
+        """Crea la preferencia global validándola."""
         cls._validar_locale(locale_code)
         return cls(
             id_usuario=id_usuario,
@@ -57,6 +62,7 @@ class PreferenciaIdioma:
         )
 
     def actualizar(self, *, locale_code: str) -> None:
+        """Actualiza los datos editables validándolos."""
         self._validar_locale(locale_code)
         self.locale_code = locale_code
         self.fecha_actualizacion = datetime.now(timezone.utc)

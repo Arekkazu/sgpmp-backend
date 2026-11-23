@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | QA-M06 RF-41: guarda la fecha recortada a ahora (reloj del usuario adelantado) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: registro de eventos sanitarios (RF-41)."""
 
 from __future__ import annotations
@@ -58,6 +59,7 @@ class RegistrarEventoSanitarioUseCase:
         dto: RegistrarEventoSanitarioDTO,
         usuario: UsuarioActual,
     ) -> tuple[EventoActivo, Optional[HistoricoEstado]]:
+        """Registra un evento sanitario del activo."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario),
             db=self.db,

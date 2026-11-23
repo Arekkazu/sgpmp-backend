@@ -3,6 +3,12 @@
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: exponer ambos timestamps originales en la respuesta del evento. |
 # | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 # | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y schema |
+"""Schema de respuesta de un evento procesado en el Edge (RF-55/RF-56).
+
+Incluye la clasificación, el valor y los umbrales aplicados, y la latencia de
+detección frente al SLA de 500 ms.
+"""
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
@@ -11,6 +17,8 @@ from pydantic import BaseModel, Field
 
 
 class EventoEdgeResponse(BaseModel):
+    """Datos de un evento del Edge expuestos al cliente."""
+
     id_evento_edge_computing: int
     clasificacion_rf55: str
     severidad: Optional[str]

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | QA-M06 RF-40: guarda la fecha recortada a ahora (reloj del usuario adelantado) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: registro de mediciones de crecimiento (RF-40)."""
 
 from __future__ import annotations
@@ -61,6 +62,7 @@ class RegistrarEventoCrecimientoUseCase:
         usuario: UsuarioActual,
         ids_fincas_permitidas: list[int] | None = None,
     ) -> tuple[EventoActivo, bool]:
+        """Registra una medición de crecimiento del activo."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario, ids_fincas_permitidas),
             db=self.db,

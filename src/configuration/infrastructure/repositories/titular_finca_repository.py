@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | RF-19 v1.1: persistencia del titular tributario de la finca |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`TitularFincaRepository` (columnas de ``modulo9.fincas``)."""
 from __future__ import annotations
 
@@ -17,20 +18,24 @@ _COLUMNAS = "id_finca, nombre, tipo_id_tributaria, numero_id_tributaria, dv, raz
 
 
 class SqlAlchemyTitularFincaRepository(TitularFincaRepository):
+    """Implementación SQLAlchemy de ``TitularFincaRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener(self, id_finca: int) -> Optional[dict]:
+        """Devuelve la finca con su titular, o ``None``."""
         f = self.db.execute(text(f"SELECT {_COLUMNAS} FROM modulo9.fincas WHERE id_finca = :f"), {"f": id_finca}).first()
         return dict(f._mapping) if f else None
 
     def otro_con_mismo_numero(self, numero_id_tributaria: str, id_finca: int) -> Optional[dict]:
+        """Otra finca del mismo titular (para exigir la misma razón social y DV)."""
         f = self.db.execute(text(f"""SELECT {_COLUMNAS} FROM modulo9.fincas
                                      WHERE numero_id_tributaria = :n AND id_finca <> :f LIMIT 1"""),
                             {"n": numero_id_tributaria, "f": id_finca}).first()
         return dict(f._mapping) if f else None
 
     def guardar(self, id_finca: int, titular: Optional[TitularTributario]) -> None:
+        """Guarda o retira el titular de la finca."""
         try:
             self.db.execute(text("""UPDATE modulo9.fincas SET tipo_id_tributaria = :t, numero_id_tributaria = :n,
                                         dv = :dv, razon_social = :r, fecha_actualizacion = now()

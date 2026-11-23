@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: M06 provisional (recepción)        |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`RecepcionProvisionRepository`."""
 from __future__ import annotations
 
@@ -16,10 +17,12 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyRecepcionProvisionRepository(RecepcionProvisionRepository):
+    """Implementación SQLAlchemy de ``RecepcionProvisionRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def registrar_si_nueva(self, recepcion: RecepcionProvision) -> bool:
+        """Guarda la recepción; ``False`` si ese ``id_evento_provision`` ya se había recibido."""
         sentencia = (
             insert(RecepcionProvisionM05Model)
             .values(

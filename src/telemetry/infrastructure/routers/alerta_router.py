@@ -15,6 +15,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: inyecta la consulta de umbrales configurados |
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: GET /iot/alertas/indicadores |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de los endpoints |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -127,6 +128,7 @@ def procesar_evento_alerta(
     dto: EventoAlertaExternoDTO,
     db: Session = Depends(get_db_sistema),
 ) -> ResultadoGeneracionAlertaSchema:
+    """Genera una alerta a partir de un evento de desviación del broker."""
     dispositivo_port = DispositivoM09Adapter(db)
     info = dispositivo_port.obtener_dispositivo_activo(
         device_id=dto.device_id,
@@ -176,6 +178,7 @@ def reevaluar_alerta(
     response: Response,
     db: Session = Depends(get_db_sistema),
 ) -> ResultadoReevaluacionSchema:
+    """Reevalúa con el motor de IA una alerta que se generó sin él."""
     # G75: el RF no define la entrada; se usa el mismo canal y token de servicio que los eventos de IA.
     resultado = ReevaluarAlertaUseCase(
         db=db,
@@ -217,6 +220,7 @@ def listar_alertas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaAlertasSchema:
+    """Lista las alertas operativas visibles con filtros y paginación."""
     use_case = ConsultarAlertasUseCase(
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
@@ -269,6 +273,7 @@ def consultar_indicadores_alertas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> IndicadoresAlertasSchema:
+    """Devuelve los indicadores de estado del sistema de alertas."""
     filtro = FiltroIndicadoresAlertas(
         id_infraestructura=id_infraestructura,
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
@@ -298,6 +303,7 @@ def obtener_alerta(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AlertaDetalleSchema:
+    """Devuelve una alerta operativa con su historial de estados."""
     use_case = ConsultarAlertasUseCase(
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
@@ -334,6 +340,7 @@ def actualizar_estado_alerta(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AlertaSchema:
+    """Transiciona el estado de una alerta operativa."""
     # DB-08: D sobre el recurso por nombre; U sigue siendo obligatorio.
     if dto.nuevo_estado == EstadoAlerta.DESCARTADA and not tiene_permiso_sobre(
         db, usuario_actual.id_rol, "alertas_operativas", 4,

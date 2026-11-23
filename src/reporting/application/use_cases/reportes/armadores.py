@@ -3,6 +3,7 @@
 # | 2026-11-18 | Arekkazu | M08 RF-104: contenido de los 18 reportes según la matriz de campos |
 # | 2026-11-19 | Arekkazu | M08 RF-104 M8-08: indicadores de las plantillas y encabezado con la finca del animal |
 # | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: el portafolio del ejecutivo es el de la valoración NIC 41 del período |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 # | 2026-11-23 | Arekkazu | QA-M08 CU02 H-05 RF-104: ID del sensor en Telemetría e ID del dispositivo en Alertas de sensores |
 """Arma el contenido de cada reporte de RF-104 con los datos de la fuente (matriz de campos del Drive).
 
@@ -76,6 +77,7 @@ _RECOMENDACION = {3: "Revisar al animal hoy y considerar aislarlo.", 2: "Vigilar
 
 @dataclass
 class Contexto:
+    """Datos y filtros con los que se arma el contenido de un reporte."""
     fuente: FuenteReportesRepository
     tipo: str
     filtros: dict[str, Any]
@@ -88,15 +90,18 @@ class Contexto:
 
     @property
     def titulo(self) -> str:
+        """Título del reporte."""
         return CATALOGO[self.tipo].titulo
 
     @property
     def desde(self) -> Optional[datetime]:
+        """Inicio del rango en la zona del usuario, o ``None``."""
         inicio = self.filtros.get("fecha_inicio")
         return inicio_dia_usuario(inicio) if inicio else None
 
     @property
     def hasta(self) -> datetime:
+        """Fin del rango en la zona del usuario (hoy si no hay fecha fin)."""
         return fin_dia_usuario(self.filtros.get("fecha_fin") or self.hoy)
 
 
@@ -172,6 +177,7 @@ def _sumar(filas: list[dict], clave: str) -> Decimal:
 # --- Productivos -------------------------------------------------------------------------------
 
 def inventario(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de inventario de activos biológicos."""
     fincas = _fincas_filtro(ctx)
     filas = ctx.fuente.inventario(fincas=fincas, inicio=ctx.filtros["fecha_inicio"], fin=ctx.filtros["fecha_fin"],
                                   hasta=ctx.hasta, especie=ctx.filtros.get("especie_id"),
@@ -224,6 +230,7 @@ def inventario(ctx: Contexto) -> ContenidoReporte:
 
 
 def costos_suministros(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de costos de suministros."""
     fincas = _fincas_filtro(ctx)
     filas = ctx.fuente.costos(fincas=fincas, inicio=ctx.filtros["fecha_inicio"], fin=ctx.filtros["fecha_fin"],
                               especie=ctx.filtros.get("especie_id"), tipo=ctx.filtros.get("tipo_suministro"))
@@ -263,6 +270,7 @@ def costos_suministros(ctx: Contexto) -> ContenidoReporte:
 
 
 def productividad(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de productividad."""
     fincas = _fincas_filtro(ctx)
     activo = ctx.filtros.get("lote_id")
     filas = ctx.fuente.produccion(fincas=fincas, desde=ctx.desde, hasta=ctx.hasta,
@@ -318,6 +326,7 @@ def productividad(ctx: Contexto) -> ContenidoReporte:
 
 
 def bajas_y_salidas(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de bajas y salidas."""
     fincas = _fincas_filtro(ctx)
     tipo = ctx.filtros.get("tipo_salida")
     filas = [f for f in ctx.fuente.salidas(fincas=fincas, desde=ctx.desde, hasta=ctx.hasta,
@@ -388,6 +397,7 @@ def _estado_exportacion(exportaciones: list[dict]) -> dict[str, Any]:
 
 
 def valoracion_nic41(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de valoración NIC 41 del periodo."""
     periodo = ctx.periodos["periodo_contable"]
     fincas = _fincas_periodo(ctx, periodo)
     filas = ctx.fuente.valoracion_periodo(id_periodo=periodo["id_periodo_contable"], fincas=fincas)
@@ -435,6 +445,7 @@ def valoracion_nic41(ctx: Contexto) -> ContenidoReporte:
 
 
 def estado_exportaciones(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte del estado de las exportaciones contables del periodo."""
     periodo = ctx.periodos["periodo_contable"]
     filas = ctx.fuente.exportaciones(periodo["id_periodo_contable"])
     detalle = []
@@ -493,6 +504,7 @@ def _causa_variacion(f: dict) -> str:
 
 
 def variacion_periodos(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de variación de valor entre dos periodos."""
     base, comp = ctx.periodos["periodo_contable_base"], ctx.periodos["periodo_contable_comparacion"]
     fincas = _fincas_periodo(ctx, base)
     filas = ctx.fuente.variacion_periodos(base=base["id_periodo_contable"], comparacion=comp["id_periodo_contable"],
@@ -582,6 +594,7 @@ _COLUMNAS_SANITARIAS = [
 
 
 def historico_sanitario(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte del histórico sanitario."""
     fincas = _fincas_filtro(ctx)
     filas = _filas_sanitarias(ctx, ctx.fuente.eventos_sanitarios(
         fincas=fincas, desde=ctx.desde, hasta=ctx.hasta, especie=ctx.filtros.get("especie_id"),
@@ -640,6 +653,7 @@ _COLUMNAS_PREDICCION = [
 
 
 def ficha_animal(ctx: Contexto) -> ContenidoReporte:
+    """Arma la ficha de un animal."""
     activo = ctx.filtros["activo_biologico_id"]
     ficha = ctx.fuente.ficha(activo) or {}
     fincas = [ficha["id_finca"]] if ficha.get("id_finca") else ctx.fincas
@@ -711,6 +725,7 @@ def ficha_animal(ctx: Contexto) -> ContenidoReporte:
 
 
 def vacunacion_medicamentos(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de vacunación y medicamentos."""
     fincas = _fincas_filtro(ctx)
     activo, especie = ctx.filtros.get("activo_biologico_id"), ctx.filtros.get("especie_id")
     tipo = ctx.filtros.get("tipo_insumo")
@@ -752,6 +767,7 @@ def vacunacion_medicamentos(ctx: Contexto) -> ContenidoReporte:
 
 
 def riesgo_sanitario(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de riesgo sanitario predicho."""
     fincas = _fincas_filtro(ctx)
     desde = ctx.filtros.get("fecha_prediccion_desde")
     filas = [_prediccion(p) for p in ctx.fuente.predicciones_activas(
@@ -781,6 +797,7 @@ def riesgo_sanitario(ctx: Contexto) -> ContenidoReporte:
 # --- IoT ---------------------------------------------------------------------------------------
 
 def telemetria(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de telemetría de un área."""
     variable = ctx.filtros.get("variable_ambiental")
     infra = ctx.filtros["infraestructura_id"]
     filas = ctx.fuente.telemetria(infraestructura=infra, desde=ctx.desde, hasta=ctx.hasta,
@@ -823,6 +840,7 @@ def telemetria(ctx: Contexto) -> ContenidoReporte:
 
 
 def estado_dispositivos(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte del estado de los dispositivos a una fecha de corte."""
     fincas = _fincas_filtro(ctx)
     corte_dia: date = ctx.filtros["fecha_corte"]
     es_hoy = corte_dia >= ctx.hoy
@@ -876,6 +894,7 @@ def estado_dispositivos(ctx: Contexto) -> ContenidoReporte:
 
 
 def calibracion_sensores(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de calibración de sensores."""
     fincas = _fincas_filtro(ctx)
     sensor, infra = ctx.filtros.get("sensor_id"), ctx.filtros.get("infraestructura_id")
     filas = ctx.fuente.calibraciones(fincas=fincas, desde=ctx.desde, hasta=ctx.hasta, sensor=sensor,
@@ -916,6 +935,7 @@ def _tipo_alerta(f: dict) -> str:
 
 
 def alertas_sensores(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de alertas de sensores."""
     fincas = _fincas_filtro(ctx)
     filas = ctx.fuente.alertas_sensores(fincas=fincas, desde=ctx.desde, hasta=ctx.hasta,
                                         infraestructura=ctx.filtros.get("infraestructura_id"))
@@ -1000,6 +1020,7 @@ def _riesgo(filas: list[dict], fuente: str) -> dict[str, int]:
 
 
 def ejecutivo_consolidado(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte ejecutivo consolidado del periodo."""
     periodo = ctx.periodos["periodo_contable"]
     fincas = _fincas_periodo(ctx, periodo)
     inicio, fin = periodo["fecha_inicio"], periodo["fecha_fin"]
@@ -1064,6 +1085,7 @@ def _agrupar(filas: list[dict], clave: str, valor: str, texto: Callable[[Any], s
 
 
 def rentabilidad_finca(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte de rentabilidad por finca del periodo."""
     periodo = ctx.periodos["periodo_contable"]
     fincas = _fincas_periodo(ctx, periodo)
     inicio, fin = periodo["fecha_inicio"], periodo["fecha_fin"]
@@ -1135,6 +1157,7 @@ def _indicadores(ctx: Contexto, periodo: dict, fincas: list[int]) -> dict[str, D
 
 
 def comparativo_periodos(ctx: Contexto) -> ContenidoReporte:
+    """Arma el reporte comparativo entre dos periodos."""
     base, comp = ctx.periodos["periodo_contable_base"], ctx.periodos["periodo_contable_comparacion"]
     fincas = _fincas_periodo(ctx, base)
     v_base, v_comp = _indicadores(ctx, base, fincas), _indicadores(ctx, comp, fincas)

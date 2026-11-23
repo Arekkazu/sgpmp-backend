@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: persistir el motivo y serializar interrupción y finalización. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`EjecucionBatchICARepository` (RF-74)."""
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from src.supplies.infrastructure.models.ejecucion_batch_ica_model import Ejecuci
 
 
 class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
+    """Implementación SQLAlchemy de ``EjecucionBatchICARepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -41,6 +43,7 @@ class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
         )
 
     def crear(self, ejecucion: EjecucionBatchICA) -> EjecucionBatchICA:
+        """Inserta una nueva corrida (EN_EJECUCION) y devuelve la entidad con id."""
         try:
             orm = EjecucionBatchIcaModel(
                 estado=ejecucion.estado.value,
@@ -62,6 +65,7 @@ class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
         return self._a_entidad(orm)
 
     def guardar(self, ejecucion: EjecucionBatchICA) -> EjecucionBatchICA:
+        """Actualiza estado/métricas de una corrida existente."""
         orm = self.db.get(EjecucionBatchIcaModel, ejecucion.id_ejecucion)
         if orm is None:
             raise_from_db_error(ValueError(f"Ejecución {ejecucion.id_ejecucion} inexistente"), {})
@@ -84,6 +88,7 @@ class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
         return self._a_entidad(orm)
 
     def obtener(self, id_ejecucion: int, *, para_actualizar: bool = False) -> Optional[EjecucionBatchICA]:
+        """Lee la corrida y la bloquea hasta terminar la transacción si se va a modificar."""
         orm = self.db.get(
             EjecucionBatchIcaModel, id_ejecucion,
             with_for_update=True if para_actualizar else None,
@@ -92,6 +97,7 @@ class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_en_ejecucion(self) -> Optional[EjecucionBatchICA]:
+        """La corrida EN_EJECUCION más reciente, o ``None``."""
         orm = (
             self.db.query(EjecucionBatchIcaModel)
             .filter(EjecucionBatchIcaModel.estado == EstadoEjecucionBatch.EN_EJECUCION.value)
@@ -101,6 +107,7 @@ class SqlAlchemyEjecucionBatchICARepository(EjecucionBatchICARepository):
         return self._a_entidad(orm) if orm else None
 
     def listar_recientes(self, limite: int = 20) -> list[EjecucionBatchICA]:
+        """Lista las ejecuciones más recientes."""
         registros = (
             self.db.query(EjecucionBatchIcaModel)
             .order_by(EjecucionBatchIcaModel.hora_inicio.desc())

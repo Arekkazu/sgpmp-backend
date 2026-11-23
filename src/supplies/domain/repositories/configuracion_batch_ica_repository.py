@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura de la configuración del motor batch ICA (RF-74)."""
 from __future__ import annotations
 
@@ -21,6 +24,7 @@ class ConfiguracionBatch:
 
 
 class ConfiguracionBatchICARepository(ABC):
+    """Puerto de la configuración del batch de ICA."""
     @abstractmethod
     def obtener(self) -> ConfiguracionBatch:
         """Devuelve la configuración vigente del motor batch (fila única)."""

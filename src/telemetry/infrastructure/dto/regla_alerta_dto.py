@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: DTOs para crear y editar reglas de alerta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTOs de entrada del CRUD de reglas de alerta (``/iot/reglas-alertas``, RF-55/RF-57)."""
 from __future__ import annotations
 
@@ -35,6 +36,7 @@ class _ReglaAlertaDTO(BaseDTO):
 
 
 class CrearReglaAlertaDTO(_ReglaAlertaDTO):
+    """Datos para crear una regla de alerta."""
     es_regla_compuesta: bool = False
     # Solo para compuestas: se propaga a los Gateway Edge con REGLA_COMPUESTA (DEV-08).
     tiene_ejecutar_edge: bool = False
@@ -49,4 +51,5 @@ class EditarReglaAlertaDTO(_ReglaAlertaDTO):
     fecha_actualizacion: Optional[FechaHoraUtc] = None
 
     def campos(self) -> dict[str, Any]:
+        """Devuelve los campos a actualizar sin la marca de concurrencia."""
         return self.model_dump(exclude={"fecha_actualizacion"})

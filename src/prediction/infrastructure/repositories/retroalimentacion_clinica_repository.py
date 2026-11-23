@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RF-71: conteo de retroalimentaciones nuevas por modelo individual  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de retroalimentación clínica."""
 from __future__ import annotations
 
 import uuid
@@ -36,6 +38,7 @@ _SQL_NUEVAS_POR_TIPO = text("""
 
 
 class SqlAlchemyRetroalimentacionClinicaRepository(RetroalimentacionClinicaRepository):
+    """Implementación SQLAlchemy de ``RetroalimentacionClinicaRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
@@ -56,6 +59,7 @@ class SqlAlchemyRetroalimentacionClinicaRepository(RetroalimentacionClinicaRepos
         )
 
     def guardar(self, entidad: RetroalimentacionClinica) -> RetroalimentacionClinica:
+        """Guarda la retroalimentación."""
         try:
             orm = RetroalimentacionClinicaModel(
                 id_resultado_inferencia=entidad.id_resultado_inferencia,
@@ -79,6 +83,7 @@ class SqlAlchemyRetroalimentacionClinicaRepository(RetroalimentacionClinicaRepos
     def obtener_por_resultado_y_usuario(
         self, id_resultado: uuid.UUID, id_usuario: int
     ) -> Optional[RetroalimentacionClinica]:
+        """Devuelve la retroalimentación del usuario sobre el resultado, o ``None``."""
         stmt = select(RetroalimentacionClinicaModel).where(
             RetroalimentacionClinicaModel.id_resultado_inferencia == id_resultado,
             RetroalimentacionClinicaModel.id_usuario_veterinario == id_usuario,
@@ -89,6 +94,7 @@ class SqlAlchemyRetroalimentacionClinicaRepository(RetroalimentacionClinicaRepos
     def listar_por_resultado(
         self, id_resultado: uuid.UUID
     ) -> list[RetroalimentacionClinica]:
+        """Lista las retroalimentaciones del resultado."""
         stmt = select(RetroalimentacionClinicaModel).where(
             RetroalimentacionClinicaModel.id_resultado_inferencia == id_resultado,
         )
@@ -97,6 +103,9 @@ class SqlAlchemyRetroalimentacionClinicaRepository(RetroalimentacionClinicaRepos
     def contar_nuevas_por_tipo_modelo(
         self, tipos_modelo: list[str]
     ) -> dict[str, tuple[int, Optional[datetime]]]:
+        """``{tipo_modelo: (resultados retroalimentados después de su última versión, fecha de esa
+        versión o None)}``. Cada resultado cuenta una vez y solo retroalimentaciones ACTIVAS.
+        """
         try:
             filas = self._db.execute(_SQL_NUEVAS_POR_TIPO, {"tipos": list(tipos_modelo)}).all()
         except Exception as exc:

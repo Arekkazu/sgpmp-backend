@@ -6,6 +6,8 @@
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
 # | 2026-10-28 | destroyerban | INC-M03-165-G71 RF-63: el filtro tipo_evento acepta los nombres de RF-57 |
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: recuperar evidencia con UUID estable y exclusión transaccional sin modificar registros existentes. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de la bitácora de auditoría IoT (RF-63)."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -48,11 +50,13 @@ _SQL_INFRAESTRUCTURAS_DE_FINCAS = text(
 
 
 class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
+    """Registra, consulta y verifica eventos de auditoría del módulo IoT."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def registrar(self, evento: EventoAuditoriaIot) -> EventoAuditoriaIot:
+        """Registra un evento de auditoría; si falla, devuelve el evento sin bloquear."""
         try:
             orm = BitacoraAuditoriaIotModel(
                 id_usuario=evento.id_usuario,
@@ -84,9 +88,15 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
             return evento
 
     def bloquear_respaldo(self) -> bool:
+        """Intenta tomar el lock del proceso de respaldo de auditoría."""
         return bool(self.db.execute(text('SELECT pg_try_advisory_xact_lock(680, 53)')).scalar_one())
 
     def registrar_respaldo(self, evento: EventoAuditoriaIot) -> None:
+        """Reinserta un evento respaldado sin duplicar el UUID y valida su hash.
+
+        Raises:
+            InfrastructureError: Si el UUID ya identifica otra evidencia.
+        """
         try:
             datos = {k: (v.value if isinstance(v, Enum) else v) for k,v in asdict(evento).items()
                      if k in BitacoraAuditoriaIotModel.__table__.columns and k != 'timestamp_registro'}
@@ -101,6 +111,7 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
     def obtener(
         self, id_evento: UUID, *, ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Optional[EventoAuditoriaIot]:
+        """Devuelve un evento por UUID, acotado a las fincas permitidas si se indican."""
         q = self.db.query(BitacoraAuditoriaIotModel).filter(BitacoraAuditoriaIotModel.id_evento == id_evento)
         if ids_fincas_permitidas is not None:
             q = q.filter(self._de_las_fincas(ids_fincas_permitidas))
@@ -162,6 +173,7 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]:
+        """Lista eventos de auditoría con filtros y paginación."""
         q = self.db.query(BitacoraAuditoriaIotModel)
         if ids_fincas_permitidas is not None:
             q = q.filter(self._de_las_fincas(ids_fincas_permitidas))
@@ -199,6 +211,7 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         fecha_hasta: Optional[datetime] = None,
         limite: Optional[int] = None,
     ) -> list[EventoAuditoriaIot]:
+        """Devuelve todos los eventos del rango para el proceso de verificación de integridad."""
         q = self.db.query(BitacoraAuditoriaIotModel)
         if fecha_desde:
             q = q.filter(BitacoraAuditoriaIotModel.fecha_hora >= fecha_desde)
@@ -224,9 +237,11 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         return eventos
 
     def bloquear_integridad(self, id_evento):
+        """Toma un lock asesor por evento para serializar su verificación."""
         self.db.execute(text('SELECT pg_advisory_xact_lock(6363, hashtext(:id))'), {'id': str(id_evento)})
 
     def buscar_incidente(self, clave):
+        """Devuelve el primer incidente de integridad asociado a la clave dada."""
         orm = self.db.query(BitacoraAuditoriaIotModel).filter(
             BitacoraAuditoriaIotModel.tipo_evento == 'INTEGRIDAD_COMPROMETIDA',
             BitacoraAuditoriaIotModel.accion_detallada['compromiso'] == clave,
@@ -234,6 +249,7 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         return self._a_entidad(orm) if orm else None
 
     def aviso_confirmado(self, id_incidente):
+        """Indica si ya se registró el aviso del incidente de integridad."""
         return self.db.query(BitacoraAuditoriaIotModel.id_evento).filter(
             BitacoraAuditoriaIotModel.tipo_evento == 'INTEGRIDAD_COMPROMETIDA',
             BitacoraAuditoriaIotModel.accion_detallada['aviso_incidente'].astext == str(id_incidente),

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.permisos`.
 
 Cada fila representa la capacidad de un rol para realizar una acción (CRUD+E)
@@ -22,6 +25,7 @@ if TYPE_CHECKING:
 
 
 class Permisos(Base):
+    """Modelo ORM de los permisos RBAC (tabla ``modulo1.permisos``)."""
     __tablename__ = 'permisos'
     __table_args__ = (
         ForeignKeyConstraint(['id_accion'], ['modulo1.acciones.id_accion'], name='fk_accion_permiso'),

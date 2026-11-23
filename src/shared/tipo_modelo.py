@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Taxonomía de modelos de IA por tipo de manejo (RFC-009, M04 + RF-20 de M09).
 
 `tipo_modelo` dejó de clasificarse por tamaño del animal: ahora son seis modelos
@@ -47,8 +50,10 @@ def tipo_modelo_de_grupo(grupo_manejo: Optional[str]) -> Optional[str]:
 
 
 def paradigma_de(tipo_modelo: Optional[str]) -> Optional[str]:
+    """Devuelve el paradigma (individual o poblacional) del tipo de modelo, o ``None``."""
     return PARADIGMA_POR_TIPO_MODELO.get(tipo_modelo) if tipo_modelo else None
 
 
 def es_poblacional(tipo_modelo: Optional[str]) -> bool:
+    """Indica si el tipo de modelo es de paradigma poblacional."""
     return paradigma_de(tipo_modelo) == POBLACIONAL

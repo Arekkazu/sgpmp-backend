@@ -2,6 +2,7 @@
 # |------------|----------|------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, estado, módulo, ocurrencias y acción documentada |
 # | 2026-11-18 | Arekkazu | M08 RF-105 R6: preferencias de canal por nivel |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas HTTP para la bandeja de notificaciones internas."""
 from datetime import datetime
 from typing import Literal, Optional
@@ -69,11 +70,13 @@ class PreferenciaNotificacionResponse(BaseModel):
 
 
 class CambioPreferenciaDTO(BaseDTO):
+    """Cambio de preferencia de un nivel y canal."""
     nivel: Literal["CRITICA", "ADVERTENCIA", "INFORMATIVA"]
     canal: Literal["PUSH", "EMAIL"]
     habilitado: bool
 
 
 class GuardarPreferenciasDTO(BaseDTO):
+    """Cambios de preferencias de notificación a guardar."""
     preferencias: list[CambioPreferenciaDTO] = Field(min_length=1, max_length=6)
 

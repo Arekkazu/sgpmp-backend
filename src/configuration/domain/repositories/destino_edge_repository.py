@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto (ABC): a qué Gateway Edge le corresponde un umbral ambiental (RF-17).
 
 INC-M09-104-G29: un umbral se define por (especie, variable ambiental). Llega a
@@ -14,6 +17,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class GatewayEdgeDestino:
+    """Gateway Edge destino de una propagación."""
     id_dispositivo_iot: int
     serial: str
 

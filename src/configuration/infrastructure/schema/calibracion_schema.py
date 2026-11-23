@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para endpoints de calibración de sensores (RF-24)."""
 from __future__ import annotations
 
@@ -28,6 +31,7 @@ class CalibracionResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, calibracion) -> CalibracionResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_calibracion=calibracion.id_calibracion,
             id_dispositivo_iot=calibracion.id_dispositivo_iot,
@@ -56,6 +60,7 @@ class RangoCalibracionResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, rango) -> RangoCalibracionResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             categoria=rango.categoria,
             valor_min=rango.valor_min,

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.historicos_estados_activos``: cambios de estado del activo
 (RF-44).
 """
@@ -13,6 +16,7 @@ from .base_model import Base
 
 
 class HistoricoEstadoActivoModel(Base):
+    """Modelo ORM de los cambios de estado de un activo (tabla ``modulo2.historicos_estados_activos``)."""
     __tablename__ = 'historicos_estados_activos'
     __table_args__ = {'schema': 'modulo2'}
 

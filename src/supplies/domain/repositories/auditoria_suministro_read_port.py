@@ -6,6 +6,7 @@
 # | 2026-11-08 | Leandro | INC-M05-276-G38 RF-80: rechazar rangos temporales invertidos antes de consultar o exportar. |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura de la bitácora ``modulo5.auditorias_suministros`` (RF-80, CU-06).
 
 Complementa a ``AuditoriaSuministroPort`` (solo escritura). ``tipo_operacion``
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class FiltrosAuditoriaSuministro:
+    """Filtros de la consulta de auditoría de suministros."""
     tipo_operacion: Optional[str] = None
     id_usuario: Optional[int] = None
     fecha_desde: Optional[datetime] = None

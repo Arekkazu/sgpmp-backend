@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.usuarios`.
 
 Entidad central del sistema: almacena la información personal, de autenticación
@@ -23,6 +26,7 @@ if TYPE_CHECKING:
     from .notificaciones_model import Notificaciones
 
 class Usuarios(Base):
+    """Modelo ORM de los usuarios (tabla ``modulo1.usuarios``)."""
     __tablename__ = 'usuarios'
     __table_args__ = (
         CheckConstraint("apellidos::text ~ '^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$'::text", name='chk_usuario_apellidos_validos'),

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: cuerpo del PATCH de parámetros de alertas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO de actualización de parámetros configurables."""
 from __future__ import annotations
 
 from typing import Any

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: busca la variable compañera en telemetrías del área |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """RF-57 E14: lectura válida de la otra variable requerida de una regla compuesta, en la misma área."""
 from sqlalchemy import text
 
@@ -24,10 +25,13 @@ _SQL = text("""
 
 
 class LecturaCompaneraM03Adapter(LecturaCompaneraPort):
+    """Busca en telemetrías la lectura compañera más cercana en la ventana dada."""
+
     def __init__(self, db):
         self.db = db
 
     def ultima_lectura_valida(self, tipo_variable, id_infraestructura, id_dispositivo, momento, ventana_min):
+        """Devuelve la lectura válida más cercana al momento, o ``None`` si no hay."""
         try:
             fila = self.db.execute(_SQL, {"codigo": tipo_variable, "area": id_infraestructura,
                                           "dispositivo": id_dispositivo, "momento": momento,

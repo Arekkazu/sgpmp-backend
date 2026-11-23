@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador que consulta la especie de un activo biológico."""
 from typing import Optional
 
 from sqlalchemy import text
@@ -18,6 +22,7 @@ class EspecieActivoM02Adapter(EspecieActivoPort):
         self.db = db
 
     def obtener_id_especie(self, id_activo_biologico: int) -> Optional[int]:
+        """Devuelve el id de especie del activo, o ``None`` si no existe."""
         row = self.db.execute(
             text('SELECT id_especie FROM modulo2.activos_biologicos WHERE id_activo_biologico = :id'),
             {'id': id_activo_biologico},

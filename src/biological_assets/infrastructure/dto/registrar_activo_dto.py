@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-303-G04 RF-33/RF-82: costo_adquisicion con máximo 4 decimales (se rechaza, no se redondea) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos`` (RF-33)."""
 
 from __future__ import annotations
@@ -49,6 +50,7 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
 
     @model_validator(mode='after')
     def validar_segun_tipo(self) -> RegistrarActivoBiologicoDTO:
+        """Valida los campos obligatorios según el tipo de activo."""
         tipo = self.tipo_activo
         if tipo not in ('INDIVIDUAL', 'POBLACIONAL'):
             raise ValueError("tipo_activo debe ser 'INDIVIDUAL' o 'POBLACIONAL'.")
@@ -84,6 +86,7 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
 
     @model_validator(mode='after')
     def validar_fecha_inicio_ciclo(self) -> RegistrarActivoBiologicoDTO:
+        """Exige una fecha de inicio de ciclo dentro del rango permitido."""
         # FA-04
         hoy = hoy_usuario()
         limite_inferior = date(1970, 1, 1)
@@ -95,6 +98,7 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
 
     @model_validator(mode='after')
     def validar_origen_financiero(self) -> RegistrarActivoBiologicoDTO:
+        """Valida el formato del origen financiero."""
         # Solo el formato del valor se valida aquí. La coherencia
         # costo_adquisicion/soporte_documental según origen_financiero (FA-08)
         # vive en RegistrarActivoBiologicoUseCase para responder 422

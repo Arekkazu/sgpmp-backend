@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001/138-G001 RF-64: versión del catálogo y búsqueda por nombre |
 # | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64 (motor IA) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia del catálogo de patologías."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -11,6 +13,7 @@ from src.prediction.domain.entities.patologia_m04 import PatologiaM04
 
 
 class PatologiaM04Repository(ABC):
+    """Puerto de persistencia de patologías."""
     @abstractmethod
     def obtener_por_id(self, id_patologia: int, *, bloquear: bool = False) -> Optional[PatologiaM04]:
         """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
@@ -42,10 +45,14 @@ class PatologiaM04Repository(ABC):
         ...
 
     @abstractmethod
-    def guardar(self, entidad: PatologiaM04) -> PatologiaM04: ...
+    def guardar(self, entidad: PatologiaM04) -> PatologiaM04:
+        """Guarda una patología nueva."""
+        ...
 
     @abstractmethod
-    def actualizar(self, entidad: PatologiaM04) -> PatologiaM04: ...
+    def actualizar(self, entidad: PatologiaM04) -> PatologiaM04:
+        """Actualiza la patología."""
+        ...
 
     @abstractmethod
     def listar(
@@ -54,4 +61,6 @@ class PatologiaM04Repository(ABC):
         solo_activas: Optional[bool] = None,
         solo_base: Optional[bool] = None,
         nombre: Optional[str] = None,
-    ) -> list[PatologiaM04]: ...
+    ) -> list[PatologiaM04]:
+        """Lista las patologías con filtros."""
+        ...

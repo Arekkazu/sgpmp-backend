@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.configuracion_batch_reportes_gastos`` (RF-77 / motor async).
 
 Generado con sqlacodegen y adaptado (Base compartida, sin relationships). Fila
@@ -14,6 +17,7 @@ from .base_model import Base
 
 
 class ConfiguracionBatchReporteGastoModel(Base):
+    """Modelo ORM de la tabla ``modulo5.configuracion_batch_reportes_gastos``."""
     __tablename__ = 'configuracion_batch_reportes_gastos'
     __table_args__ = (
         PrimaryKeyConstraint('id_configuracion', name='configuracion_batch_reportes_gastos_pkey'),

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.cuentas_usuarios`.
 
 Gestiona el estado operativo y de seguridad de la cuenta (intentos fallidos,
@@ -21,6 +24,7 @@ if TYPE_CHECKING:
 
 
 class CuentasUsuarios(Base):
+    """Modelo ORM de las cuentas de usuario (tabla ``modulo1.cuentas_usuarios``)."""
     __tablename__ = 'cuentas_usuarios'
     __table_args__ = (
         CheckConstraint('intentos_fallidos <= 5', name='chk_cuentas_intentos_max_cinco'),

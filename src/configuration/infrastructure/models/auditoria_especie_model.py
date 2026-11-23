@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.auditorias_especies`.
 
 Registro append-only de todas las operaciones sobre el catálogo de especies.
@@ -16,6 +19,7 @@ from .base_model import Base
 
 
 class AuditoriaEspecieModel(Base):
+    """Modelo ORM de la tabla ``modulo9.auditorias_especies``."""
     __tablename__ = 'auditorias_especies'
     __table_args__ = (
         CheckConstraint(

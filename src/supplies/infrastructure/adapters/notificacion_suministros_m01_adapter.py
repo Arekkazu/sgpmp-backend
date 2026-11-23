@@ -5,6 +5,7 @@
 # | 2026-11-15 | Arekkazu         | INC-M05-367/368-G02 RF-74: aviso en sesión de servicio, un evento por destinatario |
 # | 2026-11-15 | Arekkazu | QA-M06 RF-74: el aviso no espera el bloqueo de un destinatario (petición colgada en el sandbox) |
 # | 2026-11-18 | Arekkazu | M08 RF-105: sin destinatarios del rol, el aviso va al Administrador |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`NotificacionSuministrosPort` sobre M01 (RF-10 + RF-14).
 
 Igual que la alerta de fallo de archivado de RF-10: cada aviso cuelga de un
@@ -60,25 +61,30 @@ _SQL_RESPONSABLES = text(
 
 
 class NotificacionSuministrosM01Adapter(NotificacionSuministrosPort):
+    """Notifica eventos de suministros mediante el sistema de notificaciones."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def a_usuarios(self, ids_usuarios: list[int], tipo_evento: str, mensaje: str, detalle: dict) -> None:
+        """Notifica a los usuarios indicados."""
         self._notificar(ids_usuarios, tipo_evento, mensaje, detalle)
 
     def a_permiso(self, id_recurso: int, id_accion: int, tipo_evento: str, mensaje: str, detalle: dict) -> None:
+        """Notifica a los usuarios con el permiso indicado."""
         ids = self._destinatarios(
             lambda: SqlAlchemyUsuarioRepository(self.db).listar_ids_con_permiso(id_recurso, id_accion), tipo_evento,
         )
         self._notificar(ids, tipo_evento, mensaje, detalle)
 
     def a_responsables_activo(self, id_activo: int, tipo_evento: str, mensaje: str, detalle: dict) -> None:
+        """Notifica a los responsables de la finca del activo."""
         ids = self._destinatarios(
             lambda: self.db.execute(_SQL_RESPONSABLES, {"id_activo": id_activo}).scalars().all(), tipo_evento,
         )
         self._notificar(ids, tipo_evento, mensaje, detalle)
 
     def a_roles(self, roles: tuple[str, ...], tipo_evento: str, mensaje: str, detalle: dict) -> None:
+        """Notifica a los usuarios de los roles indicados."""
         ids = self._destinatarios(
             lambda: self.db.execute(_SQL_USUARIOS_POR_ROL, {"roles": list(roles)}).scalars().all(), tipo_evento,
         )

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para las provisiones consolidadas NIC-41 (RF-79)."""
 from __future__ import annotations
 
@@ -36,6 +39,7 @@ class ProvisionNic41Response(BaseModel):
 
     @classmethod
     def desde_entidad(cls, provision, *, pagina: int = 1, por_pagina: int = 50) -> "ProvisionNic41Response":
+        """Construye la respuesta con los registros de la página indicada."""
         total = len(provision.lista_registros)
         inicio = (pagina - 1) * por_pagina
         pagina_registros = provision.lista_registros[inicio : inicio + por_pagina]

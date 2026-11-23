@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: ¿hay umbral RF-17 para la variable en el área? |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto para saber si una variable tiene umbral configurado (E9)."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -18,6 +20,7 @@ class UmbralConfigurado:
 
 
 class UmbralConfiguradoPort(ABC):
+    """Puerto de consulta de umbrales configurados por variable y área."""
     @abstractmethod
     def consultar(self, tipo_variable: str, id_infraestructura: Optional[int]) -> UmbralConfigurado:
         """Si existe un umbral RF-17 activo de la variable para alguna especie del área (sin área:

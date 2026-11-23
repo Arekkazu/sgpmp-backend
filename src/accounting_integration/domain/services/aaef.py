@@ -7,6 +7,7 @@
 # | 2026-11-19 | Arekkazu | TC-M07-G016/G019 RF-96: neto negativo invierte las cuentas y LineType contra la matriz |
 # | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE02: verificar los cuatro totales del resumen contra los documentos. |
 # | 2026-11-19 | Leandro | INC-M07-378-G61 RF-AE02: rechazar importes no positivos tras truncar las líneas de compra. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Núcleo AAEF de M07 (RF-96 v2.0, RF-97 v3.0, RF-AE02 v3.0). Python puro, sin BD ni FastAPI.
 
 Transforma lo que M06 ya calculó; no recalcula ni decide nada contable (Anticorruption Layer).
@@ -49,18 +50,21 @@ class AaefError(Exception):
 
 @dataclass(frozen=True)
 class Titular:
+    """Titular tributario de la exportación."""
     nit: str
     razon_social: str
 
 
 @dataclass(frozen=True)
 class Periodo:
+    """Periodo contable con su estado."""
     fecha_inicio: date
     fecha_fin: date
     estado: str
 
     @property
     def etiqueta(self) -> str:
+        """Etiqueta legible del periodo (año-mes o rango)."""
         if (self.fecha_inicio.year, self.fecha_inicio.month) == (self.fecha_fin.year, self.fecha_fin.month):
             return f"{self.fecha_inicio:%Y-%m}"
         return f"{self.fecha_inicio:%Y-%m} a {self.fecha_fin:%Y-%m}"
@@ -85,6 +89,7 @@ class CostoFactura:
 
 @dataclass(frozen=True)
 class ComprobanteNic41:
+    """Comprobante contable NIC 41 a exportar."""
     codigo: str
     tipo_hecho: str
     especie: str
@@ -94,6 +99,7 @@ class ComprobanteNic41:
 
 @dataclass(frozen=True)
 class SistemaOrigen:
+    """Identificación del sistema que genera la exportación."""
     system_id: str
     system_name: str
     environment: str
@@ -340,6 +346,11 @@ def serializar(envelope: dict) -> bytes:
 
 
 def controlar_tamano(cuerpo: bytes, limite_bytes: int) -> None:
+    """Rechaza la exportación si supera el tamaño permitido.
+
+    Raises:
+        AaefError: Si el contenido excede el límite.
+    """
     if len(cuerpo) > limite_bytes:
         raise AaefError("TAMANO_EXCEDIDO", f"La información del rango supera {limite_bytes // (1024 * 1024)} MB. "
                         "Consulte un rango menor (un período).")

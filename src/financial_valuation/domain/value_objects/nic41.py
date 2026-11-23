@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: catálogos NIC 41 del módulo financiero |
 # | 2026-11-05 | Arekkazu | M06: rótulos legibles de hechos y sentidos para mensajes y archivos |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-302-G01 RF-82/RF-86: hecho RECONOCIMIENTO_DONACION |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Catálogos cerrados de M06 (mismos valores que los ENUM de ``modulo6``)."""
 from __future__ import annotations
 
@@ -78,6 +79,7 @@ class TipoEvidencia(str, Enum):
 
 
 class FuentePrecio(str, Enum):
+    """Fuente de un precio de mercado."""
     MERCADO_ACTIVO = "MERCADO_ACTIVO"
     UPRA = "UPRA"
     ESTIMADA = "ESTIMADA"
@@ -88,6 +90,7 @@ PRIORIDAD_FUENTES = (FuentePrecio.MERCADO_ACTIVO, FuentePrecio.UPRA, FuentePreci
 
 
 class CategoriaPrecio(str, Enum):
+    """Unidad en que se expresa el precio."""
     PESO_KG = "PESO_KG"
     POR_CABEZA = "POR_CABEZA"
     PRODUCTO = "PRODUCTO"  # por unidad de la métrica de producción (RF-85)
@@ -101,29 +104,34 @@ class Clasificacion(str, Enum):
 
 
 class IndicadorValoracion(str, Enum):
+    """Modelo de medición del activo."""
     VALOR_RAZONABLE = "VALOR_RAZONABLE"
     VALORACION_POR_COSTO = "VALORACION_POR_COSTO"
 
 
 class TipoCierre(str, Enum):
+    """Periodicidad del cierre contable."""
     MENSUAL = "MENSUAL"
     TRIMESTRAL = "TRIMESTRAL"
     ANUAL = "ANUAL"
 
 
 class EstadoPeriodo(str, Enum):
+    """Estado de un periodo contable."""
     ABIERTO = "ABIERTO"
     EN_CIERRE = "EN_CIERRE"
     CERRADO = "CERRADO"
 
 
 class NaturalezaCosto(str, Enum):
+    """Naturaleza contable de un costo."""
     MANTENIMIENTO = "MANTENIMIENTO"
     INVERSION = "INVERSION"
     VENTA = "VENTA"
 
 
 class SubtipoCosto(str, Enum):
+    """Subtipo de costo de un activo."""
     ALIMENTO = "ALIMENTO"
     MEDICAMENTO = "MEDICAMENTO"
     MANO_OBRA = "MANO_OBRA"
@@ -151,6 +159,7 @@ NATURALEZA_POR_SUBTIPO = {
 
 
 class OrigenCosto(str, Enum):
+    """Origen de un costo."""
     CONSUMO_INVENTARIO = "CONSUMO_INVENTARIO"
     MANO_OBRA_PROPIA = "MANO_OBRA_PROPIA"
     COMPRA_PROVEEDOR = "COMPRA_PROVEEDOR"
@@ -161,17 +170,20 @@ ORIGENES_CON_PROVEEDOR = (OrigenCosto.COMPRA_PROVEEDOR, OrigenCosto.SERVICIO_TER
 
 
 class VehiculoContable(str, Enum):
+    """Vehículo con el que se contabiliza un costo."""
     FACTURA_COMPRA = "FACTURA_COMPRA"
     ASIENTO_NIC41 = "ASIENTO_NIC41"
     NINGUNO = "NINGUNO"
 
 
 class MetodoReparto(str, Enum):
+    """Método de reparto de un costo de lote."""
     POR_CABEZAS = "POR_CABEZAS"
     POR_BIOMASA = "POR_BIOMASA"
 
 
 class Severidad(str, Enum):
+    """Severidad de un evento de auditoría financiera."""
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"

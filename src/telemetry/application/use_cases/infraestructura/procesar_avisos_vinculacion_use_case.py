@@ -1,6 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: avisos recuperables sin confirmar envios ficticios |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso que avisa vinculaciones ambiguas o con configuración incompleta."""
 from src.shared.errors import ServiceUnavailableError
 
 
@@ -11,6 +13,7 @@ class ProcesarAvisosVinculacionUseCase:
         self.destinatarios=destinatarios
 
     def execute(self, identificador):
+        """Envía el aviso de la vinculación vigente si quedó ambigua o incompleta."""
         v=self.vinculaciones.vigente(identificador)
         if v is None:return
         incompleta=v.causa=='CONFIGURACION_INCOMPLETA'

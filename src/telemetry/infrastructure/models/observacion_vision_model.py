@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: columnas DB-09 y evaluación de calidad pendiente |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstring de la clase |
 """Observaciones de visión: 88496bce07b6, DB-03 (65541db23c71), DB-09 (be29f17bb7fc) y RF-62 (8c4e2a6f1b93)."""
 from __future__ import annotations
 
@@ -19,6 +20,8 @@ from .base_model import Base
 
 
 class ObservacionVisionModel(Base):
+    """Observación de visión con su vector y el bloque de calidad evaluada."""
+
     __tablename__ = 'observaciones_vision'
     __table_args__ = (
         ForeignKeyConstraint(

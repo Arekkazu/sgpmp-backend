@@ -5,6 +5,8 @@
 # | 2026-10-29 | Arekkazu | INC-M04-213/214 RF-69: SavedModel por estructura protobuf, fecha futura y tipo vacío 422 |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-19 | Arekkazu     | SEG-M04-01 RF-69: exige y guarda la firma del artefacto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de registro de una versión de modelo entrenado."""
 from __future__ import annotations
 
 import hashlib
@@ -97,6 +99,7 @@ def _es_saved_model(datos: bytes) -> bool:
 
 
 class RegistrarVersionModeloUseCase:
+    """Registra una versión de modelo con su artefacto y métricas."""
 
     def __init__(
         self,
@@ -114,6 +117,7 @@ class RegistrarVersionModeloUseCase:
         self._aviso_port = aviso_port
 
     def execute(self, dto: RegistrarVersionModeloDTO, internal_key: Optional[str]) -> VersionModelo:
+        """Valida la clave interna, el artefacto y las métricas y registra la versión."""
         # FA-02: verificar clave interna
         self._verificar_clave_interna(internal_key, dto.id_proceso_rf71)
 

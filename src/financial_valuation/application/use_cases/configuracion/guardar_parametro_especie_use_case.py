@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/RF-88: clasificación, categoría de precio y vida útil por especie |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: parámetros contables de una especie (clasificación PRODUCCION/CONSUMO de NIC 41
 ¶43, categoría de precio con que se mide y vida útil para el modelo de costo de RF-88). Un cambio de
 vida útil aplica a las depreciaciones siguientes, no recalcula las ya registradas (RF-88 R3)."""
@@ -14,12 +15,14 @@ from src.financial_valuation.domain.repositories.configuracion_contable_reposito
 
 
 class GuardarParametroEspecieUseCase:
+    """Guarda los parámetros de valoración de una especie."""
     def __init__(self, db: Session, config: ConfiguracionContableRepository, auditoria: AuditoriaFinancieraRepository) -> None:
         self.db = db
         self.config = config
         self.auditoria = auditoria
 
     def execute(self, parametro: ParametroEspecie, id_usuario: int) -> ParametroEspecie:
+        """Guarda el parámetro de la especie y lo audita."""
         anterior = self.config.parametro_especie(parametro.id_especie)
         try:
             self.config.guardar_parametro_especie(parametro, id_usuario)

@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de la bitácora de ingesta de telemetría (tabla ``modulo3.bitacora_ingest``).
+
+Registra el resultado de procesar cada lectura (calidad, severidad y payload
+recibido) para trazabilidad del pipeline de ingesta.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +19,8 @@ from .base_model import Base
 
 
 class BitacoraIngestModel(Base):
+    """Fila de la tabla ``modulo3.bitacora_ingest``."""
+
     __tablename__ = 'bitacora_ingest'
     __table_args__ = (
         PrimaryKeyConstraint('id_bitacora_ingest', name='bitacora_ingest_pkey'),

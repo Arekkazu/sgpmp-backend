@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar una calibración de sensor (POST /{id}/calibrar RF-24)."""
 from __future__ import annotations
 
@@ -42,6 +43,7 @@ class RegistrarCalibracionDTO(BaseDTO):
     @field_validator("valor_referencia", mode="before")
     @classmethod
     def no_finito_como_texto(cls, v):
+        """Convierte NaN e infinitos a texto para que la validación los rechace con su mensaje."""
         if isinstance(v, float) and not math.isfinite(v):
             return "NaN" if math.isnan(v) else ("Infinity" if v > 0 else "-Infinity")
         return v
@@ -52,6 +54,7 @@ class RegistrarCalibracionDTO(BaseDTO):
     @field_validator("ganancia")
     @classmethod
     def validar_ganancia(cls, v: Decimal) -> Decimal:
+        """Valida la ganancia de la calibración."""
         if v <= Decimal("0"):
             raise ValueError(f"La ganancia debe ser positiva. Valor recibido: {v}.")
         return v

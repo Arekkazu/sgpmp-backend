@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto de dominio :class:`PermisoRepository`.
 
 Mapea entre la tabla ``permisos`` y la entidad :class:`Permiso`. Conserva la
@@ -44,6 +47,7 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
         )
 
     def listar_por_rol(self, id_rol: int) -> list[Permiso]:
+        """Lista los permisos del rol."""
         filas = (
             self.db.query(Permisos)
             .filter(Permisos.id_rol == id_rol)
@@ -53,6 +57,7 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
         return [self._a_entidad(p) for p in filas]
 
     def listar_por_roles(self, id_roles: list[int]) -> dict[int, list[Permiso]]:
+        """Lista los permisos de varios roles agrupados por rol."""
         if not id_roles:
             return {}
         filas = (
@@ -67,6 +72,7 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
         return agrupados
 
     def buscar(self, id_rol: int, id_recurso: int, id_accion: int) -> Optional[Permiso]:
+        """Busca el permiso del rol sobre el recurso y la acción."""
         orm = (
             self.db.query(Permisos)
             .filter(
@@ -79,16 +85,20 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
         return self._a_entidad(orm) if orm else None
 
     def buscar_por_id(self, id_permiso: int) -> Optional[Permiso]:
+        """Devuelve el permiso por id, o ``None``."""
         orm = self.db.query(Permisos).filter(Permisos.id_permiso == id_permiso).first()
         return self._a_entidad(orm) if orm else None
 
     def existe_recurso(self, id_recurso: int) -> bool:
+        """Indica si existe el recurso."""
         return self.db.query(Recursos).filter(Recursos.id_recurso == id_recurso).first() is not None
 
     def existe_accion(self, id_accion: int) -> bool:
+        """Indica si existe la acción."""
         return self.db.query(Acciones).filter(Acciones.id_accion == id_accion).first() is not None
 
     def es_proceso_especial(self, id_recurso: int) -> bool:
+        """Indica si el recurso es un proceso especial."""
         return bool(
             self.db.query(Recursos.es_proceso_especial)
             .filter(Recursos.id_recurso == id_recurso)
@@ -96,6 +106,7 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
         )
 
     def asignar(self, id_rol: int, id_recurso: int, id_accion: int, nombre_rol: str) -> Permiso:
+        """Asigna un permiso al rol."""
         nombre = f"{nombre_rol}_permiso_{id_recurso}_{id_accion}"
         permiso = Permisos(
             nombre=nombre,
@@ -135,6 +146,7 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
             raise
 
     def retirar(self, permiso: Permiso) -> None:
+        """Retira un permiso del rol."""
         orm = self.db.get(Permisos, permiso.id_permiso)
         self.db.delete(orm)
         try:

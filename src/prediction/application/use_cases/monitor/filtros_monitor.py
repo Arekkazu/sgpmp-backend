@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
 # | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Validación común de los filtros del monitor (inferencias y contagio)."""
 from __future__ import annotations
 
@@ -42,6 +43,11 @@ def validar_filtros(
 
 
 def validar_por_activo(por_activo: Optional[int]) -> Optional[int]:
+    """Valida el límite de resultados por activo.
+
+    Raises:
+        ValidationError: Si está fuera del rango permitido.
+    """
     if por_activo is not None and not 1 <= por_activo <= POR_ACTIVO_MAXIMO:
         raise ValidationError(
             code="POR_ACTIVO_INVALIDO",

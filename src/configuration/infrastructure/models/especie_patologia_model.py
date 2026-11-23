@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.especies_patologias`.
 
 Entidad M09 de patologías por especie (RF-16): nombre, descripción y estado son
@@ -18,6 +21,7 @@ from .base_model import Base
 
 
 class EspeciePatologiaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.especies_patologias``."""
     __tablename__ = 'especies_patologias'
     __table_args__ = (
         ForeignKeyConstraint(

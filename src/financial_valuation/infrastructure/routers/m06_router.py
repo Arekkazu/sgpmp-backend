@@ -25,6 +25,7 @@
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-84/94: costos y bitácora aceptan id_finca |
 # | 2026-11-15 | Arekkazu | QA-M06 CU04 H-02 RF-85: cosechas pendientes filtradas por el titular del selector |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``, cuyo 403 queda en RF-94 vía
@@ -120,6 +121,7 @@ TAG_CONFIG = "M06 · Configuración contable"
 @router.get("/configuracion", tags=[TAG_CONFIG], dependencies=[Depends(permiso("configuracion_contable", R))],
             summary="Configuración contable completa (periodicidad, especies, costos de venta, matriz)")
 def consultar_configuracion(m: M06 = Depends(_m06)) -> dict:
+    """Devuelve la configuración contable completa."""
     return {"general": m.config.obtener().__dict__, "especies": m.config.listar_parametros_especie(),
             "costos_venta": m.config.listar_costos_venta(),
             "matriz": [a.__dict__ for a in m.config.listar_asignaciones()],
@@ -130,6 +132,7 @@ def consultar_configuracion(m: M06 = Depends(_m06)) -> dict:
             summary="Actualizar periodicidad del cierre, umbral de desviación de precio y alertas de vencimiento")
 def actualizar_configuracion(dto: ConfiguracionContableDTO, m: M06 = Depends(_m06),
                              usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Actualiza la configuración contable general."""
     return m.actualizar_configuracion().execute(dto.tipo_cierre, dto.pct_umbral_desviacion_precio,
                                                 dto.dias_alerta_vencimiento_precio, usuario.id_usuario).__dict__
 
@@ -139,6 +142,7 @@ def actualizar_configuracion(dto: ConfiguracionContableDTO, m: M06 = Depends(_m0
             summary="Clasificación (producción/consumo), categoría de precio y vida útil de una especie")
 def guardar_parametro_especie(id_especie: int, dto: ParametroEspecieDTO, m: M06 = Depends(_m06),
                               usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Guarda los parámetros de valoración de una especie."""
     parametro = ParametroEspecie(id_especie, dto.clasificacion, dto.categoria_precio, dto.vida_util_meses)
     return m.guardar_parametro_especie().execute(parametro, usuario.id_usuario).__dict__
 
@@ -148,6 +152,7 @@ def guardar_parametro_especie(id_especie: int, dto: ParametroEspecieDTO, m: M06 
             summary="Costos de venta parametrizados de una especie y región (fracciones del valor bruto)")
 def guardar_costos_venta(id_especie: int, dto: CostosVentaDTO, m: M06 = Depends(_m06),
                          usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Guarda los costos de venta de una especie."""
     nuevo = m.guardar_costos_venta().execute(id_especie, dto.pct_transporte, dto.pct_comisiones, dto.pct_impuestos,
                                              usuario.id_usuario, dto.region)
     return {"id_parametro_costo_venta": nuevo}
@@ -158,6 +163,7 @@ def guardar_costos_venta(id_especie: int, dto: CostosVentaDTO, m: M06 = Depends(
              summary="Asignar el par de cuentas de un hecho contable (resuelve las líneas pendientes de cuenta)")
 def guardar_asignacion(dto: AsignacionCuentaDTO, m: M06 = Depends(_m06),
                        usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Guarda una asignación de cuentas."""
     return m.guardar_asignacion().execute(dto.tipo_hecho, dto.sentido, dto.id_especie, dto.subtipo_costo,
                                           dto.cuenta_debito, dto.cuenta_credito, usuario.id_usuario)
 
@@ -166,6 +172,7 @@ def guardar_asignacion(dto: AsignacionCuentaDTO, m: M06 = Depends(_m06),
                dependencies=[Depends(permiso("configuracion_contable", U))], summary="Desactivar una asignación de cuentas")
 def desactivar_asignacion(id_asignacion: int, m: M06 = Depends(_m06),
                           usuario: UsuarioActual = Depends(get_current_user)) -> Response:
+    """Desactiva una asignación de cuentas."""
     m.guardar_asignacion().desactivar(id_asignacion, usuario.id_usuario)
     return Response(status_code=204)
 
@@ -178,12 +185,14 @@ TAG_PRECIOS = "M06 · Precios de mercado"
 @router.get("/precios", tags=[TAG_PRECIOS], dependencies=[Depends(permiso("precios_mercado", R))],
             summary="Historial de precios con su estado (vigente, programado, vencido, superado, corregido)")
 def listar_precios(id_especie: Optional[int] = Query(None, gt=0), m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los precios de mercado."""
     return m.listar_precios().execute(id_especie)
 
 
 @router.post("/precios", tags=[TAG_PRECIOS], status_code=201, dependencies=[Depends(permiso("precios_mercado", C))],
              summary="Registrar un precio de mercado de referencia o la corrección de uno (append-only)")
 def registrar_precio(dto: PrecioDTO, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Registra un precio de mercado."""
     return m.registrar_precio().execute(SolicitudPrecio(**dto.model_dump()), usuario.id_usuario)
 
 
@@ -199,6 +208,7 @@ TAG_RECON = "M06 · Reconocimiento inicial"
             summary="Propuestas de reconocimiento de los activos sin reconocimiento confirmado")
 def listar_propuestas(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06 = Depends(_m06),
                       usuario: UsuarioActual = Depends(get_current_user)) -> list[dict]:
+    """Lista las propuestas de reconocimiento inicial."""
     return m.propuestas().execute(usuario.id_usuario, numero_id_tributaria)
 
 
@@ -206,6 +216,7 @@ def listar_propuestas(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06
             dependencies=[Depends(permiso("reconocimiento_inicial", R))], summary="Propuesta de un activo")
 def propuesta_activo(id_activo_biologico: int, clasificacion: Optional[Clasificacion] = None, m: M06 = Depends(_m06),
                      usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Devuelve la propuesta de reconocimiento de un activo."""
     return m.propuestas().de_activo(id_activo_biologico, usuario.id_usuario, clasificacion=clasificacion)
 
 
@@ -214,6 +225,7 @@ def propuesta_activo(id_activo_biologico: int, clasificacion: Optional[Clasifica
              summary="Confirmar el reconocimiento inicial del activo (genera sus líneas de asiento)")
 def confirmar_reconocimiento(id_activo_biologico: int, dto: ConfirmarReconocimientoDTO, m: M06 = Depends(_m06),
                              usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Confirma el reconocimiento inicial de un activo."""
     manuales = dto.costos_manuales.model_dump() if dto.costos_manuales else None
     return m.confirmar_reconocimiento().execute(id_activo_biologico, usuario.id_usuario, clasificacion=dto.clasificacion,
                                                 costos_manuales=manuales, justificacion=dto.justificacion,
@@ -225,6 +237,7 @@ def confirmar_reconocimiento(id_activo_biologico: int, dto: ConfirmarReconocimie
              summary="Revertir el reconocimiento inicial (asiento espejo; solo sin registros dependientes)")
 def revertir_reconocimiento(id_activo_biologico: int, dto: RevertirReconocimientoDTO, m: M06 = Depends(_m06),
                             usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Revierte el reconocimiento inicial de un activo."""
     return m.revertir_reconocimiento().execute(id_activo_biologico, dto.motivo_reversion, usuario.id_usuario)
 
 
@@ -236,12 +249,14 @@ TAG_VALOR = "M06 · Valoración de activos"
 @router.get("/activos", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Activos reconocidos con su valor en libros y método de valoración")
 def listar_activos_valorados(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los activos valorados."""
     return m.valoraciones.activos_valorados(numero_id_tributaria)
 
 
 @router.get("/activos/{id_activo_biologico}", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Historial financiero del activo: reconocimientos, cálculos, mediciones, productos y líneas")
 def historial_activo(id_activo_biologico: int, m: M06 = Depends(_m06)) -> dict:
+    """Devuelve el historial de valoración de un activo."""
     activo = m.activos.obtener(id_activo_biologico)
     if activo is None:
         raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe.")
@@ -253,6 +268,7 @@ def historial_activo(id_activo_biologico: int, m: M06 = Depends(_m06)) -> dict:
             dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Valor razonable menos costos de venta a hoy, sin registrarlo (solicitud directa de RF-84)")
 def simular_valor(id_activo_biologico: int, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Simula el valor razonable actual de un activo sin registrarlo."""
     activo = m.activos.obtener(id_activo_biologico)
     if activo is None:
         raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe.")
@@ -267,18 +283,21 @@ def simular_valor(id_activo_biologico: int, m: M06 = Depends(_m06), usuario: Usu
              summary="Validar con justificación un cálculo con valor neto ≤ 0 (REVISION_REQUERIDA → CALCULADO)")
 def validar_calculo(id_calculo_valor_razonable: int, dto: ValidarCalculoDTO, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Acepta un cálculo de valor no positivo con su justificación."""
     return m.validar_calculo().execute(id_calculo_valor_razonable, dto.justificacion, usuario.id_usuario)
 
 
 @router.post("/eventos/procesar", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", E))],
              summary="Procesar ya los eventos de M02 pendientes (lo hace también el proceso de fondo)")
 def procesar_eventos(m: M06 = Depends(_m06)) -> dict:
+    """Procesa los eventos y provisiones pendientes."""
     return {"eventos": m.procesar_eventos().execute(500), "provisiones_m05": m.procesar_provisiones().execute(500)}
 
 
 @router.get("/productos/pendientes", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Cosechas cuyo reconocimiento quedó pendiente por falta de precio o de costos de venta (RF-85)")
 def cosechas_pendientes(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista las cosechas pendientes de costos."""
     return m.eventos.cosechas_pendientes(numero_id_tributaria)
 
 
@@ -287,6 +306,7 @@ def cosechas_pendientes(numero_id_tributaria: Optional[str] = _NIT_TITULAR, m: M
              summary="Reconocer una cosecha pendiente con costos de venta ingresados a mano (RF-85 FA-2)")
 def reconocer_cosecha_pendiente(id_evento: int, dto: ReconocerCosechaDTO, m: M06 = Depends(_m06),
                                 usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Reconoce una cosecha pendiente con sus costos."""
     manuales = dto.costos_manuales.model_dump() if dto.costos_manuales else None
     return m.reconocer_cosecha_pendiente().execute(id_evento, manuales, dto.justificacion, usuario.id_usuario)
 
@@ -299,6 +319,7 @@ def reconocer_cosecha_pendiente(id_evento: int, dto: ReconocerCosechaDTO, m: M06
             summary="Líneas de asiento NIC 41 de un período (filtrables por estado)")
 def listar_lineas(id_periodo_contable: int = Query(gt=0), estado: Optional[EstadoLinea] = None,
                   m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista las líneas contables del periodo."""
     lineas = m.asientos.del_periodo(id_periodo_contable)
     return [{**ln.__dict__, **ln.extra} for ln in lineas if estado is None or ln.estado == estado
             or ln.extra.get("estado_trazabilidad") == estado]
@@ -309,6 +330,7 @@ def listar_lineas(id_periodo_contable: int = Query(gt=0), estado: Optional[Estad
             summary="Mediciones posteriores del período con el activo medido (filtrables por evento y estimación)")
 def mediciones_del_periodo(id_periodo_contable: int, id_evento: Optional[int] = Query(None, gt=0),
                            tiene_valor_estimado: Optional[bool] = None, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista las mediciones del periodo."""
     return m.valoraciones.mediciones_del_periodo(id_periodo_contable, id_evento=id_evento,
                                                  tiene_valor_estimado=tiene_valor_estimado)
 
@@ -317,6 +339,7 @@ def mediciones_del_periodo(id_periodo_contable: int, id_evento: Optional[int] = 
             dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Eventos del período cuya medición quedó pendiente; no dejan medición posterior (RF-86)")
 def eventos_pendientes_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los eventos sin procesar del periodo."""
     return m.valoraciones.eventos_pendientes_del_periodo(id_periodo_contable)
 
 
@@ -324,6 +347,7 @@ def eventos_pendientes_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m
             dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Variaciones de valor razonable del período con su evidencia y trazabilidad")
 def variaciones_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista las variaciones de valor del periodo."""
     return m.valoraciones.variaciones_del_periodo(id_periodo_contable)
 
 
@@ -339,6 +363,7 @@ _INMUTABLE = ("Las variaciones de valor razonable no se modifican ni se eliminan
              summary="Solicitar el correctivo de una variación (monto opuesto; queda pendiente de aprobación)")
 def solicitar_correctivo(id_variacion: int, dto: SolicitarCorrectivoDTO, m: M06 = Depends(_m06),
                          usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Solicita la corrección de una variación."""
     return m.solicitar_correctivo().execute(id_variacion, dto.motivo, usuario.id_usuario)
 
 
@@ -346,6 +371,7 @@ def solicitar_correctivo(id_variacion: int, dto: SolicitarCorrectivoDTO, m: M06 
             summary="Solicitudes de correctivo de variaciones (filtrables por estado, período y activo)")
 def listar_correctivos(estado: Optional[EstadoCorrectivo] = None, id_periodo_contable: Optional[int] = Query(None, gt=0),
                        id_activo_biologico: Optional[int] = Query(None, gt=0), m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista las solicitudes de corrección."""
     return m.correctivos.listar({"estado": estado, "id_periodo_contable": id_periodo_contable,
                                  "id_activo_biologico": id_activo_biologico})
 
@@ -354,6 +380,7 @@ def listar_correctivos(estado: Optional[EstadoCorrectivo] = None, id_periodo_con
              dependencies=[Depends(permiso("valoracion_activos", E))],
              summary="Aprobar un correctivo: registra la variación correctiva y sus líneas inversas (otro Contador)")
 def aprobar_correctivo(id_solicitud: int, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Aprueba una solicitud de corrección."""
     return m.resolver_correctivo().aprobar(id_solicitud, usuario.id_usuario)
 
 
@@ -362,6 +389,7 @@ def aprobar_correctivo(id_solicitud: int, m: M06 = Depends(_m06), usuario: Usuar
              summary="Rechazar un correctivo pendiente con su motivo (otro Contador)")
 def rechazar_correctivo(id_solicitud: int, dto: RechazarCorrectivoDTO, m: M06 = Depends(_m06),
                         usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Rechaza una solicitud de corrección."""
     return m.resolver_correctivo().rechazar(id_solicitud, dto.motivo_rechazo, usuario.id_usuario)
 
 
@@ -388,6 +416,7 @@ def linea_inmutable(id_linea: int) -> None:
             dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Cálculos del valor razonable menos costos de venta registrados en el período")
 def calculos_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los cálculos de valor del periodo."""
     return m.valoraciones.calculos_del_periodo(id_periodo_contable)
 
 
@@ -405,6 +434,7 @@ def _filtros_productos(tipo: Optional[TipoProducto] = None, id_activo_biologico:
             summary="Productos agrícolas reconocidos en el período (filtrables por tipo, activo, especie, producto y valor)")
 def productos_del_periodo(id_periodo_contable: int, filtros: dict = Depends(_filtros_productos),
                           m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los productos agrícolas del periodo."""
     return m.consultar_productos().execute({**filtros, "id_periodo_contable": id_periodo_contable})
 
 
@@ -412,6 +442,7 @@ def productos_del_periodo(id_periodo_contable: int, filtros: dict = Depends(_fil
             summary="Historial de productos agrícolas reconocidos (RNF-85-05: activo, período, tipo y rango de valores)")
 def historial_productos(id_periodo_contable: Optional[int] = Query(None, gt=0), filtros: dict = Depends(_filtros_productos),
                         m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista el historial de productos agrícolas."""
     return m.consultar_productos().execute({**filtros, "id_periodo_contable": id_periodo_contable})
 
 
@@ -426,6 +457,7 @@ def listar_costos(id_activo_biologico: Optional[int] = Query(None, gt=0), id_per
                   naturaleza_costo: Optional[NaturalezaCosto] = None, subtipo_costo: Optional[SubtipoCosto] = None,
                   id_especie: Optional[int] = Query(None, gt=0), id_finca: Optional[int] = Query(None, gt=0),
                   m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los costos registrados."""
     return m.costos.listar({"id_activo_biologico": id_activo_biologico, "id_periodo_contable": id_periodo_contable,
                             "estado": estado, "origen_costo": origen_costo, "naturaleza_costo": naturaleza_costo,
                             "subtipo_costo": subtipo_costo, "id_especie": id_especie, "id_finca": id_finca})
@@ -434,6 +466,7 @@ def listar_costos(id_activo_biologico: Optional[int] = Query(None, gt=0), id_per
 @router.post("/costos", tags=[TAG_COSTOS], status_code=201, dependencies=[Depends(permiso("costos_activos", C))],
              summary="Registrar un costo manual (con reparto y factura de proveedor si aplica)")
 def registrar_costo(dto: CostoDTO, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Registra un costo de un activo."""
     return m.registrar_costo().execute(SolicitudCosto(**dto.model_dump()), usuario.id_usuario)
 
 
@@ -441,6 +474,7 @@ def registrar_costo(dto: CostoDTO, m: M06 = Depends(_m06), usuario: UsuarioActua
              dependencies=[Depends(permiso("costos_activos", U))], summary="Clasificar un costo pendiente")
 def clasificar_costo(id_registro_costo: int, dto: ClasificarCostoDTO, m: M06 = Depends(_m06),
                      usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Clasifica un costo."""
     return m.clasificar_costo().execute(id_registro_costo, dto.naturaleza_costo, dto.justificacion, usuario.id_usuario)
 
 
@@ -457,6 +491,7 @@ _LEE_PERIODOS = Depends(require_alguno_m06([("cierre_periodo", R), ("estado_resu
 @router.get("/titulares", tags=[TAG_CIERRE], dependencies=[_LEE_PERIODOS],
             summary="Titulares (NIT y razón social) con períodos contables, para elegir primero el titular")
 def listar_titulares(m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los titulares tributarios."""
     return m.periodos.titulares()
 
 
@@ -465,6 +500,7 @@ def listar_titulares(m: M06 = Depends(_m06)) -> list[dict]:
 def listar_periodos(numero_id_tributaria: Optional[str] = _NIT_TITULAR,
                     sin_titular: bool = Query(False, description="Solo los períodos sin titular asignado; ignora el NIT."),
                     m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los periodos contables."""
     periodos = m.periodos.listar(numero_id_tributaria, sin_titular)
     cierres = m.periodos.ultimas_ejecuciones([p.id_periodo_contable for p in periodos])
     return [{**p.__dict__, "ultimo_cierre": cierres.get(p.id_periodo_contable)} for p in periodos]
@@ -474,6 +510,7 @@ def listar_periodos(numero_id_tributaria: Optional[str] = _NIT_TITULAR,
             dependencies=[Depends(permiso("cierre_periodo", R))],
             summary="Qué bloquea o exige autorización antes de cerrar el período")
 def prevalidar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06)) -> dict:
+    """Valida si un periodo se puede cerrar."""
     periodo = m.periodos.obtener(id_periodo_contable)
     if periodo is None:
         raise NotFoundError(code="PERIODO_NO_ENCONTRADO", message="El período contable no existe.")
@@ -485,6 +522,7 @@ def prevalidar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06)) -> dict:
              summary="Ejecutar el cierre del período (revaluación, comprobante NIC 41, estado de resultados)")
 def ejecutar_cierre(id_periodo_contable: int, dto: CierreDTO, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Ejecuta el cierre de un periodo."""
     return m.cierre().execute(id_periodo_contable, usuario.id_usuario, autorizar_exclusiones=dto.autorizar_exclusiones,
                               incluir_activos_sin_precio=dto.incluir_activos_sin_precio,
                               activos_estimados=dto.activos_estimados)
@@ -495,6 +533,7 @@ def ejecutar_cierre(id_periodo_contable: int, dto: CierreDTO, m: M06 = Depends(_
              summary="Cancelar el cierre que espera autorización de exclusiones (el período vuelve a ABIERTO)")
 def cancelar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Cancela un cierre en curso."""
     return m.cierre().cancelar(id_periodo_contable, usuario.id_usuario)
 
 
@@ -503,6 +542,7 @@ def cancelar_cierre(id_periodo_contable: int, m: M06 = Depends(_m06),
              summary="Corregir un hecho de un período cerrado con un ajuste en el período abierto")
 def registrar_ajuste_periodo_anterior(id_linea: int, dto: AjustePeriodoAnteriorDTO, m: M06 = Depends(_m06),
                                       usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Registra un ajuste sobre un periodo cerrado."""
     return m.ajuste_periodo_anterior().execute(id_linea, dto.tipo_ajuste, dto.valor, dto.justificacion,
                                                usuario.id_usuario)
 
@@ -510,6 +550,7 @@ def registrar_ajuste_periodo_anterior(id_linea: int, dto: AjustePeriodoAnteriorD
 @router.get("/periodos/{id_periodo_contable}/comprobantes", tags=[TAG_CIERRE],
             dependencies=[Depends(permiso("cierre_periodo", R))], summary="Comprobantes NIC 41 del período")
 def comprobantes(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los comprobantes del periodo."""
     return m.periodos.comprobantes(id_periodo_contable)
 
 
@@ -517,6 +558,7 @@ def comprobantes(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]
             dependencies=[Depends(permiso("cierre_periodo", R))], summary="Descargar el comprobante (csv o pdf)")
 def descargar_comprobantes(id_periodo_contable: int, formato: str = Query("csv", pattern="^(csv|pdf|excel)$"),
                            m: M06 = Depends(_m06)) -> Response:
+    """Descarga los comprobantes del periodo."""
     return _descarga(*m.exportar().comprobantes(id_periodo_contable, formato))
 
 
@@ -529,6 +571,7 @@ TAG_COSTO = "M06 · Valoración por costo"
             dependencies=[Depends(permiso("valoracion_por_costo", R))],
             summary="Eventos sanitarios del activo, para elegir el que sustenta un deterioro")
 def eventos_sanitarios(id_activo_biologico: int, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los eventos sanitarios de un activo."""
     return m.activos.eventos_sanitarios_del_activo(id_activo_biologico)
 
 
@@ -537,6 +580,7 @@ def eventos_sanitarios(id_activo_biologico: int, m: M06 = Depends(_m06)) -> list
              summary="Registrar el deterioro de un activo valorado por costo (evento sanitario)")
 def registrar_deterioro(id_activo_biologico: int, dto: DeterioroDTO, m: M06 = Depends(_m06),
                         usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Registra el deterioro de un activo."""
     return m.registrar_deterioro().execute(id_activo_biologico, dto.id_evento_sanitario, dto.impacto_economico_cop,
                                            dto.justificacion, usuario.id_usuario)
 
@@ -547,6 +591,7 @@ def registrar_deterioro(id_activo_biologico: int, dto: DeterioroDTO, m: M06 = De
 def consultar_depreciacion(id_activo_biologico: int,
                            fecha: Optional[date] = Query(None, description="Fecha del cálculo; por omisión, hoy."),
                            m: M06 = Depends(_m06)) -> dict:
+    """Calcula la depreciación de un activo a una fecha."""
     return m.consultar_depreciacion().execute(id_activo_biologico, fecha or hoy_usuario())
 
 
@@ -555,6 +600,7 @@ def consultar_depreciacion(id_activo_biologico: int,
              summary="Pasar del modelo de costo a valor razonable (NIC 41 ¶30)")
 def cambiar_a_valor_razonable(id_activo_biologico: int, m: M06 = Depends(_m06),
                               usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Pasa un activo de costo a valor razonable."""
     return m.cambiar_a_valor_razonable().execute(id_activo_biologico, usuario.id_usuario)
 
 
@@ -566,12 +612,14 @@ TAG_COT = "M06 · Cotizaciones"
 @router.get("/cotizaciones", tags=[TAG_COT], dependencies=[Depends(permiso("cotizaciones", R))], summary="Listar cotizaciones")
 def listar_cotizaciones(estado: Optional[EstadoCotizacion] = None, id_activo_biologico: Optional[int] = Query(None, gt=0),
                         m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista las cotizaciones."""
     return m.cotizaciones.listar({"estado": estado, "id_activo_biologico": id_activo_biologico})
 
 
 @router.post("/cotizaciones", tags=[TAG_COT], status_code=201, dependencies=[Depends(permiso("cotizaciones", C))],
              summary="Registrar una cotización de venta (no tiene efecto contable)")
 def registrar_cotizacion(dto: CotizacionDTO, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Registra una cotización."""
     return m.registrar_cotizacion().execute(dto.activos_cotizados, dto.valor_cotizacion_propuesto, dto.condiciones,
                                             dto.fecha_vencimiento, usuario.id_usuario)
 
@@ -580,6 +628,7 @@ def registrar_cotizacion(dto: CotizacionDTO, m: M06 = Depends(_m06), usuario: Us
               summary="Modificar valor propuesto, condiciones o vencimiento (control por versión)")
 def modificar_cotizacion(id_cotizacion: int, dto: ModificarCotizacionDTO, m: M06 = Depends(_m06),
                          usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Modifica una cotización."""
     cambios = dto.model_dump(exclude_unset=True, exclude={"version", "justificacion"})
     return m.modificar_cotizacion().modificar(id_cotizacion, dto.version, cambios, dto.justificacion, usuario.id_usuario)
 
@@ -588,6 +637,7 @@ def modificar_cotizacion(id_cotizacion: int, dto: ModificarCotizacionDTO, m: M06
              summary="Anular una cotización (irrevocable)")
 def anular_cotizacion(id_cotizacion: int, dto: AnularCotizacionDTO, m: M06 = Depends(_m06),
                       usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Anula una cotización."""
     return m.modificar_cotizacion().anular(id_cotizacion, dto.version, dto.motivo_anulacion, usuario.id_usuario)
 
 
@@ -601,6 +651,7 @@ TAG_TRAZA = "M06 · Trazabilidad contable"
              summary="Verificar la cadena de trazabilidad de las líneas del período")
 def verificar_trazabilidad(id_periodo_contable: int, m: M06 = Depends(_m06),
                            usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Verifica la trazabilidad de los asientos del periodo."""
     return m.verificar_trazabilidad().execute(id_periodo_contable, usuario.id_usuario)
 
 
@@ -616,6 +667,7 @@ def _si_existe_negar(request: Request, m: M06, usuario: UsuarioActual, id_period
             summary="Cadena navegable de una línea: evidencia, evento, valoración y asiento")
 def cadena(id_linea: int, request: Request, m: M06 = Depends(_m06),
            usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Devuelve la cadena de trazabilidad de una línea."""
     resultado = m.trazabilidad.cadena(id_linea)
     if resultado is None:
         _si_existe_negar(request, m, usuario, m.trazabilidad.periodo_de_linea(id_linea), "trazabilidad_contable",
@@ -632,6 +684,7 @@ TAG_REP = "M06 · Revelaciones y estado de resultados"
 @router.get("/periodos/{id_periodo_contable}/estados-resultados", tags=[TAG_REP],
             dependencies=[Depends(permiso("estado_resultados", R))], summary="Versiones del estado de resultados")
 def listar_estados(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los estados de resultados del periodo."""
     return m.reportes.listar_estados(id_periodo_contable)
 
 
@@ -639,6 +692,7 @@ def listar_estados(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dic
             dependencies=[Depends(permiso("estado_resultados", R))],
             summary="Acumulado del período (también abierto): ganancias como ingresos y pérdidas como gastos, sin versión")
 def acumulado_estado(id_periodo_contable: int, dto: FiltrosEstadoDTO = Depends(), m: M06 = Depends(_m06)) -> dict:
+    """Devuelve el acumulado del estado de resultados del periodo."""
     return m.estado_resultados().acumulado(id_periodo_contable, dto.model_dump())
 
 
@@ -646,6 +700,7 @@ def acumulado_estado(id_periodo_contable: int, dto: FiltrosEstadoDTO = Depends()
             summary="Detalle de un estado de resultados")
 def obtener_estado(id_estado: int, request: Request, m: M06 = Depends(_m06),
                    usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Devuelve un estado de resultados."""
     estado = m.reportes.obtener_estado(id_estado)
     if estado is None:
         _negar_estado_oculto(request, m, usuario, id_estado)
@@ -658,12 +713,14 @@ def obtener_estado(id_estado: int, request: Request, m: M06 = Depends(_m06),
              summary="Generar el estado de resultados (filtros opcionales: especie, activo, infraestructura, finca)")
 def generar_estado(id_periodo_contable: int, dto: FiltrosEstadoDTO, m: M06 = Depends(_m06),
                    usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Genera el estado de resultados del periodo."""
     return m.estado_resultados().generar(id_periodo_contable, dto.model_dump(), usuario.id_usuario)
 
 
 @router.post("/estados-resultados/{id_estado}/aprobacion", tags=[TAG_REP],
              dependencies=[Depends(permiso("estado_resultados", U))], summary="Aprobar el estado de resultados")
 def aprobar_estado(id_estado: int, m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Aprueba un estado de resultados."""
     return m.estado_resultados().aprobar(id_estado, usuario.id_usuario)
 
 
@@ -671,6 +728,7 @@ def aprobar_estado(id_estado: int, m: M06 = Depends(_m06), usuario: UsuarioActua
             dependencies=[Depends(permiso("estado_resultados", R))], summary="Descargar el estado aprobado (pdf o excel)")
 def descargar_estado(id_estado: int, request: Request, formato: str = Query("pdf", pattern="^(pdf|excel)$"),
                      m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> Response:
+    """Descarga un estado de resultados."""
     try:
         return _descarga(*m.exportar().estado_resultados(id_estado, formato))
     except NotFoundError:
@@ -686,6 +744,7 @@ def _negar_estado_oculto(request: Request, m: M06, usuario: UsuarioActual, id_es
 @router.get("/periodos/{id_periodo_contable}/revelaciones", tags=[TAG_REP],
             dependencies=[Depends(permiso("revelaciones_nic41", R))], summary="Versiones del informe de revelaciones")
 def listar_informes(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los informes de revelaciones del periodo."""
     return m.reportes.listar_informes(id_periodo_contable)
 
 
@@ -693,6 +752,7 @@ def listar_informes(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[di
             summary="Detalle del informe de revelaciones")
 def obtener_informe(id_informe: int, request: Request, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Devuelve un informe de revelaciones."""
     informe = m.reportes.obtener_informe(id_informe)
     if informe is None:
         _negar_informe_oculto(request, m, usuario, id_informe)
@@ -705,6 +765,7 @@ def obtener_informe(id_informe: int, request: Request, m: M06 = Depends(_m06),
              summary="Generar el informe de revelaciones NIC 41 en borrador")
 def generar_informe(id_periodo_contable: int, dto: InformeRevelacionesDTO, m: M06 = Depends(_m06),
                     usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Genera el informe de revelaciones del periodo."""
     manuales = dto.model_dump(mode="json", exclude={"justificacion_inconsistencias"})
     return m.informe_revelaciones().generar(id_periodo_contable, manuales, dto.justificacion_inconsistencias,
                                             usuario.id_usuario)
@@ -714,6 +775,7 @@ def generar_informe(id_periodo_contable: int, dto: InformeRevelacionesDTO, m: M0
              dependencies=[Depends(permiso("revelaciones_nic41", U))], summary="Aprobar o rechazar el borrador")
 def resolver_informe(id_informe: int, dto: ResolverInformeDTO, m: M06 = Depends(_m06),
                      usuario: UsuarioActual = Depends(get_current_user)) -> dict:
+    """Aprueba o rechaza un informe de revelaciones."""
     return m.informe_revelaciones().resolver(id_informe, dto.aprobar, dto.razon_rechazo, usuario.id_usuario)
 
 
@@ -721,6 +783,7 @@ def resolver_informe(id_informe: int, dto: ResolverInformeDTO, m: M06 = Depends(
             summary="Descargar el informe aprobado (pdf o excel)")
 def descargar_informe(id_informe: int, request: Request, formato: str = Query("pdf", pattern="^(pdf|excel)$"),
                       m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(get_current_user)) -> Response:
+    """Descarga un informe de revelaciones."""
     try:
         return _descarga(*m.exportar().informe(id_informe, formato))
     except NotFoundError:
@@ -747,6 +810,7 @@ def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None),
                         desde: Optional[datetime] = None, hasta: Optional[datetime] = None, pagina: int = Query(1, ge=1),
                         tamano: int = Query(100, ge=1, le=500), formato: str = Query("LEGIBLE", pattern="^(LEGIBLE|TECNICO)$"),
                         orden: Literal["ASC", "DESC"] = "ASC", m: M06 = Depends(_m06)) -> dict:
+    """Consulta la auditoría financiera."""
     filtros = {"tipo_evento": tipo_evento, "id_periodo_contable": id_periodo_contable,
                "id_activo_biologico": id_activo_biologico, "id_finca": id_finca, "severidad": severidad,
                "id_usuario": id_usuario, "id_referencia": id_referencia, "origen_registro": origen_registro,
@@ -758,4 +822,5 @@ def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None),
             dependencies=[Depends(permiso("auditoria_financiera", R))],
             summary="Usuarios con eventos en la auditoría del período, para el filtro por usuario")
 def usuarios_auditoria(id_periodo_contable: int = Query(..., gt=0), m: M06 = Depends(_m06)) -> list[dict]:
+    """Lista los usuarios que aparecen en la auditoría del periodo."""
     return m.consultar_auditoria().actores(id_periodo_contable)

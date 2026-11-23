@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Filtros de ``GET /activos-biologicos`` (RF-35 / RF-36)."""
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ class ListarActivosDTO(BaseDTO):
     @field_validator('tipo', mode='before')
     @classmethod
     def validar_tipo(cls, v: object) -> Optional[str]:
+        """Normaliza y valida el tipo de activo opcional."""
         if v is None:
             return None
         v_str = str(v).strip().upper()

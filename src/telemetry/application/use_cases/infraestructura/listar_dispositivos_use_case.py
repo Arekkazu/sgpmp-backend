@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: listado de dispositivos de las fincas del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: listar los dispositivos IoT con su estado actual (RF-60, M3-10)."""
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from src.telemetry.domain.repositories.estado_dispositivo_iot_repository import 
 
 
 class ListarDispositivosUseCase:
+    """Lista el estado de los dispositivos IoT visibles para el usuario."""
 
     def __init__(self, estado_repo: EstadoDispositivoIoTRepository) -> None:
         self.estado_repo = estado_repo

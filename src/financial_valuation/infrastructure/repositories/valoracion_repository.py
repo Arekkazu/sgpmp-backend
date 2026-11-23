@@ -14,6 +14,7 @@
 # | 2026-11-14 | destroyerban | INC-M06-361-G24 RF-85 FA-4: el historial del activo marca el cálculo consumido y da el valor actual en cero |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-85: el nombre de quien reconoció el producto sale aunque la RLS de usuarios lo oculte |
 # | 2026-11-16 | Arekkazu | QA-M06 CU03 H-01 RF-84 FA-2/FA-3: el cálculo validado por el Contador se lista como validado manualmente |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -82,12 +83,14 @@ def _calculo(f: dict) -> CalculoValor:
 
 
 class SqlAlchemyValoracionRepository(ValoracionRepository):
+    """Implementación SQLAlchemy de ``ValoracionRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     # --- RF-84 ---------------------------------------------------------------------------------
 
     def agregar_calculo(self, calculo: CalculoValor) -> int:
+        """Registra un cálculo de valor razonable y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.calculos_valor_razonable (id_activo_biologico, id_precio_mercado, id_parametro_costo_venta,
                 valor_razonable_bruto, costo_transporte, costo_comisiones, costo_impuestos_transaccion,
@@ -108,11 +111,13 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             "json_metodo_costo": a_json(calculo.json_metodo_costo)})
 
     def obtener_calculo(self, id_calculo_valor_razonable: int) -> Optional[CalculoValor]:
+        """Devuelve el cálculo, o ``None``."""
         f = fila(self.db, f"""SELECT {_COLUMNAS_CALCULO} FROM modulo6.calculos_valor_razonable
                               WHERE id_calculo_valor_razonable = :id""", {"id": id_calculo_valor_razonable})
         return _calculo(f) if f else None
 
     def validar_calculo(self, id_calculo_valor_razonable: int, validacion: dict) -> None:
+        """Pasa un cálculo en REVISION_REQUERIDA a CALCULADO y guarda la validación en ``json_metodo_costo``."""
         escribir(self.db, """
             UPDATE modulo6.calculos_valor_razonable
                SET estado = 'CALCULADO',
@@ -140,6 +145,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
     # --- RF-83 / RF-86 -------------------------------------------------------------------------
 
     def agregar_medicion(self, medicion: Medicion) -> int:
+        """Registra una medición y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.mediciones_posteriores (id_activo_biologico, id_evento, id_calculo_actual, id_calculo_anterior,
                 origen_medicion, valor_razonable_anterior, valor_razonable_actual, ganancia_perdida_transformacion,
@@ -156,6 +162,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
               "sup": a_json(medicion.supuestos_aplicados)})
 
     def agregar_variacion(self, variacion: VariacionRegistro) -> int:
+        """Registra una variación y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.variaciones_valor_razonable (id_activo_biologico, tipo, monto_variacion, variacion_transformacion,
                 variacion_precio_mercado, valor_razonable_anterior, valor_razonable_nuevo, id_evento, id_medicion_posterior,
@@ -174,11 +181,13 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
     # --- RF-82 ---------------------------------------------------------------------------------
 
     def reconocimiento_confirmado(self, id_activo_biologico: int) -> Optional[Reconocimiento]:
+        """Devuelve el reconocimiento confirmado del activo, o ``None``."""
         f = fila(self.db, f"""SELECT {_COLUMNAS_RECONOCIMIENTO} FROM modulo6.reconocimientos_iniciales
                               WHERE id_activo_biologico = :a AND estado = 'CONFIRMADO'""", {"a": id_activo_biologico})
         return Reconocimiento(**f) if f else None
 
     def agregar_reconocimiento(self, datos: dict) -> int:
+        """Registra un reconocimiento y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.reconocimientos_iniciales (id_activo_biologico, fecha_reconocimiento, clasificacion,
                 indicador_valoracion, id_precio_mercado, valor_razonable_neto_inicial, costos_venta_estimados, estado,
@@ -196,6 +205,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                      "El activo ya tiene un reconocimiento inicial confirmado."})
 
     def revertir_reconocimiento(self, id_reconocimiento, motivo, id_usuario, monto, cuenta_debito, cuenta_credito) -> int:
+        """Revierte el reconocimiento con su asiento."""
         id_revision = escribir(self.db, """
             INSERT INTO modulo6.revisiones_reconocimiento (id_reconocimiento_revertido, motivo_revision, monto_revision,
                 cuenta_debito, cuenta_credito, id_usuario, fecha_revision)
@@ -209,6 +219,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
         return id_revision
 
     def dependientes_reconocimiento(self, reconocimiento: Reconocimiento) -> list[dict]:
+        """Mediciones, variaciones y cierres que impiden revertir (RF-82 R2 b)."""
         return filas(self.db, """
             SELECT 'MEDICION_POSTERIOR' AS tipo, m.id_medicion_posterior AS id, m.fecha_medicion AS fecha
             FROM modulo6.mediciones_posteriores m
@@ -239,6 +250,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             ORDER BY 3""", {"r": reconocimiento.id_reconocimiento_inicial})
 
     def reconocimientos_del_activo(self, id_activo_biologico: int) -> list[dict]:
+        """Lista los reconocimientos del activo."""
         return filas(self.db, f"""
             SELECT {_COLUMNAS_RECONOCIMIENTO}, costos_venta_estimados, justificacion_reversion, fecha_reversion,
                    fecha_creacion
@@ -248,6 +260,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
     # --- RF-88 ---------------------------------------------------------------------------------
 
     def agregar_valoracion_costo(self, valoracion: ValoracionCosto) -> int:
+        """Registra una valoración al costo y devuelve su id."""
         # La tabla admite una sola valoración por activo: la que dejó inactiva una reversión se reutiliza, o el
         # activo revertido no se podía volver a reconocer al costo («El activo ya tiene una valoración por costo»).
         reutilizada = escribir(self.db, """
@@ -280,6 +293,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                 "u": valoracion.id_usuario, "j": valoracion.justificacion, "vida": valoracion.vida_util_meses}
 
     def valoracion_costo_activa(self, id_activo_biologico: int) -> Optional[ValoracionCosto]:
+        """Devuelve la valoración al costo activa, o ``None``."""
         f = fila(self.db, """
             SELECT id_valoracion_por_costo, id_activo_biologico, escenario_activacion::text AS escenario_activacion,
                    costos_adquisicion, tasa_depreciacion, vida_util_meses, fecha_adquisicion, depreciacion_acumulada,
@@ -288,6 +302,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
         return ValoracionCosto(**f) if f else None
 
     def actualizar_valoracion_costo(self, valoracion: ValoracionCosto) -> None:
+        """Actualiza la valoración al costo."""
         escribir(self.db, """
             UPDATE modulo6.valoraciones_por_costos
             SET costos_adquisicion = :c, depreciacion_acumulada = :dep, deterioro_acumulado = :det,
@@ -298,6 +313,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                   "v": valoracion.valor_contable_por_costo, "act": valoracion.es_activa})
 
     def agregar_deterioro(self, id_valoracion, id_evento_sanitario, monto, justificacion, id_usuario) -> int:
+        """Registra un deterioro y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.deterioros_activos (id_valoracion_por_costo, id_evento_sanitario, impacto_economico_cop,
                 justificacion, id_usuario, fecha_registro)
@@ -307,6 +323,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
     # --- RF-85 ---------------------------------------------------------------------------------
 
     def agregar_producto(self, datos: dict) -> int:
+        """Registra un producto agrícola y devuelve su id."""
         return escribir(self.db, """
             INSERT INTO modulo6.reconocimientos_productos_agricolas (id_evento_productivo, id_activo_biologico,
                 producto_agricola, cantidad_cosechada, unidad_medida, precio_mercado_producto, costo_venta_producto,
@@ -355,6 +372,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
 
 
     def historial_activo(self, id_activo_biologico: int) -> dict:
+        """Devuelve el historial de valoración del activo."""
         p = {"a": id_activo_biologico}
         # Alias obligatorio: sin calificar, dentro del EXISTS la columna se resolvería contra la tabla de productos.
         consumido = CONSUMIDO_POR_COSECHA.format(calculo="c.id_calculo_valor_razonable")
@@ -394,6 +412,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
 
     def mediciones_del_periodo(self, id_periodo_contable: int, id_evento: Optional[int] = None,
                                tiene_valor_estimado: Optional[bool] = None) -> list[dict]:
+        """RF-83: mediciones posteriores del período con el activo que midieron."""
         # Filtros en AND; uno omitido (NULL) no filtra.
         return filas(self.db, f"""
             SELECT x.id_medicion_posterior, x.id_activo_biologico, {_ACTIVO}, x.id_evento, x.id_periodo_contable,
@@ -409,6 +428,9 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             {"p": id_periodo_contable, "e": id_evento, "est": tiene_valor_estimado})
 
     def eventos_pendientes_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        """RF-86: eventos del período cuya medición quedó suspendida (MEDICION_PENDIENTE). No dejan
+        medición, así que sin esto el panel tomaría como vigente una medición anterior del activo.
+        """
         # El día del evento en la zona del usuario, igual que al procesarlo (fecha_usuario).
         return filas(self.db, f"""
             SELECT pr.id_evento, x.id_activo_biologico, {_ACTIVO}, x.fecha AS fecha_evento,
@@ -424,6 +446,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             {"p": id_periodo_contable, "tz": nombre_zona_usuario()})
 
     def variaciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        """RF-86: variaciones del período con la evidencia y la trazabilidad de su línea de asiento."""
         # La verificación de trazabilidad actualiza la línea; la variación guarda el estado con que nació.
         return filas(self.db, f"""
             SELECT x.id_variacion_valor_razonable, x.id_activo_biologico, {_ACTIVO}, x.tipo::text AS tipo,
@@ -442,6 +465,7 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
             {"p": id_periodo_contable})
 
     def calculos_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        """RF-84: cálculos del valor razonable menos costos de venta registrados en el período."""
         return filas(self.db, f"""
             SELECT x.id_calculo_valor_razonable, x.id_activo_biologico, {_ACTIVO}, x.magnitud, x.unidad_magnitud,
                    x.precio_unitario, x.valor_razonable_bruto,

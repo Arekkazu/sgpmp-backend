@@ -4,6 +4,7 @@
 # | 2026-11-19 | Arekkazu | M08 RF-104 M8-12/M8-13: diseño de las plantillas V1.1, columnas sin partir palabras y fechas reales |
 # | 2026-11-20 | Arekkazu | A11Y-M08 TC-DIS-288 RF-104: PDF etiquetado, con idioma, título visible en el lector y fuentes incrustadas |
 # | 2026-11-22 | Arekkazu | USAB2 M812 RF-104: la columna del identificador del animal nunca parte el código |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 # | 2026-11-23 | Arekkazu | QA-M08 CU02 H-04 RF-104: la tabla que no cabe sin partir palabras se reparte en bloques de columnas |
 """Render de un :class:`ContenidoReporte` a PDF o Excel (RF-104 Fase 3, CA-4, CA-11).
 
@@ -85,14 +86,18 @@ def texto_celda(valor: Any, tipo: str) -> str:
 
 
 class RenderizadorReportes(RenderizadorReportePort):
+    """Genera reportes en PDF o Excel."""
 
     def tipo_contenido(self, formato: str) -> str:
+        """Tipo MIME del formato."""
         return _TIPOS[formato]
 
     def extension(self, formato: str) -> str:
+        """Extensión de archivo del formato."""
         return _EXTENSIONES[formato]
 
     def renderizar(self, contenido: ContenidoReporte, formato: str, ruta_logo: Optional[str]) -> bytes:
+        """Genera el archivo PDF o Excel del contenido."""
         return _pdf(contenido, ruta_logo) if formato == PDF else _excel(contenido)
 
 

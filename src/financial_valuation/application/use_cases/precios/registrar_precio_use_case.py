@@ -5,6 +5,7 @@
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: la corrección hereda la fecha del original y se compara contra él |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
 # | 2026-11-14 | destroyerban | INC-M06-362-G94 RF-94: PRECIO_MARCADO_REEMPLAZADO guarda el precio anterior y el nuevo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-89 pasos 3-8. El historial es inmutable: un precio erróneo se corrige con uno nuevo
 que referencia al anterior (FA-6) y ocupa su lugar: misma especie, categoría, producto, fuente y fecha de
 vigencia, de modo que corregir un precio histórico no desplaza al que está aplicado hoy. Una desviación
@@ -36,6 +37,7 @@ UNIDAD_POR_CATEGORIA = {CategoriaPrecio.PESO_KG.value: "kg", CategoriaPrecio.POR
 
 @dataclass
 class SolicitudPrecio:
+    """Datos para registrar un precio de mercado."""
     id_especie: int
     categoria: str
     precio_unitario: Decimal
@@ -50,6 +52,7 @@ class SolicitudPrecio:
 
 
 class RegistrarPrecioUseCase:
+    """Registra un precio de mercado de una especie."""
     def __init__(self, db: Session, precios: PrecioRepository, config: ConfiguracionContableRepository,
                  auditoria: AuditoriaFinancieraRepository, catalogo: ActivoFinancieroPort, notificador: NotificacionFinancieraPort) -> None:
         self.db = db
@@ -60,6 +63,7 @@ class RegistrarPrecioUseCase:
         self.notificador = notificador
 
     def execute(self, s: SolicitudPrecio, id_usuario: int) -> dict:
+        """Registra el precio y lo audita."""
         hoy = hoy_usuario()
         lista = self.precios.de_especie(s.id_especie, s.categoria, s.id_metrica_produccion)
         corregido = self._corregido(s, lista)

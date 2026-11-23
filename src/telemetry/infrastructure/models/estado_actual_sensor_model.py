@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM del estado actual de un sensor (tabla ``modulo3.estados_actuales_sensores``).
+
+Consolida el último valor, semáforo, calidad, conectividad y tendencia por
+sensor; hay una fila por sensor.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +19,8 @@ from .base_model import Base
 
 
 class EstadoActualSensorModel(Base):
+    """Fila de la tabla ``modulo3.estados_actuales_sensores``."""
+
     __tablename__ = 'estados_actuales_sensores'
     __table_args__ = (
         UniqueConstraint('id_sensor', name='uq_estados_actuales_por_sensor'),

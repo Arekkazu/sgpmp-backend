@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: API de aristas de transmisión entre áreas  |
 # | 2026-11-02 | Arekkazu | RF-110: PATCH para editar vía, dirección, intensidad y barrera    |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Topología sanitaria de la finca (RF-110, RFC-021): por dónde puede pasar una enfermedad entre áreas.
 
   POST  /configuracion/topologia-sanitaria/aristas                — Declarar una arista
@@ -96,6 +97,7 @@ def listar_aristas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> list[AristaTransmisionResponse]:
+    """Lista las aristas de transmisión de una finca."""
     aristas = ListarAristasTransmisionUseCase(SqlAlchemyAristaTransmisionRepository(db)).execute(
         id_finca, _alcance(db, usuario_actual),
     )
@@ -137,6 +139,7 @@ def desactivar_arista(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AristaTransmisionResponse:
+    """Desactiva una arista de transmisión."""
     arista = DesactivarAristaTransmisionUseCase(db, SqlAlchemyAristaTransmisionRepository(db)).execute(
         id_arista_transmision,
     )

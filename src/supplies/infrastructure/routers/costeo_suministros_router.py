@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: 200 de éxito (CA-14) y estado      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para el costeo directo de suministros (`/suministros/costeo-directo`).
 
 Expone los flujos de RF-78 (CU-05) para SERVICIO_VETERINARIO/INSEMINACION:
@@ -90,6 +91,7 @@ def registrar_correccion_suministro(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ResultadoRegistroSuministroResponse:
+    """Registra la corrección de un suministro costeado."""
     use_case = build_registrar_correccion_suministro_use_case(db)
     resultado = use_case.execute(id_registro_original, dto, usuario_actual)
     return ResultadoRegistroSuministroResponse.desde_resultado(resultado)
@@ -106,6 +108,7 @@ def consultar_acumulado_por_activo(
     id_activo_biologico: int,
     db: Session = Depends(get_db),
 ) -> AcumuladoCicloResponse:
+    """Devuelve el acumulado del ciclo abierto del activo."""
     use_case = build_consultar_acumulado_ciclo_use_case(db)
     resultado = use_case.por_activo(id_activo_biologico)
     return AcumuladoCicloResponse.model_validate(resultado)
@@ -122,6 +125,7 @@ def consultar_acumulado_por_gestion_fase(
     id_gestion_fases: int,
     db: Session = Depends(get_db),
 ) -> AcumuladoCicloResponse:
+    """Devuelve el acumulado de un ciclo."""
     use_case = build_consultar_acumulado_ciclo_use_case(db)
     resultado = use_case.por_gestion_fase(id_gestion_fases)
     return AcumuladoCicloResponse.model_validate(resultado)

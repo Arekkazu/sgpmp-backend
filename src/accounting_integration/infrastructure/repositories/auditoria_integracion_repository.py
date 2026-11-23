@@ -5,6 +5,7 @@
 # | 2026-11-19 | Leandro | INC-M07-371-G58 RF-102: consultar los dos almacenes y trasladar lotes elegibles. |
 # | 2026-11-19 | Arekkazu | M7-11 RF-102: nombre de quien actuó, además del correo |
 # | 2026-11-20 | Arekkazu | QA-M07 CU07 H-01 RF-102: Desde/Hasta en la zona del usuario, no en días UTC |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Persistencia de auditoría M07 y acceso al archivo de RF-102. Los triggers bloquean UPDATE, DELETE y
 TRUNCATE; aquí solo se inserta, se consulta y se traslada al archivo con la función de BD."""
 from __future__ import annotations
@@ -61,10 +62,16 @@ def _evento(fila: dict) -> EventoIntegracion:
 
 
 class SqlAlchemyAuditoriaIntegracionRepository(AuditoriaIntegracionRepository):
+    """Implementación SQLAlchemy de la auditoría de integración."""
     def __init__(self, db: Session):
         self.db = db
 
     def registrar(self, evento: EventoIntegracion) -> None:
+        """Registra el evento con su hash.
+
+        Raises:
+            InfrastructureError: Si el evento está incompleto.
+        """
         faltantes = evento.faltantes()
         if faltantes:  # RF-102 FA-8: no se guardan registros incompletos
             raise InfrastructureError(code="AUDITORIA_INCOMPLETA",
@@ -75,6 +82,7 @@ class SqlAlchemyAuditoriaIntegracionRepository(AuditoriaIntegracionRepository):
         escribir(self.db, _INSERT, params)
 
     def consultar(self, filtros: FiltrosAuditoria, pagina: int, tamano: int) -> tuple[list[tuple[EventoIntegracion, str, dict]], int]:
+        """Consulta los eventos filtrados y paginados con su total."""
         condiciones, params = [], {"limite": tamano, "desplazamiento": (pagina - 1) * tamano}
         if filtros.tipos_evento:
             condiciones.append("e.tipo_evento::text = ANY(:tipos)")
@@ -109,11 +117,13 @@ class SqlAlchemyAuditoriaIntegracionRepository(AuditoriaIntegracionRepository):
                   "nombre_cliente": f["nombre_cliente"]}) for f in resultado], total
 
     def bloquear_archivado(self) -> bool:
+        """Toma el lock de archivado sin esperar."""
         return self.db.scalar(text("SELECT pg_try_advisory_xact_lock(102, 7)"))
 
     def candidatos_archivo(
         self, despues_de: tuple[datetime, str] | None, limite: int,
     ) -> list[tuple[EventoIntegracion, str, datetime]]:
+        """Lista los eventos vencidos a partir del cursor."""
         cursor = f"AND ({_VENCIMIENTO}, e.id_evento_integracion) > (:vencimiento, CAST(:id AS uuid))" if despues_de else ""
         parametros = {"limite": limite}
         if despues_de:
@@ -126,6 +136,7 @@ class SqlAlchemyAuditoriaIntegracionRepository(AuditoriaIntegracionRepository):
         return [(_evento(f), f["hash_integridad"], f["vencimiento"]) for f in candidatas]
 
     def archivar(self, ids: list[str]) -> list[tuple[EventoIntegracion, str]]:
+        """Traslada los eventos al archivo y los devuelve."""
         archivados = filas(self.db, """
             SELECT id FROM modulo7.fn_archivar_eventos_rf102(CAST(:ids AS uuid[])) AS traslado(id)
         """, {"ids": ids})

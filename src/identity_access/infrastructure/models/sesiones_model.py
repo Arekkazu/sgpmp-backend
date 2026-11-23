@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.sesiones`.
 
 Registra cada sesión de acceso: dispositivo, IP, duración y estado activo.
@@ -23,6 +26,7 @@ if TYPE_CHECKING:
 
 
 class Sesiones(Base):
+    """Modelo ORM de las sesiones (tabla ``modulo1.sesiones``)."""
     __tablename__ = 'sesiones'
     __table_args__ = (
         CheckConstraint('es_activa IS NOT NULL', name='chk_sesiones_estado_coherente'),

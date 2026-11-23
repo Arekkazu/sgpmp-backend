@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio del historial de transiciones de estado de dispositivos IoT."""
 from __future__ import annotations
 
 from typing import List
@@ -12,11 +16,13 @@ from src.telemetry.infrastructure.models.historico_transicion_dispositivo_model 
 
 
 class SqlAlchemyHistoricoTransicionDispositivoRepository(HistoricoTransicionDispositivoRepository):
+    """Persiste y consulta el historial de transiciones (RF-54)."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def registrar(self, transicion: HistoricoTransicionDispositivo) -> HistoricoTransicionDispositivo:
+        """Registra una transición de estado y devuelve la entidad persistida."""
         try:
             orm = HistoricoTransicionDispositivoModel(
                 id_dispositivo_iot=transicion.id_dispositivo_iot,
@@ -38,6 +44,7 @@ class SqlAlchemyHistoricoTransicionDispositivoRepository(HistoricoTransicionDisp
     def listar_por_dispositivo(
         self, id_dispositivo_iot: int, limite: int = 20
     ) -> List[HistoricoTransicionDispositivo]:
+        """Lista las últimas transiciones del dispositivo, de más reciente a más antigua."""
         rows = self.db.execute(
             select(HistoricoTransicionDispositivoModel)
             .where(HistoricoTransicionDispositivoModel.id_dispositivo_iot == id_dispositivo_iot)

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.registro_suministro`` (ledger unificado RF-78/81 / CU-04/05).
 
 Generado con sqlacodegen (reflexión de la BD) y adaptado a las convenciones del
@@ -40,6 +43,7 @@ from .base_model import Base
 
 
 class RegistroSuministroModel(Base):
+    """Modelo ORM de la tabla ``modulo5.registro_suministro``."""
     __tablename__ = 'registro_suministro'
     __table_args__ = (
         CheckConstraint('cantidad > 0::numeric', name='registro_suministro_cantidad_check'),

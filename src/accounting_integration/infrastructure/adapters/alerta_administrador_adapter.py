@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-102 4.1/FA-1, RF-98 FA-5: alertas internas al Administrador (RF-14) |
 # | 2026-11-19 | Leandro | INC-M07-371-G58 RF-102: permitir avisos críticos de archivado visibles por destinatario. |
 # | 2026-11-20 | Arekkazu | QA-M07 CU04 H-03 RF-98: el anti-spam compara el mensaje, no solo el tipo de aviso |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Alertas de M07 en la bandeja interna (RF-14), mismo patrón que M06: el aviso cuelga de un evento de
 ``modulo1.eventos``. Los destinatarios son quienes pueden leer la auditoría de integración (por permiso,
 no por rol fijo). Hace su propio ``commit``, no repite el mismo mensaje en 10 minutos y nunca propaga errores.
@@ -35,6 +36,7 @@ _SQL_DESTINATARIOS = text("""
 
 
 def alertador_administrador(session_factory: Callable[[], Session]) -> Callable[[str, dict], None]:
+    """Crea la función que notifica al Administrador con su propia sesión."""
     def alertar(mensaje: str, detalle: dict) -> None:
         db = None
         try:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: ledger por origen y costo vigente  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`RegistroSuministroRepository` (RF-78, CU-05).
 
 Usa ``flush()``/``refresh()`` (nunca ``commit()``) y traduce errores de BD con
@@ -94,6 +95,7 @@ class SqlAlchemyRegistroSuministroRepository(RegistroSuministroRepository):
     # ── Operaciones del puerto ───────────────────────────────────────────────
 
     def existe_idempotente(self, id_idempotencia: UUID) -> Optional[RegistroSuministroDirecto]:
+        """Devuelve el registro ya procesado con ese ``id_idempotencia``, o ``None``."""
         orm = (
             self.db.query(RegistroSuministroModel)
             .filter(RegistroSuministroModel.id_idempotencia == id_idempotencia)
@@ -111,6 +113,7 @@ class SqlAlchemyRegistroSuministroRepository(RegistroSuministroRepository):
         cantidad: Decimal,
         precio_unitario_resuelto: Decimal,
     ) -> bool:
+        """Indica si ya existe un ``REGISTRO`` con la misma combinación de contenido (RF-78 R.8)."""
         existe = (
             self.db.query(RegistroSuministroModel.id_registro_suministro)
             .filter(
@@ -128,6 +131,7 @@ class SqlAlchemyRegistroSuministroRepository(RegistroSuministroRepository):
         return existe is not None
 
     def guardar(self, registro: RegistroSuministroDirecto) -> RegistroSuministroDirecto:
+        """Persiste un registro nuevo (REGISTRO o CORRECCION) y devuelve la entidad completa."""
         orm = RegistroSuministroModel(
             id_activo_biologico=registro.id_activo_biologico,
             id_ciclo_productivo=registro.id_ciclo_productivo,
@@ -156,10 +160,12 @@ class SqlAlchemyRegistroSuministroRepository(RegistroSuministroRepository):
         return self._a_entidad(orm)
 
     def obtener_por_id(self, id_registro_suministro: UUID) -> Optional[RegistroSuministroDirecto]:
+        """Devuelve un registro por id, o ``None`` si no existe."""
         orm = self.db.get(RegistroSuministroModel, id_registro_suministro)
         return self._a_entidad(orm) if orm else None
 
     def listar_por_gestion_fase(self, id_gestion_fases: int) -> list[RegistroSuministroDirecto]:
+        """Lista todos los registros (REGISTRO y CORRECCION) de una instancia de ciclo."""
         registros = (
             self.db.query(RegistroSuministroModel)
             .filter(RegistroSuministroModel.id_gestion_fases == id_gestion_fases)
@@ -169,10 +175,18 @@ class SqlAlchemyRegistroSuministroRepository(RegistroSuministroRepository):
         return [self._a_entidad(o) for o in registros]
 
     def obtener_por_origen(self, tipo_suministro: str, id_origen: int) -> Optional[RegistroSuministroDirecto]:
+        """REGISTRO del ledger que originó un consumo (ALIMENTO, RF-75) o un medicamento (RF-76).
+
+        ``None`` si el origen no existe, no está VALIDADO o no se acumuló (activo sin ciclo).
+        """
         ref = self.db.execute(_SQL_REF_ORIGEN[tipo_suministro], {"id": id_origen}).scalar()
         return self.obtener_por_referencia_rf(tipo_suministro, ref) if ref is not None else None
 
     def obtener_por_referencia_rf(self, tipo_suministro: str, id_registro_rf: UUID) -> Optional[RegistroSuministroDirecto]:
+        """REGISTRO del ledger por ``id_registro_rf75``/``id_registro_rf76`` (RF-78 Fase 1b).
+
+        ``None`` si el registro de origen no existe o no está VALIDADO (E9/E10).
+        """
         if not self.db.execute(_SQL_ORIGEN_VALIDADO[tipo_suministro], {"ref": id_registro_rf}).scalar():
             return None
         columna = (
@@ -188,6 +202,7 @@ class SqlAlchemyRegistroSuministroRepository(RegistroSuministroRepository):
         return self._a_entidad(orm) if orm else None
 
     def costo_vigente(self, id_registro_suministro: UUID) -> Decimal:
+        """Costo del registro más el de todas sus correcciones (RF-78 R7/R12)."""
         total = (
             self.db.query(func.coalesce(func.sum(RegistroSuministroModel.costo_registro), 0))
             .filter(

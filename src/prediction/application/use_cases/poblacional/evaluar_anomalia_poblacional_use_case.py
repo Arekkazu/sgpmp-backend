@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: resultado por observación de visión y RF-68   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-66 POBLACIONAL: cada observación de visión apta (RF-62) se compara con la línea base del
 área (RF-24) y deja un resultado por lote, que dispara RF-68 con ``SCORE_POBLACIONAL``.
 
@@ -37,6 +38,7 @@ COMPONENTES_VERSION = ("ANOMALIAS", "DETECTOR")
 
 
 class EvaluarAnomaliaPoblacionalUseCase:
+    """Evalúa anomalías de comportamiento poblacional."""
 
     def __init__(self, *, db: Session, observacion_port: ObservacionPoblacionalPort,
                  config_repo: ConfiguracionMotorIARepository, version_repo: VersionModeloRepository,
@@ -50,6 +52,7 @@ class EvaluarAnomaliaPoblacionalUseCase:
         self.disparar = disparar
 
     def execute(self, id_observacion: int) -> list[ResultadoInferencia]:
+        """Evalúa la observación y devuelve los resultados de inferencia generados."""
         obs = self.observacion_port.obtener(id_observacion)
         if obs is None or not obs.apto_para_ia:
             return []

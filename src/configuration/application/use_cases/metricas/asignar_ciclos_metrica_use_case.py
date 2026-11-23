@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: habilitar una métrica como producto en ciclos productivos (RF-43 E-04).
 
 RF-43 rechaza un evento productivo cuyo producto no está habilitado para el
@@ -28,6 +31,7 @@ class AsignarCiclosMetricaUseCase:
         self.ciclos_repo = ciclos_repo
 
     def execute(self, id_metrica_produccion: int, ids_ciclos_productivos: list[int]) -> list[CicloMetrica]:
+        """Reemplaza los ciclos productivos en que aplica la métrica."""
         metrica = self.metricas_repo.obtener_por_id(id_metrica_produccion)
         if metrica is None:
             raise NotFoundError(

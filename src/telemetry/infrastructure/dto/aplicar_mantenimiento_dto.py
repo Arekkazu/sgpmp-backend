@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO de la transición manual de mantenimiento de un dispositivo IoT."""
 from __future__ import annotations
 
 from typing import Optional
@@ -20,6 +24,7 @@ class AplicarMantenimientoDTO(BaseDTO):
     @field_validator('nuevo_estado')
     @classmethod
     def validar_estado(cls, v: str) -> str:
+        """Normaliza el estado y exige EN_MANTENIMIENTO o ACTIVO."""
         v = v.upper()
         if v not in {'EN_MANTENIMIENTO', 'ACTIVO'}:
             raise ValueError("nuevo_estado debe ser 'EN_MANTENIMIENTO' o 'ACTIVO'")

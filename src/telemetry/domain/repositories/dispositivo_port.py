@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: cámara por id para su fps configurado |
 # | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60 CA-7/RF-53 E1: mantenimiento desde cualquier estado y lecturas rechazadas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto hacia la configuración de dispositivos IoT."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -11,6 +13,7 @@ from src.telemetry.domain.entities.telemetria import DispositivoInfo
 
 @dataclass
 class CamaraInfo:
+    """Datos de una cámara identificada por serial o id."""
     id_dispositivo_iot: int
     id_infraestructura: int
     es_activo: bool
@@ -20,6 +23,7 @@ class CamaraInfo:
 
 @dataclass
 class DispositivoHeartbeatInfo:
+    """Datos del dispositivo validado para recibir su heartbeat."""
     id_dispositivo_iot: int
     id_infraestructura: int
     es_activo: bool
@@ -27,6 +31,7 @@ class DispositivoHeartbeatInfo:
 
 
 class DispositivoPort(ABC):
+    """Puerto para identificar y validar dispositivos, sensores y cámaras."""
 
     def obtener_camara_por_serial(self, serial: str) -> Optional[CamaraInfo]:
         """Identidad D4 tras autenticar al broker; el serial no es una credencial."""

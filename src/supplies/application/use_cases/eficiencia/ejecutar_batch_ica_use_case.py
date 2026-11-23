@@ -6,6 +6,7 @@
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: preservar el corte manual al finalizar y evitar un aviso de ventana duplicado. |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 # | 2026-11-20 | Arekkazu | QA-M08 CU03 H-03 RF-105: avisos del cálculo de conversión alimenticia sin jerga técnica |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: motor batch de cálculo ICA (RF-74, Flujo C — alcance completo).
 
 Orquesta una corrida completa:
@@ -85,6 +86,7 @@ class _Trabajo:
 
 
 class EjecutarBatchICAUseCase:
+    """Ejecuta el cálculo masivo de ICA para los activos candidatos."""
     def __init__(
         self,
         db: Session,
@@ -116,6 +118,7 @@ class EjecutarBatchICAUseCase:
         id_usuario: Optional[int] = None,
         solo_cola: bool = False,
     ) -> EjecucionBatchICA:
+        """Ejecuta el batch de ICA y registra su ejecución."""
         config = self.config_repo.obtener()
         if not config.es_activo:
             raise BusinessRuleError(

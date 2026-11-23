@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso RF-86 restricción 5 y CA-13: corregir una variación errónea sin tocar el registro original.
 
 1. Un Contador solicita el correctivo con su motivo: la solicitud queda PENDIENTE.
@@ -62,7 +63,9 @@ class _Base:
 
 
 class SolicitarCorrectivoVariacionUseCase(_Base):
+    """Solicita la corrección de una variación de valor."""
     def execute(self, id_variacion: int, motivo: Optional[str], id_usuario: int) -> dict:
+        """Registra la solicitud de corrección con su motivo."""
         texto = _motivo(motivo, "motivo", "por qué la variación es errónea")
         variacion = self.correctivos.variacion(id_variacion)
         if variacion is None:
@@ -91,7 +94,9 @@ class SolicitarCorrectivoVariacionUseCase(_Base):
 
 
 class ResolverCorrectivoVariacionUseCase(_Base):
+    """Aprueba o rechaza solicitudes de corrección de variaciones."""
     def aprobar(self, id_solicitud: int, id_usuario: int) -> dict:
+        """Aprueba la solicitud y aplica la corrección."""
         solicitud, variacion, periodo = self._pendiente(id_solicitud, id_usuario)
         try:
             correctivo = variacion.correctivo(id_usuario)
@@ -119,6 +124,7 @@ class ResolverCorrectivoVariacionUseCase(_Base):
                                      "cuenta_credito": ln.cuenta_credito, "estado": ln.estado} for ln in inversas]}
 
     def rechazar(self, id_solicitud: int, motivo_rechazo: Optional[str], id_usuario: int) -> dict:
+        """Rechaza la solicitud con su motivo."""
         texto = _motivo(motivo_rechazo, "motivo_rechazo", "por qué se rechaza el correctivo")
         solicitud, variacion, _ = self._pendiente(id_solicitud, id_usuario)
         try:

@@ -16,6 +16,7 @@
 # | 2026-11-14 | destroyerban | INC-M06-054B-G56 RF-91: cerrar de nuevo un período cerrado responde 409, no 404; mensaje sin fecha de cierre |
 # | 2026-11-14 | destroyerban | INC-M06-93-G44 RF-87 FA-5: el período cerrado se rechaza antes de procesar eventos pendientes (sin artefactos nuevos) |
 # | 2026-11-21 | Arekkazu | INC-M08-393-G028 RF-107: la prevalidación dice cuántos activos revaluará el cierre |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -95,6 +96,7 @@ def _por_especie(precios: list[dict]) -> dict[int, tuple[Precio, bool]]:
 
 @dataclass
 class Prevalidacion:
+    """Resultado de las validaciones previas al cierre de un periodo."""
     bloqueos: list[dict]
     activos_sin_precio: list[dict]
     lineas_sin_trazabilidad: list[dict]
@@ -105,9 +107,11 @@ class Prevalidacion:
 
     @property
     def puede_cerrar(self) -> bool:
+        """Indica si el periodo se puede cerrar."""
         return not self.bloqueos
 
     def a_dict(self) -> dict:
+        """Serializa la prevalidación."""
         return {"bloqueos": self.bloqueos, "activos_sin_precio": self.activos_sin_precio,
                 "lineas_sin_trazabilidad": self.lineas_sin_trazabilidad, "puede_cerrar": self.puede_cerrar,
                 "requiere_autorizacion": bool(self.activos_sin_precio or self.lineas_sin_trazabilidad),
@@ -115,6 +119,7 @@ class Prevalidacion:
 
 
 class EjecutarCierrePeriodoUseCase:
+    """Ejecuta el cierre de un periodo contable."""
     def __init__(self, db: Session, periodos: PeriodoRepository, activos: ActivoFinancieroPort,
                  valoraciones: ValoracionRepository, costos: CostoRepository, cotizaciones: CotizacionRepository,
                  eventos: EventoM02Port, medidor: Medidor, contabilizador: Contabilizador,
@@ -139,6 +144,7 @@ class EjecutarCierrePeriodoUseCase:
     # --- Prevalidación (RF-87 precondiciones y v1.1) ---------------------------------------------
 
     def prevalidar(self, periodo: Periodo) -> Prevalidacion:
+        """Valida que el periodo se pueda cerrar."""
         bloqueos: list[dict] = []
         anterior = self.periodos.abierto_anterior(periodo)
         if anterior is not None:
@@ -294,6 +300,7 @@ class EjecutarCierrePeriodoUseCase:
         return resultado
 
     def eventos_pendientes_primero(self) -> None:
+        """Procesa los eventos pendientes antes del cierre."""
         self.procesador_eventos.execute(2000)
 
     def _iniciar(self, id_periodo, id_usuario, autorizar, incluir_sin_precio, estimados: frozenset = frozenset()) -> int:

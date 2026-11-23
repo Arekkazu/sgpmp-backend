@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: ampliación de ventana por resultado  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de ampliaciones del plazo de retroalimentación."""
 from __future__ import annotations
 
 import uuid
@@ -21,10 +23,12 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyAmpliacionVentanaRetroalimentacionRepository(AmpliacionVentanaRetroalimentacionRepository):
+    """Implementación SQLAlchemy de ``AmpliacionVentanaRetroalimentacionRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def guardar(self, entidad: AmpliacionVentanaRetroalimentacion) -> AmpliacionVentanaRetroalimentacion:
+        """Guarda la ampliación."""
         try:
             orm = AmpliacionVentanaRetroalimentacionModel(
                 id_resultado_inferencia=entidad.id_resultado_inferencia,
@@ -41,6 +45,7 @@ class SqlAlchemyAmpliacionVentanaRetroalimentacionRepository(AmpliacionVentanaRe
             raise_from_db_error(exc)
 
     def fecha_limite_vigente(self, id_resultado: uuid.UUID) -> Optional[datetime]:
+        """La fecha límite más lejana autorizada para el resultado, o None si no tiene ampliación."""
         m = AmpliacionVentanaRetroalimentacionModel
         return self._db.execute(
             select(func.max(m.fecha_limite)).where(m.id_resultado_inferencia == id_resultado)

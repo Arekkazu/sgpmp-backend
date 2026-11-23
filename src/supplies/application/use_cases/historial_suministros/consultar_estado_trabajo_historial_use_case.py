@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consultar el estado de un trabajo pesado de historial (RF-81).
 
 Polling del cliente tras recibir un HTTP 202 con ``id_cola`` (E7/FA-09 de RF-81).
@@ -19,15 +22,22 @@ from src.supplies.domain.repositories.trabajo_historial_suministro_repository im
 
 @dataclass(frozen=True)
 class EstadoTrabajoHistorial:
+    """Trabajo asíncrono del historial con su última ejecución."""
     trabajo: TrabajoHistorialSuministro
     ultima_ejecucion: Optional[EjecucionHistorialSuministro]
 
 
 class ConsultarEstadoTrabajoHistorialUseCase:
+    """Consulta el estado de un trabajo asíncrono del historial."""
     def __init__(self, trabajo_repo: TrabajoHistorialSuministroRepository) -> None:
         self.trabajo_repo = trabajo_repo
 
     def execute(self, id_cola: int) -> EstadoTrabajoHistorial:
+        """Devuelve el estado del trabajo.
+
+        Raises:
+            NotFoundError: Si el trabajo no existe.
+        """
         trabajo = self.trabajo_repo.obtener(id_cola)
         if trabajo is None:
             raise NotFoundError(

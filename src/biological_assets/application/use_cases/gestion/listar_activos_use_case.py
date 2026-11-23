@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-35: listado de activos filtrable por finca y con la finca de cada activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: listado paginado de activos biológicos (RF-35 / RF-36)."""
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ class ListarActivosUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[ActivoBiologico], int]:
+        """Lista los activos visibles con filtros y paginación."""
         if dto.id_finca is not None:  # se combina con el alcance: una finca ajena deja la lista vacía
             ids_fincas_permitidas = [dto.id_finca] if ids_fincas_permitidas is None else [
                 i for i in ids_fincas_permitidas if i == dto.id_finca]

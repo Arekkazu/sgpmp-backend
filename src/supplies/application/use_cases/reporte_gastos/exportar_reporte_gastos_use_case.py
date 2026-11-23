@@ -5,6 +5,7 @@
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: PDF con nombres del activo, desglose por período y notas de tendencia |
 # | 2026-11-10 | Arekkazu | TC-DIS-204 RF-77: PDF con encabezados, montos, fechas y tendencia con signo en palabras |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso: exportar un reporte de gastos a PDF/CSV y descargarlo (RF-77 pasos 8, E6).
 
 La exportación trabaja sobre un reporte ya generado: si se rechaza, el reporte
@@ -87,6 +88,7 @@ def _linea_alcance(reporte: ReporteGasto, alcance: dict) -> str:
 
 
 class ExportarReporteGastosUseCase:
+    """Exporta y descarga reportes de gastos."""
     def __init__(
         self,
         db: Session,
@@ -124,6 +126,7 @@ class ExportarReporteGastosUseCase:
         return self.exportar(reporte, formato, usuario_actual.id_usuario)
 
     def exportar(self, reporte: ReporteGasto, formato: str, id_usuario: int) -> ArchivoExportacion:
+        """Genera y guarda el archivo del reporte en el formato indicado."""
         ahora = datetime.now(timezone.utc)
         filas = self._filas(reporte)
         nombre_base = f"{_identificador(reporte)}_{reporte.fecha_inicio.isoformat()}_{reporte.fecha_fin.isoformat()}"
@@ -184,6 +187,11 @@ class ExportarReporteGastosUseCase:
         return guardado
 
     def descargar(self, id_archivo: UUID, usuario_actual: UsuarioActual) -> ArchivoExportacion:
+        """Devuelve el archivo exportado del usuario.
+
+        Raises:
+            NotFoundError: Si el archivo no existe o no es del usuario.
+        """
         archivo = self.archivo_repo.obtener(id_archivo)
         if archivo is None or archivo.origen != "RF77":
             raise NotFoundError(code="ARCHIVO_NO_ENCONTRADO", message=f"El archivo {id_archivo} no existe.")

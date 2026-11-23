@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: lo que el puntaje de anomalía lee de M02/M03/M09 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de RF-66 POBLACIONAL: observación de visión evaluada (M03), lotes del área (M02) y
 línea base del área y especie (M09, RF-24)."""
 from __future__ import annotations
@@ -13,6 +14,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class ObservacionPoblacional:
+    """Observación de comportamiento poblacional de un área."""
     id_observacion: int
     id_area: int
     vector: dict
@@ -24,6 +26,7 @@ class ObservacionPoblacional:
 
 @dataclass(frozen=True)
 class LotePoblacional:
+    """Lote poblacional de un área."""
     id_activo: int
     id_especie: int
     #: ``tipo_modelo_asignado`` del área (RFC-009): el que elige el modelo.
@@ -31,9 +34,12 @@ class LotePoblacional:
 
 
 class ObservacionPoblacionalPort(ABC):
+    """Puerto de lectura de observaciones poblacionales."""
 
     @abstractmethod
-    def obtener(self, id_observacion: int) -> Optional[ObservacionPoblacional]: ...
+    def obtener(self, id_observacion: int) -> Optional[ObservacionPoblacional]:
+        """Devuelve la observación, o ``None``."""
+        ...
 
     @abstractmethod
     def lotes(self, id_area: int) -> list[LotePoblacional]:

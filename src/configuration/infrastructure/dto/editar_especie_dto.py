@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: esperanza_vida_dias opcional, > 0 (RFC-014) |
 # | 2026-10-20 | Arekkazu | DEV-21 RF-15: densidad_poblacional_max (alias del nombre anterior), > 0 y máximo 2 decimales |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para la edición de una especie productiva (Flujo B — RF-15).
 
 Incluye ``fecha_actualizacion`` como mecanismo de concurrencia optimista:
@@ -42,6 +43,7 @@ class EditarEspecieDTO(BaseDTO):
     @field_validator("nombre")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         if len(v) < 3 or len(v) > 50:
             raise ValueError("El nombre debe tener entre 3 y 50 caracteres.")
         if not NOMBRE.match(v):
@@ -53,6 +55,7 @@ class EditarEspecieDTO(BaseDTO):
     @field_validator("grupo_manejo")
     @classmethod
     def validar_grupo_manejo(cls, v: Optional[str]) -> str:
+        """Exige el grupo de manejo."""
         if v is None:
             raise ValueError("El grupo de manejo es obligatorio.")
         return v
@@ -60,6 +63,7 @@ class EditarEspecieDTO(BaseDTO):
     @field_validator("descripcion")
     @classmethod
     def validar_descripcion(cls, v: Optional[str]) -> Optional[str]:
+        """Valida la descripción opcional."""
         if v is not None and len(v) > 255:
             raise ValueError("La descripción no puede superar los 255 caracteres.")
         return v
@@ -67,16 +71,19 @@ class EditarEspecieDTO(BaseDTO):
     @model_validator(mode="before")
     @classmethod
     def comprobar_alias_densidad(cls, datos):
+        """Rechaza el payload si trae la densidad con dos nombres distintos."""
         return validar_alias_densidad(datos)
 
     @field_validator("densidad_maxima_por_especie")
     @classmethod
     def validar_densidad_maxima(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        """Valida la densidad máxima por especie."""
         return validar_densidad(v)
 
     @field_validator("esperanza_vida_dias")
     @classmethod
     def validar_esperanza_vida(cls, v: Optional[int]) -> Optional[int]:
+        """Exige una esperanza de vida mayor a cero."""
         if v is not None and v <= 0:
             raise ValueError("La esperanza de vida debe ser un número entero de días mayor a cero.")
         return v

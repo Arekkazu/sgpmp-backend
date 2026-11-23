@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: declarar una arista de transmisión entre áreas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Declara por dónde puede pasar una enfermedad de un área a otra (RF-110). Las dos áreas deben existir,
 estar activas, ser accesibles para el usuario y pertenecer a la misma finca."""
 from __future__ import annotations
@@ -17,6 +18,7 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class RegistrarAristaTransmisionUseCase:
+    """Registra una arista de transmisión entre dos áreas."""
 
     def __init__(self, db: Session, arista_repo: AristaTransmisionRepository,
                  infraestructura_repo: InfraestructuraRepository) -> None:
@@ -26,6 +28,7 @@ class RegistrarAristaTransmisionUseCase:
 
     def execute(self, dto: RegistrarAristaTransmisionDTO, id_usuario: int,
                 ids_fincas_permitidas: Optional[list[int]] = None) -> AristaTransmision:
+        """Registra la arista validando que ambas áreas sean visibles."""
         fincas = set()
         for campo in ("id_infraestructura_origen", "id_infraestructura_destino"):
             area = self.infraestructura_repo.obtener_por_id(getattr(dto, campo),

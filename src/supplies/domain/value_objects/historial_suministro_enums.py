@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: cuatro niveles de volumen y tipos  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Enums de dominio del historial/trazabilidad de suministros (RF-81 / CU-04)."""
 from __future__ import annotations
 
@@ -40,6 +41,7 @@ class TipoSuministroFiltro(str, Enum):
 
 
 class OrigenPrecioFiltro(str, Enum):
+    """Filtro por origen del precio del suministro."""
     MANUAL = "MANUAL"
     M40_AUTOMATICO = "M40_AUTOMATICO"
     TODOS = "TODOS"
@@ -65,6 +67,7 @@ TIEMPO_ESTIMADO_SEGUNDOS = {NivelVolumen.NIVEL_3: 60, NivelVolumen.NIVEL_4: 300}
 
 
 def nivel_volumen(total: int, umbral_nivel3: int, umbral_nivel4: int) -> NivelVolumen:
+    """Clasifica el volumen de registros en su nivel de procesamiento."""
     if total <= UMBRAL_NIVEL_2:
         return NivelVolumen.NIVEL_1
     if total <= umbral_nivel3:

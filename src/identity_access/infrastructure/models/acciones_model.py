@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.acciones`.
 
 Catálogo de operaciones CRUD+E: C(1), R(2), U(3), D(4), E(5=Ejecutar).
@@ -16,6 +19,7 @@ if TYPE_CHECKING:
     from .permisos_model import Permisos
 
 class Acciones(Base):
+    """Modelo ORM del catálogo de acciones RBAC (tabla ``modulo1.acciones``)."""
     __tablename__ = 'acciones'
     __table_args__ = (
         CheckConstraint("codigo = ANY (ARRAY['C'::bpchar, 'R'::bpchar, 'U'::bpchar, 'D'::bpchar, 'E'::bpchar])", name='chk_acciones_codigo_dominio'),

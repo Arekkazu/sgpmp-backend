@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia del monitoreo (semáforo y estado actual)."""
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -10,6 +12,7 @@ from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenU
 
 
 class MonitoreoRepository(ABC):
+    """Puerto del tablero de monitoreo y del semáforo de lecturas."""
 
     @abstractmethod
     def actualizar_estado_semaforo_si_vigente(

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | INC-M06-351-G45 RF-87 CA-14: ajuste de un hecho de un período cerrado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-87 v1.1 (CA-14): corrige un hecho de un período CERRADO sin tocarlo. Registra una
 línea ``AJUSTE_PERIODO_ANTERIOR`` en el período abierto del titular, con referencia a la línea
 original (``id_linea_corregida``) y justificación en RF-94. ``DISMINUIR`` usa el par de cuentas
@@ -19,11 +20,13 @@ from src.shared.fechas import hoy_usuario
 
 
 class RegistrarAjustePeriodoAnteriorUseCase:
+    """Registra un ajuste sobre un periodo ya cerrado."""
     def __init__(self, db: Session, contabilizador: Contabilizador) -> None:
         self.db = db
         self.contabilizador = contabilizador
 
     def execute(self, id_linea: int, tipo_ajuste: str, valor: Decimal, justificacion: str, id_usuario: int) -> dict:
+        """Registra el ajuste de la línea en el periodo abierto con su justificación."""
         asientos, periodos = self.contabilizador.asientos, self.contabilizador.periodos
         try:
             original = asientos.obtener(id_linea)

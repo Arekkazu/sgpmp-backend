@@ -6,6 +6,7 @@
 # | 2026-11-15 | Arekkazu | QA-M06 RF-89: el aviso no espera el bloqueo de un destinatario (POST /finanzas/precios colgado en el sandbox) |
 # | 2026-11-15 | Arekkazu | QA-M06 CU06 H-02 RF-87: un evento por destinatario; cada Contador ve el aviso |
 # | 2026-11-18 | Arekkazu | M08 RF-105: sin Contador en la finca, el aviso va al Administrador |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`NotificacionFinancieraPort` sobre M01 (RF-10 + RF-14), mismo patrón que M05:
 el aviso cuelga de un evento de ``modulo1.eventos`` y deja una notificación en la bandeja interna.
 Hace su propio ``commit`` en una sesión aparte y nunca propaga errores.
@@ -53,6 +54,7 @@ _SQL_YA_NOTIFICADO = text("""
 
 
 class NotificacionFinancieraM01Adapter(NotificacionFinancieraPort):
+    """Notifica eventos financieros mediante el sistema de notificaciones."""
     def __init__(self, session_factory: Callable[[], Session], db: Optional[Session] = None) -> None:
         self.session_factory = session_factory
         self.db_request = db
@@ -65,6 +67,7 @@ class NotificacionFinancieraM01Adapter(NotificacionFinancieraPort):
         return ids or ids_administradores(sesion)
 
     def a_contadores(self, tipo_evento: str, mensaje: str, detalle: dict, id_finca: Optional[int] = None) -> None:
+        """Avisa a los Contadores (de la finca si se indica). Nunca propaga errores."""
         db = self.session_factory()
         try:
             db.execute(SIN_ESPERAR_BLOQUEOS)
@@ -88,6 +91,7 @@ class NotificacionFinancieraM01Adapter(NotificacionFinancieraPort):
             db.close()
 
     def ya_notificado(self, tipo_evento: str, detalle: dict) -> bool:
+        """Si ya se envió un aviso de ese tipo cuyo detalle contiene ``detalle`` (deduplicación persistente)."""
         db = self.session_factory()
         try:
             return bool(db.execute(_SQL_YA_NOTIFICADO, {"n": tipo_evento, "d": json.dumps(detalle)}).scalar())

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: ampliación de ventana por resultado  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Excepción justificada a la ventana de retroalimentación para un resultado (RF-72)."""
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ DIAS_MAXIMOS = 365
 
 @dataclass
 class AmpliacionVentanaRetroalimentacion:
+    """Ampliación del plazo para retroalimentar una inferencia."""
     id_resultado_inferencia: uuid.UUID
     fecha_limite: datetime
     justificacion: str

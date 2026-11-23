@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: lee la frecuencia de actualización del layout      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``DashboardLayoutRepository`` (RF-28)."""
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from src.shared.errors import NotFoundError
 
 
 class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
+    """Implementación SQLAlchemy de ``DashboardLayoutRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -43,6 +45,9 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
         )
 
     def obtener_por_usuario(self, id_usuario: int) -> Optional[DashboardLayout]:
+        """Obtiene el dashboard guardado del usuario, o ``None`` si nunca lo
+        personalizó.
+        """
         # El UNIQUE(id_usuario) hace que a lo sumo haya una fila, pero el orden
         # se conserva por si esta consulta corre contra un entorno sin la
         # migración aplicada todavía.
@@ -58,6 +63,7 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_default_de_rol(self, id_usuario: int, id_rol: int) -> Optional[DashboardLayout]:
+        """Layout predeterminado del rol, o ``None`` si el rol no tiene uno definido."""
         orm = self.db.get(DashboardLayoutDefaultModel, id_rol)
         if orm is None:
             return None
@@ -70,6 +76,7 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
         )
 
     def nombre_de_rol(self, id_rol: int) -> Optional[str]:
+        """Nombre legible del rol, para el mensaje de fallo de restauración."""
         return (
             self.db.query(Roles.nombre_rol)
             .filter(Roles.id_rol == id_rol)
@@ -77,6 +84,7 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
         )
 
     def version_perfil(self, id_usuario: int) -> Optional[int]:
+        """Versión actual del perfil del usuario, para detectar edición concurrente."""
         return (
             self.db.query(Usuarios.version)
             .filter(Usuarios.id_usuario == id_usuario)
@@ -84,6 +92,7 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
         )
 
     def guardar(self, entidad: DashboardLayout) -> DashboardLayout:
+        """Inserta el dashboard y devuelve la entidad con su id asignado."""
         orm = DashboardLayoutModel(
             id_usuario=entidad.id_usuario,
             config=entidad.config_jsonb(),
@@ -99,6 +108,7 @@ class SqlAlchemyDashboardLayoutRepository(DashboardLayoutRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, entidad: DashboardLayout) -> DashboardLayout:
+        """Persiste los cambios del dashboard y devuelve la entidad actualizada."""
         orm = self.db.get(DashboardLayoutModel, entidad.id_dashboard_layout)
         if orm is None:
             # Sin este guard la asignación de abajo reventaba con AttributeError

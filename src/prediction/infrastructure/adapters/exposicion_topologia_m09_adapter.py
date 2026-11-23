@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: exposición desde modulo9.aristas_transmision y los contagios de M04 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Una arista DIRIGIDA lleva el contagio de origen a destino; una BIDIRECCIONAL, en ambos sentidos.
 El peso es ``intensidad × factor_barrera`` (el término de bioseguridad llega con RF-20 v2.2)."""
 from __future__ import annotations
@@ -63,10 +64,14 @@ _SQL_LOTES_EXPUESTOS = text("""
 
 
 class ExposicionTopologiaM09Adapter(ExposicionPort):
+    """Calcula la exposición de un lote a partir de la topología de áreas."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def focos_hacia(self, id_lote: int, desde: datetime) -> list[FocoVecino]:
+        """Áreas con arista activa hacia el área del lote cuyo último contagio desde ``desde`` tiene Fs > 0
+        y confianza normal (RFC-021: solo propagan focos con ``confianza_baja = false``).
+        """
         try:
             filas = self._db.execute(_SQL_FOCOS, {"id_lote": id_lote, "desde": desde}).all()
         except Exception as exc:
@@ -74,6 +79,7 @@ class ExposicionTopologiaM09Adapter(ExposicionPort):
         return [FocoVecino(id_area, via, Decimal(peso), Decimal(fs)) for id_area, via, peso, fs in filas]
 
     def lotes_expuestos(self, id_lote: int) -> list[int]:
+        """Activos vivos de las áreas a las que llega una arista activa desde el área del lote."""
         try:
             return list(self._db.execute(_SQL_LOTES_EXPUESTOS, {"id_lote": id_lote}).scalars())
         except Exception as exc:

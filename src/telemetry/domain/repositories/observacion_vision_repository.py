@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: obtener y guardar la evaluación de calidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de observaciones de visión."""
 from __future__ import annotations
 
 import datetime
@@ -10,6 +12,7 @@ from src.telemetry.domain.entities.observacion_vision import ObservacionVision
 
 
 class ObservacionVisionRepository(ABC):
+    """Puerto para guardar observaciones de visión y detectar duplicados."""
 
     @abstractmethod
     def fechas_existentes(

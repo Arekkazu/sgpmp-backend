@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de periodos de inactividad de dispositivos (RF-54)."""
 from __future__ import annotations
 
 from typing import Optional
@@ -12,11 +16,13 @@ from src.telemetry.infrastructure.models.periodo_inactividad_model import Period
 
 
 class SqlAlchemyPeriodoInactividadRepository(PeriodoInactividadRepository):
+    """Abre, consulta y cierra los periodos de inactividad detectados."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def abrir(self, periodo: PeriodoInactividad) -> PeriodoInactividad:
+        """Registra la apertura de un periodo de inactividad."""
         try:
             orm = PeriodoInactividadModel(
                 id_dispositivo_iot=periodo.id_dispositivo_iot,
@@ -38,6 +44,7 @@ class SqlAlchemyPeriodoInactividadRepository(PeriodoInactividadRepository):
             raise_from_db_error(exc)
 
     def obtener_abierto_por_dispositivo(self, id_dispositivo_iot: int) -> Optional[PeriodoInactividad]:
+        """Devuelve el periodo de inactividad abierto del dispositivo, si existe."""
         orm = self.db.execute(
             select(PeriodoInactividadModel).where(
                 PeriodoInactividadModel.id_dispositivo_iot == id_dispositivo_iot,
@@ -47,6 +54,7 @@ class SqlAlchemyPeriodoInactividadRepository(PeriodoInactividadRepository):
         return self._a_entidad(orm) if orm else None
 
     def cerrar(self, periodo: PeriodoInactividad) -> PeriodoInactividad:
+        """Cierra un periodo de inactividad con su fecha de fin y duración."""
         try:
             orm = self.db.get(PeriodoInactividadModel, periodo.id_periodo_inactividad)
             orm.fecha_fin = periodo.fecha_fin

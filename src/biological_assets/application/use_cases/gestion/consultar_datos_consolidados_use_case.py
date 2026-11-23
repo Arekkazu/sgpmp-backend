@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: datos consolidados de un activo para módulos analíticos (RF-50)."""
 
 from __future__ import annotations
@@ -73,6 +76,7 @@ class ConsultarDatosConsolidadosUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> DatosConsolidados:
+        """Devuelve los datos consolidados del activo, filtrados y paginados."""
         activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

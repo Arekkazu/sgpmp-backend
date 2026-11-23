@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de cambio de estado del activo (RF-44) contra ``modulo2``.
 
 Implementa el ``EstadoActivoPort`` reutilizando el flujo real de RF-44 de
@@ -36,6 +39,7 @@ class EstadoActivoM02Adapter(EstadoActivoPort):
         self._historico_repo = SqlAlchemyHistoricoEstadoRepository(db)
 
     def marcar_en_tratamiento(self, id_activo: int, id_usuario: int, motivo: str) -> None:
+        """Pone el activo en tratamiento y registra el cambio."""
         activo = self._activo_repo.obtener_por_id(id_activo)
         if activo is None:
             return

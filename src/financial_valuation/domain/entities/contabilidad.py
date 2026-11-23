@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-86/87/109: período, configuración y línea de asiento |
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 # | 2026-11-16 | Arekkazu | QA-M06 CU07 H-02 / CU12 H-01 RF-87/93: nombre legible del período |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidades contables de M06: período, configuración, parámetros y líneas de asiento."""
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ _MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agost
 
 @dataclass(frozen=True)
 class Periodo:
+    """Periodo contable de un titular."""
     id_periodo_contable: int
     numero_id_tributaria: str
     tipo_cierre: str
@@ -31,9 +33,11 @@ class Periodo:
 
     @property
     def esta_abierto(self) -> bool:
+        """Indica si el periodo está abierto."""
         return self.estado == EstadoPeriodo.ABIERTO.value
 
     def contiene(self, dia: date) -> bool:
+        """Indica si el día cae dentro del periodo."""
         return self.fecha_inicio <= dia <= self.fecha_fin
 
     @property
@@ -46,6 +50,7 @@ class Periodo:
 
 @dataclass(frozen=True)
 class ConfiguracionContable:
+    """Configuración contable general."""
     tipo_cierre: str
     pct_umbral_desviacion_precio: Decimal
     dias_alerta_vencimiento_precio: int
@@ -55,6 +60,7 @@ class ConfiguracionContable:
 
 @dataclass(frozen=True)
 class ParametroEspecie:
+    """Parámetros de valoración de una especie."""
     id_especie: int
     clasificacion: str
     categoria_precio: str
@@ -63,6 +69,7 @@ class ParametroEspecie:
 
 @dataclass(frozen=True)
 class ParametroCostosVenta:
+    """Porcentajes de costos de venta de una especie y región."""
     id_parametro_costo_venta: int
     id_especie: int
     region: str
@@ -73,6 +80,7 @@ class ParametroCostosVenta:
 
 @dataclass(frozen=True)
 class AsignacionCuenta:
+    """Cuentas contables asignadas a un tipo de hecho."""
     id_asignacion_cuenta_contable: int
     tipo_hecho: str
     sentido: str

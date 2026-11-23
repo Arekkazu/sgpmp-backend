@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelos ORM de la calibración por visión (RF-24 v2.0, migración `d7a41c9e2b58`).
 
 - `modulo9.calibraciones_vision`: historial inmutable de cada intento.
@@ -18,6 +21,7 @@ from .base_model import Base
 
 
 class CalibracionVisionModel(Base):
+    """Modelo ORM de la tabla ``modulo9.calibraciones_vision``."""
     __tablename__ = 'calibraciones_vision'
     __table_args__ = (
         ForeignKeyConstraint(
@@ -61,6 +65,7 @@ class CalibracionVisionModel(Base):
 
 
 class LineaBaseVisionModel(Base):
+    """Modelo ORM de la tabla ``modulo9.lineas_base_vision``."""
     __tablename__ = 'lineas_base_vision'
     __table_args__ = (
         ForeignKeyConstraint(

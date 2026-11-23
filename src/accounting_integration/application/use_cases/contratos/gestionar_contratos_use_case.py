@@ -5,6 +5,7 @@
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37/374-G38 RF-98: gracia desde M09 y aviso de la activación manual bloqueada |
 # | 2026-11-19 | Arekkazu | M7-03 RF-98: condiciones de activación de cada versión pendiente |
 # | 2026-11-20 | Arekkazu | QA-M07 CU04 H-03/S-02 RF-98: un aviso diario por versión bloqueada contado en la auditoría y con el código real |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Versiones del contrato AAEF (RF-98 v1.1).
 
 Registro siempre en PENDIENTE. La activación ocurre al llegar la fecha de vigencia (proceso de fondo)
@@ -45,6 +46,7 @@ _ACCIONES = {"activar": ("POST", "/activar"), "deprecar": ("POST", "/deprecar"),
 
 @dataclass(frozen=True)
 class SolicitudContrato:
+    """Datos para registrar una versión del contrato de exportación."""
     contrato_version: str
     tipo_cambio: str
     fecha_vigencia: date
@@ -55,6 +57,7 @@ class SolicitudContrato:
 
 
 class GestionarContratosUseCase:
+    """Registra y gestiona el ciclo de vida de las versiones del contrato."""
     def __init__(self, contratos: ContratoRepository, auditoria: AuditoriaIntegracionRepository, db: Session,
                  es_produccion: Callable[[], bool], alertar: Callable[[str, dict], None],
                  comprobante_habilitado: bool = False,
@@ -105,6 +108,7 @@ class GestionarContratosUseCase:
             json_detalle={"estado": contrato.estado, **detalle}))
 
     def registrar(self, s: SolicitudContrato, id_usuario: int) -> VersionContrato:
+        """Registra una versión nueva del contrato."""
         version = validar_formato_version(s.contrato_version)
         if s.tipo_cambio == "MAJOR":
             minima, defecto = self.gracia()

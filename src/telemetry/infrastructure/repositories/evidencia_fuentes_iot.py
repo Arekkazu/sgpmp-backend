@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: enlaza fuentes confirmadas al worker existente |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de las funciones |
 """Proyecciones auditables, sin copiar payloads ni modificar las fuentes."""
 from datetime import timezone
 from sqlalchemy import select
@@ -27,6 +28,7 @@ def _lectura_auditada(db, identificador):
 
 
 def auditar_lectura(db, identificador):
+    """Registra la evidencia de una lectura confirmada, si aún no existe."""
     # Recupera también lecturas confirmadas si el log SQL best-effort faltó.
     if _lectura_auditada(db, identificador):
         return
@@ -42,6 +44,7 @@ def auditar_lectura(db, identificador):
 
 
 def auditar_ingesta(db, identificador):
+    """Registra la evidencia de la bitácora de ingesta, aceptada o rechazada."""
     fila = db.get(BitacoraIngestModel, identificador)
     estado = fila.estado_calidad
     tipos = {'ERROR_DUPLICADO': 'DUPLICADO_DETECTADO',
@@ -65,6 +68,7 @@ def auditar_ingesta(db, identificador):
 
 
 def auditar_heartbeat(db, identificador):
+    """Registra la evidencia de un heartbeat recibido."""
     fila = db.get(HeartbeatModel, identificador)
     registrar_evidencia(SqlAlchemyBitacoraAuditoriaIotRepository(db), 'HEARTBEAT_RECIBIDO', C.RF60,
         entidad=E.HEARTBEAT, identificador=identificador,
@@ -73,6 +77,7 @@ def auditar_heartbeat(db, identificador):
 
 
 def auditar_transicion(db, identificador):
+    """Registra la evidencia de una transición de estado sin duplicar la de los triggers."""
     fila = db.get(HistoricoTransicionDispositivoModel, identificador)
     # Dos triggers existentes pueden materializar la misma transición con now().
     # Se preservan ambas fuentes, pero solo una evidencia de la transición real.

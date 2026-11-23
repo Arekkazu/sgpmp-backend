@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-68: contexto del lote desde M02/M03/M09 para el disparo automático |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: última salida de RF-66 de un lote expuesto        |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Contexto de RF-68 para un lote: densidad del área, sensores operativos y ambiente.
 
 - Densidad: individuos activos del área / superficie. Un lote POBLACIONAL pide el promedio
@@ -72,10 +73,12 @@ _SQL_ULTIMA_SALIDA = text("""
 
 
 class ContextoContagioM02M09Adapter(ContextoContagioPort):
+    """Arma el contexto de contagio de un lote con su área y ambiente."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def obtener(self, id_activo: int, instante: datetime) -> Optional[ContextoContagio]:
+        """None si el activo no existe. ``ambiente``: últimas lecturas del área hasta ``instante``."""
         try:
             lote = self._db.execute(_SQL_LOTE, {"id_activo": id_activo, "instante": instante}).first()
             if lote is None:
@@ -105,6 +108,7 @@ class ContextoContagioM02M09Adapter(ContextoContagioPort):
         return ContextoContagio(densidad, porcentaje.quantize(Decimal("0.01")), ambiente)
 
     def ultima_salida_rf66(self, id_activo: int, desde: datetime) -> Optional[SalidaReciente]:
+        """Último resultado de RF-66 del activo desde ``desde``; None si no hay."""
         try:
             fila = self._db.execute(_SQL_ULTIMA_SALIDA, {"id_activo": id_activo, "desde": desde}).first()
         except Exception as exc:

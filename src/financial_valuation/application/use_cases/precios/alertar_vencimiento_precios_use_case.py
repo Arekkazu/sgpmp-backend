@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-89 FA-4/FA-5: avisos de precios próximos a vencer y vencidos |
 # | 2026-11-05 | Arekkazu | M06 RF-89: la alerta nombra la especie y la vigencia del precio, no su id |
 # | 2026-11-08 | Arekkazu | INC-M06-299-G81 RF-89: avisos de vencimiento sin duplicados tras reinicios (marca persistente) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso diario de RF-89: avisa al Contador los precios que vencen dentro de la ventana
 configurada (a 30, 15 y 7 días, los que caben en ella, y el día del vencimiento) y los que vencieron
 sin otro precio vigente para su especie.
@@ -39,6 +40,7 @@ def umbral_alcanzado(dias_restantes: int, ventana: int) -> Optional[int]:
 
 
 class AlertarVencimientoPreciosUseCase:
+    """Avisa los precios de mercado próximos a vencer."""
     def __init__(self, precios: PrecioRepository, config: ConfiguracionContableRepository,
                  notificador: NotificacionFinancieraPort) -> None:
         self.precios = precios
@@ -46,6 +48,7 @@ class AlertarVencimientoPreciosUseCase:
         self.notificador = notificador
 
     def execute(self) -> int:
+        """Envía los avisos de vencimiento y devuelve cuántos envió."""
         hoy = hoy_usuario()
         ventana = self.config.obtener().dias_alerta_vencimiento_precio
         avisos = 0

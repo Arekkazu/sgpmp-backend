@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: auditoría de reportes y aviso de los generados en fondo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 # | 2026-11-23 | Arekkazu | QA-M08 CU02 H-02 RF-104: la descripción del evento dice formato, filtros y checksum |
 """Adaptador de :class:`AvisosReportesPort` sobre M01, mismo patrón que los avisos de M05 y M06.
 
@@ -41,11 +42,13 @@ def descripcion_evento(titulo: str, detalle: dict) -> str:
 
 
 class AvisosReportesM01Adapter(AvisosReportesPort):
+    """Registra eventos y notificaciones de reportes generados o fallidos."""
 
     def __init__(self, session_factory: Callable[[], Session]) -> None:
         self.session_factory = session_factory
 
     def registrar(self, solicitud: SolicitudReporte, titulo: str, detalle: dict, notificar: bool) -> None:
+        """Registra el evento del reporte y, si se pide, notifica al usuario."""
         generado = solicitud.estado == GENERADO
         tipo = "REPORTE_GENERADO" if generado else "REPORTE_FALLIDO"
         if generado:

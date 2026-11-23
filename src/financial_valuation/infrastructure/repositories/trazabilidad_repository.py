@@ -5,6 +5,7 @@
 # | 2026-11-13 | Leandro | TC-M06-G52 RF-91: comprobar y guardar los vínculos con RF-52, RF-63 y RF-73. |
 # | 2026-11-13 | Arekkazu | INC-M06-061B-G57 RF-91/92 (RFC-027): 403 y no 404 al lector cuando el estado no le corresponde |
 # | 2026-11-15 | Arekkazu | QA-M06 CU01 H-03 RF-87/91: el ajuste de un período cerrado tiene origen (la línea que corrige) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`TrazabilidadRepository`.
 
 Nivel 1: lectura vinculada al activo, apta en RF-62 y auditada en RF-63. Nivel 2: evento
@@ -42,6 +43,7 @@ _ESTADO_VERIFICACION = {None: "VERIFICADO", 1: "FALLO_NIVEL_1", 2: "FALLO_NIVEL_
 
 
 class SqlAlchemyTrazabilidadRepository(TrazabilidadRepository):
+    """Implementación SQLAlchemy de ``TrazabilidadRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -133,6 +135,7 @@ class SqlAlchemyTrazabilidadRepository(TrazabilidadRepository):
             resultado["ids"]["id_auditoria_m04"] = auditoria["id_evento"]
 
     def eslabones(self, linea: LineaAsiento) -> dict:
+        """Hechos verificables de la cadena de la línea (existencia y coherencia de cada eslabón)."""
         pk, col_evento, col_precio = _ORIGENES.get(linea.tabla_origen, (None, None, None))
         origen = None
         if pk is not None:
@@ -231,6 +234,7 @@ class SqlAlchemyTrazabilidadRepository(TrazabilidadRepository):
         return f["id_periodo_contable"] if f else None
 
     def cadena(self, id_linea: int) -> Optional[dict]:
+        """Devuelve la cadena de trazabilidad de la línea, o ``None``."""
         return fila(self.db, """
             SELECT l.id_linea_asiento_nic41, l.tipo_hecho::text AS tipo_hecho, l.sentido::text AS sentido, l.valor,
                    l.tabla_origen, l.id_origen, l.tipo_evidencia, l.estado_trazabilidad::text AS estado_trazabilidad,

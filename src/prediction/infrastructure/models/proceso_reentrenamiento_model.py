@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: modelo ORM de modulo4.procesos_reentrenamiento (migración 21fe51f2aea1) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.procesos_reentrenamiento``."""
 from __future__ import annotations
 
 import uuid
@@ -16,6 +18,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class ProcesoReentrenamientoModel(Base):
+    """Modelo ORM de la tabla ``modulo4.procesos_reentrenamiento``."""
     __tablename__ = "procesos_reentrenamiento"
     __table_args__ = {"schema": "modulo4"}
 

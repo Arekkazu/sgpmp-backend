@@ -3,6 +3,7 @@
 # | 2026-11-02 | Arekkazu | RF-68: disparo automático del riesgo de contagio tras cada resultado de RF-66 |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: recalcula las áreas expuestas cuando cambia un foco vecino |
 # | 2026-11-02 | Arekkazu | RF-68: una salida POBLACIONAL entra como score_anomalia (SCORE_POBLACIONAL) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-68 disparado por cada resultado nuevo de RF-66 (antes solo corría con un POST manual).
 
 El lote es el activo del resultado (#857: M02 no relaciona individuos con su lote). Las entradas
@@ -52,6 +53,7 @@ NIVEL_RIESGO_ALTO = "3"
 
 
 class DispararRiesgoContagioUseCase:
+    """Dispara el cálculo de riesgo de contagio tras una inferencia."""
 
     def __init__(self, *, contexto_port: ContextoContagioPort, estimar: EstimarRiesgoContagioUseCase,
                  exposicion_port: Optional[ExposicionPort] = None) -> None:

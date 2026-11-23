@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: ficha integral del activo biológico (RF-47)."""
 
 from __future__ import annotations
@@ -51,6 +54,7 @@ class ConsultarFichaIntegralUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> FichaIntegral:
+        """Arma la ficha integral del activo individual."""
         # E-01: el activo debe existir
         activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:

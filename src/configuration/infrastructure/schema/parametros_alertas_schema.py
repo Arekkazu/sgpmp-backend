@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: respuesta de los parámetros de alertas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de parámetros configurables."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -10,6 +12,7 @@ from pydantic import BaseModel
 
 
 class ParametroAlertaSchema(BaseModel):
+    """Parámetro configurable con su valor vigente."""
     nombre: str
     descripcion: str
     valor: Optional[Any] = None

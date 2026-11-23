@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: consulta variables y metadatos M09   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """M09 es la única fuente de códigos, categorías, unidades y rangos escalares."""
 from decimal import Decimal
 import re
@@ -22,10 +23,17 @@ def _normalizar_nombre(nombre: str) -> str:
 
 
 class VariableCatalogoM09Adapter(VariableCatalogoPort):
+    """Resuelve la regla I3P-1 de una variable desde el catálogo de M09."""
+
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener_regla(self, tipo_variable: str) -> Optional[ReglaVariableI3P1]:
+        """Devuelve la regla de la variable, o ``None`` si no está en el catálogo.
+
+        Raises:
+            ServiceUnavailableError: Si el catálogo es ambiguo o está incompleto.
+        """
         try:
             # Consulta de columnas, sin identity-map ni caché que esconda cambios.
             filas = self.db.execute(text("""

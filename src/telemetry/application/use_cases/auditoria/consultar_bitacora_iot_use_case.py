@@ -3,6 +3,12 @@
 # | 2026-10-25 | Arekkazu | INC-M03-136/137 RF-63: filtros id_usuario, rf_origen y registro_incompleto |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a las fincas del usuario salvo para el auditor |
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta de la bitácora de auditoría IoT (RF-63).
+
+El detalle y el listado se acotan a las fincas permitidas del usuario; fuera de
+ellas el evento se trata como inexistente.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,11 +21,17 @@ from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import 
 
 
 class ConsultarBitacoraIotUseCase:
+    """Orquesta la consulta y el listado de eventos de auditoría IoT."""
 
     def __init__(self, auditoria_repo: BitacoraAuditoriaIotRepository) -> None:
         self.auditoria_repo = auditoria_repo
 
     def get(self, id_evento: UUID, *, ids_fincas_permitidas: Optional[list[int]] = None) -> EventoAuditoriaIot:
+        """Devuelve un evento de auditoría por su id.
+
+        Raises:
+            NotFoundError: Si el evento no existe o está fuera de las fincas permitidas.
+        """
         # Fuera de las fincas del usuario el evento "no existe" (404), igual que en Alertas.
         evento = self.auditoria_repo.obtener(id_evento, ids_fincas_permitidas=ids_fincas_permitidas)
         if evento is None:
@@ -44,6 +56,11 @@ class ConsultarBitacoraIotUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]:
+        """Lista eventos de auditoría con filtros y paginación.
+
+        Returns:
+            Tupla con la página de eventos y el total de coincidencias.
+        """
         return self.auditoria_repo.listar(
             ids_fincas_permitidas=ids_fincas_permitidas,
             id_usuario=id_usuario,

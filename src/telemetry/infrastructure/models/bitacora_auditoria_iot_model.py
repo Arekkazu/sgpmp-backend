@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de la bitácora de auditoría IoT (tabla ``modulo3.bitacora_auditoria_iot``).
+
+Registra los eventos de auditoría del módulo con su hash de integridad y la
+clasificación de retención (RF-10/RF-63).
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +20,8 @@ from .base_model import Base
 
 
 class BitacoraAuditoriaIotModel(Base):
+    """Fila de la tabla ``modulo3.bitacora_auditoria_iot``."""
+
     __tablename__ = 'bitacora_auditoria_iot'
     __table_args__ = ({'schema': 'modulo3'},)
 

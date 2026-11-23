@@ -2,6 +2,8 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: exponer el perfil histórico real de cada versión RF-65. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio del historial de configuración del motor."""
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -15,10 +17,12 @@ from src.prediction.infrastructure.models.configuracion_ia_log_model import Conf
 
 
 class SqlAlchemyHistorialConfiguracionMotorRepository(HistorialConfiguracionMotorRepository):
+    """Implementación SQLAlchemy de ``HistorialConfiguracionMotorRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def listar_por_tipo(self, tipo_modelo: str) -> list[VersionConfiguracionMotor]:
+        """Versiones reemplazadas del tipo_modelo, de la más reciente a la más antigua."""
         orms = (
             self._db.query(ConfiguracionIaLogModel)
             .filter(ConfiguracionIaLogModel.tipo_modelo == tipo_modelo)

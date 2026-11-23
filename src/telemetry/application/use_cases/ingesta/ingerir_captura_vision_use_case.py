@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-53: guarda la captura de una ventana de visión                |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """La cámara se valida igual que en la ingesta del sobre D4 (serial del topic, activa, de tipo
 cámara y en el área que dice); la imagen solo se guarda en disco con las más recientes."""
 from __future__ import annotations
@@ -15,11 +16,22 @@ from src.telemetry.infrastructure.dto.captura_vision_dto import CapturaVisionDTO
 
 
 class IngerirCapturaVisionUseCase:
+    """Valida la cámara y guarda la captura de una ventana de visión."""
 
     def __init__(self, dispositivo_port: DispositivoPort) -> None:
         self.dispositivo_port = dispositivo_port
 
     def execute(self, dto: CapturaVisionDTO) -> int:
+        """Valida la cámara, decodifica la imagen y la guarda.
+
+        Returns:
+            Id del dispositivo cámara que envió la captura.
+
+        Raises:
+            AuthenticationError: Si la cámara no existe o está inactiva.
+            BusinessRuleError: Si el dispositivo no es cámara o no está en el área.
+            ValidationError: Si la imagen no es base64 válido.
+        """
         camara = self.dispositivo_port.obtener_camara_por_serial(dto.serial)
         if camara is None or not camara.es_activo:
             raise AuthenticationError(code="ERROR_AUTENTICACION",

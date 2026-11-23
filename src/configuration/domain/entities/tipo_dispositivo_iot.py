@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``TipoDispositivoIot`` — tipo de hardware y sus rangos (RF-23).
 
 Cada tipo define los límites min/max permitidos para los parámetros
@@ -34,10 +37,12 @@ class TipoDispositivoIot:
 
     @property
     def es_gateway_edge(self) -> bool:
+        """Indica si el tipo es gateway Edge."""
         return self.nombre == TIPO_GATEWAY_EDGE
 
     @property
     def es_camara(self) -> bool:
+        """Indica si el tipo es cámara."""
         return self.categoria == CATEGORIA_CAMARA
 
     def verificar_rango(

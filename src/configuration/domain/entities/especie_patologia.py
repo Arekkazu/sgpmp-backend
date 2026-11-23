@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``EspeciePatologia`` — patología por especie (RF-16).
 
 Es la entidad **propia de M09** para patologías configuradas por especie. Vive en
@@ -49,6 +52,7 @@ class EspeciePatologia:
         nombre: NombrePatologia,
         descripcion: Optional[str] = None,
     ) -> EspeciePatologia:
+        """Crea la entidad validando sus datos."""
         return cls(
             id_especie=id_especie,
             nombre=nombre,
@@ -63,11 +67,13 @@ class EspeciePatologia:
         descripcion: Optional[str],
         fecha_actualizacion: datetime,
     ) -> None:
+        """Actualiza los datos editables validándolos."""
         self.nombre = nombre
         self.descripcion = descripcion
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self) -> None:
+        """Marca la entidad como inactiva."""
         self.es_activo = False
 
     def _snapshot(self) -> dict:

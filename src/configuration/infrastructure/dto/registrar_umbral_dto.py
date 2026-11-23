@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar un umbral ambiental (Flujo A — RF-17)."""
 from __future__ import annotations
 
@@ -31,6 +32,7 @@ class RegistrarUmbralDTO(BaseDTO):
     @field_validator('valor_max')
     @classmethod
     def validar_rango(cls, v: Decimal, info) -> Decimal:
+        """Exige que el valor máximo sea mayor que el mínimo."""
         min_ = info.data.get('valor_min')
         if min_ is not None and v <= min_:
             raise ValueError("valor_max debe ser estrictamente mayor que valor_min.")
@@ -39,6 +41,7 @@ class RegistrarUmbralDTO(BaseDTO):
     @field_validator('niveles')
     @classmethod
     def validar_niveles(cls, v: List[NivelDTO]) -> List[NivelDTO]:
+        """Exige exactamente los niveles normal, precaución y crítico."""
         if len(v) != 3:
             raise ValueError("Se deben proporcionar exactamente 3 niveles de alerta (normal, precaucion, critico).")
         encontrados = {n.nivel for n in v}

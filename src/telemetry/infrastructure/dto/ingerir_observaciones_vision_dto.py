@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-19 | Arekkazu | SEG-M03-03 RF-56: vector acotado en número de componentes y largo del nombre |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clases |
 """DTO de ingesta de observaciones de visión (POST /iot/telemetria/vision, RF-53/RF-56 v2.0).
 
 Lote legado INC-M09-77-G137 (#513), conservado por compatibilidad. El sobre
@@ -21,6 +22,8 @@ from src.shared.fechas import FechaHoraUtc
 
 
 class ObservacionVisionDTO(BaseDTO):
+    """Observación de visión de una ventana con su vector de comportamiento."""
+
     model_config = ConfigDict(extra='forbid')
     timestamp_captura: FechaHoraUtc
     cobertura_ventana: Decimal = Field(..., ge=0, le=1, decimal_places=4)
@@ -36,6 +39,8 @@ class ObservacionVisionDTO(BaseDTO):
 
 
 class IngerirObservacionesVisionDTO(BaseDTO):
+    """Lote de observaciones de visión enviado por una cámara."""
+
     model_config = ConfigDict(extra='forbid')
     device_id: int = Field(..., gt=0)
     serial: str = Field(..., min_length=1, max_length=100)

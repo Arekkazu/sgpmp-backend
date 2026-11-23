@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``IdentidadVisual`` — identidad visual institucional por finca (RF-26).
 
 Una finca puede tener múltiples registros históricos; el activo es el de mayor ``version``.
@@ -41,6 +44,7 @@ class IdentidadVisual:
         secondary_color: Optional[ColorHex],
         org_display_name: Optional[NombreOrganizacion],
     ) -> IdentidadVisual:
+        """Crea la entidad validando sus datos."""
         return cls(
             id_finca=id_finca,
             id_usuario=id_usuario,
@@ -61,6 +65,7 @@ class IdentidadVisual:
         secondary_color: Optional[ColorHex],
         org_display_name: Optional[NombreOrganizacion],
     ) -> None:
+        """Actualiza los datos editables validándolos."""
         self.id_usuario = id_usuario
         if logo_path is not None:
             self.logo_path = logo_path

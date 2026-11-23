@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: resuelve ubicacion y contexto a la captura |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Consulta fuentes historicas M02 sin sustituir una captura por el presente."""
 from datetime import datetime
 from sqlalchemy import text
@@ -8,10 +9,12 @@ from src.telemetry.domain.repositories.activo_biologico_dependency_port import A
 
 
 class ActivoBiologicoM02Adapter(ActivoBiologicoDependencyPort):
+    """Adaptador hacia activos biológicos para resolver qué activo ocupaba un área."""
     def __init__(self, db):
         self.db = db
 
     def obtener_activos_en_momento(self, id_infraestructura, timestamp):
+        """Lista los activos ubicados en el área en el instante de captura."""
         filas=self.db.execute(text('''SELECT a.id_activo_biologico,a.tipo::text AS modelo_manejo
             FROM modulo2.activos_biologicos a
             WHERE a.fecha_creacion<=:captura AND EXISTS (
@@ -31,6 +34,7 @@ class ActivoBiologicoM02Adapter(ActivoBiologicoDependencyPort):
         return [ActivoBiologicoInfo(f.id_activo_biologico,f.modelo_manejo) for f in filas]
 
     def obtener_contexto(self, id_activo_biologico, timestamp):
+        """Devuelve la ubicación y el contexto del activo en el instante dado."""
         p={'id':id_activo_biologico,'captura':timestamp}
         ubicacion=self.db.execute(text('''SELECT id_historial,id_infraestructura,fecha_inicio,fecha_fin
             FROM modulo2.historial_infraestructura_activo WHERE id_activo_biologico=:id
@@ -76,6 +80,7 @@ class ActivoBiologicoM02Adapter(ActivoBiologicoDependencyPort):
                 'peso_referencia':peso,'estado_sanitario_vigente':None}.items() if v is None]}
 
     def historial_inconsistente(self,id_infraestructura,timestamp):
+        """Indica si hay activos del área sin historial de ubicación que cubra el instante."""
         return bool(self.db.execute(text('''SELECT EXISTS(SELECT 1 FROM modulo2.activos_biologicos a
             WHERE a.id_infraestructura=:area AND a.fecha_creacion<=:captura
               AND NOT EXISTS(SELECT 1 FROM modulo2.historial_infraestructura_activo h
@@ -84,6 +89,7 @@ class ActivoBiologicoM02Adapter(ActivoBiologicoDependencyPort):
             {'area':id_infraestructura,'captura':timestamp}).scalar_one())
 
     def bloquear_activos(self,identificadores):
+        """Bloquea en modo compartido las filas de los activos indicados."""
         if identificadores:
             self.db.execute(text('''SELECT id_activo_biologico FROM modulo2.activos_biologicos
                 WHERE id_activo_biologico=ANY(:ids) ORDER BY id_activo_biologico FOR KEY SHARE'''),{'ids':sorted(set(identificadores))}).all()

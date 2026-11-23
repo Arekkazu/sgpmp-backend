@@ -3,6 +3,7 @@
 # | 2026-11-14 | Arekkazu | M08 RF-103: datos de un widget con las opciones del usuario |
 # | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: el valor del inventario se acota a las fincas permitidas |
 # | 2026-11-22 | Arekkazu | A11Y2-M08 TC-DIS-278 RF-103: el semáforo trae el total de alertas por área |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 # | 2026-11-23 | Arekkazu | QA-M08 CU01 H-04 RF-103: sin comunicación incluye buffer, sin reporte y más de 24 h callado; total de calibrados |
 """Caso de uso: datos de un widget del dashboard para la finca activa (RF-103).
 
@@ -66,6 +67,7 @@ class Resultado:
 
 @dataclass
 class DatosWidget:
+    """Datos de un widget del tablero con su estado y mensaje."""
     clave: str
     estado: str
     mensaje: Optional[str]
@@ -121,6 +123,7 @@ class ObtenerDatosWidgetUseCase:
 
     def execute(self, clave: str, id_finca: Optional[int], usuario: UsuarioActual,
                 ahora: Optional[datetime] = None) -> DatosWidget:
+        """Devuelve los datos del widget para la finca indicada."""
         ahora = ahora or datetime.now(timezone.utc)
         definicion, id_widget = self.autorizar(clave, usuario)
         permitidas = self.validar_finca(id_finca, definicion, usuario)
@@ -149,6 +152,11 @@ class ObtenerDatosWidgetUseCase:
     # --- Validaciones compartidas con el caso de uso de opciones ---------------------------------
 
     def autorizar(self, clave: str, usuario: UsuarioActual) -> tuple[DefinicionWidget, int]:
+        """Valida que el widget exista, esté activo y el rol del usuario lo pueda ver.
+
+        Returns:
+            Tupla con la definición del widget y su id.
+        """
         definicion = DEFINICIONES.get(clave)
         widget = next((w for w in self.widget_repo.obtener_activos() if w.clave == clave), None)
         if definicion is None or widget is None:

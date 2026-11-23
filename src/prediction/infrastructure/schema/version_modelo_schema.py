@@ -2,6 +2,8 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-03 | Arekkazu     | QA-M04 RF-69: la versión trae el identificador del animal además del id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de versiones de modelo."""
 from __future__ import annotations
 
 import uuid
@@ -15,6 +17,7 @@ from src.prediction.domain.entities.version_modelo import VersionModelo
 
 
 class VersionModeloResponse(BaseModel):
+    """Versión de modelo."""
     id_version_modelo: int
     nombre_version: str
     tipo_modelo: Optional[str]
@@ -50,6 +53,7 @@ class VersionModeloResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, e: VersionModelo) -> VersionModeloResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_version_modelo=e.id_version_modelo,
             nombre_version=e.nombre_version,
@@ -84,5 +88,6 @@ class VersionModeloResponse(BaseModel):
 
 
 class VersionModeloListResponse(BaseModel):
+    """Versiones de modelo."""
     total: int
     items: list[VersionModeloResponse]

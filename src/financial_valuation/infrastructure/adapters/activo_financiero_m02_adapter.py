@@ -7,6 +7,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01/M6-03 RF-82/87: activo sin identificador como «Lote N» y listas filtradas por el titular del período |
 # | 2026-11-14 | destroyerban | INC-M06-362-G30 RF-85: descuenta las cosechas registradas después del último pesaje aunque sean del mismo día |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`ActivoFinancieroPort` sobre ``modulo2`` y ``modulo9``.
 
 Corre con la identidad del request: el RLS de ``modulo2`` limita los activos a las fincas del
@@ -82,15 +83,18 @@ def _activo(f: dict) -> DatosActivo:
 
 
 class ActivoFinancieroM02Adapter(ActivoFinancieroPort):
+    """Lee los activos biológicos para la valoración."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener(self, id_activo_biologico: int) -> Optional[DatosActivo]:
+        """Devuelve el activo, o ``None``."""
         f = fila(self.db, _BASE + " WHERE a.id_activo_biologico = :id",
                  {"id": id_activo_biologico, "tz": nombre_zona_usuario()})
         return _activo(f) if f else None
 
     def listar_sin_reconocimiento(self, numero_id_tributaria: Optional[str] = None) -> list[DatosActivo]:
+        """Activos visibles para el usuario sin reconocimiento CONFIRMADO (propuestas de RF-82), del titular si se da."""
         return [_activo(f) for f in filas(
             self.db, _BASE + f" WHERE NOT {_CONFIRMADO} AND est.nombre = ANY(:estados) AND (CAST(:nit AS varchar) IS NULL OR f.numero_id_tributaria = :nit)"
                              " ORDER BY a.id_activo_biologico",
@@ -98,6 +102,7 @@ class ActivoFinancieroM02Adapter(ActivoFinancieroPort):
         )]
 
     def listar_reconocidos(self, numero_id_tributaria: str) -> list[DatosActivo]:
+        """Activos ACTIVO/EN_TRATAMIENTO del titular con reconocimiento CONFIRMADO (cierre, RF-87)."""
         return [_activo(f) for f in filas(
             self.db, _BASE + f" WHERE {_CONFIRMADO} AND est.nombre = ANY(:estados) AND f.numero_id_tributaria = :nit"
                              " ORDER BY a.id_activo_biologico",
@@ -105,21 +110,25 @@ class ActivoFinancieroM02Adapter(ActivoFinancieroPort):
         )]
 
     def fincas_sin_titular_del_periodo(self, id_periodo_contable: int, numero_id_tributaria: str) -> list[str]:
+        """Fincas con líneas en el período cuyo titular tributario ya no es el del período (o no tiene)."""
         return [f["nombre"] for f in filas(self.db, """
             SELECT DISTINCT f.nombre FROM modulo6.lineas_asiento_nic41 l JOIN modulo9.fincas f ON f.id_finca = l.id_finca
             WHERE l.id_periodo_contable = :p AND f.numero_id_tributaria IS DISTINCT FROM :nit ORDER BY 1""",
             {"p": id_periodo_contable, "nit": numero_id_tributaria})]
 
     def especie(self, id_especie: int) -> Optional[dict]:
+        """Devuelve los datos de la especie, o ``None``."""
         return fila(self.db, "SELECT id_especie, nombre, es_activo FROM modulo9.especies WHERE id_especie = :e",
                     {"e": id_especie})
 
     def metrica_produccion(self, id_metrica_produccion: int) -> Optional[dict]:
+        """Producto de RF-43 (nombre y unidad de medida) de un evento productivo."""
         return fila(self.db, """SELECT id_metrica_produccion, nombre, unidad_medida, id_especie
                                 FROM modulo9.metricas_produccion WHERE id_metrica_produccion = :m""",
                     {"m": id_metrica_produccion})
 
     def evento_sanitario_del_activo(self, id_evento: int, id_activo_biologico: int) -> bool:
+        """Indica si el evento sanitario pertenece al activo."""
         return fila(self.db, """
             SELECT 1 AS ok FROM modulo2.eventos_sanitarios es
             JOIN modulo2.eventos_activos ea ON ea.id_eventos = es.id_evento
@@ -127,6 +136,7 @@ class ActivoFinancieroM02Adapter(ActivoFinancieroPort):
         """, {"e": id_evento, "a": id_activo_biologico}) is not None
 
     def eventos_sanitarios_del_activo(self, id_activo_biologico: int) -> list[dict]:
+        """Eventos sanitarios del activo (fecha, tipo y diagnóstico), para elegir el que sustenta un deterioro."""
         return filas(self.db, """
             SELECT es.id_evento, ea.fecha, es.tipo::text AS tipo, es.diagnostico
             FROM modulo2.eventos_sanitarios es

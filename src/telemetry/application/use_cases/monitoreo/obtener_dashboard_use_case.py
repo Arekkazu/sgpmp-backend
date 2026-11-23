@@ -8,6 +8,8 @@
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
 # | 2026-10-31 | Claude | INC-M03-247-G92 RF-58: estado general de la unidad con todos sus sensores, no la página |
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: semáforo con la última lectura, el umbral vigente y su tolerancia T |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso del tablero de monitoreo: estado actual de sensores y semáforo por unidad."""
 from __future__ import annotations
 
 import logging

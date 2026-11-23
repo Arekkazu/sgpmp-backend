@@ -7,6 +7,7 @@
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: identificar el perfil aplicado sin cambiar NORMAL o DEGRADADO. |
 # | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: la cobertura cuenta como observación cada salida con el id del lote |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: exposición a focos vecinos y área expuesta sin inferencias propias |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
@@ -79,6 +80,7 @@ class SalidaInferencia:
 
 @dataclass(frozen=True)
 class LecturaAmbiental:
+    """Lectura ambiental usada en el cálculo de riesgo de contagio."""
     temperatura: Optional[Decimal]
     humedad_relativa: Optional[Decimal]
     fecha_captura: datetime
@@ -109,6 +111,7 @@ class ParametrosContagio:
 
 @dataclass
 class ResultadoRiesgoContagio:
+    """Resultado del cálculo de riesgo de contagio de un lote."""
     id_lote: int
     probabilidad_contagio: Decimal
     nivel_riesgo_contagio: int
@@ -142,10 +145,12 @@ class ResultadoRiesgoContagio:
 
     @property
     def nivel_texto(self) -> str:
+        """Nivel de riesgo en texto."""
         return NIVELES[self.nivel_riesgo_contagio]
 
     @property
     def modo_ejecucion(self) -> str:
+        """Modo del cálculo: normal o degradado por baja confianza."""
         return "DEGRADADO" if self.confianza_baja else "NORMAL"
 
 
@@ -180,6 +185,7 @@ def validar_pesos(p: ParametrosContagio) -> None:
 
 
 def discretizar(probabilidad: Decimal, umbral_riesgo_alto: Decimal) -> int:
+    """Convierte la probabilidad en nivel de riesgo (0, 1 o 2)."""
     if probabilidad >= umbral_riesgo_alto:
         return 2
     if probabilidad >= FRONTERA_MEDIO:

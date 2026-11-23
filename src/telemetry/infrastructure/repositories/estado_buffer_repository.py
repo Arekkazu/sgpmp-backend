@@ -2,6 +2,8 @@
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: leer un único heartbeat vigente sin mezclar métricas antiguas ni omitir alcance de finca. |
 # | 2026-10-29 | Arekkazu | TC-DIS-148 RF-54: listado del buffer de todos los dispositivos del alcance |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio del estado del buffer local reportado por los dispositivos (RF-54)."""
 from sqlalchemy import text
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import InfrastructureError
@@ -11,14 +13,18 @@ from src.telemetry.infrastructure.dto.metricas_buffer_dto import MetricasBufferD
 
 
 class SqlAlchemyEstadoBufferRepository(EstadoBufferRepository):
+    """Lee el último heartbeat y el estado del buffer por dispositivo."""
+
     def __init__(self, db):
         self.db = db
 
     def obtener(self, id_dispositivo_iot, ids_fincas_permitidas):
+        """Devuelve el reporte de buffer del dispositivo, o ``None`` si no existe."""
         filas = self._consultar(id_dispositivo_iot, ids_fincas_permitidas)
         return filas[0] if filas else None
 
     def listar(self, ids_fincas_permitidas):
+        """Lista los reportes del alcance, ordenados por riesgo de pérdida de datos."""
         reportes = self._consultar(None, ids_fincas_permitidas)
         # Primero los que más se acercan a perder datos; sin métricas al final.
         return sorted(reportes, key=lambda r: (

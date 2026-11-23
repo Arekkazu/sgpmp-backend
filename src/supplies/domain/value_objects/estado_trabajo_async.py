@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Estado compartido de un trabajo asíncrono (RF-77 y RF-81 / CU-04).
 
 Ambos motores async (generación de reportes y trabajos de historial) usan el
@@ -11,6 +14,7 @@ from enum import Enum
 
 
 class EstadoTrabajoAsync(str, Enum):
+    """Estado de un trabajo asíncrono."""
     PENDIENTE = "PENDIENTE"
     EN_PROCESO = "EN_PROCESO"
     COMPLETADO = "COMPLETADO"

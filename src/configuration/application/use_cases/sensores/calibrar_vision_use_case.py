@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-23 | Leandro | DEV-24 RF-24: calcular y publicar todas las especies en una transaccion. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: calibración por visión — línea base por (área, especie) (RF-24 v2.0, RFC-011).
 
 Flujo (ficha RF-24 v2.0, modalidad VISION):
@@ -158,6 +159,7 @@ class CalibrarVisionUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> CalibracionVision | list[CalibracionVision]:
+        """Registra la calibración de visión del área y su línea base."""
         area: Optional[Infraestructura] = None
         try:
             self.calibracion_repo.bloquear_area(dto.area_id)
@@ -415,6 +417,7 @@ class ConsultarCalibracionVisionUseCase:
     def listar_por_area(
         self, area_id: int, *, ids_fincas_permitidas: Optional[list[int]] = None
     ) -> list[CalibracionVision]:
+        """Lista las calibraciones de visión del área."""
         self._area(area_id, ids_fincas_permitidas)
         return self.calibracion_repo.listar_por_area(area_id)
 
@@ -422,6 +425,7 @@ class ConsultarCalibracionVisionUseCase:
         self, area_id: int, *, especie_id: Optional[int] = None,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> LineaBaseVision | list[LineaBaseVision]:
+        """Devuelve la línea base vigente del área, opcionalmente por especie."""
         area = self._area(area_id, ids_fincas_permitidas)
         especies = _especies(area)
         ids = [especie_id] if especie_id in especies else ([] if especie_id is not None else especies)

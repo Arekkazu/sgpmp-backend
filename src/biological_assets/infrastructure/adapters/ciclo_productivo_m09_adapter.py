@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adapter de ``CicloConsultaPort`` que lee ciclos productivos y fases de M09
 (``modulo9``).
 """
@@ -23,6 +26,7 @@ class CicloProductivoM09Adapter(CicloConsultaPort):
         self.db = db
 
     def obtener_ciclo_con_fases(self, id_ciclo_productivo: int) -> Optional[CicloProductivoConsulta]:
+        """Devuelve el ciclo productivo con sus fases, o ``None``."""
         ciclo_row = self.db.execute(
             text(
                 'SELECT cp.id_ciclo_productivo, cp.nombre, cb.id_especie '
@@ -39,6 +43,7 @@ class CicloProductivoM09Adapter(CicloConsultaPort):
         return self._con_fases(ciclo_row)
 
     def listar_por_especie(self, id_especie: int) -> list[CicloProductivoConsulta]:
+        """Lista los ciclos productivos de la especie."""
         filas = self.db.execute(
             text(
                 'SELECT cp.id_ciclo_productivo, cp.nombre, cb.id_especie '
@@ -87,6 +92,7 @@ class CicloProductivoM09Adapter(CicloConsultaPort):
         )
 
     def metrica_habilitada_en_ciclo(self, id_ciclo_productivo: int, id_metrica_produccion: int) -> bool:
+        """Indica si la métrica está habilitada en el ciclo."""
         row = self.db.execute(
             text(
                 'SELECT 1 FROM modulo9.metricas_ciclo_productivo '

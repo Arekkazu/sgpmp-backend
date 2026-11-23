@@ -4,6 +4,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 # | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: registro y tipo de suministro en primer nivel del evento |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Response schemas para la bitácora de auditoría de M05 (RF-80, CU-06)."""
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class EventoAuditoriaSuministroResponse(BaseDTO):
+    """Evento de la auditoría de suministros."""
     model_config = ConfigDict(from_attributes=True)
 
     id_auditoria_suministro: int
@@ -60,6 +62,7 @@ class ActorAuditoriaResponse(BaseDTO):
 
 
 class AuditoriaSuministrosListResponse(BaseDTO):
+    """Página de eventos de la auditoría de suministros."""
     total: int
     pagina: int
     registros_por_pagina: int

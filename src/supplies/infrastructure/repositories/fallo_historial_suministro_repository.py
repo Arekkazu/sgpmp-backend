@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`FalloHistorialSuministroRepository` (RF-81)."""
 from __future__ import annotations
 
@@ -16,6 +19,7 @@ from src.supplies.infrastructure.models.fallo_trabajo_historial_suministro_model
 
 
 class SqlAlchemyFalloHistorialSuministroRepository(FalloHistorialSuministroRepository):
+    """Implementación SQLAlchemy de ``FalloHistorialSuministroRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -31,6 +35,7 @@ class SqlAlchemyFalloHistorialSuministroRepository(FalloHistorialSuministroRepos
         )
 
     def registrar(self, fallo: FalloHistorialSuministro) -> FalloHistorialSuministro:
+        """Registra el fallo."""
         try:
             orm = FalloTrabajoHistorialSuministroModel(
                 id_cola=fallo.id_cola,
@@ -47,6 +52,7 @@ class SqlAlchemyFalloHistorialSuministroRepository(FalloHistorialSuministroRepos
         return self._a_entidad(orm)
 
     def listar_no_resueltos(self) -> list[FalloHistorialSuministro]:
+        """Lista los fallos sin resolver."""
         registros = (
             self.db.query(FalloTrabajoHistorialSuministroModel)
             .filter(FalloTrabajoHistorialSuministroModel.resuelto.is_(False))

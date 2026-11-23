@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Value object: nivel de alerta semafórica (normal / precaucion / critico)."""
 from __future__ import annotations
 
@@ -14,6 +17,11 @@ class NivelAlerta(str, Enum):
 
     @classmethod
     def desde_string(cls, valor: str) -> 'NivelAlerta':
+        """Convierte el texto en el valor del catálogo.
+
+        Raises:
+            ValidationError: Si el valor no pertenece al catálogo.
+        """
         try:
             return cls(valor.lower())
         except ValueError:

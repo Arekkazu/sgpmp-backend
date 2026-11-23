@@ -4,6 +4,7 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita estructura rechazada fuera de transaccion de ingesta |
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: respaldar FALLA_PERSISTENCIA con correlación segura sin depender de la BD principal. |
 # | 2026-11-19 | Arekkazu | SEG-M03-03 RF-53: límite de tamaño del cuerpo en las rutas de ingesta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y función |
 """Captura Pydantic antes del endpoint, limitada a las dos rutas escalares."""
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
@@ -107,6 +108,7 @@ def _registrar(contexto: dict) -> None:
 
 
 def registrar_rechazo_estructural(ruta, cantidad):
+    """Registra el rechazo por estructura inválida de una petición de ingesta."""
     _registrar_error(ruta, 'ERROR_ESTRUCTURA_MENSAJE', {'cantidad_errores': cantidad})
 
 
@@ -164,7 +166,10 @@ async def _contexto_falla(request: Request, ruta: str) -> dict:
 
 
 class RutaIngestaAuditada(APIRoute):
+    """Ruta que acota el cuerpo y audita validaciones y fallos de persistencia de la ingesta."""
+
     def get_route_handler(self):
+        """Envuelve el handler para registrar rechazos de estructura en la bitácora de ingesta."""
         original = super().get_route_handler()
         # RF-53 (DEV-40): ERROR_ESTRUCTURA en bitacora_ingest solo para las dos rutas escalares.
         estructura_rf53 = self.path in _RUTAS and 'POST' in self.methods

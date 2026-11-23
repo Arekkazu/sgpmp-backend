@@ -4,6 +4,7 @@
 # | 2026-11-20 | Arekkazu | QA-M08 CU01 H-02 RF-103: el semáforo sale solo de alertas activas, no del riesgo de la inferencia |
 # | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: valor del inventario leído como sistema y acotado a las fincas del usuario |
 # | 2026-11-22 | Arekkazu | A11Y2-M08 TC-DIS-279 RF-103: distribución de riesgo con enfermedad y probabilidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 # | 2026-11-23 | Arekkazu | QA-M08 ronda 3 RF-103: semáforo solo con alertas de RF-57/RF-66; sin comunicación y calibraciones completos |
 """Implementación SQLAlchemy de :class:`DatosWidgetRepository` (RF-103).
 
@@ -62,6 +63,7 @@ _FILTRO_ESPECIES = "(CAST(:especies AS int[]) IS NULL OR ab.id_especie = ANY(:es
 
 
 class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
+    """Implementación SQLAlchemy de las consultas de widgets."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -80,11 +82,13 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
     # --- Opciones ---------------------------------------------------------------------------------
 
     def areas_de_finca(self, id_finca: int) -> list[Fila]:
+        """Lista las áreas activas de la finca."""
         return self._filas(text(
             "SELECT id_infraestructura AS valor, nombre FROM modulo9.infraestructuras "
             "WHERE id_finca = :f AND es_activo ORDER BY nombre"), {"f": id_finca})
 
     def especies_de_finca(self, id_finca: int) -> list[Fila]:
+        """Lista las especies de la finca."""
         return self._filas(text("""
             SELECT DISTINCT e.id_especie AS valor, e.nombre
             FROM modulo9.infraestructuras_especies ie
@@ -94,6 +98,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             ORDER BY e.nombre"""), {"f": id_finca})
 
     def sensores_de_finca(self, id_finca: int) -> list[Fila]:
+        """Lista los sensores de la finca con su área."""
         return self._filas(text("""
             SELECT DISTINCT s.id_sensores AS valor, s.nombre, i.nombre AS area
             FROM modulo9.sensores s
@@ -105,6 +110,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
     # --- Telemetría y predicción ------------------------------------------------------------------
 
     def semaforo_areas(self, id_finca: int, areas: Optional[list[int]]) -> list[Fila]:
+        """Devuelve el semáforo de cada área de la finca."""
         return self._filas(text(f"""
             WITH areas AS (
                 SELECT i.id_infraestructura, i.nombre
@@ -148,6 +154,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             ORDER BY ar.nombre"""), {"f": id_finca, "areas": areas, "horas": 24})
 
     def lecturas(self, id_finca: int, id_area: Optional[int]) -> list[Fila]:
+        """Devuelve las lecturas actuales con el mismo semáforo del monitoreo."""
         # El mismo semáforo efectivo que la pantalla de monitoreo (umbral vigente y tolerancia).
         sensores, _, _ = ObtenerDashboardUseCase(SqlAlchemyMonitoreoRepository(self.db)).execute(
             id_infraestructura=id_area, pagina=1, por_pagina=50,
@@ -169,6 +176,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
 
     def historico(self, id_finca: int, id_area: Optional[int], patron_variable: str,
                   desde: datetime, paso: str) -> list[Fila]:
+        """Devuelve la serie histórica agregada de la variable."""
         return self._filas(text("""
             SELECT s.nombre AS sensor, va.nombre AS variable, va.unidad,
                    date_bin(CAST(:paso AS interval), t.timestamp_captura, TIMESTAMPTZ '2000-01-01') AS instante,
@@ -187,6 +195,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
 
     def alertas_activas(self, id_finca: int, areas: Optional[list[int]], solo_criticas: bool,
                         limite: int) -> tuple[list[Fila], int]:
+        """Lista las alertas activas de la finca con su total."""
         return self._paginado(text(f"""
             SELECT a.id_alerta, a.tipo_alerta::text AS tipo, a.severidad::text AS severidad,
                    i.nombre AS area, a.tipo_variable AS variable, a.valor, a.unidad, a.fecha_generacion,
@@ -200,6 +209,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             LIMIT :limite"""), {"f": id_finca, "areas": areas, "solo": solo_criticas, "limite": limite})
 
     def alertas_sanitarias(self, id_finca: int) -> list[Fila]:
+        """Cuenta las alertas sanitarias de la finca por tipo."""
         return self._filas(text(f"""
             SELECT a.tipo_alerta::text AS tipo, count(*) AS total,
                    count(*) FILTER (WHERE a.severidad = 'CRITICO') AS criticas
@@ -210,6 +220,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             ORDER BY 2 DESC"""), {"f": id_finca})
 
     def riesgo_alto(self, id_finca: int, especies: Optional[list[int]], limite: int) -> tuple[list[Fila], int]:
+        """Lista los activos con riesgo alto con su total."""
         return self._paginado(text(f"""
             SELECT ab.id_activo_biologico, {nombre_activo_sql('ab')} AS activo, e.nombre AS especie,
                    i.nombre AS area, p.nombre AS patologia, ri.fecha_inferencia,
@@ -224,6 +235,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             LIMIT :limite"""), {"f": id_finca, "especies": especies, "horas": 24, "limite": limite})
 
     def distribucion_riesgo(self, id_finca: int, especies: Optional[list[int]], horas: int) -> list[Fila]:
+        """Cuenta los activos por nivel de riesgo y especie en las últimas horas."""
         return self._filas(text(f"""
             SELECT e.nombre AS especie,
                    count(*) FILTER (WHERE ri.nivel_riesgo = 0) AS normal,
@@ -246,6 +258,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
 
     def retroalimentacion_pendiente(self, id_finca: int, id_usuario: int, hasta: datetime,
                                     limite: int) -> tuple[list[Fila], int]:
+        """Lista las predicciones pendientes de retroalimentación del usuario."""
         pagina = ConsultarBandejaRetroalimentacionUseCase(
             SqlAlchemyBandejaRetroalimentacionRepository(self.db), SqlAlchemyParametrosMLOpsRepository(self.db),
         ).execute(ids_fincas=[id_finca], id_usuario=id_usuario, estado_evaluacion="PENDIENTE",
@@ -263,6 +276,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
     # --- Activos biológicos y suministros ---------------------------------------------------------
 
     def inventario(self, id_finca: int, especies: Optional[list[int]]) -> list[Fila]:
+        """Cuenta los activos de la finca por especie y estado."""
         return self._filas(text(f"""
             SELECT e.nombre AS especie,
                    count(*) FILTER (WHERE est.nombre = 'ACTIVO') AS activos,
@@ -277,6 +291,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             ORDER BY e.nombre"""), {"f": id_finca, "especies": especies})
 
     def eventos(self, id_finca: int, limite: int) -> list[Fila]:
+        """Lista los eventos recientes de la finca."""
         return self._filas(text(f"""
             SELECT ev.id_eventos AS id_evento, ev.fecha, {nombre_activo_sql('ab')} AS activo, e.nombre AS especie,
                    CASE WHEN es.id_evento IS NOT NULL THEN 'SANITARIO'
@@ -301,6 +316,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             LIMIT :limite"""), {"f": id_finca, "limite": limite})
 
     def conversion(self, id_finca: int, especies: Optional[list[int]]) -> list[Fila]:
+        """Devuelve la conversión alimenticia por especie."""
         # Una fila por especie: la conversión de un estanque y la de un hato no se promedian entre sí.
         return self._filas(text(f"""
             WITH vigentes AS (
@@ -328,6 +344,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
 
     def activos_valorados(self, id_finca: Optional[int],
                           fincas_permitidas: Optional[list[int]]) -> list[Fila]:
+        """Lista los activos valorados de las fincas permitidas."""
         # INC-M08-380-G002: la RLS de modulo6 abre los reconocimientos y valoraciones solo a quien
         # lee la valoración en Finanzas, y el Productor no; con su sesión el widget le daba $0. Se lee
         # como sistema y el alcance lo pone el filtro de fincas (la regla de fn_fincas_del_usuario,
@@ -339,6 +356,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
                 and (fincas_permitidas is None or f["id_finca"] in fincas_permitidas)]
 
     def periodos_abiertos(self, id_finca: Optional[int]) -> list[Fila]:
+        """Lista los periodos contables abiertos."""
         return self._filas(text("""
             SELECT p.id_periodo_contable, p.fecha_inicio, p.fecha_fin, p.estado::text AS estado,
                    (SELECT f.razon_social FROM modulo9.fincas f
@@ -351,12 +369,14 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             ORDER BY p.fecha_fin, p.id_periodo_contable"""), {"f": id_finca})
 
     def sin_reconocimiento(self, id_finca: Optional[int]) -> list[Fila]:
+        """Lista los activos sin reconocimiento contable."""
         return [{"id_activo_biologico": a.id_activo_biologico, "activo": a.identificador, "especie": a.especie,
                  "finca": a.finca, "fecha_ingreso": a.fecha_ingreso}
                 for a in ActivoFinancieroM02Adapter(self.db).listar_sin_reconocimiento()
                 if id_finca is None or a.id_finca == id_finca]
 
     def integraciones_fallidas(self, dias: int, limite: int) -> tuple[list[Fila], int]:
+        """Lista las integraciones fallidas recientes con su total."""
         return self._paginado(text("""
             SELECT s.id_integracion_solicitud, s.estado::text AS estado, s.fecha_comienzoo AS fecha,
                    c.nombre AS cliente, count(*) OVER () AS total
@@ -367,6 +387,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             LIMIT :limite"""), {"dias": dias, "limite": limite})
 
     def precios_por_vencer(self, dias: int, limite: int) -> tuple[list[Fila], int]:
+        """Lista los precios de mercado por vencer con su total."""
         return self._paginado(text("""
             SELECT pm.id_precio_mercado, e.nombre AS especie, pm.precio_unitario, pm.unidad_medida,
                    pm.fecha_vencimiento, pm.fecha_vencimiento - modulo1.fn_hoy_usuario() AS dias_restantes,
@@ -381,6 +402,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
     # --- Configuración ----------------------------------------------------------------------------
 
     def dispositivos(self, id_finca: int, areas: Optional[list[int]]) -> list[Fila]:
+        """Lista los dispositivos de la finca con su última calibración."""
         # QA M08 CU01 H-04: vw_rf28_widget_estado_dispositivos solo ubica el dispositivo por su sensor asociado o
         # su animal, y dejaba fuera los que están registrados en el área sin sensor vinculado. El área es la de
         # esa vista si la tiene; si no, la del registro del dispositivo.
@@ -401,6 +423,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             {"f": id_finca, "areas": areas})
 
     def configuracion_pendiente(self, id_finca: int, areas: Optional[list[int]]) -> list[Fila]:
+        """Lista los dispositivos con configuración pendiente."""
         return self._filas(text("""
             SELECT id_dispositivo_iot, serial, descripcion, area
             FROM modulo9.vw_rf28_widget_dispositivos_sin_configuracion
@@ -409,6 +432,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
             LIMIT 50"""), {"f": id_finca, "areas": areas})
 
     def estado_fincas(self, ids_fincas: Optional[list[int]]) -> list[Fila]:
+        """Devuelve el estado general de las fincas."""
         return self._filas(text("""
             SELECT id_finca, nombre, es_activo, departamento, areas_activas, dispositivos_activos
             FROM modulo9.vw_rf28_widget_estado_fincas

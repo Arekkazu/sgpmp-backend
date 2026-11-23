@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de ``ConfigMotorEdgePort``: configuración del motor a los nodos vía broker (DEV-09).
 
 Mismo patrón que ``EdgeSincronizacionMqttAdapter`` (umbrales, RF-17), con el
@@ -48,12 +51,19 @@ def _config_version(valor) -> Optional[int]:
 
 
 class ConfigMotorEdgeMqttAdapter(ConfigMotorEdgePort):
+    """Propaga la configuración del motor a los nodos Edge vía el broker MQTT."""
 
     def __init__(self) -> None:
         self._base_url = os.environ.get("MQTT_BROKER_URL", "")
         self._token = os.environ.get("MQTT_BROKER_TOKEN", "")
 
     def propagar_config(self, seriales: list[str], payload: dict) -> dict[str, ResultadoEnvioConfigMotor]:
+        """Envía la configuración a cada nodo y devuelve el veredicto de cada uno. Nunca lanza.
+
+        ``estado``: ``APLICADA`` (llegó el ACK), ``PENDIENTE`` (nodo desconectado,
+        no se publicó), ``NO_CONF`` (broker caído, error HTTP o sin ACK) o
+        ``SIN_INTEGRACION`` (el ambiente no tiene broker configurado).
+        """
         if not seriales:
             return {}
         if not self._base_url or not self._token:

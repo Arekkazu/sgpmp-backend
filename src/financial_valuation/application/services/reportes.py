@@ -12,6 +12,7 @@
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G24 RF-85: la pérdida del producto de consumo acredita el activo, como los demás pares de pérdida |
 # | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: conciliación con los asientos que el cierre trasladó y riesgos climáticos, sanitarios y de mercado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Constructores de los reportes del período. No hacen commit: los usan el cierre (RF-87 paso 8) y
 los casos de uso de generación a pedido del Contador."""
 from __future__ import annotations
@@ -41,6 +42,7 @@ def _sin_dato(valor) -> bool:
 
 
 def avisar_supuestos_insuficientes(notificador: NotificacionFinancieraPort, id_periodo: int, informe: dict) -> None:
+    """Avisa por finca los supuestos insuficientes del informe de revelaciones."""
     por_finca: dict[int, list[dict]] = defaultdict(list)
     for activo in informe["supuestos_insuficientes"]:
         por_finca[activo["id_finca"]].append(activo)
@@ -102,6 +104,7 @@ _TIPOS_RIESGO = {
 
 
 def riesgos_del_periodo(filas: list[dict]) -> list[dict]:
+    """Agrupa por categoría los riesgos registrados en el periodo."""
     salida = []
     for codigo, (categoria, fuente) in _CATEGORIAS_RIESGO.items():
         eventos = [{"categoria": categoria, "tipo": _TIPOS_RIESGO.get(f["tipo"], str(f["tipo"]).replace("_", " ").capitalize()),
@@ -141,15 +144,18 @@ class ConciliacionError(BusinessRuleError):
             f"contable ({detalle}). Revíselos antes de generar el estado."))
 
     def evento(self, id_usuario: int) -> EventoAuditoria:
+        """Evento de auditoría del error de conciliación."""
         return EventoAuditoria(tipo_evento="ERROR_CONCILIACION", severidad="CRITICAL", id_usuario=id_usuario,
                                payload={"hechos_sin_asiento": self.faltantes}, id_periodo_contable=self.id_periodo_contable,
                                id_referencia=self.id_periodo_contable)
 
     def avisar(self, notificador: NotificacionFinancieraPort) -> None:
+        """Avisa a los contadores el error de conciliación."""
         notificador.a_contadores("ALERTA_FINANCIERA_NIC41", self.message, {"id_periodo_contable": self.id_periodo_contable})
 
 
 class ConstructorEstadoResultados:
+    """Arma y guarda el estado de resultados NIC 41."""
     def __init__(self, reportes: ReporteRepository, costos: CostoRepository) -> None:
         self.reportes = reportes
         self.costos = costos
@@ -179,6 +185,7 @@ class ConstructorEstadoResultados:
                                         and m.get("valor_venta") is None and not m["es_reverso"])}
 
     def guardar(self, id_periodo_contable: int, filtros: dict, id_usuario: int, excluidos: list) -> dict:
+        """Guarda el estado de resultados del periodo."""
         faltantes = self.reportes.hechos_sin_asiento(id_periodo_contable)
         if faltantes:
             raise ConciliacionError(id_periodo_contable, faltantes)
@@ -236,6 +243,7 @@ def _neto(c: dict[str, Decimal]) -> Decimal:
 
 
 class ConstructorInformeRevelaciones:
+    """Arma y guarda el informe de revelaciones NIC 41."""
     def __init__(self, reportes: ReporteRepository) -> None:
         self.reportes = reportes
 
@@ -268,6 +276,7 @@ class ConstructorInformeRevelaciones:
         return filas, insuficientes
 
     def construir(self, id_periodo_contable: int, manuales: dict) -> dict:
+        """Arma el contenido del informe de revelaciones del periodo."""
         d = self.reportes.datos_revelaciones(id_periodo_contable)
         periodo = d["periodo"]
         mov_activo: dict[int, dict] = defaultdict(lambda: defaultdict(lambda: CERO))
@@ -375,6 +384,7 @@ class ConstructorInformeRevelaciones:
 
     def guardar(self, id_periodo_contable: int, manuales: dict, id_usuario: int,
                 justificacion_inconsistencias: Optional[str] = None, *, informe: Optional[dict] = None) -> dict:
+        """Guarda el informe de revelaciones del periodo."""
         if informe is None:
             informe = self.construir(id_periodo_contable, manuales)
         periodo = informe["periodo"]

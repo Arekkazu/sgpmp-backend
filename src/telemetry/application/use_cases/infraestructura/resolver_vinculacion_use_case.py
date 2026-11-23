@@ -1,6 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: resuelve pendientes con contexto y alcance |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de resolución manual de vinculaciones ambiguas (RF-61-C)."""
 from __future__ import annotations
 
 import logging
@@ -37,6 +39,11 @@ class ResolverVinculacionUseCase:
     def execute(
         self, id_vinculacion_lectura: int, dto: ResolverVinculacionDTO, id_usuario: int, *, ids_fincas_permitidas=None
     ) -> VinculacionLectura:
+        """Asigna el activo elegido a una vinculación ambigua o sin vincular.
+
+        Raises:
+            NotFoundError: Si la vinculación no existe o no es visible.
+        """
         try:
             vinculacion = self.vinculacion_repo.obtener_por_id(id_vinculacion_lectura,ids_fincas_permitidas=ids_fincas_permitidas)
             if vinculacion is None:

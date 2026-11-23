@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Editar métrica de producción (Flujo J — RF-16).
 
 Concurrencia optimista mediante ``fecha_actualizacion``.
@@ -68,6 +71,7 @@ class EditarMetricaUseCase:
         dto: EditarMetricaDTO,
         usuario_actual: UsuarioActual,
     ) -> MetricaProduccion:
+        """Edita la métrica y la audita."""
         metrica = self.metricas_repo.obtener_por_id(id_metrica_produccion, bloquear=True)
         if metrica is None:
             raise NotFoundError(

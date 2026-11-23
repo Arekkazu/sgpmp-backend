@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-75 CA-10: último consumo validado      |
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`ConsumoAlimentoRepository` (RF-75).
 
 Único punto donde se cruza la frontera ORM ↔ dominio para el consumo de
@@ -82,10 +83,12 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
         )
 
     def obtener_tipo_alimento(self, id_tipo_alimento: int) -> Optional[TipoAlimentoRef]:
+        """Devuelve el tipo de alimento del catálogo o ``None`` si no existe."""
         orm = self.db.get(TipoAlimentoModel, id_tipo_alimento)
         return None if orm is None else self._a_tipo_alimento(orm)
 
     def listar_tipos_alimento(self, *, solo_activos: bool) -> list[TipoAlimentoRef]:
+        """Catálogo de tipos de alimento ordenado por nombre; con ``solo_activos`` omite los inactivos."""
         consulta = select(TipoAlimentoModel).order_by(TipoAlimentoModel.nombre)
         if solo_activos:
             # `estado` es el enum enum_tipo_alimento_estado (ACTIVO | CESADO): upper() no aplica a enums.
@@ -100,6 +103,7 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
         hora_suministro: Optional[time],
         tipo_alimento: str,
     ) -> bool:
+        """Indica si ya existe un consumo VALIDADO con la misma clave de duplicidad."""
         hora = hora_suministro or _MEDIANOCHE
         existe = (
             self.db.query(RegistroConsumoAlimentoModel.id_consumo_alimeto)
@@ -117,6 +121,7 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
     def ultimo_validado(
         self, *, id_activo_biologico: int, tipo_alimento: str
     ) -> Optional[tuple[date, Optional[time]]]:
+        """(fecha, hora) del último consumo VALIDADO de ese alimento para el activo (RF-75 CA-10)."""
         fila = (
             self.db.query(RegistroConsumoAlimentoModel.fecha_consumo, RegistroConsumoAlimentoModel.hora_suministro)
             .filter(
@@ -133,6 +138,7 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
         return (fila.fecha_consumo, fila.hora_suministro) if fila else None
 
     def guardar(self, consumo: ConsumoAlimento) -> ConsumoAlimento:
+        """Persiste un consumo nuevo y devuelve la entidad con los campos derivados."""
         # costo_total lo calcula el trigger BEFORE INSERT — no se asigna aquí.
         orm = RegistroConsumoAlimentoModel(
             id_activo_biologico=consumo.id_activo_biologico,
@@ -157,10 +163,12 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
         return self._a_entidad(orm)
 
     def obtener_por_id(self, id_consumo: int) -> Optional[ConsumoAlimento]:
+        """Devuelve el consumo por id o ``None`` si no existe."""
         orm = self.db.get(RegistroConsumoAlimentoModel, id_consumo)
         return self._a_entidad(orm) if orm else None
 
     def anular(self, consumo: ConsumoAlimento) -> ConsumoAlimento:
+        """Aplica la anulación (solo estado y campos de anulación)."""
         orm = self.db.get(RegistroConsumoAlimentoModel, consumo.id_consumo_alimeto)
         # Solo se tocan estado y campos de anulación (el trigger protege el resto).
         orm.estado_registro = consumo.estado_registro
@@ -183,6 +191,7 @@ class SqlAlchemyConsumoAlimentoRepository(ConsumoAlimentoRepository):
         estado_registro: Optional[str] = None,
         ids_permitidos: Optional[list[int]] = None,
     ) -> list[ConsumoAlimento]:
+        """Lista consumos aplicando los filtros de búsqueda de RF-75."""
         query = self.db.query(RegistroConsumoAlimentoModel)
         if ids_permitidos is not None:
             query = query.filter(RegistroConsumoAlimentoModel.id_activo_biologico.in_(ids_permitidos))

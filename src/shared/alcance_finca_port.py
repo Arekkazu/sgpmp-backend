@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de alcance por finca (RF-25), transversal a todos los módulos.
 
 Determina a qué fincas tiene acceso un usuario: las que le fueron asignadas en
@@ -13,6 +16,7 @@ from typing import Optional
 
 
 class AlcanceFincaPort(ABC):
+    """Puerto para resolver qué fincas puede ver un usuario según su rol."""
 
     @abstractmethod
     def es_global(self, id_rol: int) -> bool:

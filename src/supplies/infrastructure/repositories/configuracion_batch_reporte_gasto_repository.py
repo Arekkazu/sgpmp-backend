@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`ConfiguracionBatchReporteGastoRepository` (RF-77)."""
 from __future__ import annotations
 
@@ -22,10 +25,12 @@ _DEFAULTS = ConfiguracionBatchReporteGasto(
 
 
 class SqlAlchemyConfiguracionBatchReporteGastoRepository(ConfiguracionBatchReporteGastoRepository):
+    """Implementación SQLAlchemy de ``ConfiguracionBatchReporteGastoRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener(self) -> ConfiguracionBatchReporteGasto:
+        """Devuelve la configuración vigente."""
         orm = (
             self.db.query(ConfiguracionBatchReporteGastoModel)
             .order_by(ConfiguracionBatchReporteGastoModel.id_configuracion.asc())

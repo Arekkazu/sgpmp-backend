@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: repositorio SQLAlchemy de aristas de transmisión |
 # | 2026-11-02 | Arekkazu | RF-110: editar vía, dirección, intensidad y barrera de una arista |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Bajo RLS: solo ve las aristas cuya área de origen es del usuario (o el usuario de servicio)."""
 from __future__ import annotations
 
@@ -21,11 +22,13 @@ _CAMPOS = ("id_infraestructura_origen", "id_infraestructura_destino", "via", "di
 
 
 class SqlAlchemyAristaTransmisionRepository(AristaTransmisionRepository):
+    """Implementación SQLAlchemy de ``AristaTransmisionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def guardar(self, arista: AristaTransmision) -> AristaTransmision:
+        """409 si ya hay una arista activa con el mismo origen, destino y vía."""
         try:
             orm = AristaTransmisionModel(**{c: getattr(arista, c) for c in _CAMPOS})
             self.db.add(orm)
@@ -36,10 +39,12 @@ class SqlAlchemyAristaTransmisionRepository(AristaTransmisionRepository):
             raise_from_db_error(exc)
 
     def obtener_por_id(self, id_arista: int) -> Optional[AristaTransmision]:
+        """Devuelve la arista, o ``None``."""
         orm = self.db.get(AristaTransmisionModel, id_arista)
         return self._a_entidad(orm) if orm else None
 
     def actualizar(self, arista: AristaTransmision) -> AristaTransmision:
+        """Actualiza los datos editables validándolos."""
         try:
             orm = self.db.get(AristaTransmisionModel, arista.id_arista_transmision)
             orm.via = arista.via
@@ -55,6 +60,7 @@ class SqlAlchemyAristaTransmisionRepository(AristaTransmisionRepository):
             raise_from_db_error(exc)
 
     def listar_activas_por_finca(self, id_finca: int) -> list[AristaTransmision]:
+        """Lista las aristas activas de la finca."""
         filas = self.db.execute(
             select(AristaTransmisionModel)
             .join(InfraestructuraModel,

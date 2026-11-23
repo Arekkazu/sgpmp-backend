@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consultar el historial de resultados ICA de un activo (RF-74, Flujo B).
 
 Devuelve todos los resultados (vigente + no vigentes), opcionalmente filtrados por
@@ -13,10 +16,12 @@ from src.supplies.domain.value_objects.eficiencia_enums import PeriodoEvaluacion
 
 
 class ConsultarHistorialICAUseCase:
+    """Consulta el historial de ICA de un activo."""
     def __init__(self, resultado_repo: ResultadoICARepository) -> None:
         self.resultado_repo = resultado_repo
 
     def execute(
         self, id_activo_biologico: int, periodo: Optional[PeriodoEvaluacion] = None
     ) -> list[ResultadoICA]:
+        """Lista los resultados de ICA del activo, opcionalmente por periodo."""
         return self.resultado_repo.listar_historial(id_activo_biologico, periodo)

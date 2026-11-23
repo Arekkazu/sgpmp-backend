@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: outbox a M06, sin consolidar manual |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Fábricas de wiring de RF-79 (Provisión NIC-41 — CU-05).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases listos.
@@ -47,6 +48,7 @@ from src.supplies.infrastructure.repositories.registro_suministro_repository imp
 
 
 def build_consolidar_ciclo_use_case(db: Session) -> ConsolidarCicloUseCase:
+    """Construye ``ConsolidarCicloUseCase`` con sus dependencias."""
     return ConsolidarCicloUseCase(
         db=db,
         ciclo_port=CicloM02Adapter(db),
@@ -60,6 +62,7 @@ def build_consolidar_ciclo_use_case(db: Session) -> ConsolidarCicloUseCase:
 
 
 def build_corregir_provision_use_case(db: Session) -> CorregirProvisionUseCase:
+    """Construye ``CorregirProvisionUseCase`` con sus dependencias."""
     return CorregirProvisionUseCase(
         db=db,
         provision_repo=SqlAlchemyProvisionNic41Repository(db),
@@ -81,8 +84,10 @@ def build_despachar_provisiones_m06_use_case(db: Session) -> DespacharProvisione
 
 
 def build_consultar_provision_use_case(db: Session) -> ConsultarProvisionUseCase:
+    """Construye ``ConsultarProvisionUseCase`` con sus dependencias."""
     return ConsultarProvisionUseCase(provision_repo=SqlAlchemyProvisionNic41Repository(db))
 
 
 def build_listar_versiones_provision_use_case(db: Session) -> ListarVersionesProvisionUseCase:
+    """Construye ``ListarVersionesProvisionUseCase`` con sus dependencias."""
     return ListarVersionesProvisionUseCase(provision_repo=SqlAlchemyProvisionNic41Repository(db))

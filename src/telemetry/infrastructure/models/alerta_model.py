@@ -1,3 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de las alertas generadas por telemetría (tabla ``modulo3.alertas``).
+
+Mapea severidad, estado, origen, reglas aplicadas y contexto del activo. Las
+columnas que en PostgreSQL son enums se declaran como ``String`` para no
+conflictar con los tipos existentes.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +21,8 @@ from .base_model import Base
 
 
 class AlertaModel(Base):
+    """Fila de la tabla ``modulo3.alertas``."""
+
     __tablename__ = 'alertas'
     __table_args__ = {'schema': 'modulo3'}
 

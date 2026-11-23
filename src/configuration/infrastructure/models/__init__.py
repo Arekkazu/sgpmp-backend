@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110: registra AristaTransmisionModel                  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelos ORM del módulo de configuración."""
 from .especie_model import EspecieModel
 from .ciclo_biologico_model import CicloBiologicoModel
 from .patologia_model import PatologiaModel

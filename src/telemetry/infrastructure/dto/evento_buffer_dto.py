@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-27 | Leandro | INC-M03-129-G27 RF-54/60/63: admitir BUFFER_CAPACITY_WARNING mediante la ampliación de D10 confirmada. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clases |
 """DTO del aviso de buffer del Gateway Edge (POST /iot/eventos-buffer, RF-54 Fase 4/E1/E6).
 
 Sobre de D10 (AIOT-DEV-03): el nodo lo publica en ``sgpmp/<serial>/status`` con
@@ -21,12 +22,16 @@ from src.shared.fechas import FechaHoraUtc
 
 
 class EventoBuffer(str, Enum):
+    """Tipos de evento de buffer que puede reportar el Gateway Edge."""
+
     BUFFER_CAPACITY_WARNING = "BUFFER_CAPACITY_WARNING"
     BUFFER_OVERFLOW = "BUFFER_OVERFLOW"
     BUFFER_DATA_CORRUPTION = "BUFFER_DATA_CORRUPTION"
 
 
 class RecibirEventoBufferDTO(BaseDTO):
+    """Aviso de estado del buffer local publicado por el Gateway Edge."""
+
     serial: str = Field(..., min_length=1, max_length=100)
     evento: EventoBuffer
     porcentaje_ocupacion: Decimal = Field(..., ge=0, le=100)

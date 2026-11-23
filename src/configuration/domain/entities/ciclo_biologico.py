@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``CicloBiologico`` — etapa del ciclo productivo por especie (RF-16)."""
 from __future__ import annotations
 
@@ -48,6 +49,7 @@ class CicloBiologico:
         id_especie: int,
         descripcion: Optional[str] = None,
     ) -> CicloBiologico:
+        """Crea la entidad validando sus datos."""
         return cls(
             nombre=nombre,
             duracion_dias=duracion_dias,
@@ -64,6 +66,7 @@ class CicloBiologico:
         descripcion: Optional[str],
         fecha_actualizacion: datetime,
     ) -> None:
+        """Actualiza los datos editables validándolos."""
         self.nombre = nombre
         self.duracion_dias = duracion_dias
         self.descripcion = descripcion
@@ -71,15 +74,18 @@ class CicloBiologico:
 
     def configurar_densidad(self, *, densidad_maxima: Decimal, biomasa_maxima: Optional[Decimal],
                             aviso_preventivo_pct: int, fecha_actualizacion: datetime) -> None:
+        """Configura los límites de densidad y biomasa con control de concurrencia."""
         self.densidad_maxima = densidad_maxima
         self.biomasa_maxima = biomasa_maxima
         self.aviso_preventivo_pct = aviso_preventivo_pct
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self) -> None:
+        """Marca la entidad como inactiva."""
         self.es_activo = False
 
     def activar(self) -> None:
+        """Marca la entidad como activa."""
         self.es_activo = True
 
     def __eq__(self, other: object) -> bool:

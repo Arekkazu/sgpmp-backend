@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Gateway Edge de los dispositivos IoT (RF-21, RF-23 / TC-M09-250/251).
 
 El Gateway Edge es la computadora de borde del sitio (hoy una Raspberry), el
@@ -143,6 +146,7 @@ class AsignarGatewayEdgeUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> DispositivoIot:
+        """Asigna o retira el gateway Edge del dispositivo."""
         dispositivo = self.dispositivo_repo.obtener_por_id(
             id_dispositivo_iot, ids_fincas_permitidas=ids_fincas_permitidas
         )

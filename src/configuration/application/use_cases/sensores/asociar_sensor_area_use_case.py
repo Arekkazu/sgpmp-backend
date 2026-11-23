@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Asociar sensor a área productiva (POST /{id}/asociar RF-22).
 
 Si el sensor ya tiene una asociación activa en la misma área → 409 duplicado.
@@ -64,6 +67,7 @@ class AsociarSensorAreaUseCase:
     def execute(
         self, id_sensor: int, dto: AsociarSensorAreaDTO, usuario_actual: UsuarioActual,
     ) -> tuple[SensorArea, list[AsociacionActivoSuperada]]:
+        """Asocia el sensor al área y supera las asociaciones anteriores."""
         # RF-22, flujo alterno (TC-M09-G133/G62): primero el dispositivo (404) y
         # después el sensor, que da 422 tanto si no existe como si es de otro
         # dispositivo. Con el sensor primero, un dispositivo inexistente salía
@@ -205,6 +209,7 @@ class ConsultarAsociacionesUseCase:
     def listar_por_sensor(
         self, id_sensor: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[SensorArea]:
+        """Lista las asociaciones de área del sensor."""
         # INC-M09-22-G126-02: sin este chequeo, cualquier rol con permiso R
         # sobre sensores (incluido Productor) podía leer el historial de
         # asociaciones de un sensor de una finca totalmente ajena, solo

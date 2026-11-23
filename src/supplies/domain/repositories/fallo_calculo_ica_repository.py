@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto del repositorio de fallos persistentes del cálculo ICA (RF-74 / E5)."""
 from __future__ import annotations
 
@@ -10,6 +13,7 @@ from src.supplies.domain.value_objects.eficiencia_enums import PeriodoEvaluacion
 
 
 class FalloCalculoICARepository(ABC):
+    """Puerto de persistencia de fallos del cálculo de ICA."""
     @abstractmethod
     def registrar(self, fallo: FalloCalculoICA) -> FalloCalculoICA:
         """Registra (o actualiza el conteo de) un fallo abierto para (activo, período)."""
@@ -19,14 +23,17 @@ class FalloCalculoICARepository(ABC):
     def obtener_abierto(
         self, id_activo_biologico: int, periodo: Optional[PeriodoEvaluacion]
     ) -> Optional[FalloCalculoICA]:
+        """Devuelve el fallo sin resolver del activo y periodo, o ``None``."""
         raise NotImplementedError
 
     @abstractmethod
     def listar_no_resueltos(self) -> list[FalloCalculoICA]:
+        """Lista los fallos sin resolver."""
         raise NotImplementedError
 
     @abstractmethod
     def marcar_resuelto(
         self, id_fallo: int, *, tipo_resolucion: str, cuando: datetime
     ) -> None:
+        """Marca el fallo como resuelto."""
         raise NotImplementedError

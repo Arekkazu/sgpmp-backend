@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto (ABC): enviar la configuración del motor a los nodos Edge por el broker (DEV-09).
 
 Contrato BRK-05 (``BROKER-MQTT-SGPMP``): ``POST /v1/commands`` con
@@ -12,6 +15,7 @@ from src.prediction.domain.entities.sincronizacion_nodo_edge import ResultadoEnv
 
 
 class ConfigMotorEdgePort(ABC):
+    """Puerto de propagación de la configuración del motor a Edge."""
     @abstractmethod
     def propagar_config(self, seriales: list[str], payload: dict) -> dict[str, ResultadoEnvioConfigMotor]:
         """Envía la configuración a cada nodo y devuelve el veredicto de cada uno. Nunca lanza.

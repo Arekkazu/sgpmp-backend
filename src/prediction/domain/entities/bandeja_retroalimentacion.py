@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Bandeja de retroalimentación clínica (RF-72): qué inferencias puede evaluar el veterinario.
 
 El motor emite una inferencia por animal cada pocos minutos, así que la bandeja no lista todas:
@@ -22,6 +23,7 @@ ESTADOS_EVALUACION = ("PENDIENTE", "EVALUADO", "VENTANA_VENCIDA")
 
 @dataclass(frozen=True)
 class FiltrosBandejaRetroalimentacion:
+    """Filtros de la bandeja de retroalimentación."""
     ids_fincas: Optional[list[int]]
     desde: datetime
     hasta: datetime
@@ -37,6 +39,7 @@ class FiltrosBandejaRetroalimentacion:
 
 @dataclass(frozen=True)
 class InferenciaPorEvaluar:
+    """Inferencia pendiente o evaluada en la bandeja."""
     id_resultado_inferencia: uuid.UUID
     id_activo_biologico: int
     identificador_activo: Optional[str]
@@ -68,6 +71,7 @@ class InferenciaPorEvaluar:
 
 @dataclass(frozen=True)
 class IndicadoresBandejaRetroalimentacion:
+    """Conteos de la bandeja de retroalimentación."""
     pendientes: int = 0
     evaluadas: int = 0
     vencidas: int = 0

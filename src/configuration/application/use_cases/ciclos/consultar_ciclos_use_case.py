@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar etapas del ciclo productivo por especie (Flujo D — RF-16)."""
 from __future__ import annotations
 
@@ -12,4 +15,5 @@ class ConsultarCiclosUseCase:
         self.ciclos_repo = ciclos_repo
 
     def execute(self, id_especie: int, *, solo_activas: bool = False) -> list[CicloBiologico]:
+        """Lista las etapas del ciclo biológico de la especie."""
         return self.ciclos_repo.listar_por_especie(id_especie, solo_activas=solo_activas)

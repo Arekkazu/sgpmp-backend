@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: generación inmediata (≤1.000) o en segundo plano (>1.000) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: el usuario confirma la exportación de un reporte (RF-104 Fase 3).
 
 Hasta 1.000 registros el archivo se genera aquí y queda listo para descargar (CA-3); por encima, la solicitud queda
@@ -34,6 +35,7 @@ MENSAJE_SEGUNDO_PLANO = "Tu reporte está siendo generado. Te avisaremos cuando 
 
 
 class SolicitarReporteUseCase:
+    """Solicita la generación de un reporte."""
 
     def __init__(self, db: Session, repo: SolicitudReporteRepository, abrir_fuente: AbrirFuente,
                  renderizador: RenderizadorReportePort, avisos: AvisosReportesPort) -> None:
@@ -45,6 +47,7 @@ class SolicitarReporteUseCase:
 
     def execute(self, tipo: str, formato: str, filtros: Optional[dict[str, Any]], solicitante: Solicitante,
                 ahora: Optional[datetime] = None) -> SolicitudReporte:
+        """Genera el reporte al momento o lo deja pendiente si es grande."""
         ahora = ahora or datetime.now(timezone.utc)
         partes = []
         with self.abrir_fuente(solicitante.id_usuario, solicitante.zona_horaria) as fuente:

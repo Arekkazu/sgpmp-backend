@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto de dominio :class:`RolRepository`.
 
 Mapea entre la tabla ``roles`` y la entidad :class:`Rol`. Conserva el stored
@@ -51,14 +54,17 @@ class SqlAlchemyRolRepository(RolRepository):
         )
 
     def listar(self) -> list[Rol]:
+        """Lista todos los roles."""
         filas = self.db.query(Roles).order_by(Roles.id_rol).all()
         return [self._a_entidad(r) for r in filas]
 
     def obtener_por_id(self, id_rol: int) -> Optional[Rol]:
+        """Devuelve el rol por id, o ``None``."""
         orm = self.db.query(Roles).filter(Roles.id_rol == id_rol).first()
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre(self, nombre_rol: str) -> Optional[Rol]:
+        """Devuelve el rol por nombre sin distinguir mayúsculas, o ``None``."""
         orm = (
             self.db.query(Roles)
             .filter(Roles.nombre_rol.ilike(nombre_rol))
@@ -67,9 +73,11 @@ class SqlAlchemyRolRepository(RolRepository):
         return self._a_entidad(orm) if orm else None
 
     def contar_usuarios(self, id_rol: int) -> int:
+        """Cuenta los usuarios del rol."""
         return self.db.query(Usuarios).filter(Usuarios.id_rol == id_rol).count()
 
     def crear_con_sp(self, nombre_rol: str, descripcion: Optional[str], permisos: list[dict]) -> int:
+        """Crea el rol con sus permisos mediante el procedimiento almacenado y devuelve su id."""
         try:
             self.db.execute(
                 text("CALL modulo1.sp_crear_rol(:nombre, :desc, CAST(:permisos AS jsonb))"),
@@ -107,6 +115,7 @@ class SqlAlchemyRolRepository(RolRepository):
         return rol.id_rol
 
     def guardar(self, rol: Rol) -> Rol:
+        """Persiste los cambios del rol."""
         # UPDATE: se recupera la fila gestionada por el identity map y se copian
         # los campos editables de la entidad. El trigger de DB eleva P0004 si el
         # rol es protegido; uq_nombre eleva IntegrityError si el nombre se repite.
@@ -138,6 +147,7 @@ class SqlAlchemyRolRepository(RolRepository):
         return self._a_entidad(orm)
 
     def eliminar(self, rol: Rol) -> None:
+        """Elimina el rol."""
         orm = self.db.get(Roles, rol.id_rol)
         self.db.delete(orm)
         try:

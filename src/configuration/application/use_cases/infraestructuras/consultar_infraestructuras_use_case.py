@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar áreas productivas (GET RF-20).
 
 El DFD (paso 06) exige registrar auditoría tipo GET al listar.
@@ -36,6 +39,7 @@ class ConsultarInfraestructurasUseCase:
         solo_activas: bool = False,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[Infraestructura]:
+        """Lista las áreas de la finca."""
         items = self.infra_repo.listar_por_finca(
             id_finca, solo_activas=solo_activas, ids_fincas_permitidas=ids_fincas_permitidas
         )
@@ -62,6 +66,11 @@ class ConsultarInfraestructurasUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Infraestructura:
+        """Devuelve el área.
+
+        Raises:
+            NotFoundError: Si no existe o no es visible.
+        """
         infra = self.infra_repo.obtener_por_id(
             id_infraestructura, ids_fincas_permitidas=ids_fincas_permitidas
         )

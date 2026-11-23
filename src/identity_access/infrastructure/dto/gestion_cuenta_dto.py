@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para las acciones de gestión administrativa de cuentas.
 
 Las acciones críticas (INACTIVAR, ELIMINAR) requieren un `motivo_accion`
@@ -22,6 +25,7 @@ class GestionarCuentaDTO(BaseDTO):
     @field_validator("accion_cuenta", mode="before")
     @classmethod
     def validar_accion(cls, v: str) -> str:
+        """Exige una acción de gestión de cuenta válida."""
         valores_validos = [e.value for e in EnumAccionCuenta if e != EnumAccionCuenta.PENDIENTE]
         if v not in valores_validos:
             raise ValueError(
@@ -32,6 +36,7 @@ class GestionarCuentaDTO(BaseDTO):
     @field_validator("motivo_accion")
     @classmethod
     def validar_longitud_motivo(cls, v: Optional[str]) -> Optional[str]:
+        """Convierte un motivo vacío en ``None``."""
         if v is not None and len(v.strip()) == 0:
             return None
         return v

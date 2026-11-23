@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: preserva legado y explicita dependencia DB-09 |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: persiste el sobre normativo; la calidad se evalua despues |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: ingesta de observaciones de visión por área (RF-53/RF-56/RF-62 v2.0, RFC-011).
 
 La cámara se resuelve por serial en D4, o device_id + serial en el lote legado,
@@ -31,6 +32,7 @@ from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import Observaci
 
 @dataclass
 class ResultadoIngestaVision:
+    """Resultado de ingerir observaciones de visión: total, duplicados y observaciones."""
     total: int
     duplicados: int
     observaciones: list[ObservacionVision]
@@ -41,6 +43,7 @@ def _utc(ts: datetime) -> datetime:
 
 
 class IngerirObservacionesVisionUseCase:
+    """Ingiere observaciones de visión enviadas por las cámaras."""
 
     def __init__(
         self,
@@ -53,6 +56,7 @@ class IngerirObservacionesVisionUseCase:
         self.dispositivo_port = dispositivo_port
 
     def execute(self, dto: IngerirObservacionesVisionDTO | ObservacionVisionD4DTO | ObservacionVisionD4LegadoDTO) -> ResultadoIngestaVision:
+        """Valida la cámara, persiste las observaciones y devuelve el resultado."""
         normativo = isinstance(dto, ObservacionVisionD4DTO)
         es_d4 = isinstance(dto, (ObservacionVisionD4DTO, ObservacionVisionD4LegadoDTO))
         if es_d4:

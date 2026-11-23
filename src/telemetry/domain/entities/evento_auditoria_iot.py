@@ -3,6 +3,8 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: expone marca externa sin editar evidencia |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63 E8: sin componente identificable se clasifica NIC41 |
 # | 2026-10-28 | destroyerban | INC-M03-165-G71 RF-63: equivalencias entre los nombres de RF-57 y el catálogo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad y catálogos de los eventos de auditoría IoT (RF-10/RF-63)."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -13,6 +15,7 @@ from uuid import UUID
 
 
 class TipoResultado(str, Enum):
+    """Resultado de la operación auditada."""
     EXITOSO = 'EXITOSO'
     FALLIDO = 'FALLIDO'
     PARCIAL = 'PARCIAL'
@@ -21,6 +24,7 @@ class TipoResultado(str, Enum):
 
 
 class EntidadAfectadaTipo(str, Enum):
+    """Tipo de entidad afectada por el evento auditado."""
     LECTURA = 'LECTURA'
     HEARTBEAT = 'HEARTBEAT'
     DISPOSITIVO = 'DISPOSITIVO'
@@ -33,6 +37,7 @@ class EntidadAfectadaTipo(str, Enum):
 
 
 class SeveridadLog(str, Enum):
+    """Severidad del evento de auditoría."""
     DEBUG = 'DEBUG'
     INFO = 'INFO'
     WARNING = 'WARNING'
@@ -41,11 +46,13 @@ class SeveridadLog(str, Enum):
 
 
 class ClasificacionRegistro(str, Enum):
+    """Clasificación de retención del registro (NIC 41 o técnico)."""
     NIC41 = 'NIC41'
     TECNICO = 'TECNICO'
 
 
 class ComponenteOrigen(str, Enum):
+    """Componente o requerimiento que originó el evento auditado."""
     RF17 = 'RF17'  # propagación de umbrales ambientales al Nodo Edge (INC-M09-70-G29)
     RF20 = 'RF20'  # propagación del tipo_modelo_asignado de un área al Gateway Edge (DEV-10)
     RF23 = 'RF23'  # credencial MQTT y Gateway Edge de los dispositivos (TC-M09-250/251)
@@ -78,6 +85,7 @@ def clasificar_componente(componente: Optional[ComponenteOrigen]) -> tuple[Clasi
 
 @dataclass
 class EventoAuditoriaIot:
+    """Evento de la bitácora de auditoría IoT con su hash de integridad."""
     # RF-10 base
     id_evento: Optional[UUID]
     tipo_evento: str
@@ -117,5 +125,6 @@ TIPOS_EVENTO_EQUIVALENTES: dict[str, tuple[str, ...]] = {
 
 
 def tipos_evento_equivalentes(tipo_evento: str) -> tuple[str, ...]:
+    """Devuelve los nombres equivalentes de un tipo de evento para filtrar."""
     tipo = tipo_evento.strip().upper()
     return TIPOS_EVENTO_EQUIVALENTES.get(tipo, (tipo_evento,))

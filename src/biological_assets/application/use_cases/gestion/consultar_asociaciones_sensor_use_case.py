@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consulta de los sensores asociados a un activo (RF-49)."""
 
 from __future__ import annotations
@@ -47,6 +50,7 @@ class ConsultarAsociacionesSensorUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[str, int, list[AsociacionSensorActivo]]:
+        """Lista las asociaciones de sensores del activo según el tipo de consulta."""
         if tipo_consulta not in ('ACTIVA', 'HISTORIAL'):
             raise ValidationError(
                 code='TIPO_CONSULTA_INVALIDO',
