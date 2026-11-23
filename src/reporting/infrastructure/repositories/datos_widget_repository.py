@@ -5,6 +5,7 @@
 # | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: valor del inventario leído como sistema y acotado a las fincas del usuario |
 # | 2026-11-22 | Arekkazu | A11Y2-M08 TC-DIS-279 RF-103: distribución de riesgo con enfermedad y probabilidad |
 # | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+# | 2026-11-23 | Arekkazu | QA-M08 ronda 3 RF-103: semáforo solo con alertas de RF-57/RF-66; sin comunicación y calibraciones completos |
 """Implementación SQLAlchemy de :class:`DatosWidgetRepository` (RF-103).
 
 Lo que ya calcula otro módulo se reutiliza tal cual para que el dashboard muestre lo mismo que la
@@ -43,6 +44,9 @@ _ALERTA_VIGENTE = "a.estado_alerta IN ('ACTIVA', 'EN_ATENCION')"
 # Fallas del dispositivo: no pintan el semáforo del Productor, solo lo dejan sin datos (RF-103 R5).
 _DISPOSITIVO_CAIDO = "('SIN_SEÑAL', 'EN_MANTENIMIENTO', 'INACTIVO')"
 _TIPOS_SANITARIOS = "('PREDICCION_PATOLOGIA', 'FIEBRE', 'SINDROME_RESPIRATORIO', 'RIESGO_CONTAGIO')"
+# RF-103 R5: el semáforo sale de las alertas de RF-57 (lecturas) y RF-66 (predicciones). Las técnicas, el resumen
+# de una tormenta y las de conversión alimenticia (M05) no son de ninguna de las dos.
+_NO_PINTAN_SEMAFORO = "('TECNICA', 'TORMENTA_DE_ALERTAS', 'CONVERSION_ALIMENTICIA')"
 
 # Última inferencia de M04 de cada activo dentro de la ventana (usa idx_ri_activo_timestamp).
 _ULTIMA_INFERENCIA = """
@@ -119,7 +123,7 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
                        count(*) FILTER (WHERE a.severidad <> 'CRITICO') AS advertencias
                 FROM modulo3.alertas a
                 JOIN areas ar ON ar.id_infraestructura = a.id_infraestructura
-                WHERE {_ALERTA_VIGENTE} AND a.tipo_alerta <> 'TECNICA'
+                WHERE {_ALERTA_VIGENTE} AND a.tipo_alerta::text NOT IN {_NO_PINTAN_SEMAFORO}
                 GROUP BY a.id_infraestructura
             ), inferencias AS (
                 -- Una predicción reciente solo dice que el área tiene datos: el color sale de las alertas
@@ -399,15 +403,24 @@ class SqlAlchemyDatosWidgetRepository(DatosWidgetRepository):
 
     def dispositivos(self, id_finca: int, areas: Optional[list[int]]) -> list[Fila]:
         """Lista los dispositivos de la finca con su última calibración."""
+        # QA M08 CU01 H-04: vw_rf28_widget_estado_dispositivos solo ubica el dispositivo por su sensor asociado o
+        # su animal, y dejaba fuera los que están registrados en el área sin sensor vinculado. El área es la de
+        # esa vista si la tiene; si no, la del registro del dispositivo.
         return self._filas(text("""
-            SELECT DISTINCT ON (v.id_dispositivo_iot)
-                   v.id_dispositivo_iot, v.serial, v.area, v.ultima_calibracion,
+            SELECT DISTINCT ON (d.id_dispositivo_iot)
+                   d.id_dispositivo_iot, d.serial, i.nombre AS area,
+                   (SELECT max(c.fecha_calibracion) FROM modulo9.calibraciones c
+                     WHERE c.id_dispositivo_iot = d.id_dispositivo_iot) AS ultima_calibracion,
                    COALESCE(ed.estado_actual::text, 'DESCONOCIDO') AS estado, ed.fecha_ultimo_contacto
-            FROM modulo9.vw_rf28_widget_estado_dispositivos v
-            LEFT JOIN modulo3.estados_dispositivos_iot ed ON ed.id_dispositivo_iot = v.id_dispositivo_iot
-            WHERE v.id_finca = :f AND v.es_activo
-              AND (CAST(:areas AS int[]) IS NULL OR v.id_infraestructura = ANY(:areas))
-            ORDER BY v.id_dispositivo_iot, v.area"""), {"f": id_finca, "areas": areas})
+            FROM modulo9.dispositivos_iot d
+            LEFT JOIN modulo9.vw_rf21_dispositivo_area_actual va ON va.id_dispositivo_iot = d.id_dispositivo_iot
+            JOIN modulo9.infraestructuras i
+              ON i.id_infraestructura = COALESCE(va.id_infraestructura, d.id_infraestructura)
+            LEFT JOIN modulo3.estados_dispositivos_iot ed ON ed.id_dispositivo_iot = d.id_dispositivo_iot
+            WHERE i.id_finca = :f AND d.es_activo
+              AND (CAST(:areas AS int[]) IS NULL OR i.id_infraestructura = ANY(:areas))
+            ORDER BY d.id_dispositivo_iot, ed.fecha_ultimo_contacto DESC NULLS LAST"""),
+            {"f": id_finca, "areas": areas})
 
     def configuracion_pendiente(self, id_finca: int, areas: Optional[list[int]]) -> list[Fila]:
         """Lista los dispositivos con configuración pendiente."""

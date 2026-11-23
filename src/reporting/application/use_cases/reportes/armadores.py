@@ -4,6 +4,7 @@
 # | 2026-11-19 | Arekkazu | M08 RF-104 M8-08: indicadores de las plantillas y encabezado con la finca del animal |
 # | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: el portafolio del ejecutivo es el de la valoración NIC 41 del período |
 # | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+# | 2026-11-23 | Arekkazu | QA-M08 CU02 H-05 RF-104: ID del sensor en Telemetría e ID del dispositivo en Alertas de sensores |
 """Arma el contenido de cada reporte de RF-104 con los datos de la fuente (matriz de campos del Drive).
 
 Cada armador recibe el :class:`Contexto` (fuente en la instantánea, filtros ya validados, fincas del alcance) y
@@ -803,6 +804,7 @@ def telemetria(ctx: Contexto) -> ContenidoReporte:
                                   sensor=ctx.filtros.get("sensor_id"),
                                   patron_variable=patron_variable(variable.lower()) if variable else None)
     detalle = [{
+        "id_sensor": str(f["id_sensor"]),
         "sensor": f["sensor"] or f"Sensor {f['id_sensor']}", "variable": f["variable"] or SIN_REGISTRO,
         "valor": f["valor"], "unidad": f["unidad"] or SIN_REGISTRO, "fecha": f["timestamp_captura"],
         "estado": _DISPOSITIVO.get(f["estado"] or "", "Sin registro de estado"), "area": f["area"], "finca": f["finca"],
@@ -827,8 +829,9 @@ def telemetria(ctx: Contexto) -> ContenidoReporte:
             Columna("sensor", "Sensor"), Columna("variable", "Variable"), Columna("lecturas", "Lecturas", ENTERO),
             Columna("promedio", "Promedio", NUMERO), Columna("minimo", "Mínimo", NUMERO),
             Columna("maximo", "Máximo", NUMERO)], estadisticas)],
+        # QA M08 CU02 H-05: la matriz de REPORTE_TELEMETRIA pide el identificador del sensor.
         detalle=Tabla("Lecturas", [
-            Columna("sensor", "Sensor"), Columna("variable", "Variable"), Columna("valor", "Valor medido", NUMERO),
+            Columna("id_sensor", "ID sensor"), Columna("sensor", "Sensor"), Columna("variable", "Variable"), Columna("valor", "Valor medido", NUMERO),
             Columna("unidad", "Unidad"), Columna("fecha", "Fecha y hora de la medición", FECHA_HORA),
             Columna("estado", "Estado del dispositivo"), Columna("area", "Área"), Columna("finca", "Finca"),
         ], detalle),
@@ -946,7 +949,8 @@ def alertas_sensores(ctx: Contexto) -> ContenidoReporte:
                   else NO_APLICA)
         resuelta = f["estado"] in ("RESUELTA", "DESCARTADA", "VENCIDA")
         detalle.append({
-            "id": f["id_alerta"], "dispositivo": f["id_dispositivo_iot"] or NO_APLICA,
+            "id": f["id_alerta"],
+            "dispositivo": str(f["id_dispositivo_iot"]) if f["id_dispositivo_iot"] is not None else NO_APLICA,
             "serial": f["serial"] or SIN_REGISTRO, "tipo": _ALERTA[clase],
             "variable": legible(f["tipo_variable"]) if f["tipo_variable"] else SIN_REGISTRO,
             "valor": f["valor"] if f["valor"] is not None else NO_APLICA, "umbral": umbral, "fecha": f["fecha"],
@@ -980,7 +984,8 @@ def alertas_sensores(ctx: Contexto) -> ContenidoReporte:
                   [{"tipo": t, "severidad": s, "total": n} for (t, s), n in sorted(por_clase.items())]),
         ],
         detalle=Tabla("Alertas", [
-            Columna("id", "Alerta", ENTERO), Columna("serial", "Serial del dispositivo"), Columna("tipo", "Tipo de alerta"),
+            Columna("id", "Alerta", ENTERO), Columna("dispositivo", "ID dispositivo"),
+            Columna("serial", "Serial del dispositivo"), Columna("tipo", "Tipo de alerta"),
             Columna("variable", "Variable afectada"), Columna("valor", "Valor detectado", NUMERO),
             Columna("umbral", "Umbral configurado"), Columna("fecha", "Fecha de la alerta", FECHA_HORA),
             Columna("duracion", "Duración (minutos)", NUMERO), Columna("estado", "Estado"),

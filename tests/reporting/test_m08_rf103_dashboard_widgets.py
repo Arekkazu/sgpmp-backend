@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: opciones de widget, semáforo, alcance y fallo aislado    |
 # | 2026-11-21 | destroyerban | INC-M08-380-G002 RF-103: el valor del inventario recibe las fincas permitidas |
+# | 2026-11-23 | Arekkazu | QA-M08 CU01 H-04 RF-103: sin comunicación y total de calibrados |
 """RF-103 — widgets del dashboard: opciones configurables, regla del semáforo y datos por widget.
 
 Sin BD: el caso de uso se prueba con repositorios falsos; las consultas SQL tienen su propia prueba
@@ -398,3 +399,38 @@ def test_celda_sin_opciones_no_escribe_la_clave_en_el_json():
     celda = _celda(16)
     assert "parametros" not in celda.to_dict()
     assert WidgetConfig.from_dict(celda.to_dict()).parametros == {}
+
+
+# ── QA M08 ronda 3 (CU01 H-04): dispositivos sin comunicación y calibraciones ────────────────
+
+def test_sin_comunicacion_lista_todo_dispositivo_sin_heartbeat_y_calibraciones_cuenta_los_calibrados():
+    from datetime import timedelta
+
+    ahora = datetime.now(timezone.utc)
+    hace = lambda **kw: ahora - timedelta(**kw)  # noqa: E731
+    dispositivos = [
+        {"id_dispositivo_iot": 1, "estado": "SIN_SEÑAL", "fecha_ultimo_contacto": hace(hours=3), "ultima_calibracion": None},
+        # Guarda los datos en su buffer: lleva 28 días sin heartbeat (el caso de QA).
+        {"id_dispositivo_iot": 2, "estado": "BUFFER_ACTIVO", "fecha_ultimo_contacto": hace(days=28),
+         "ultima_calibracion": hace(days=5)},
+        # Su estado no ha cambiado todavía, pero lleva dos días callado.
+        {"id_dispositivo_iot": 3, "estado": "ACTIVO", "fecha_ultimo_contacto": hace(days=2), "ultima_calibracion": None},
+        {"id_dispositivo_iot": 4, "estado": "DESCONOCIDO", "fecha_ultimo_contacto": None, "ultima_calibracion": None},
+        {"id_dispositivo_iot": 5, "estado": "ACTIVO", "fecha_ultimo_contacto": hace(minutes=2),
+         "ultima_calibracion": hace(days=1)},
+        {"id_dispositivo_iot": 6, "estado": "EN_MANTENIMIENTO", "fecha_ultimo_contacto": hace(days=40),
+         "ultima_calibracion": None},
+    ]
+
+    class Datos(DatosFake):
+        def dispositivos(self, id_finca, areas):
+            return [dict(d) for d in dispositivos]
+
+    uc = _use_case(datos=Datos())
+    sin_senal = uc._sin_senal(3, {"areas": []})
+    assert sorted(d["id_dispositivo_iot"] for d in sin_senal.datos["items"]) == [1, 2, 3, 4]
+    assert sin_senal.datos["total"] == 4
+
+    calibraciones = uc._calibraciones(3, {"areas": []})
+    assert [d["id_dispositivo_iot"] for d in calibraciones.datos["items"]] == [5, 2]
+    assert calibraciones.datos["total"] == 2

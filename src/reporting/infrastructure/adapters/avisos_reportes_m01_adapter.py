@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: auditoría de reportes y aviso de los generados en fondo |
 # | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+# | 2026-11-23 | Arekkazu | QA-M08 CU02 H-02 RF-104: la descripción del evento dice formato, filtros y checksum |
 """Adaptador de :class:`AvisosReportesPort` sobre M01, mismo patrón que los avisos de M05 y M06.
 
 Cada generación deja un evento en ``modulo1.eventos`` (hash de integridad) con tipo, filtros, formato, momento de
@@ -24,7 +25,20 @@ from src.reporting.domain.reportes.solicitud import GENERADO, SolicitudReporte
 logger = logging.getLogger(__name__)
 
 _ID_CANAL_INTERNO = 2
+_FORMATOS = {"PDF": "PDF", "EXCEL": "Excel"}
 _SQL_TIPO = text("SELECT id_tipo_evento FROM modulo1.tipos_eventos WHERE nombre = :n")
+
+
+def descripcion_evento(titulo: str, detalle: dict) -> str:
+    """Lo que la auditoría muestra del evento (CA-15): reporte, formato, filtros elegidos y checksum del archivo."""
+    partes = [f"Reporte {titulo}"]
+    if detalle.get("formato") in _FORMATOS:
+        partes[0] += f" en {_FORMATOS[detalle['formato']]}"
+    if "filtros_legibles" in detalle:
+        partes.append("Filtros: " + ("; ".join(detalle["filtros_legibles"]) or "ninguno, todos los registros"))
+    if detalle.get("checksum"):
+        partes.append(f"Checksum SHA-256: {detalle['checksum']}")
+    return ". ".join(partes) + "."
 
 
 class AvisosReportesM01Adapter(AvisosReportesPort):
@@ -51,7 +65,7 @@ class AvisosReportesM01Adapter(AvisosReportesPort):
                 return
             id_evento = SqlAlchemyEventoRepository(db).registrar(
                 tipo_evento=id_tipo, exitoso=generado, id_usuario=solicitud.id_usuario, detalle=detalle,
-                descripcion=f"Reporte {titulo}"[:255], modulo="MODULO8")
+                descripcion=descripcion_evento(titulo, detalle), modulo="MODULO8")
             if notificar:
                 SqlAlchemyNotificacionRepository(db).registrar(
                     id_evento=id_evento, id_usuario=solicitud.id_usuario, id_canal=_ID_CANAL_INTERNO, mensaje=mensaje,
