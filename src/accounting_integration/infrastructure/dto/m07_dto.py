@@ -62,7 +62,7 @@ class RegistrarClienteDTO(_ConfiguracionClienteDTO):
                                        description="client_id que el cliente presenta al pedir el token.")
     fecha_vencimiento: date = Field(description="Último día de validez de la credencial.")
     client_secret: Optional[str] = Field(None, description=(
-        "Secreto ya existente del cliente (16 a 72 caracteres). Si se omite, el sistema genera uno y lo muestra una vez."))
+        "Secreto ya existente del cliente (43 a 72 caracteres). Si se omite, el sistema genera uno y lo muestra una vez."))
 
 
 class EditarClienteDTO(_ConfiguracionClienteDTO):

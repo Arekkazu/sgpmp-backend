@@ -28,6 +28,8 @@ _REFERENCIAS = (FINCA, ESPECIE, ACTIVO, LOTE, INFRAESTRUCTURA, SENSOR, PERIODO)
 
 # Hasta 1.000 registros se genera al momento; por encima, en segundo plano (RF-104 Fase 3).
 LIMITE_SINCRONO = 1000
+# La telemetría crece ~10.000 lecturas por sensor al mes y el reporte se arma en memoria: un mes por reporte.
+MAX_DIAS_TELEMETRIA = 31
 FILAS_VISTA_PREVIA = 20
 
 
@@ -196,6 +198,9 @@ def validar_filtros(definicion: DefinicionReporte, crudos: Optional[dict[str, An
     inicio, fin = limpios.get("fecha_inicio"), limpios.get("fecha_fin")
     if inicio and fin and inicio > fin:
         raise _invalido("fecha_inicio", "La fecha de inicio no puede ser posterior a la fecha de fin.")
+    if definicion.tipo == "REPORTE_TELEMETRIA" and inicio and fin and (fin - inicio).days > MAX_DIAS_TELEMETRIA:
+        raise _invalido("fecha_inicio", f"El reporte de telemetría cubre como máximo {MAX_DIAS_TELEMETRIA} días. "
+                                        "Divida el rango en varios reportes.")
     for nombre in ("fecha_fin", "fecha_corte"):
         if limpios.get(nombre) and limpios[nombre] > hoy:
             raise _invalido(nombre, f"«{ETIQUETAS[nombre]}» no puede ser una fecha futura.")

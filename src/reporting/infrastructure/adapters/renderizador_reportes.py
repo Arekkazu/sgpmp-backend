@@ -42,6 +42,7 @@ from src.reporting.domain.reportes.contenido import (
     Tabla,
 )
 from src.reporting.domain.reportes.solicitud import EXCEL, PDF
+from src.shared.celdas_seguras import proteger_libro
 from src.shared.fechas import en_zona_usuario, etiqueta_zona
 from src.shared.pdf_etiquetado import ArbolEtiquetas, artefacto, etiquetado
 from src.shared.pdfa import FUENTE, FUENTE_NEGRITA, registrar_fuentes
@@ -587,5 +588,6 @@ def _excel(contenido: ContenidoReporte) -> bytes:
         hoja.freeze_panes = "A2"
         _anchos(hoja)
     salida = io.BytesIO()
+    proteger_libro(libro)  # el texto de los datos se guarda como texto, nunca como fórmula
     libro.save(salida)
     return salida.getvalue()

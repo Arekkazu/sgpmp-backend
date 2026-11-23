@@ -6,7 +6,8 @@
 
 Se guarda solo el hash bcrypt (con sal, no reversible) y se compara con ``bcrypt.checkpw``, que no
 corta en el primer byte distinto. Un secreto provisto (para migrar el que AgroFusion ya usa) debe
-tener al menos 16 caracteres; uno generado tiene 256 bits."""
+tener al menos 43 caracteres, lo mismo que uno generado de 256 bits (RNF-101.1). La regla
+solo aplica al registrar o rotar: los hashes ya guardados se siguen verificando igual."""
 from __future__ import annotations
 
 import secrets
@@ -15,7 +16,7 @@ import bcrypt
 
 from src.shared.errors import ValidationError
 
-LONGITUD_MINIMA = 16
+LONGITUD_MINIMA = 43  # = len(secrets.token_urlsafe(32)): 256 bits en base64url
 _LONGITUD_MAXIMA = 72  # bcrypt ignora lo que pase de 72 bytes
 
 

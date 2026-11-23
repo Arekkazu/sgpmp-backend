@@ -46,7 +46,7 @@ from tests.integration.test_m06_flujo_nic41_integration import (  # noqa: F401  
 
 pytestmark = pytest.mark.integration
 
-SECRETO = "secreto-de-prueba-agrofusion-0001"
+SECRETO = "secreto-de-prueba-agrofusion-0001-con-43-caracteres"
 URL = f"/integracion/aaef/productores/{NIT}"
 
 
