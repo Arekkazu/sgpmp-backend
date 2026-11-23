@@ -1,3 +1,12 @@
+## [1.4.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.4...v1.4.5) (2026-11-23)
+
+### Bug Fixes
+
+* **rf103-mod8:** semaforo solo con alertas de lectura y prediccion, y todos los dispositivos de la finca en sin comunicacion (QA M08 CU01 H-02, H-04) ([061f1d2](https://github.com/Arekkazu/sgpmp-backend/commit/061f1d27331442864122f3c215c93b550fad40d3))
+* **rf104-mod8:** auditoria con filtros y checksum, tablas anchas en bloques sin partir palabras e ids de sensor y dispositivo (QA M08 CU02 H-02, H-04, H-05) ([38053d1](https://github.com/Arekkazu/sgpmp-backend/commit/38053d144c5f9aea19fe946769022de254ee314f))
+* **rf104-mod8:** el administrador solo genera los reportes de gerencia (QA M08 CU02 H-01, H-06) ([5836a15](https://github.com/Arekkazu/sgpmp-backend/commit/5836a154f3e0245614f5b618bb88e1067b40f282))
+* **rf107-mod8:** la prevalidacion del cierre dice cuantos activos revaluara (INC-M08-393-G028) ([3fc3328](https://github.com/Arekkazu/sgpmp-backend/commit/3fc33284bd450c9faac61624766fea7bc2b18449))
+
 ## [1.4.5-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.4...v1.4.5-rc.1) (2026-11-23)
 
 ### Bug Fixes
