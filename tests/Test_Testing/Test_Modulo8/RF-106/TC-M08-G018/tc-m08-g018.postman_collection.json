@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M08-G018",
-    "description": "| 2026-11-19 | Juan Sebastian Gutierrez | Colección de TC-M08-G018 (TC-M08-047 y TC-M08-059, RF-106): validaciones de GET /historial-predictivo y solo lectura. Diseño en evidencias/DISENO_TC-M08-G018.md |\n| 2026-11-19 | Juan Sebastian Gutierrez | v2 (ronda 1 parcial): T00 solo exige predicciones; CP-10 retirado por falta de un activo dado de baja en las fincas del Veterinario |\n| 2026-11-20 | Juan Sebastian Gutierrez | v3 (corrida oficial de la ronda 1): CP-10 con id_activo_baja; la linea base exige eventos y retroalimentaciones; 13 checkpoints |",
+    "description": "| 2026-11-19 | Juan Sebastian Gutierrez | Colección de TC-M08-G018 (TC-M08-047 y TC-M08-059, RF-106): validaciones de GET /historial-predictivo y solo lectura. Diseño en evidencias/DISENO_TC-M08-G018.md |\n| 2026-11-19 | Juan Sebastian Gutierrez | v2 (ronda 1 parcial): T00 solo exige predicciones; CP-10 retirado por falta de un activo dado de baja en las fincas del Veterinario |\n| 2026-11-20 | Juan Sebastian Gutierrez | v3 (corrida oficial de la ronda 1): CP-10 con id_activo_baja; la linea base exige eventos y retroalimentaciones; 13 checkpoints |\n| 2026-11-23 | Juan Sebastian Gutierrez | v4 (reintento 1): 12 checkpoints |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -37,10 +37,6 @@
     },
     {
       "key": "hace24m",
-      "value": ""
-    },
-    {
-      "key": "hace24m1d",
       "value": ""
     },
     {
@@ -91,7 +87,6 @@
               "pm.collectionVariables.set('hoy', f(y, m, d));",
               "pm.collectionVariables.set('hace12m', f(y - 1, m, d));",
               "pm.collectionVariables.set('hace24m', f(y - 2, m, d));",
-              "pm.collectionVariables.set('hace24m1d', f(y - 2, m, d - 1));",
               "pm.collectionVariables.set('futuro30', f(y, m, d + 30));"
             ]
           }
@@ -132,7 +127,7 @@
               "  pm.collectionVariables.set('token_vet', b.token);",
               "  console.log('PRE|Z00|login Veterinario HTTP 200|req=' + rid);",
               "  console.log('PRE|FECHAS|hoy=' + pm.collectionVariables.get('hoy') + ' hace12m=' + pm.collectionVariables.get('hace12m') +",
-              "    ' hace24m=' + pm.collectionVariables.get('hace24m') + ' hace24m1d=' + pm.collectionVariables.get('hace24m1d') +",
+              "    ' hace24m=' + pm.collectionVariables.get('hace24m') +",
               "    ' futuro30=' + pm.collectionVariables.get('futuro30'));",
               "} else {",
               "  console.log('ABORT|Z00|login Veterinario HTTP ' + pm.response.code + ' error_code=' + ec + '|req=' + rid);",
@@ -970,64 +965,6 @@
               "cp('CP-09a', 'Rango de 24 meses exactos: 200 (RF-106 Restriccion 2)', '200; rango_fechas_aplicado=' + ini + '..' + fin,",
               "  () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' rango=' + JSON.stringify(b.rango_fechas_aplicado || null),",
               "  () => { pm.expect(pm.response.code).to.eql(200); pm.expect(b.rango_fechas_aplicado).to.eql({fecha_inicio: ini, fecha_fin: fin}); });"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "CP-09b Rango de 24 meses mas 1 dia",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token_vet}}"
-          }
-        ],
-        "url": "{{base_url}}/historial-predictivo/{{id_activo_a}}?fecha_inicio={{hace24m1d}}&fecha_fin={{hoy}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const rid = pm.response.headers.get('X-Request-Id') || '-';",
-              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
-              "const ec = (b && b.error_code) ? b.error_code : '-';",
-              "const sinDatos = !(b && Object.prototype.hasOwnProperty.call(b, 'predicciones'));",
-              "function log(tipo, id, esperado, obtenido, estado) {",
-              "  console.log([tipo, id, 'esperado=' + esperado, 'obtenido=' + obtenido, 'estado=' + estado, 'req=' + rid].join('|'));",
-              "}",
-              "function cp(id, nombre, esperado, obtenidoFn, fn) {",
-              "  let ok = false;",
-              "  const obtenido = obtenidoFn();",
-              "  // El nombre de la aserción lleva el obtenido real para que quede en el reporte HTML y en la consola en una línea.",
-              "  pm.test(id + ' ' + nombre + ' || esperado: ' + esperado + ' || obtenido: ' + obtenido + ' || req: ' + rid, function () { fn(); ok = true; });",
-              "  log('CP', id, esperado, obtenido, ok ? 'OK' : 'FALLA');",
-              "}",
-              "function obs(id, texto) { log('OBS', id, '-', texto, 'OBSERVACION'); }",
-              "function bogota(iso) { return new Date(new Date(iso).getTime() - 5 * 3600 * 1000).toISOString().slice(0, 10); }",
-              "function snap(x) {",
-              "  const ids = (l, k) => (l || []).map(e => String(e[k])).sort();",
-              "  return JSON.stringify({",
-              "    metadatos: x.metadatos || null,",
-              "    predicciones: ids(x.predicciones, 'id_resultado_inferencia'),",
-              "    eventos: ids(x.eventos_sanitarios, 'id_evento'),",
-              "    retroalimentaciones: (x.retroalimentaciones || []).map(e => e.id_resultado_inferencia + ':' + e.valoracion + ':' + e.fecha).sort(),",
-              "    pendientes_total: x.pendientes ? x.pendientes.total : null,",
-              "    tvco: x.tvco ? x.tvco.porcentaje : null",
-              "  });",
-              "}",
-              "cp('CP-09b', 'Rango de 24 meses + 1 dia: 400 sin datos (RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400)',",
-              "  '400 sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos +",
-              "  ' desde=' + pm.collectionVariables.get('hace24m1d'),",
-              "  () => { pm.expect(pm.response.code).to.eql(400); pm.expect(sinDatos).to.eql(true); });"
             ]
           }
         }

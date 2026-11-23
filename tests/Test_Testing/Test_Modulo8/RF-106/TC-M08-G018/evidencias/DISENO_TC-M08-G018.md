@@ -185,3 +185,37 @@ Siguiente paso: correr la sonda con `-IdActivoA 2563 -CuentaVet M08` y decidir e
 - SHA-256 v3: colección `70EBD36243B756A406C8C67C2C6A4A9A5A1AD51CC43DFAE784DAFA27721DF0B4`; runner `F733E08BA19B51C646B4B19DE1AF07C580BF2D7FC1060967697275E828034917`; `gen_coleccion.py` `6227E708DE47430881C132AC169929BA4E1C692A29FF7B3926A586CB2D2C158D`; `mock_api.py` `AA17CA115388201106B3874EA88B8609B6162ADA5FEDC2C92B18C642ED62F222`.
 - Comando de la corrida oficial: `.\ejecutar_tc_m08_g018.ps1 -IdActivoA 885 -CuentaVet TEST -IdActivoOtraFinca 2556 -IdActivoBaja 2946 -Reintento 0`. Resultado previsto: 13 checkpoints, 12 OK y CP-09b FALLA (exit 1).
 - La nota «Siguiente paso» de la versión 2.1 (sonda con 2563) queda superada por esta versión.
+
+
+## Reintento 1 (2026-11-23, INC-M08-386-G018)
+
+| Fecha | Autor | Qué se hizo |
+|---|---|---|
+| 2026-11-23 | Juan Sebastian Gutierrez | Fase 1 y 2 del reintento 1: colección v4 (12 checkpoints), runner v4 con el JSON propio generado en la corrida, prueba de la herramienta en `prueba_herramienta_reintento1/` |
+
+**Respaldo de la ronda 1:** `fuentes_generador/ronda1/*.txt` (colección `70EBD362…`, runner `F733E08B…`, generador `6227E708…`, mock `AA17CA11…`, conversor `B8426783…`, DISENO `BF37BA0C…`) y `$HOME/respaldo_g018_ronda1/` de la VM.
+
+**Backend observado:** `test-JuanSG` HEAD `bf3e5aeb`. Desde `135bc318` (ronda 1), en el caso de uso, el router y `historial_predictivo.py` solo cambiaron comentarios y el cálculo de pendientes (`f27e4bb4`, INC-M08-396-G022), que no afecta a estos checkpoints (CP-11 compara la línea base y el final de la misma corrida).
+
+**Checkpoints del reintento 1 (12):** CP-01, CP-02, CP-04, CP-05, CP-06a, CP-06b, CP-07a, CP-07b, CP-08, CP-09a, CP-10 y CP-11, con el mismo esperado, fuente y aserción de la ronda 1.
+
+**Colección v4:** generada con `fuentes_generador/gen_coleccion.py` v4 (CRLF, como la v3). El generador v3 reproduce byte a byte la colección de la ronda 1 (`70EBD362…`).
+
+**Runner v4:**
+- lista explícita de los 12 ids; si los ids de la consola no coinciden, la corrida es inválida (3);
+- el JSON propio lo genera `convertir_json_g018.mjs` (Node, en la carpeta del caso) dentro de la corrida, antes del resumen y del escaneo, con la misma forma que `convertir_json_g018.py` de la ronda 1; si no se genera, la corrida es inválida (3);
+- no corre si `resultados\` ya tiene el JSON del reintento; el SHA del conversor va en el resumen.
+- El SHA de origen del JSON cubre trazas, checkpoints y HTML (el resumen se reescribe después del escaneo).
+
+**Prueba de la herramienta** (contenedor: Newman 6.2.3 + htmlextra contra `mock_api.py` de la ronda 1; el parseo de la consola del `.ps1` se emuló con las mismas expresiones en `emular_runner.py.txt`, porque no hay PowerShell):
+
+| Corrida | Resultado | Previsto |
+|---|---|---|
+| `normal_1` a `normal_3` (mock `completo`) | 12/12 OK, cierre 200 «Rollback exitoso», JSON generado; idénticas salvo X-Request-Id | Sí |
+| `control_vacio`, `control_sin_valoraciones` | ABORT en T00, sin checkpoints → corrida inválida (3) | Sí |
+| `control_baja_200` | 11/12, FALLA CP-10 | Sí |
+| `control_cambia` | 11/12, FALLA CP-11 | Sí |
+| `control_ids_faltantes` (sin CP-10 en trazas y checkpoints) | conversor exit 3 «CHECKPOINTS DISTINTOS DEL DISENO», sin JSON | Sí |
+| `control_traza_incoherente` (CP-05 en FALLA solo en trazas) | conversor exit 3 «INCOHERENTE», sin JSON | Sí |
+
+El `.ps1` no se ejecutó (no hay PowerShell en el contenedor ni en la VM): el agente lo valida con `ParseFile` antes de correrlo. ASCII, CRLF y sin BOM verificados.

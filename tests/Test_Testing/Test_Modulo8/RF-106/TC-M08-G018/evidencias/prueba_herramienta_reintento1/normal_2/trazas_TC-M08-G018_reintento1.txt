@@ -1,0 +1,31 @@
+PRE|Z00|login Veterinario HTTP 200|req=1b79fcec-2115-4e08-aabc-be5818fd55c9
+PRE|FECHAS|hoy=2026-11-23 hace12m=2025-11-23 hace24m=2024-11-23 futuro30=2026-12-23
+PRE|Z01|id_usuario=97 nombre_rol=Veterinario|req=87d3555d-a8ef-473c-b669-23a1f17af875
+PRE|T00|HTTP 200 predicciones=7 eventos=3 retroalimentaciones=4 pendientes=3 tvco=25 estado=ACTIVO|req=d0671762-c401-48b8-8d83-66f957e7ba3e
+OBS|OBS-NOMBRES|esperado=-|obtenido=claves=activo,correspondencias,eventos_sanitarios,fuentes_no_disponibles,grupos,mensaje,metadatos,modo_visualizacion,pendientes,predicciones,rango_fechas_aplicado,retroalimentaciones,tvco,ventana_correspondencia_horas filtros_aplicados=false activo_seleccionado=false tvco_tipo=object metadatos=total_conflictos,total_eventos_sanitarios,total_inferencias,total_pendientes,total_retroalimentaciones tvco_claves=excluidas_sin_retroalimentacion,porcentaje,tasa_error,texto,tvco_denominador,tvco_excluidas_conflicto|estado=OBSERVACION|req=d0671762-c401-48b8-8d83-66f957e7ba3e
+OBS|OBS-VENTANA|esperado=-|obtenido=ventana_correspondencia_horas=12|estado=OBSERVACION|req=d0671762-c401-48b8-8d83-66f957e7ba3e
+OBS|OBS-DATOS|esperado=-|obtenido=eventos_sanitarios=3 retroalimentaciones=4 (linea base completa: CP-11 compara predicciones, eventos y retroalimentaciones)|estado=OBSERVACION|req=d0671762-c401-48b8-8d83-66f957e7ba3e
+OBS|OBS-TIMESTAMP|esperado=-|obtenido=primera prediccion fecha=2026-10-20T22:06:22+00:00|estado=OBSERVACION|req=d0671762-c401-48b8-8d83-66f957e7ba3e
+OBS|OBS-FUENTES|esperado=-|obtenido=fuentes_no_disponibles=[]|estado=OBSERVACION|req=d0671762-c401-48b8-8d83-66f957e7ba3e
+OBS|OBS-AUD-T00|esperado=-|obtenido=HTTP 200 total=12 primer_id_evento=aaaa-1|estado=OBSERVACION|req=6b7a597e-df6e-4018-9b14-3f3c1dc4ac07
+CP|CP-01|esperado=200; rango_fechas_aplicado=2025-11-23..2026-11-23; >=1 prediccion y todas dentro del rango|obtenido=HTTP 200 rango={"fecha_inicio":"2025-11-23","fecha_fin":"2026-11-23"} predicciones=7 fuera_de_rango=0 total_inferencias=7|estado=OK|req=bf27937b-0399-40c9-bb69-1c2ebcb36394
+CP|CP-02|esperado=400 sin datos|obtenido=HTTP 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|req=a98caad1-d734-4996-b670-e5504aabc375
+OBS|OBS-TEXTO-CP02|esperado=-|obtenido=message=x|estado=OBSERVACION|req=a98caad1-d734-4996-b670-e5504aabc375
+OBS|OBS-03|esperado=-|obtenido=fecha_fin=hoy+30: HTTP 200 error_code=- rango={"fecha_inicio":"2025-11-23","fecha_fin":"2026-12-23"} (RF-106 no define fechas futuras; RF-67 Integridad temporal es de otro endpoint)|estado=OBSERVACION|req=4b33b3b2-ff88-482f-be3e-4b69a1ef3848
+CP|CP-04|esperado=200; rango_fechas_aplicado=2025-11-23..2026-11-23|obtenido=HTTP 200 rango={"fecha_inicio":"2025-11-23","fecha_fin":"2026-11-23"}|estado=OK|req=c5fed3b1-21fb-4b49-a29f-deaffd78ca97
+CP|CP-05|esperado=404 sin datos|obtenido=HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true|estado=OK|req=4dba4300-7ce2-40fe-83f7-26233a5409d7
+OBS|OBS-TEXTO-CP05|esperado=-|obtenido=message=x|estado=OBSERVACION|req=4dba4300-7ce2-40fe-83f7-26233a5409d7
+CP|CP-06a|esperado=400 o 422 sin datos|obtenido=HTTP 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|req=ceec0b63-5fbe-4c32-9cbb-b79345272dbc
+CP|CP-06b|esperado=400, 404 o 422 sin datos|obtenido=HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true|estado=OK|req=5d278622-a772-4ec4-8552-f43d555bf2ff
+CP|CP-07a|esperado=400 o 422 sin datos|obtenido=HTTP 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|req=4dac36e5-03de-49dd-8b2f-ce10930fead1
+CP|CP-07b|esperado=400 o 422 sin datos|obtenido=HTTP 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|req=1ee60c05-58fe-4347-a504-19c29ed683f2
+CP|CP-08|esperado=403 sin datos|obtenido=HTTP 403 error_code=FINCA_NO_AUTORIZADA sin_datos=true|estado=OK|req=a0ebb9b3-6c82-42de-b544-6b171bf92faf
+OBS|OBS-TEXTO-CP08|esperado=-|obtenido=message=x|estado=OBSERVACION|req=a0ebb9b3-6c82-42de-b544-6b171bf92faf
+CP|CP-09a|esperado=200; rango_fechas_aplicado=2024-11-23..2026-11-23|obtenido=HTTP 200 error_code=- rango={"fecha_inicio":"2024-11-23","fecha_fin":"2026-11-23"}|estado=OK|req=db86ef44-b6a1-40c4-9039-6ba329ee80ed
+CP|CP-10|esperado=422 ACTIVO_NO_VIGENTE sin datos|obtenido=HTTP 422 error_code=ACTIVO_NO_VIGENTE sin_datos=true|estado=OK|req=3a9cff18-2a14-4dbf-aced-3fe2ba064590
+OBS|OBS-TEXTO-CP10|esperado=-|obtenido=message=El historial predictivo solo se muestra para animales activos o en tratamiento.|estado=OBSERVACION|req=3a9cff18-2a14-4dbf-aced-3fe2ba064590
+OBS|OBS-P-LOGIN|esperado=-|obtenido=login Productor HTTP 200|estado=OBSERVACION|req=82d623df-43a0-4430-a2ca-66546193fa03
+OBS|OBS-P|esperado=-|obtenido=Productor (TC-M08-048, observacion por API): HTTP 403 error_code=PERMISO_DENEGADO con_probabilidades=false (esperado por RF-106 Restriccion 1 y CA-6: 403)|estado=OBSERVACION|req=8c6be093-adfa-420d-b868-4a0f1604a2c9
+CP|CP-11|esperado=HTTP 200 y mismo contenido que T00 (linea base con >=1 prediccion, >=1 evento y >=1 retroalimentacion)|obtenido=HTTP 200 iguales=true final={"metadatos":{"total_inferencias":7,"total_eventos_sanitarios":3,"total_retroalimentaciones":4,"total_pendientes":3,"total_conflictos":0},"predicciones":["p1","p2","p3","p4","p5","p6","p7"],"eventos":["2684","2685","2686"],"retroalimentaciones":["p1:CORRECTO:2026-11-20T15:08:00+00:00","p2:INCORRECTO:2026-11-20T15:08:00+00:00","p3:PARCIAL:2026-11-20T15:08:00+00:00","p4:SIN_EVENTO:2026-11-20T15:08:00+00:00"],"pendientes_total":3,"tvco":25}|estado=OK|req=bef16b7f-7311-40df-b2d4-6aa033493834
+OBS|OBS-AUD-T99|esperado=-|obtenido=antes=200|12|aaaa-1 despues=200|12|aaaa-1 (RF-106 no exige auditar la consulta; RF-67 paso 7 es de otro endpoint)|estado=OBSERVACION|req=cfb16856-c993-4f1e-bd75-feddba59285f
+CIERRE|200|Rollback exitoso|req=06a7eba6-cd2f-4fb9-ae49-678b1b7d92e3

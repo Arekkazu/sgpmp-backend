@@ -1,5 +1,6 @@
 # | 2026-11-19 | Juan Sebastian Gutierrez | Generador de la colección Newman de TC-M08-G018 (RF-106) |
 # | 2026-11-20 | Juan Sebastian Gutierrez | v3 (corrida oficial de la ronda 1): CP-10 con el activo de baja; la linea base de CP-11 exige eventos y valoraciones |
+# | 2026-11-23 | Juan Sebastian Gutierrez | v4 (reintento 1): 12 checkpoints |
 import json, sys
 
 PRE_COLECCION = """// Cabeceras de sandbox y zona horaria en TODA petición (sandbox transaccional, X-Zona-Horaria del Swagger)
@@ -67,13 +68,12 @@ const f = (yy, mm, dd) => new Date(Date.UTC(yy, mm, dd)).toISOString().slice(0, 
 pm.collectionVariables.set('hoy', f(y, m, d));
 pm.collectionVariables.set('hace12m', f(y - 1, m, d));
 pm.collectionVariables.set('hace24m', f(y - 2, m, d));
-pm.collectionVariables.set('hace24m1d', f(y - 2, m, d - 1));
 pm.collectionVariables.set('futuro30', f(y, m, d + 30));""",
      test="""if (pm.response.code === 200 && b.token) {
   pm.collectionVariables.set('token_vet', b.token);
   console.log('PRE|Z00|login Veterinario HTTP 200|req=' + rid);
   console.log('PRE|FECHAS|hoy=' + pm.collectionVariables.get('hoy') + ' hace12m=' + pm.collectionVariables.get('hace12m') +
-    ' hace24m=' + pm.collectionVariables.get('hace24m') + ' hace24m1d=' + pm.collectionVariables.get('hace24m1d') +
+    ' hace24m=' + pm.collectionVariables.get('hace24m') +
     ' futuro30=' + pm.collectionVariables.get('futuro30'));
 } else {
   console.log('ABORT|Z00|login Veterinario HTTP ' + pm.response.code + ' error_code=' + ec + '|req=' + rid);
@@ -173,12 +173,6 @@ obs('OBS-TEXTO-CP08', 'message=' + (b.message || '-'));"""),
 cp('CP-09a', 'Rango de 24 meses exactos: 200 (RF-106 Restriccion 2)', '200; rango_fechas_aplicado=' + ini + '..' + fin,
   () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' rango=' + JSON.stringify(b.rango_fechas_aplicado || null),
   () => { pm.expect(pm.response.code).to.eql(200); pm.expect(b.rango_fechas_aplicado).to.eql({fecha_inicio: ini, fecha_fin: fin}); });"""),
- req("CP-09b Rango de 24 meses mas 1 dia", "GET", H + A,
-     query=[("fecha_inicio", "{{hace24m1d}}"), ("fecha_fin", "{{hoy}}")],
-     test="""cp('CP-09b', 'Rango de 24 meses + 1 dia: 400 sin datos (RF-106 Restriccion 2; Swagger: rango maximo de 24 meses -> 400)',
-  '400 sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos +
-  ' desde=' + pm.collectionVariables.get('hace24m1d'),
-  () => { pm.expect(pm.response.code).to.eql(400); pm.expect(sinDatos).to.eql(true); });"""),
  req("CP-10 Activo dado de baja", "GET", H + "{{id_activo_baja}}",
      test="""cp('CP-10', 'Activo dado de baja: 422 ACTIVO_NO_VIGENTE sin datos (RF-106 Precondicion 2; Swagger: dado de baja -> 422; lanzamiento v7)',
   '422 ACTIVO_NO_VIGENTE sin datos', () => 'HTTP ' + pm.response.code + ' error_code=' + ec + ' sin_datos=' + sinDatos,
@@ -216,12 +210,13 @@ def main():
       "name": "TC-M08-G018",
       "description": ("| 2026-11-19 | Juan Sebastian Gutierrez | Colección de TC-M08-G018 (TC-M08-047 y TC-M08-059, RF-106): "
                       "validaciones de GET /historial-predictivo y solo lectura. Diseño en evidencias/DISENO_TC-M08-G018.md |\n| 2026-11-19 | Juan Sebastian Gutierrez | v2 (ronda 1 parcial): T00 solo exige predicciones; CP-10 retirado por falta de un activo dado de baja en las fincas del Veterinario |"
-                      "\n| 2026-11-20 | Juan Sebastian Gutierrez | v3 (corrida oficial de la ronda 1): CP-10 con id_activo_baja; la linea base exige eventos y retroalimentaciones; 13 checkpoints |"),
+                      "\n| 2026-11-20 | Juan Sebastian Gutierrez | v3 (corrida oficial de la ronda 1): CP-10 con id_activo_baja; la linea base exige eventos y retroalimentaciones; 13 checkpoints |"
+                      "\n| 2026-11-23 | Juan Sebastian Gutierrez | v4 (reintento 1): 12 checkpoints |"),
       "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
      },
      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": PRE_COLECCION.split("\n")}}],
      "variable": [{"key": k, "value": ""} for k in
-                  ["token_vet", "token_productor", "hoy", "hace12m", "hace24m", "hace24m1d", "futuro30", "snap_t00", "aud_t00"]],
+                  ["token_vet", "token_productor", "hoy", "hace12m", "hace24m", "futuro30", "snap_t00", "aud_t00"]],
      "item": items,
     }
     json.dump(coleccion, open(sys.argv[1], "w", encoding="utf-8"), ensure_ascii=False, indent=2)

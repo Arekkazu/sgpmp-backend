@@ -1,0 +1,263 @@
+newman
+
+TC-M08-G018
+
+Root Z00 Login Veterinario
+  POST http://127.0.0.1:18813/sesiones/ [200 OK, 254B, 15ms]
+  -
+  | 'PRE|Z00|login Veterinario HTTP 200|req=828dfcd9-d104-
+  | 4258-bd24-656474591da4'
+  | 'PRE|FECHAS|hoy=2026-11-23 hace12m=2025-11-23 hace24m=
+  | 2024-11-23 futuro30=2026-12-23'
+  -
+
+Root Z01 Perfil Veterinario
+  GET http://127.0.0.1:18813/usuarios/me [200 OK, 258B, 2ms]
+  -
+  | 'PRE|Z01|id_usuario=97 nombre_rol=Veterinario|req=aaf8
+  | aa56-4b7a-4bdf-9ebf-a18e7e07b5e3'
+  -
+
+Root T00 Linea base historial
+  GET http://127.0.0.1:18813/historial-predictivo/885 [200 OK, 2.38kB, 2ms]
+  -
+  | 'PRE|T00|HTTP 200 predicciones=7 eventos=3 retroalimen
+  | taciones=4 pendientes=3 tvco=25 estado=ACTIVO|req=2e4a
+  | 0f14-67d6-4d1c-a5ae-0ca3b50ae593'
+  | 'OBS|OBS-NOMBRES|esperado=-|obtenido=claves=activo,cor
+  | respondencias,eventos_sanitarios,fuentes_no_disponible
+  | s,grupos,mensaje,metadatos,modo_visualizacion,pendient
+  | es,predicciones,rango_fechas_aplicado,retroalimentacio
+  | nes,tvco,ventana_correspondencia_horas filtros_aplicad
+  | os=false activo_seleccionado=false tvco_tipo=object me
+  | tadatos=total_conflictos,total_eventos_sanitarios,tota
+  | l_inferencias,total_pendientes,total_retroalimentacion
+  | es tvco_claves=excluidas_sin_retroalimentacion,porcent
+  | aje,tasa_error,texto,tvco_denominador,tvco_excluidas_c
+  | onflicto|estado=OBSERVACION|req=2e4a0f14-67d6-4d1c-a5a
+  | e-0ca3b50ae593'
+  | 'OBS|OBS-VENTANA|esperado=-|obtenido=ventana_correspon
+  | dencia_horas=12|estado=OBSERVACION|req=2e4a0f14-67d6-4
+  | d1c-a5ae-0ca3b50ae593'
+  | 'OBS|OBS-DATOS|esperado=-|obtenido=eventos_sanitarios=
+  | 3 retroalimentaciones=4 (linea base completa: CP-11 co
+  | mpara predicciones, eventos y retroalimentaciones)|est
+  | ado=OBSERVACION|req=2e4a0f14-67d6-4d1c-a5ae-0ca3b50ae5
+  | 93'
+  | 'OBS|OBS-TIMESTAMP|esperado=-|obtenido=primera predicc
+  | ion fecha=2026-10-20T22:06:22+00:00|estado=OBSERVACION
+  | |req=2e4a0f14-67d6-4d1c-a5ae-0ca3b50ae593'
+  | 'OBS|OBS-FUENTES|esperado=-|obtenido=fuentes_no_dispon
+  | ibles=[]|estado=OBSERVACION|req=2e4a0f14-67d6-4d1c-a5a
+  | e-0ca3b50ae593'
+  -
+
+Root T00a Linea base auditoria M04
+  GET http://127.0.0.1:18813/prediccion/auditoria?pagina=1&por_pagina=1 [200 OK, 256B, 5ms]
+  -
+  | 'OBS|OBS-AUD-T00|esperado=-|obtenido=HTTP 200 total=12
+  |  primer_id_evento=aaaa-1|estado=OBSERVACION|req=22b684
+  | fe-b65f-46c5-9fb3-dd882b0d59d2'
+  -
+
+Root CP-01 Rango de 12 meses explicito
+  GET http://127.0.0.1:18813/historial-predictivo/885?fecha_inicio=2025-11-23&fecha_fin=2026-11-23 [200 OK, 2.38kB, 10ms]
+  Pass  CP-01 12 meses explicitos: 200 con los datos del rango (RF-106 Entradas; RF-67) || esperado: 200; rango_fechas_aplicado=2025-11-23..2026-11-23; >=1 prediccion y todas dentro del rango || obtenido: HTTP 200 rango={"fecha_inicio":"2025-11-23","fecha_fin":"2026-11-23"} predicciones=7 fuera_de_rango=0 total_inferencias=7 || req: eaed19c5-ede8-49d1-ab19-a807918bcfe0
+  -
+  | 'CP|CP-01|esperado=200; rango_fechas_aplicado=2025-11-
+  | 23..2026-11-23; >=1 prediccion y todas dentro del rang
+  | o|obtenido=HTTP 200 rango={"fecha_inicio":"2025-11-23"
+  | ,"fecha_fin":"2026-11-23"} predicciones=7 fuera_de_ran
+  | go=0 total_inferencias=7|estado=OK|req=eaed19c5-ede8-4
+  | 9d1-ab19-a807918bcfe0'
+  -
+
+Root CP-02 Inicio posterior al fin
+  GET http://127.0.0.1:18813/historial-predictivo/885?fecha_inicio=2026-10-01&fecha_fin=2026-09-01 [400 Bad Request, 263B, 3ms]
+  Pass  CP-02 fecha_inicio > fecha_fin: 400 sin datos (RF-67 E3; openapi de TEST) || esperado: 400 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: 9a021acb-7f13-4f3d-897c-51c0a469f549
+  -
+  | 'CP|CP-02|esperado=400 sin datos|obtenido=HTTP 400 err
+  | or_code=VAL_ENTRADA sin_datos=true|estado=OK|req=9a021
+  | acb-7f13-4f3d-897c-51c0a469f549'
+  | 'OBS|OBS-TEXTO-CP02|esperado=-|obtenido=message=x|esta
+  | do=OBSERVACION|req=9a021acb-7f13-4f3d-897c-51c0a469f54
+  | 9'
+  -
+
+Root OBS-03 Fecha fin futura
+  GET http://127.0.0.1:18813/historial-predictivo/885?fecha_inicio=2025-11-23&fecha_fin=2026-12-23 [200 OK, 2.38kB, 3ms]
+  -
+  | 'OBS|OBS-03|esperado=-|obtenido=fecha_fin=hoy+30: HTTP
+  |  200 error_code=- rango={"fecha_inicio":"2025-11-23","
+  | fecha_fin":"2026-12-23"} (RF-106 no define fechas futu
+  | ras; RF-67 Integridad temporal es de otro endpoint)|es
+  | tado=OBSERVACION|req=7be6e9a2-9c05-4584-ae08-d882b9df4
+  | ccb'
+  -
+
+Root CP-04 Sin fechas
+  GET http://127.0.0.1:18813/historial-predictivo/885 [200 OK, 2.38kB, 3ms]
+  Pass  CP-04 Sin fechas: 200 con hoy - 12 meses a hoy (RF-106 Entradas; valores por defecto del Swagger) || esperado: 200; rango_fechas_aplicado=2025-11-23..2026-11-23 || obtenido: HTTP 200 rango={"fecha_inicio":"2025-11-23","fecha_fin":"2026-11-23"} || req: 700ccd08-d647-4c8a-8d27-d1b7b8934547
+  -
+  | 'CP|CP-04|esperado=200; rango_fechas_aplicado=2025-11-
+  | 23..2026-11-23|obtenido=HTTP 200 rango={"fecha_inicio"
+  | :"2025-11-23","fecha_fin":"2026-11-23"}|estado=OK|req=
+  | 700ccd08-d647-4c8a-8d27-d1b7b8934547'
+  -
+
+Root CP-05 Activo inexistente
+  GET http://127.0.0.1:18813/historial-predictivo/999999 [404 Not Found, 268B, 2ms]
+  Pass  CP-05 Activo inexistente: 404 sin datos (RF-67 E2; Swagger: inexistente -> 404) || esperado: 404 sin datos || obtenido: HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true || req: 6e5a9439-3ded-4b54-86ff-ed6fa9deb5bf
+  -
+  | 'CP|CP-05|esperado=404 sin datos|obtenido=HTTP 404 err
+  | or_code=ACTIVO_INEXISTENTE sin_datos=true|estado=OK|re
+  | q=6e5a9439-3ded-4b54-86ff-ed6fa9deb5bf'
+  | 'OBS|OBS-TEXTO-CP05|esperado=-|obtenido=message=x|esta
+  | do=OBSERVACION|req=6e5a9439-3ded-4b54-86ff-ed6fa9deb5b
+  | f'
+  -
+
+Root CP-06a Id no numerico
+  GET http://127.0.0.1:18813/historial-predictivo/abc [400 Bad Request, 263B, 1ms]
+  Pass  CP-06a id='abc': rechazo de validacion 400 o 422 sin datos (RF-106 Entradas; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: 5062c4b2-5593-475f-ad80-ebad3d90d8e2
+  -
+  | 'CP|CP-06a|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=5062c4b2-5593-475f-ad80-ebad3d90d8e2'
+  -
+
+Root CP-06b Id negativo
+  GET http://127.0.0.1:18813/historial-predictivo/-1 [404 Not Found, 268B, 1ms]
+  Pass  CP-06b id=-1: rechazo 400, 404 o 422 sin datos (RF-106 Entradas; openapi publica 400, 404 y 422) || esperado: 400, 404 o 422 sin datos || obtenido: HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true || req: 27579383-b06e-4fda-839e-94e7ce1e69f3
+  -
+  | 'CP|CP-06b|esperado=400, 404 o 422 sin datos|obtenido=
+  | HTTP 404 error_code=ACTIVO_INEXISTENTE sin_datos=true|
+  | estado=OK|req=27579383-b06e-4fda-839e-94e7ce1e69f3'
+  -
+
+Root CP-07a Nivel de riesgo 4
+  GET http://127.0.0.1:18813/historial-predictivo/885?nivel_riesgo=4 [400 Bad Request, 263B, 1ms]
+  Pass  CP-07a nivel_riesgo=4: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: 59b40543-fc2b-448d-a02d-25276dbdf1ab
+  -
+  | 'CP|CP-07a|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=59b40543-fc2b-448d-a02d-25276dbdf1ab'
+  -
+
+Root CP-07b Nivel de riesgo -1
+  GET http://127.0.0.1:18813/historial-predictivo/885?nivel_riesgo=-1 [400 Bad Request, 263B, 1ms]
+  Pass  CP-07b nivel_riesgo=-1: rechazo 400 o 422 sin datos (RF-106 Entradas: 0 a 3; openapi publica 400 y 422) || esperado: 400 o 422 sin datos || obtenido: HTTP 400 error_code=VAL_ENTRADA sin_datos=true || req: 4bbc3479-54f8-4618-8272-617ed5847a7d
+  -
+  | 'CP|CP-07b|esperado=400 o 422 sin datos|obtenido=HTTP 
+  | 400 error_code=VAL_ENTRADA sin_datos=true|estado=OK|re
+  | q=4bbc3479-54f8-4618-8272-617ed5847a7d'
+  -
+
+Root CP-08 Activo de finca no asignada
+  GET http://127.0.0.1:18813/historial-predictivo/2556 [403 Forbidden, 269B, 1ms]
+  Pass  CP-08 Activo de una finca no asignada al Veterinario: 403 sin datos (Swagger: otra finca -> 403; RF-67 alcance) || esperado: 403 sin datos || obtenido: HTTP 403 error_code=FINCA_NO_AUTORIZADA sin_datos=true || req: c85e2853-5167-4261-af56-f1e036aeb403
+  -
+  | 'CP|CP-08|esperado=403 sin datos|obtenido=HTTP 403 err
+  | or_code=FINCA_NO_AUTORIZADA sin_datos=true|estado=OK|r
+  | eq=c85e2853-5167-4261-af56-f1e036aeb403'
+  | 'OBS|OBS-TEXTO-CP08|esperado=-|obtenido=message=x|esta
+  | do=OBSERVACION|req=c85e2853-5167-4261-af56-f1e036aeb40
+  | 3'
+  -
+
+Root CP-09a Rango de 24 meses exactos
+  GET http://127.0.0.1:18813/historial-predictivo/885?fecha_inicio=2024-11-23&fecha_fin=2026-11-23 [200 OK, 2.38kB, 1ms]
+  Pass  CP-09a Rango de 24 meses exactos: 200 (RF-106 Restriccion 2) || esperado: 200; rango_fechas_aplicado=2024-11-23..2026-11-23 || obtenido: HTTP 200 error_code=- rango={"fecha_inicio":"2024-11-23","fecha_fin":"2026-11-23"} || req: b69ae8e1-6349-4544-9d2a-947d7b05879e
+  -
+  | 'CP|CP-09a|esperado=200; rango_fechas_aplicado=2024-11
+  | -23..2026-11-23|obtenido=HTTP 200 error_code=- rango={
+  | "fecha_inicio":"2024-11-23","fecha_fin":"2026-11-23"}|
+  | estado=OK|req=b69ae8e1-6349-4544-9d2a-947d7b05879e'
+  -
+
+Root CP-10 Activo dado de baja
+  GET http://127.0.0.1:18813/historial-predictivo/2946 [422 Unprocessable Content, 357B, 1ms]
+  Pass  CP-10 Activo dado de baja: 422 ACTIVO_NO_VIGENTE sin datos (RF-106 Precondicion 2; Swagger: dado de baja -> 422; lanzamiento v7) || esperado: 422 ACTIVO_NO_VIGENTE sin datos || obtenido: HTTP 422 error_code=ACTIVO_NO_VIGENTE sin_datos=true || req: 73dc0855-9ee5-4c2f-9ebe-822cd1014446
+  -
+  | 'CP|CP-10|esperado=422 ACTIVO_NO_VIGENTE sin datos|obt
+  | enido=HTTP 422 error_code=ACTIVO_NO_VIGENTE sin_datos=
+  | true|estado=OK|req=73dc0855-9ee5-4c2f-9ebe-822cd101444
+  | 6'
+  | 'OBS|OBS-TEXTO-CP10|esperado=-|obtenido=message=El his
+  | torial predictivo solo se muestra para animales activo
+  | s o en tratamiento.|estado=OBSERVACION|req=73dc0855-9e
+  | e5-4c2f-9ebe-822cd1014446'
+  -
+
+Root Z50 Login Productor
+  POST http://127.0.0.1:18813/sesiones/ [200 OK, 255B, 3ms]
+  -
+  | 'OBS|OBS-P-LOGIN|esperado=-|obtenido=login Productor H
+  | TTP 200|estado=OBSERVACION|req=260eec62-9b8c-42ab-a6fe
+  | -533531efe475'
+  -
+
+Root OBS-P Historial con Productor
+  GET http://127.0.0.1:18813/historial-predictivo/885 [403 Forbidden, 266B, 1ms]
+  -
+  | 'OBS|OBS-P|esperado=-|obtenido=Productor (TC-M08-048, 
+  | observacion por API): HTTP 403 error_code=PERMISO_DENE
+  | GADO con_probabilidades=false (esperado por RF-106 Res
+  | triccion 1 y CA-6: 403)|estado=OBSERVACION|req=4daaacb
+  | d-2efb-4cf0-b327-b68b2a1b9665'
+  -
+
+Root T99 Historial final
+  GET http://127.0.0.1:18813/historial-predictivo/885 [200 OK, 2.38kB, 1ms]
+  Pass  CP-11 Solo lectura: el historial final es igual a la linea base (RF-106 Restriccion 3 y Postcondicion 3) || esperado: HTTP 200 y mismo contenido que T00 (linea base con >=1 prediccion, >=1 evento y >=1 retroalimentacion) || obtenido: HTTP 200 iguales=true final={"metadatos":{"total_inferencias":7,"total_eventos_sanitarios":3,"total_retroalimentaciones":4,"total_pendientes":3,"total_conflictos":0},"predicciones":["p1","p2","p3","p4","p5","p6","p7"],"eventos":["2684","2685","2686"],"retroalimentaciones":["p1:CORRECTO:2026-11-20T15:08:00+00:00","p2:INCORRECTO:2026-11-20T15:08:00+00:00","p3:PARCIAL:2026-11-20T15:08:00+00:00","p4:SIN_EVENTO:2026-11-20T15:08:00+00:00"],"pendientes_total":3,"tvco":25} || req: 2b2c39e6-4334-44e6-9492-5b6f0620b56c
+  -
+  | 'CP|CP-11|esperado=HTTP 200 y mismo contenido que T00 
+  | (linea base con >=1 prediccion, >=1 evento y >=1 retro
+  | alimentacion)|obtenido=HTTP 200 iguales=true final={"m
+  | etadatos":{"total_inferencias":7,"total_eventos_sanita
+  | rios":3,"total_retroalimentaciones":4,"total_pendiente
+  | s":3,"total_conflictos":0},"predicciones":["p1","p2","
+  | p3","p4","p5","p6","p7"],"eventos":["2684","2685","268
+  | 6"],"retroalimentaciones":["p1:CORRECTO:2026-11-20T15:
+  | 08:00+00:00","p2:INCORRECTO:2026-11-20T15:08:00+00:00"
+  | ,"p3:PARCIAL:2026-11-20T15:08:00+00:00","p4:SIN_EVENTO
+  | :2026-11-20T15:08:00+00:00"],"pendientes_total":3,"tvc
+  | o":25}|estado=OK|req=2b2c39e6-4334-44e6-9492-5b6f0620b
+  | 56c'
+  -
+
+Root T99a Auditoria M04 final
+  GET http://127.0.0.1:18813/prediccion/auditoria?pagina=1&por_pagina=1 [200 OK, 256B, 1ms]
+  -
+  | 'OBS|OBS-AUD-T99|esperado=-|obtenido=antes=200|12|aaaa
+  | -1 despues=200|12|aaaa-1 (RF-106 no exige auditar la c
+  | onsulta; RF-67 paso 7 es de otro endpoint)|estado=OBSE
+  | RVACION|req=a59c7b1a-65b8-43ec-b13b-8fb0d91ba123'
+  -
+
+Root Z99 Cierre del sandbox
+  DELETE http://127.0.0.1:18813/test-control/runs/qa-m08-g018-prueba-completo [200 OK, 207B, 1ms]
+  -
+  | 'CIERRE|200|Rollback exitoso|req=5fc61011-48cf-4053-9f
+  | 2f-8dd5331bf33a'
+  -
+
+---------------------------------------------------------------
+|                         |        executed |          failed |
+--------------------------+-----------------+------------------
+|              iterations |               1 |               0 |
+--------------------------+-----------------+------------------
+|                requests |              21 |               0 |
+--------------------------+-----------------+------------------
+|            test-scripts |              21 |               0 |
+--------------------------+-----------------+------------------
+|      prerequest-scripts |              22 |               0 |
+--------------------------+-----------------+------------------
+|              assertions |              12 |               0 |
+---------------------------------------------------------------
+| total run duration: 340ms                                   |
+---------------------------------------------------------------
+| total data received: 14.43kB (approx)                       |
+---------------------------------------------------------------
+| average response time: 2ms [min: 1ms, max: 15ms, s.d.: 3ms] |
+---------------------------------------------------------------
