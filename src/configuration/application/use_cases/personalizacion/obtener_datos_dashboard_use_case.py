@@ -72,7 +72,8 @@ class ObtenerDatosDashboardUseCase:
             if widget is None or widget.id_widget not in legibles:
                 continue
 
-            filas = self.datos_repo.obtener(widget.fuente_datos) if widget.fuente_datos else []
+            filas = (self.datos_repo.obtener(widget.fuente_datos, usuario_actual.id_usuario)
+                     if widget.fuente_datos else [])
             sin_datos = not filas
             resultado.append(
                 WidgetConDatos(

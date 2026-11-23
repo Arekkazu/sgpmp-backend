@@ -42,6 +42,7 @@ from src.reporting.domain.reportes.contenido import ContenidoReporte, Tabla
 from src.reporting.domain.reportes.solicitud import ArchivoReporte, sha256
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
 from src.shared.fechas import en_zona_usuario, hoy_usuario
+from src.shared.rate_limit import registrar_llamada
 
 LIMITE_PARTE = 50 * 1024 * 1024  # RF-104 restricción: 50 MB por archivo
 SIN_DATOS = ("No hay datos para los filtros elegidos. Prueba con otro rango de fechas o quita algún filtro.")
@@ -154,6 +155,15 @@ def _parametros(fuente: FuenteReportesRepository, definicion: DefinicionReporte,
             texto = fuente.nombre_referencia(filtro.tipo, valor) or "Elemento seleccionado"
         salida.append((ETIQUETAS[filtro.nombre], texto))
     return salida
+
+
+# Cada vista previa o solicitud arma el reporte en memoria: tope por usuario y por minuto.
+SOLICITUDES_POR_MINUTO = 30
+
+
+def limitar_solicitudes(id_usuario: int) -> None:
+    """429 con ``Retry-After`` si el usuario pasa de ``SOLICITUDES_POR_MINUTO`` vistas previas o solicitudes."""
+    registrar_llamada(f"m08:reportes:{id_usuario}", SOLICITUDES_POR_MINUTO, 60)
 
 
 def preparar(fuente: FuenteReportesRepository, tipo: str, crudos: Optional[dict[str, Any]],

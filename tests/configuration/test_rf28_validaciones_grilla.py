@@ -135,7 +135,7 @@ class DatosRepoFake:
     def __init__(self, filas_por_fuente=None) -> None:
         self.filas_por_fuente = filas_por_fuente or {}
 
-    def obtener(self, fuente_datos: str) -> list[dict]:
+    def obtener(self, fuente_datos: str, id_usuario: int = 0) -> list[dict]:
         return list(self.filas_por_fuente.get(fuente_datos, []))
 
 

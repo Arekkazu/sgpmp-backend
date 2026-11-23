@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from src.reporting.application.use_cases.reportes.generacion import (
+    limitar_solicitudes,
     SIN_DATOS,
     AbrirFuente,
     Solicitante,
@@ -41,6 +42,7 @@ class PrevisualizarReporteUseCase:
 
     def execute(self, tipo: str, filtros: Optional[dict[str, Any]], solicitante: Solicitante) -> dict[str, Any]:
         """Devuelve la vista previa del reporte con los filtros dados."""
+        limitar_solicitudes(solicitante.id_usuario)
         with self.abrir_fuente(solicitante.id_usuario, solicitante.zona_horaria) as fuente:
             preparado = preparar(fuente, tipo, filtros, solicitante)
         c = preparado.contenido

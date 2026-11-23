@@ -115,14 +115,16 @@ def _validar_y_redimensionar_raster(contenido: bytes, content_type: str) -> byte
     aunque el Content-Type declarado diga lo contrario) y lo reduce a
     ``DIMENSION_MAX``. Volver a codificar los píxeles de paso también descarta
     cualquier payload escondido en metadatos o en un polyglot PNG/JPEG."""
+    # Pillow solo usa el decodificador del formato declarado (PNG o JPEG), no todos los que trae.
+    formatos = [_FORMATOS_PIL[content_type]]
     try:
-        imagen = Image.open(io.BytesIO(contenido))
+        imagen = Image.open(io.BytesIO(contenido), formats=formatos)
         imagen.verify()
         # `verify()` deja el objeto inutilizable para leer píxeles; se reabre.
-        imagen = Image.open(io.BytesIO(contenido))
+        imagen = Image.open(io.BytesIO(contenido), formats=formatos)
         formato_real = imagen.format
         imagen.load()
-    except (UnidentifiedImageError, OSError, ValueError):
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
         raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es una imagen válida.",

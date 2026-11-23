@@ -35,6 +35,7 @@ from decimal import Decimal, InvalidOperation
 from xml.sax.saxutils import escape
 from typing import Iterable, Optional
 
+from src.shared.celdas_seguras import proteger_libro, texto_seguro_csv
 from src.shared.pdf_etiquetado import ArbolEtiquetas, etiquetado
 
 FILAS_POR_PAGINA_PDF = 25
@@ -61,7 +62,8 @@ def generar_csv(doc: Documento) -> bytes:
     escritor = csv.writer(salida)
     escritor.writerow(doc.columnas)
     for inicio in range(0, len(doc.filas), _BLOQUE_CSV):
-        escritor.writerows(_texto(f) for f in doc.filas[inicio:inicio + _BLOQUE_CSV])
+        # Un texto libre (p. ej. la observación) se exporta como texto, nunca como fórmula.
+        escritor.writerows([texto_seguro_csv(v) for v in _texto(f)] for f in doc.filas[inicio:inicio + _BLOQUE_CSV])
     return salida.getvalue().encode("utf-8")
 
 
@@ -90,6 +92,7 @@ def generar_excel(doc: Documento) -> bytes:
     for linea in [*doc.encabezado, *doc.pie]:
         info.append([linea])
     info.column_dimensions["A"].width = min(100, max(len(str(x)) for x in [doc.titulo, *doc.encabezado, *doc.pie]) + 2)
+    proteger_libro(libro)  # el texto exportado se guarda como texto, nunca como fórmula
     salida = io.BytesIO()
     libro.save(salida)
     return salida.getvalue()

@@ -339,10 +339,15 @@ def exportar_auditoria(
 
 
 @router.api_route("/auditoria", methods=["PUT", "PATCH", "DELETE"], tags=[TAG_AUDITORIA], include_in_schema=False)
-def bloquear_modificacion_auditoria(request: Request, m07: M07 = Depends(_m07)):
-    """RF-102 FA-2: la auditoría es inmutable también por API."""
+def bloquear_modificacion_auditoria(request: Request, m07: M07 = Depends(_m07),
+                                    usuario_actual: UsuarioActual = Depends(get_current_user)):
+    """RF-102 FA-2: la auditoría es inmutable también por API.
+
+    Exige sesión, como el resto de la auditoría: sin ella responde 401; con ella responde 405 y el evento
+    queda registrado con el usuario."""
     m07.auditar_aparte(EventoIntegracion(
         tipo_evento="INTENTO_MODIFICACION_AUDITORIA", severidad="CRITICAL", tipo_actor="USUARIO",
+        id_usuario=usuario_actual.id_usuario,
         endpoint="/integracion/auditoria", metodo_http=request.method, codigo_http=405,
         codigo_resultado="METODO_NO_PERMITIDO", ip_origen=request.client.host if request.client else None))
     raise MethodNotAllowedError(code="METODO_NO_PERMITIDO", message="La auditoría de la integración no se puede modificar.")

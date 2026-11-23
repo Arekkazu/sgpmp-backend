@@ -423,6 +423,9 @@ class RepoFalso:
     def tomar_pendientes(self, ahora, limite):
         return [s for s in self.solicitudes.values() if s.estado == EN_PROCESO][:limite]
 
+    def listar_por_usuario(self, id_usuario, limite):
+        return [s for s in self.solicitudes.values() if s.id_usuario == id_usuario][:limite]
+
 
 class Db:
     def __init__(self) -> None:
