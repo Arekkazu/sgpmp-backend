@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-04 RF-60: lee parámetros de heartbeat y ventanas de visión sin inventar valores |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador de la configuración de heartbeat por categoría de dispositivo."""
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -42,6 +44,7 @@ class ParametrosHeartbeatCategoriaAdapter(ParametrosHeartbeatCategoriaPort):
         self._configuracion = SqlAlchemyConfiguracionGlobalRepository(db)
 
     def leer_configuracion(self) -> ConfiguracionHeartbeatLeida:
+        """Lee los intervalos, márgenes e inactividad configurados por categoría."""
         valores = self._parametros.obtener((INTERVALOS_TIPO, INTERVALO_CAMARA, MARGEN, INACTIVIDAD))
         crudo = valores.get(INTERVALOS_TIPO)
         intervalos = {}
@@ -63,10 +66,12 @@ class ParametrosHeartbeatCategoriaAdapter(ParametrosHeartbeatCategoriaPort):
         )
 
     def parametros_ventanas(self):
+        """Devuelve cantidad, cobertura mínima y duración de las ventanas de visión."""
         valores = self._parametros.obtener((VENTANAS, COBERTURA, DURACION))
         return _entero(valores, VENTANAS), _decimal(valores, COBERTURA), _entero(valores, DURACION)
 
     def categoria_dispositivo(self, id_dispositivo_iot, ids_fincas):
+        """Devuelve la categoría del dispositivo si es visible para las fincas dadas."""
         try:
             fila = self.db.execute(text('''
                 SELECT t.categoria::text
@@ -81,6 +86,7 @@ class ParametrosHeartbeatCategoriaAdapter(ParametrosHeartbeatCategoriaPort):
         return fila[0] if fila else None
 
     def ventanas_recientes(self, id_dispositivo_iot, cantidad):
+        """Lista las ventanas de visión más recientes de la cámara."""
         try:
             filas = self.db.execute(text('''
                 SELECT id_observacion_vision, fecha_inicio_ventana, fecha_observacion, cobertura_ventana,

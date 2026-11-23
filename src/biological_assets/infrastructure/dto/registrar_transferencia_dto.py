@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/transferencias`` (RF-48)."""
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ class RegistrarTransferenciaDTO(BaseDTO):
     @field_validator('motivo_transferencia', mode='before')
     @classmethod
     def validar_motivo(cls, v: object) -> str:
+        """Exige un motivo de traslado no vacío."""
         v_str = str(v).strip()
         if not v_str:
             raise ValueError('El motivo de transferencia es obligatorio.')

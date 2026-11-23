@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-62: indice ponderado y oraculo determinista de vision |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: indice a 2 decimales (NUMERIC(5,2)) antes de clasificar |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """AIOT-SPEC-01 integrada en RF-62.
 
 La aritmetica fija su contexto decimal. El indice se redondea a 2 decimales
@@ -15,12 +16,14 @@ from enum import Enum
 
 
 class EstadoCalibracionVision(str, Enum):
+    """Estado de calibración de la cámara para la evaluación de calidad."""
     CALIBRADO = 'CALIBRADO'
     EN_CALIBRACION = 'EN_CALIBRACION'
     SIN_LINEA_BASE = 'SIN_LINEA_BASE'
 
 
 class ClaseCalidadVision(str, Enum):
+    """Clase de calidad resultante de una observación de visión."""
     OPTIMA = 'OPTIMA'
     DEGRADADA = 'DEGRADADA'
     NO_APTA = 'NO_APTA'
@@ -28,6 +31,7 @@ class ClaseCalidadVision(str, Enum):
 
 @dataclass(frozen=True)
 class ParametrosCalidadVision:
+    """Pesos y umbrales configurados para calcular el índice de calidad de visión."""
     w1: Decimal
     w2: Decimal
     w3: Decimal
@@ -54,6 +58,7 @@ class ParametrosCalidadVision:
 
 @dataclass(frozen=True)
 class ResultadoCalidadVision:
+    """Índice, clase y aptitud de una observación de visión evaluada."""
     indice: Decimal
     clase: ClaseCalidadVision
     apto_para_ia: bool
@@ -63,12 +68,14 @@ class ResultadoCalidadVision:
 
     @property
     def apto_para_nic41(self):
+        """Las observaciones de visión nunca son aptas como soporte de valoración NIC 41."""
         return False
 
 
 def evaluar_calidad_vision(*, cobertura: Decimal, fps: Decimal, perdidos: int,
                           calibracion: EstadoCalibracionVision, parametros: ParametrosCalidadVision,
                           duracion_seg: Decimal) -> ResultadoCalidadVision:
+    """Calcula el índice y la clase de calidad de una observación de visión."""
     calibracion = EstadoCalibracionVision(calibracion)
     if (not all(isinstance(v,Decimal) and v.is_finite() for v in (cobertura,fps,duracion_seg))
             or not 0 <= cobertura <= 1 or fps < 0 or duracion_seg <= 0

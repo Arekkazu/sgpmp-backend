@@ -7,6 +7,8 @@
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: declarar el resultado tipado de aceptacion o rechazo E1. |
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de la auditoría del motor de inferencia."""
 from __future__ import annotations
 
 import uuid
@@ -21,6 +23,7 @@ if TYPE_CHECKING:
 
 
 class EventoAuditoriaM04Repository(ABC):
+    """Puerto de registro y consulta de la auditoría del motor."""
     @abstractmethod
     def registrar(
         self,
@@ -62,10 +65,14 @@ class EventoAuditoriaM04Repository(ABC):
         entidad_referencia: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
-    ) -> tuple[list["EventoAuditoriaM04"], int]: ...
+    ) -> tuple[list["EventoAuditoriaM04"], int]:
+        """Consulta eventos filtrados y paginados con su total."""
+        ...
 
     @abstractmethod
-    def obtener_por_id(self, id_evento: uuid.UUID) -> "EventoAuditoriaM04": ...
+    def obtener_por_id(self, id_evento: uuid.UUID) -> "EventoAuditoriaM04":
+        """Devuelve un evento de auditoría."""
+        ...
 
     @abstractmethod
     def insertar_desde_respaldo(self, evento: dict) -> bool:

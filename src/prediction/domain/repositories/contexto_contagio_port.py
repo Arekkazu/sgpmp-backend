@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-68: contexto del lote para el disparo automático tras RF-66   |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: última salida de RF-66 de un lote expuesto        |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Lo que RF-68 necesita del lote y de su área cuando corre sin un cliente que lo envíe."""
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class AmbienteArea:
+    """Condiciones ambientales del área."""
     temperatura: Optional[Decimal]
     humedad_relativa: Optional[Decimal]
     #: La más antigua de las dos lecturas: es la que decide la sincronía con la inferencia.
@@ -22,6 +24,7 @@ class AmbienteArea:
 
 @dataclass(frozen=True)
 class ContextoContagio:
+    """Contexto del lote para calcular el riesgo de contagio."""
     #: Animales/m² del área. Negativa pide a RF-68 el promedio registrado del lote (E2).
     densidad_poblacional: Optional[Decimal]
     porcentaje_sensores_activos: Decimal
@@ -37,6 +40,7 @@ class SalidaReciente:
 
 
 class ContextoContagioPort(ABC):
+    """Puerto para obtener el contexto de contagio de un activo."""
     @abstractmethod
     def obtener(self, id_activo: int, instante: datetime) -> Optional[ContextoContagio]:
         """None si el activo no existe. ``ambiente``: últimas lecturas del área hasta ``instante``."""

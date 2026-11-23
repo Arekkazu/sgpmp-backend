@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.cola_generacion_reportes_gastos`` (RF-77 / motor async).
 
 Generado con sqlacodegen y adaptado (Base compartida, sin relationships). Cola de
@@ -17,6 +20,7 @@ from .base_model import Base
 
 
 class ColaGeneracionReporteGastoModel(Base):
+    """Modelo ORM de la tabla ``modulo5.cola_generacion_reportes_gastos``."""
     __tablename__ = 'cola_generacion_reportes_gastos'
     __table_args__ = (
         ForeignKeyConstraint(['id_usuario_solicitante'], ['modulo1.usuarios.id_usuario'], name='cola_generacion_reportes_gastos_id_usuario_solicitante_fkey'),

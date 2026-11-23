@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | QA-M06 RF-42: guarda la fecha recortada a ahora (reloj del usuario adelantado) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: registro de eventos reproductivos (RF-42)."""
 
 from __future__ import annotations
@@ -68,6 +69,7 @@ class RegistrarEventoReproductivoUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> EventoActivo:
+        """Registra un evento reproductivo del activo."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario, ids_fincas_permitidas=ids_fincas_permitidas),
             db=self.db,

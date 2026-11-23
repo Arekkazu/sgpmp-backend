@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.patologias_variables_sensoricas``."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,6 +14,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class PatologiaVariableModel(Base):
+    """Modelo ORM de la tabla ``modulo4.patologias_variables_sensoricas``."""
     __tablename__ = "patologias_variables_sensoricas"
     __table_args__ = (
         ForeignKeyConstraint(

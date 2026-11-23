@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación real de :class:`FincaDependencyPort` (RF-19 FA-04).
 
 Verifica dispositivos IoT activos vía ``vw_rf19_dependencias_fincas`` (resuelve la
@@ -14,11 +17,13 @@ from src.configuration.domain.repositories.finca_dependency_port import FincaDep
 
 
 class FincaDependencyAdapter(FincaDependencyPort):
+    """Consulta dependencias de una finca antes de desactivarla."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def tiene_dependencias_activas(self, id_finca: int) -> bool:
+        """Retorna True si la finca tiene dispositivos IoT o activos biológicos activos."""
         row = self.db.execute(
             text(
                 "SELECT dispositivos_activos FROM modulo9.vw_rf19_dependencias_fincas "

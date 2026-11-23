@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Paso post-commit de crear y editar área: enviar el ``tipo_modelo_asignado`` al Gateway Edge (DEV-10).
 
 M09·RF-20, D-06 de AIOT-DEV-03 §3 D7: cuando un área se crea con modelo o
@@ -36,6 +39,7 @@ def payload_tipo_modelo(infra: Infraestructura) -> dict:
 
 
 class PropagadorTipoModeloEdge:
+    """Propaga el tipo de modelo asignado de un área a su gateway Edge."""
 
     def __init__(
         self,

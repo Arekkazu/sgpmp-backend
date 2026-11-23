@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso de configuración remota de dispositivos IoT (RF-23).
 
 El sistema envía la configuración vía MQTT (BROKER-MQTT-SGPMP), que espera
@@ -173,6 +176,7 @@ class ConfigurarRemotamenteUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[ConfiguracionRemota, str]:
+        """Envía una configuración remota al dispositivo y la registra."""
         dispositivo = _dispositivo_en_alcance(self.dispositivo_repo, id_dispositivo_iot, ids_fincas_permitidas)
         _verificar_activo(dispositivo)
 
@@ -258,6 +262,7 @@ class ReintentarConfiguracionUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[ConfiguracionRemota, str]:
+        """Reintenta una configuración remota fallida."""
         dispositivo = _dispositivo_en_alcance(self.dispositivo_repo, id_dispositivo_iot, ids_fincas_permitidas)
         _verificar_activo(dispositivo)
         config = _configuracion_sin_aplicar(self.config_repo, id_dispositivo_iot, id_configuracion_remota)
@@ -309,6 +314,7 @@ class CancelarConfiguracionUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ConfiguracionRemota:
+        """Cancela una configuración remota pendiente."""
         dispositivo = _dispositivo_en_alcance(self.dispositivo_repo, id_dispositivo_iot, ids_fincas_permitidas)
         config = _configuracion_sin_aplicar(self.config_repo, id_dispositivo_iot, id_configuracion_remota)
         estado_previo = config.estado
@@ -352,5 +358,6 @@ class ConsultarConfiguracionesUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[ConfiguracionRemota]:
+        """Lista las configuraciones remotas del dispositivo."""
         _dispositivo_en_alcance(self.dispositivo_repo, id_dispositivo_iot, ids_fincas_permitidas)
         return self.config_repo.listar_por_dispositivo(id_dispositivo_iot)

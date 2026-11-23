@@ -5,6 +5,7 @@
 # | 2026-11-08 | destroyerban | INC-M06-313-G14 RF-83: excluye y registra los activos no elegibles |
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
 # | 2026-11-15 | Arekkazu | QA-M06 CU04 H-02 RF-85: cosechas pendientes filtradas por titular |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de los eventos biológicos de M02 que disparan la medición por evento (RF-83, RF-85)."""
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class EventoM02:
+    """Evento de un activo biológico relevante para la valoración."""
     id_evento: int
     id_activo_biologico: int
     fecha: datetime
@@ -28,6 +30,7 @@ class EventoM02:
 
 
 class EventoM02Port(ABC):
+    """Puerto de lectura de eventos de activos biológicos."""
     @abstractmethod
     def pendientes(self, limite: int) -> list[EventoM02]:
         """Eventos posteriores al reconocimiento aún sin procesar (incluye los encolados por un cierre)."""
@@ -42,7 +45,11 @@ class EventoM02Port(ABC):
         """El evento productivo si su reconocimiento quedó pendiente (MEDICION_PENDIENTE, RF-85 FA-1/FA-2)."""
 
     @abstractmethod
-    def registrar_procesamiento(self, id_evento: int, resultado: str, detalle: str | None) -> None: ...
+    def registrar_procesamiento(self, id_evento: int, resultado: str, detalle: str | None) -> None:
+        """Registra el resultado de procesar el evento."""
+        ...
 
     @abstractmethod
-    def pendientes_del_titular(self, numero_id_tributaria: str) -> int: ...
+    def pendientes_del_titular(self, numero_id_tributaria: str) -> int:
+        """Cuenta los eventos pendientes del titular."""
+        ...

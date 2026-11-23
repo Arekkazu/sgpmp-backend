@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: permitir lectura exclusiva para las transiciones de estado. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto del repositorio de ejecuciones del batch ICA (RF-74)."""
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from src.supplies.domain.entities.ejecucion_batch_ica import EjecucionBatchICA
 
 
 class EjecucionBatchICARepository(ABC):
+    """Puerto de persistencia de las ejecuciones del batch de ICA."""
     @abstractmethod
     def crear(self, ejecucion: EjecucionBatchICA) -> EjecucionBatchICA:
         """Inserta una nueva corrida (EN_EJECUCION) y devuelve la entidad con id."""
@@ -33,4 +35,5 @@ class EjecucionBatchICARepository(ABC):
 
     @abstractmethod
     def listar_recientes(self, limite: int = 20) -> list[EjecucionBatchICA]:
+        """Lista las ejecuciones más recientes."""
         raise NotImplementedError

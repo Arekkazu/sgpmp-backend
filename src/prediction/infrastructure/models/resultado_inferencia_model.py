@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                             |
 # |------------|----------|---------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: columna modo_sombra (motor IA)                    |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.resultados_inferencia``."""
 from __future__ import annotations
 
 import uuid
@@ -15,6 +17,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class ResultadoInferenciaModel(Base):
+    """Modelo ORM de la tabla ``modulo4.resultados_inferencia``."""
     __tablename__ = "resultados_inferencia"
     __table_args__ = {"schema": "modulo4"}
 

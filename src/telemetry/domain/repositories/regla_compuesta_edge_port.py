@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto (ABC): enviar una regla compuesta a los Gateway Edge por el broker (DEV-08).
 
 Contrato BRK-05 (``BROKER-MQTT-SGPMP``): ``POST /v1/commands`` con
@@ -12,6 +15,7 @@ from src.telemetry.domain.entities.sincronizacion_regla_edge import ResultadoPro
 
 
 class ReglaCompuestaEdgePort(ABC):
+    """Puerto de propagación de reglas compuestas a los gateways Edge."""
 
     @abstractmethod
     def propagar_regla(self, seriales_gateway: list[str], payload: dict) -> dict[str, ResultadoPropagacionEdge]:

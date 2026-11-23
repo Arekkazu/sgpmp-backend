@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de retroalimentación clínica."""
 from __future__ import annotations
 
 import uuid
@@ -10,6 +14,7 @@ from src.prediction.domain.entities.retroalimentacion_clinica import Retroalimen
 
 
 class RetroalimentacionClinicaResponse(BaseModel):
+    """Retroalimentación clínica registrada."""
     id_retroalimentacion: uuid.UUID
     id_resultado_inferencia: uuid.UUID
     id_activo_biologico: int
@@ -27,6 +32,7 @@ class RetroalimentacionClinicaResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, e: RetroalimentacionClinica) -> "RetroalimentacionClinicaResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_retroalimentacion=e.id_retroalimentacion,
             id_resultado_inferencia=e.id_resultado_inferencia,

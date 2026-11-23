@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.acumulado_ciclo`` (RF-78 / CU-05).
 
 Generado con sqlacodegen y adaptado (Base compartida, sin ``relationship``
@@ -32,6 +35,7 @@ from .base_model import Base
 
 
 class AcumuladoCicloModel(Base):
+    """Modelo ORM de la tabla ``modulo5.acumulado_ciclo``."""
     __tablename__ = 'acumulado_ciclo'
     __table_args__ = (
         CheckConstraint('acumulado_total_ciclo >= 0::numeric', name='chk_acumulado_no_negativo'),

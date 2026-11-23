@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.intentos_anonimos_ip`.
 
 Registro de solo inserción para rate limiting por IP en flujos sin actor
@@ -16,6 +19,7 @@ from .base_model import Base
 
 
 class IntentosAnonimosIp(Base):
+    """Modelo ORM de los intentos anónimos por IP (tabla ``modulo1.intentos_anonimos_ip``)."""
     __tablename__ = 'intentos_anonimos_ip'
     __table_args__ = (
         PrimaryKeyConstraint('id_intento_anonimo_ip', name='intentos_anonimos_ip_pkey'),

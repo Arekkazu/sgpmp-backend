@@ -2,6 +2,8 @@
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: identificar consultas globales sin inventar entidades de negocio. |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la OTA no emite HISTORIAL_CONSULTADO |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso del listado de despliegues OTA."""
 from __future__ import annotations
 
 from typing import Optional
@@ -16,6 +18,7 @@ _LIMIT_MAX = 100
 
 
 class ListarDesplieguesUseCase:
+    """Lista los despliegues OTA."""
     def __init__(
         self,
         *,
@@ -34,6 +37,7 @@ class ListarDesplieguesUseCase:
         limit: int,
         offset: int,
     ) -> tuple[list[DespliegueOta], int]:
+        """Lista los despliegues con filtros y límite."""
         if id_version is not None and self._version_port.obtener_estado(id_version) is None:
             raise NotFoundError(
                 code="VERSION_NO_ENCONTRADA",

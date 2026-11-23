@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar patología por especie (Flujo E — RF-16).
 
 La patología se crea como entidad **propia de M09** en `especies_patologias`, con
@@ -36,6 +39,7 @@ class RegistrarPatologiaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarPatologiaDTO, usuario_actual: UsuarioActual) -> EspeciePatologia:
+        """Registra una patología de la especie."""
         especie = self.especies_repo.obtener_por_id(dto.id_especie)
         if especie is None:
             raise NotFoundError(

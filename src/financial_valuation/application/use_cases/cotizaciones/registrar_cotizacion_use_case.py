@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-COT v1.1: registrar una cotización de venta (sin efecto contable) |
 # | 2026-11-08 | Arekkazu | INC-M06-332-G88 RF-COT FA-3: con el período de la emisión cerrado responde 422, no usa el siguiente |
 # | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-02 RF-COT paso 9: el evento queda asociado al activo cotizado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-COT fases 1-6. La cotización no transfiere propiedad, no cambia el valor del activo
 y no genera asientos ni documentos (RFC-018 D-18.8). Su valor de referencia es la suma del último
 valor razonable neto de los activos (no se admite valor manual)."""
@@ -25,6 +26,7 @@ from src.shared.fechas import hoy_usuario
 
 
 class RegistrarCotizacionUseCase:
+    """Registra una cotización de venta de activos."""
     def __init__(self, db: Session, cotizaciones: CotizacionRepository, activos: ActivoFinancieroPort,
                  valoraciones: ValoracionRepository, contabilizador: Contabilizador) -> None:
         self.db = db
@@ -35,6 +37,7 @@ class RegistrarCotizacionUseCase:
 
     def execute(self, activos_cotizados: list[int], valor_propuesto: Decimal, condiciones: Optional[str],
                 fecha_vencimiento: Optional[date], id_usuario: int) -> dict:
+        """Registra la cotización de los activos indicados."""
         hoy = hoy_usuario()
         if not activos_cotizados or len(set(activos_cotizados)) != len(activos_cotizados):
             raise BusinessRuleError(code="ACTIVO_NO_DISPONIBLE", message="Indique los activos cotizados sin repetirlos.")

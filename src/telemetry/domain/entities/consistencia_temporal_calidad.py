@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: gaps e inactividad reconocida RF-60 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Reglas temporales definidas por RF-62; las ambigüedades no se resuelven aquí."""
 from datetime import datetime, timezone
 from math import isfinite
@@ -10,6 +11,11 @@ from src.telemetry.domain.repositories.contexto_calidad_port import IntervaloIna
 
 
 def utc(fecha: datetime) -> datetime:
+    """Normaliza una fecha con zona a UTC.
+
+    Raises:
+        ServiceUnavailableError: Si la fecha no tiene zona horaria.
+    """
     if fecha.tzinfo is None or fecha.utcoffset() is None:
         raise ServiceUnavailableError('CONTEXTO_TEMPORAL_INVALIDO',
                                       'La serie de calidad requiere fechas con zona horaria.')
@@ -17,6 +23,7 @@ def utc(fecha: datetime) -> datetime:
 
 
 def unir_periodos(periodos: tuple[IntervaloInactividad, ...], hasta: datetime):
+    """Une los periodos de inactividad solapados en intervalos UTC cerrados."""
     intervalos = []
     for periodo in periodos:
         inicio, fin = utc(periodo.inicio), utc(periodo.fin) if periodo.fin else utc(hasta)
@@ -35,10 +42,12 @@ def unir_periodos(periodos: tuple[IntervaloInactividad, ...], hasta: datetime):
 
 
 def cubierto(inicio, fin, periodos):
+    """Indica si el intervalo queda cubierto por alguno de los periodos."""
     return any(a <= inicio and b >= fin for a, b in periodos)
 
 
 def detectar_gaps(lecturas, captura, frecuencia, periodos):
+    """Detecta huecos entre lecturas consecutivas que excedan la frecuencia esperada."""
     fechas = sorted({utc(l.timestamp_captura) for l in lecturas} | {utc(captura)})
     gaps, excluidos = [], []
     for anterior, actual in zip(fechas, fechas[1:]):

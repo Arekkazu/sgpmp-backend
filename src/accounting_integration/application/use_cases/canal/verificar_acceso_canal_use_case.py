@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101 Fase 3 / RF-95 5.3 a-b: acceso por token de canal en cada solicitud |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Verifica una solicitud con token de canal (RF-101 Fase 3, RF-95 5.3 a y b).
 
 No hay lista negra: el cliente se relee en cada solicitud, así que suspenderlo o revocarlo corta sus
@@ -20,6 +21,7 @@ Limitador = Callable[[str, int, float], None]
 
 @dataclass(frozen=True)
 class AccesoCanal:
+    """Cliente y usuario autenticados en un canal."""
     cliente: ClienteExterno
     usuario: UsuarioCanal
 
@@ -34,6 +36,7 @@ def limitar_cliente(limitar: Limitador, cliente: ClienteExterno, uso: str, limit
 
 
 class VerificarAccesoCanalUseCase:
+    """Verifica el token de canal, el cliente, el usuario y el límite de llamadas."""
     def __init__(self, clientes: ClienteExternoRepository, usuarios: UsuarioCanalRepository,
                  verificar_token: Callable[[str], dict], limitar: Limitador):
         self.clientes = clientes
@@ -42,6 +45,11 @@ class VerificarAccesoCanalUseCase:
         self.limitar = limitar
 
     def execute(self, token: Optional[str], canal: str, ip: Optional[str]) -> AccesoCanal:
+        """Devuelve el acceso verificado al canal.
+
+        Raises:
+            AuthenticationError: Si falta el token o no es válido.
+        """
         if not token:
             raise AuthenticationError(code="NO_AUTENTICADO", message="Falta la credencial de acceso del canal.")
         payload = self.verificar_token(token)

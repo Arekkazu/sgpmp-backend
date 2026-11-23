@@ -3,6 +3,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: consulta y actualización de los parámetros de alertas por el administrador |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y SLA en los parámetros de alertas |
 # | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: catálogo por subclase para reutilizarlo en la política de visión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Parámetros de RF-57 que el administrador configura (E12/E13, CA-2, E16, E8).
 
 Viven en el almacén de DEV-14 (``modulo4.parametros_mlops``). La escritura reutiliza
@@ -54,6 +55,7 @@ PARAMETROS_ALERTAS: dict[str, tuple[Any, str]] = {
 
 @dataclass
 class ParametroAlerta:
+    """Parámetro configurable con su valor vigente."""
     nombre: str
     descripcion: str
     valor: Optional[Any]             # valor efectivo que usa RF-57
@@ -65,6 +67,7 @@ class ParametroAlerta:
 
 
 class ParametrosAlertasUseCase:
+    """Consulta y actualiza los parámetros de alertas."""
     catalogo = PARAMETROS_ALERTAS
     codigo_invalido, rf = "PARAMETRO_ALERTAS_INVALIDO", "RF-57"
 
@@ -73,6 +76,7 @@ class ParametrosAlertasUseCase:
         self.parametros_repo = parametros_repo
 
     def consultar(self) -> list[ParametroAlerta]:
+        """Lista los parámetros del catálogo con su valor vigente."""
         configurados = self.parametros_repo.obtener(list(self.catalogo))
         resultado = []
         for nombre, (base, descripcion) in self.catalogo.items():
@@ -85,6 +89,7 @@ class ParametrosAlertasUseCase:
         return resultado
 
     def actualizar(self, cambios: dict[str, Any], id_usuario: int) -> list[ParametroAlerta]:
+        """Actualiza los parámetros indicados y los audita."""
         ajenos = sorted(set(cambios) - set(self.catalogo))
         if not cambios or ajenos:
             raise ValidationError(

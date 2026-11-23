@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.auditorias_asociaciones_sensor_activo``: valores
 antes/después de cada cambio de una asociación sensor-activo.
 """
@@ -23,6 +26,7 @@ from .base_model import Base
 
 
 class AuditoriaAsociacionSensorModel(Base):
+    """Modelo ORM de la auditoría de asociaciones de sensores (tabla ``modulo2.auditorias_asociaciones_sensor_activo``)."""
     __tablename__ = 'auditorias_asociaciones_sensor_activo'
     __table_args__ = (
         CheckConstraint(

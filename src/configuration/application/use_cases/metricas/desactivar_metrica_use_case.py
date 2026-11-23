@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Desactivar métrica de producción (Flujo K — RF-16).
 
 Bloquea la desactivación si existen registros productivos activos que usan
@@ -34,6 +37,7 @@ class DesactivarMetricaUseCase:
         self.dependencia_port = dependencia_port
 
     def execute(self, id_metrica_produccion: int, usuario_actual: UsuarioActual) -> MetricaProduccion:
+        """Desactiva la métrica y la audita."""
         metrica = self.metricas_repo.obtener_por_id(id_metrica_produccion)
         if metrica is None:
             raise NotFoundError(

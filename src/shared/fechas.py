@@ -3,6 +3,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-14 | Arekkazu | QA-M06 RF-37/40: «hoy» con el reloj del usuario adelantado no es fecha futura |
 # | 2026-11-18 | Arekkazu | M08 RF-104: restablecer la zona tras generar un reporte por otro usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Regla única de fechas: se guarda y viaja en UTC; el día se ve en la zona del usuario.
 
 - **Instantes** (``datetime``): todo lo que entra se normaliza a UTC con
@@ -64,6 +65,7 @@ def restablecer_zona_usuario(token: Token) -> None:
 
 
 def zona_usuario() -> tzinfo:
+    """Devuelve la zona horaria del usuario de la petición actual (UTC por defecto)."""
     return _zona.get()
 
 

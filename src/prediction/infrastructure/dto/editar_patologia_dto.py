@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | INC-M04-140-G003 RF-64: nombre con espacios internos normalizados |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO de edición de una patología."""
 from __future__ import annotations
 
 from typing import Optional
@@ -14,6 +16,7 @@ from src.shared.fechas import FechaHoraUtc
 
 
 class EditarPatologiaDTO(BaseDTO):
+    """Datos editables de una patología."""
     nombre_patologia: str
     descripcion_clinica: str
     variables_sensoricas_asociadas: list[int]

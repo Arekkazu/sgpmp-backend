@@ -3,6 +3,7 @@
 # | 2026-11-18 | Arekkazu | M08 RF-106: TVCO, conflictos, correspondencias, colisiones y pendientes       |
 # | 2026-11-20 | Arekkazu | QA-M08 CU04 H-01 RF-106: pendientes con el mismo criterio que la bandeja de retroalimentación |
 # | 2026-11-22 | Arekkazu | INC-M08-396-G022 RF-106: pendientes = toda inferencia sin retroalimentación de más de 48 h |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Reglas del historial clínico predictivo de un animal (RF-106), sin E/S.
 
 - **TVCO** (tasa de validación clínica observada) = CORRECTO / inferencias con retroalimentación sin conflicto.
@@ -29,6 +30,7 @@ _PRIORIDAD = {"RETROALIMENTACION": 0, "EVENTO_SANITARIO": 1, "PREDICCION": 2}
 
 @dataclass
 class Tvco:
+    """Tasa de validación correcta de las predicciones."""
     porcentaje: Optional[float]
     validadas: int
     sin_retroalimentacion: int
@@ -37,10 +39,12 @@ class Tvco:
 
     @property
     def tasa_error(self) -> Optional[float]:
+        """Porcentaje de error (100 - tasa), o ``None``."""
         return None if self.porcentaje is None else round(100 - self.porcentaje, 2)
 
 
 def valoraciones_por_inferencia(retros: list[dict[str, Any]]) -> dict[Any, set[str]]:
+    """Agrupa las valoraciones de retroalimentación por inferencia."""
     agrupadas: dict[Any, set[str]] = {}
     for r in retros:
         agrupadas.setdefault(r["id_resultado_inferencia"], set()).add(r["valoracion"])
@@ -52,6 +56,7 @@ def _plural(n: int, singular: str, plural: str) -> str:
 
 
 def calcular_tvco(id_inferencias: list[Any], retros: list[dict[str, Any]]) -> Tvco:
+    """Calcula la tasa de validación correcta de las inferencias."""
     valoraciones = valoraciones_por_inferencia(retros)
     sin_retro = sum(1 for i in id_inferencias if i not in valoraciones)
     conflicto = [i for i in id_inferencias if len(valoraciones.get(i, ())) > 1]
@@ -74,6 +79,7 @@ def calcular_tvco(id_inferencias: list[Any], retros: list[dict[str, Any]]) -> Tv
 
 @dataclass
 class Marcador:
+    """Marca de la línea de tiempo predictiva."""
     tipo: str  # PREDICCION, EVENTO_SANITARIO, RETROALIMENTACION
     fecha: datetime
     datos: dict[str, Any] = field(default_factory=dict)

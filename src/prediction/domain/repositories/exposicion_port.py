@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: focos vecinos y lotes expuestos según la topología de RF-110 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Lo que RF-68 necesita de la topología sanitaria (RF-110) para la exposición entre áreas."""
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from src.prediction.domain.entities.riesgo_contagio import FocoVecino
 
 
 class ExposicionPort(ABC):
+    """Puerto de exposición de un lote a focos vecinos."""
 
     @abstractmethod
     def focos_hacia(self, id_lote: int, desde: datetime) -> list[FocoVecino]:

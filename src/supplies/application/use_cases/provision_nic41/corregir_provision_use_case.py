@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79 E4: versión N+1, SUPERADO y a M06   |
 # | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: el rechazo de la corrección queda en la bitácora |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: corregir un reporte consolidado NIC-41 (RF-79 E4).
 
 Genera la versión N+1 con ``id_reporte_anterior`` y ``motivo_correccion``; la
@@ -25,6 +26,7 @@ from src.supplies.domain.value_objects.motivo_correccion import MotivoCorreccion
 
 
 class CorregirProvisionUseCase:
+    """Corrige una provisión NIC 41 generando una versión nueva."""
     def __init__(
         self, db: Session, provision_repo: ProvisionNic41Repository, consolidar: ConsolidarCicloUseCase
     ) -> None:
@@ -33,6 +35,7 @@ class CorregirProvisionUseCase:
         self.consolidar = consolidar
 
     def execute(self, id_provision: int, motivo_correccion: str, usuario_actual: UsuarioActual) -> ProvisionNic41:
+        """Genera la versión corregida de la provisión con su motivo."""
         original = None
         try:
             original = self.provision_repo.obtener(id_provision)

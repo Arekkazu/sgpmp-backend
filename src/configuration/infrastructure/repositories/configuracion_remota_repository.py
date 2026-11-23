@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``ConfiguracionRemotaRepository``."""
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
+    """Implementación SQLAlchemy de ``ConfiguracionRemotaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -31,6 +35,7 @@ class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
         )
 
     def guardar(self, config: ConfiguracionRemota) -> ConfiguracionRemota:
+        """Inserta la configuración remota y devuelve la entidad con su id asignado."""
         orm = ConfiguracionRemotaModel(
             id_dispositivo_iot=config.id_dispositivo_iot,
             frecuencia_captura=config.frecuencia_captura,
@@ -48,6 +53,9 @@ class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, config: ConfiguracionRemota) -> ConfiguracionRemota:
+        """Persiste los cambios de la configuración remota y devuelve la entidad
+        actualizada.
+        """
         orm = self.db.get(ConfiguracionRemotaModel, config.id_configuracion_remota)
         orm.estado = config.estado
         orm.fecha_aplicacion = config.fecha_aplicacion
@@ -59,10 +67,12 @@ class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
         return self._a_entidad(orm)
 
     def obtener_por_id(self, id_configuracion_remota: int) -> Optional[ConfiguracionRemota]:
+        """Obtiene la configuración remota por id, o ``None`` si no existe."""
         orm = self.db.get(ConfiguracionRemotaModel, id_configuracion_remota)
         return self._a_entidad(orm) if orm else None
 
     def obtener_pendiente(self, id_dispositivo_iot: int) -> Optional[ConfiguracionRemota]:
+        """Retorna la configuración con estado='PENDIENTE' si existe, o None."""
         orm = (
             self.db.query(ConfiguracionRemotaModel)
             .filter(
@@ -74,6 +84,7 @@ class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
         return self._a_entidad(orm) if orm else None
 
     def listar_por_dispositivo(self, id_dispositivo_iot: int) -> list[ConfiguracionRemota]:
+        """Historial de configuraciones remotas del dispositivo."""
         return [
             self._a_entidad(orm)
             for orm in (

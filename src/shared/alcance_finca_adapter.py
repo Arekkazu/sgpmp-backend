@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de alcance por finca contra ``modulo9`` (RF-25).
 
 Implementación concreta de ``AlcanceFincaPort``. El único rol con alcance global
@@ -34,9 +37,11 @@ class AlcanceFincaAdapter(AlcanceFincaPort):
         self.db = db
 
     def es_global(self, id_rol: int) -> bool:
+        """Indica si el rol es el protegido (Administrador) y por tanto ve todas las fincas."""
         return bool(self.db.execute(_SQL_ROL_PROTEGIDO, {"id_rol": id_rol}).scalar())
 
     def listar_ids_fincas_permitidas(self, id_usuario: int, id_rol: int) -> Optional[list[int]]:
+        """Devuelve los ids de finca del usuario, o ``None`` si su rol tiene alcance global."""
         if self.es_global(id_rol):
             return None
         filas = self.db.execute(

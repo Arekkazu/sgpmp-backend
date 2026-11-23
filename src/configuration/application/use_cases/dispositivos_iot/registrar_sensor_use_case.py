@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar sensor en un dispositivo IoT (POST /{id}/sensores).
 
 Los sensores deben existir antes de poder asociarlos a áreas productivas (precondición RF-22).
@@ -31,6 +34,7 @@ class RegistrarSensorUseCase:
         self.tipo_repo = tipo_repo
 
     def execute(self, id_dispositivo_iot: int, dto: RegistrarSensorDTO, usuario_actual: UsuarioActual) -> Sensor:
+        """Registra un sensor en el dispositivo."""
         dispositivo = self.dispositivo_repo.obtener_por_id(id_dispositivo_iot)
         if dispositivo is None:
             raise NotFoundError(
@@ -72,4 +76,5 @@ class ConsultarSensoresUseCase:
         self.sensor_repo = sensor_repo
 
     def listar_por_dispositivo(self, id_dispositivo_iot: int) -> list[Sensor]:
+        """Lista los sensores del dispositivo."""
         return self.sensor_repo.listar_por_dispositivo(id_dispositivo_iot)

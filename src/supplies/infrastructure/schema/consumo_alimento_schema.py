@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para los endpoints de consumo de alimento (RF-75)."""
 from __future__ import annotations
 
@@ -55,5 +56,6 @@ class TipoAlimentoResponse(BaseModel):
 
 
 class ListaTiposAlimentoResponse(BaseModel):
+    """Tipos de alimento disponibles."""
     total: int
     items: list[TipoAlimentoResponse]

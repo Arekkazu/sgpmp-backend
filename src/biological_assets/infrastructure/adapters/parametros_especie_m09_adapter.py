@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adapter de ``ParametrosEspeciePort`` que lee densidad máxima, parámetros y métricas
 productivas de M09.
 """
@@ -59,12 +62,14 @@ class ParametrosEspecieM09Adapter(ParametrosEspeciePort):
         self.db = db
 
     def obtener_densidad_maxima(self, id_especie: int) -> Optional[Decimal]:
+        """Devuelve la densidad máxima de la especie activa, o ``None``."""
         row = self.db.get(EspecieModel, id_especie)
         if row is None or not row.es_activo:
             return None
         return row.densidad_maxima_por_especie
 
     def listar_por_especie(self, id_especie: int, tipo_activo: str) -> list[ParametroEspecie]:
+        """Lista los parámetros de medición de la especie para el tipo de activo."""
         tipo_db = _TIPO_ACTIVO_A_LOTE.get(tipo_activo, tipo_activo)
         rows = (
             self.db.query(MetricaProduccionModel)
@@ -80,6 +85,7 @@ class ParametrosEspecieM09Adapter(ParametrosEspeciePort):
     def obtener_por_tipo_medicion(
         self, id_especie: int, tipo_medicion: str, tipo_activo: str
     ) -> Optional[ParametroEspecie]:
+        """Devuelve el parámetro de la especie para el tipo de medición, o ``None``."""
         tipo_db = _TIPO_ACTIVO_A_LOTE.get(tipo_activo, tipo_activo)
         row = (
             self.db.query(MetricaProduccionModel)
@@ -96,12 +102,14 @@ class ParametrosEspecieM09Adapter(ParametrosEspeciePort):
     def obtener_metrica_productiva(
         self, id_metrica_produccion: int, id_especie: int, tipo_activo: str
     ) -> Optional[MetricaProductiva]:
+        """Devuelve la métrica productiva de la especie, o ``None``."""
         row = self._metricas_productivas(id_especie, tipo_activo).filter(
             MetricaProduccionModel.id_metrica_produccion == id_metrica_produccion,
         ).first()
         return _a_metrica(row) if row is not None else None
 
     def listar_metricas_productivas(self, id_especie: int, tipo_activo: str) -> list[MetricaProductiva]:
+        """Lista las métricas productivas de la especie para el tipo de activo."""
         rows = self._metricas_productivas(id_especie, tipo_activo).order_by(MetricaProduccionModel.nombre).all()
         return [_a_metrica(r) for r in rows]
 
@@ -114,6 +122,7 @@ class ParametrosEspecieM09Adapter(ParametrosEspeciePort):
         )
 
     def listar_patologias(self, id_especie: int) -> list[PatologiaEspecie]:
+        """Lista las patologías de la especie."""
         rows = (
             self.db.query(EspeciePatologiaModel.id_especies_patologias, EspeciePatologiaModel.nombre)
             .filter(EspeciePatologiaModel.id_especie == id_especie, EspeciePatologiaModel.es_activo.is_(True))

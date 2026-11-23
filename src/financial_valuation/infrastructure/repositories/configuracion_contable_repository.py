@@ -5,6 +5,7 @@
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región, con GENERAL de respaldo |
 # | 2026-11-15 | Arekkazu | INC-M06-365-G21 RF-84: una región agrupada («Huila - Tolima») vale para cada uno de sus departamentos |
 # | 2026-11-15 | Arekkazu | QA-M06 CU08 H-02 RF-89: productos de cada especie para el precio, sin el permiso de métricas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`ConfiguracionContableRepository`."""
 from __future__ import annotations
 
@@ -33,10 +34,12 @@ def _region(expr: str) -> str:
 
 
 class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository):
+    """Implementación SQLAlchemy de ``ConfiguracionContableRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener(self) -> ConfiguracionContable:
+        """Devuelve la configuración vigente."""
         f = fila(self.db, """SELECT tipo_cierre::text AS tipo_cierre, pct_umbral_desviacion_precio,
                                     dias_alerta_vencimiento_precio, fecha_inicio_operacion, fecha_actualizacion
                              FROM modulo6.configuraciones_contables WHERE id_configuracion_contable = 1""")
@@ -48,6 +51,7 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
         return ConfiguracionContable(**f)
 
     def actualizar(self, tipo_cierre: str, pct_umbral: Decimal, dias_alerta: int, id_usuario: int) -> ConfiguracionContable:
+        """Actualiza la configuración general."""
         escribir(self.db, """UPDATE modulo6.configuraciones_contables
                              SET tipo_cierre = :t, pct_umbral_desviacion_precio = :u, dias_alerta_vencimiento_precio = :d,
                                  id_usuario = :usr, fecha_actualizacion = now()
@@ -56,12 +60,14 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
         return self.obtener()
 
     def parametro_especie(self, id_especie: int) -> Optional[ParametroEspecie]:
+        """Devuelve el parámetro de la especie, o ``None``."""
         f = fila(self.db, """SELECT id_especie, clasificacion::text AS clasificacion, categoria_precio::text AS categoria_precio,
                                     vida_util_meses
                              FROM modulo6.parametros_contables_especies WHERE id_especie = :e""", {"e": id_especie})
         return ParametroEspecie(**f) if f else None
 
     def listar_parametros_especie(self) -> list[dict]:
+        """Lista los parámetros por especie."""
         return filas(self.db, """
             SELECT e.id_especie, e.nombre AS especie, p.clasificacion::text AS clasificacion,
                    p.categoria_precio::text AS categoria_precio, p.vida_util_meses, p.fecha_actualizacion,
@@ -75,6 +81,7 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
             WHERE e.es_activo ORDER BY e.nombre""")
 
     def guardar_parametro_especie(self, parametro: ParametroEspecie, id_usuario: int) -> None:
+        """Guarda el parámetro de la especie."""
         escribir(self.db, """
             INSERT INTO modulo6.parametros_contables_especies (id_especie, clasificacion, categoria_precio, vida_util_meses, id_usuario)
             VALUES (:e, :c, :cat, :v, :u)
@@ -85,6 +92,7 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
               "v": parametro.vida_util_meses, "u": id_usuario})
 
     def costos_venta_vigentes(self, id_especie: int, region: Optional[str] = None) -> Optional[ParametroCostosVenta]:
+        """El vigente de la especie en la región del activo; si la región no tiene uno propio, el GENERAL."""
         # Una región agrupada («Huila - Tolima») vale para cada departamento que nombra; la exacta gana a la agrupada
         # y las dos al GENERAL.
         depto = _region("CAST(:r AS varchar)")
@@ -97,6 +105,7 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
         return ParametroCostosVenta(**f) if f else None
 
     def listar_costos_venta(self) -> list[dict]:
+        """Lista los costos de venta configurados."""
         return filas(self.db, """
             SELECT p.id_parametro_costo_venta, p.id_especie, e.nombre AS especie, p.region, p.pct_transporte,
                    p.pct_comisiones, p.pct_impuestos, p.es_activo, p.fecha_creacion
@@ -104,6 +113,7 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
             ORDER BY e.nombre, p.fecha_creacion DESC""")
 
     def guardar_costos_venta(self, id_especie, region, pct_transporte, pct_comisiones, pct_impuestos, id_usuario) -> int:
+        """Desactiva el vigente de la especie y región y crea uno nuevo (historial, RNF-84-05)."""
         escribir(self.db, f"""UPDATE modulo6.parametros_costos_venta SET es_activo = false
                               WHERE id_especie = :e AND es_activo AND {_region('region')} = {_region('CAST(:r AS varchar)')}""",
                  {"e": id_especie, "r": region})
@@ -116,6 +126,7 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
         """, {"e": id_especie, "r": region, "t": pct_transporte, "c": pct_comisiones, "i": pct_impuestos, "u": id_usuario})
 
     def resolver_cuenta(self, tipo_hecho, sentido, id_especie, subtipo_costo) -> Optional[AsignacionCuenta]:
+        """Par vigente más específico: especie y subtipo exactos antes que los generales."""
         f = fila(self.db, """
             SELECT id_asignacion_cuenta_contable, tipo_hecho::text AS tipo_hecho, sentido::text AS sentido, id_especie,
                    subtipo_costo::text AS subtipo_costo, cuenta_debito, cuenta_credito
@@ -128,6 +139,7 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
         return AsignacionCuenta(**f) if f else None
 
     def listar_asignaciones(self) -> list[AsignacionCuenta]:
+        """Lista las asignaciones de cuentas."""
         return [AsignacionCuenta(**f) for f in filas(self.db, """
             SELECT id_asignacion_cuenta_contable, tipo_hecho::text AS tipo_hecho, sentido::text AS sentido, id_especie,
                    subtipo_costo::text AS subtipo_costo, cuenta_debito, cuenta_credito
@@ -135,6 +147,7 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
             ORDER BY tipo_hecho, sentido, id_especie NULLS FIRST, subtipo_costo NULLS FIRST""")]
 
     def guardar_asignacion(self, tipo_hecho, sentido, id_especie, subtipo_costo, cuenta_debito, cuenta_credito, id_usuario) -> int:
+        """Guarda una asignación de cuentas."""
         escribir(self.db, """
             UPDATE modulo6.asignaciones_cuentas_contables SET es_activo = false
             WHERE es_activo AND tipo_hecho::text = :t AND sentido::text = :s
@@ -150,5 +163,6 @@ class SqlAlchemyConfiguracionContableRepository(ConfiguracionContableRepository)
               "c": cuenta_credito, "u": id_usuario})
 
     def desactivar_asignacion(self, id_asignacion: int) -> bool:
+        """Desactiva la asignación; ``False`` si no existe."""
         return bool(escribir(self.db, """UPDATE modulo6.asignaciones_cuentas_contables SET es_activo = false
                                          WHERE id_asignacion_cuenta_contable = :id AND es_activo""", {"id": id_asignacion}))

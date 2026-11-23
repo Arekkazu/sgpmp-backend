@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``PreferenciaIdiomaRepository`` (RF-29)."""
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ from src.shared.errors import NotFoundError
 
 
 class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
+    """Implementación SQLAlchemy de ``PreferenciaIdiomaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -29,6 +33,9 @@ class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
         )
 
     def obtener_por_usuario(self, id_usuario: int) -> Optional[PreferenciaIdioma]:
+        """Obtiene la preferencia de idioma personal del usuario, o ``None`` si no
+        tiene.
+        """
         orm = (
             self.db.query(PreferenciaIdiomaModel)
             .filter(
@@ -44,6 +51,9 @@ class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_global(self) -> Optional[PreferenciaIdioma]:
+        """Obtiene la preferencia de idioma global del sistema, o ``None`` si no está
+        definido.
+        """
         orm = (
             self.db.query(PreferenciaIdiomaModel)
             .filter(PreferenciaIdiomaModel.es_por_defecto.is_(True))
@@ -56,6 +66,7 @@ class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
         return self._a_entidad(orm) if orm else None
 
     def version_perfil(self, id_usuario: int) -> Optional[int]:
+        """Versión actual del perfil del usuario, para la comprobación de concurrencia."""
         return (
             self.db.query(Usuarios.version)
             .filter(Usuarios.id_usuario == id_usuario)
@@ -63,6 +74,7 @@ class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
         )
 
     def guardar(self, entidad: PreferenciaIdioma) -> PreferenciaIdioma:
+        """Inserta la preferencia de idioma y devuelve la entidad con su id asignado."""
         orm = PreferenciaIdiomaModel(
             id_usuario=entidad.id_usuario,
             locale_code=entidad.locale_code,
@@ -78,6 +90,9 @@ class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, entidad: PreferenciaIdioma) -> PreferenciaIdioma:
+        """Persiste los cambios de la preferencia de idioma y devuelve la entidad
+        actualizada.
+        """
         orm = self.db.get(PreferenciaIdiomaModel, entidad.id_preferencia_idioma)
         if orm is None:
             raise NotFoundError(

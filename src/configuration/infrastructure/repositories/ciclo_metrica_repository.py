@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``CicloMetricaRepository``.
 
 Los ciclos productivos se ligan a la especie por su ciclo biológico
@@ -47,10 +50,12 @@ class SqlAlchemyCicloMetricaRepository(CicloMetricaRepository):
         self.db = db
 
     def listar_por_metrica(self, id_metrica_produccion: int, id_especie: int) -> list[CicloMetrica]:
+        """Ciclos productivos de la especie, ordenados por nombre, con ``habilitada`` para la métrica."""
         filas = self.db.execute(_LISTAR, {'id_metrica': id_metrica_produccion, 'id_especie': id_especie})
         return [CicloMetrica(f.id_ciclo_productivo, f.nombre, bool(f.habilitada)) for f in filas]
 
     def reemplazar(self, id_metrica_produccion: int, ids_ciclos_productivos: set[int]) -> None:
+        """Deja la métrica habilitada exactamente en esos ciclos."""
         ids = sorted(ids_ciclos_productivos)
         try:
             if ids:

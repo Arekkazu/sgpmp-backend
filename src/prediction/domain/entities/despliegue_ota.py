@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad de despliegue OTA de un modelo en un dispositivo."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +12,7 @@ from typing import Optional
 
 @dataclass
 class DespliegueOta:
+    """Despliegue OTA de una versión de modelo en un dispositivo."""
     id_despliegue_ota: int
     id_version_modelo: int
     id_dispositivo_iot: int
@@ -40,9 +45,11 @@ class DespliegueOta:
 
     @property
     def esta_terminado(self) -> bool:
+        """Indica si el despliegue terminó."""
         return self.estado_despliegue in ESTADOS_TERMINALES
 
     def marcar_notificado(self, id_mensaje: str, fecha_expiracion_url: datetime) -> None:
+        """Registra el aviso enviado al dispositivo con la vigencia de la URL."""
         self.id_mensaje_notify = id_mensaje
         self.fecha_expiracion_url = fecha_expiracion_url
         self.motivo_fallo = None
@@ -58,6 +65,7 @@ class DespliegueOta:
         intentos_descarga: Optional[int] = None,
         nivel_bateria: Optional[Decimal] = None,
     ) -> None:
+        """Registra el avance reportado por el dispositivo."""
         self.estado_despliegue = ESTADO_EN_PROCESO
         if tamano_descargado_bytes is not None:
             self.tamano_descargado_bytes = tamano_descargado_bytes
@@ -72,10 +80,12 @@ class DespliegueOta:
         self.motivo_fallo = motivo
 
     def marcar_integridad_valida(self) -> None:
+        """Marca el hash del artefacto como válido."""
         self.estado_despliegue = ESTADO_EN_PROCESO
         self.resultado_validacion_hash = True
 
     def activar(self, ahora: datetime, duracion_proceso_ms: Optional[int]) -> None:
+        """Marca el despliegue como exitoso."""
         self.estado_despliegue = ESTADO_EXITOSO
         self.fecha_fin = ahora
         self.motivo_fallo = None
@@ -83,6 +93,7 @@ class DespliegueOta:
             self.duracion_proceso_ms = duracion_proceso_ms
 
     def fallar(self, ahora: datetime, motivo: str, *, rollback: bool, hash_invalido: bool = False) -> None:
+        """Marca el despliegue como fallido con su motivo."""
         self.estado_despliegue = ESTADO_FALLIDO
         self.fecha_fin = ahora
         self.motivo_fallo = motivo

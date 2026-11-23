@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: ciclos productivos de la especie con sus fases en orden |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de los ciclos productivos de una especie (RF-16, RF-37)."""
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from src.configuration.domain.entities.ciclo_productivo import CicloProductivo
 
 
 class CicloProductivoRepository(ABC):
+    """Puerto de persistencia de ciclos productivos."""
     @abstractmethod
     def listar_por_especie(self, id_especie: int) -> list[CicloProductivo]:
         """Ciclos de la especie por nombre, cada uno con sus fases en orden."""

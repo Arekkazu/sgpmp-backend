@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Distribución OTA de un modelo por componente a varios nodos (DEV-15, RF-70/RF-73, D6).
 
 Una distribución es un ``POST /prediccion/ota/distribuciones``: una versión de un
@@ -43,12 +46,14 @@ def planificar_fases(cantidad_nodos: int, porcentaje_parcial: int) -> list[str]:
 
 
 def siguiente_fase(fase: str) -> Optional[str]:
+    """Devuelve la fase siguiente de la distribución, o ``None``."""
     indice = FASES.index(fase)
     return FASES[indice + 1] if indice + 1 < len(FASES) else None
 
 
 @dataclass
 class DistribucionOta:
+    """Distribución OTA escalonada de una versión de modelo."""
     id_version_modelo: int
     tipo_modelo: str
     componente: Optional[str]
@@ -68,6 +73,7 @@ class DistribucionOta:
 
     @property
     def esta_en_curso(self) -> bool:
+        """Indica si la distribución está en curso."""
         return self.estado_distribucion == ESTADO_EN_CURSO
 
     def parametros_nodo(self) -> dict:
@@ -90,5 +96,6 @@ class DistribucionOta:
         self.fecha_actualizacion = ahora
 
     def detener(self, ahora: datetime) -> None:
+        """Detiene la distribución."""
         self.estado_distribucion = ESTADO_DETENIDA
         self.fecha_actualizacion = ahora

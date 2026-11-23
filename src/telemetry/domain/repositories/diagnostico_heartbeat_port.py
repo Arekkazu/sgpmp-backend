@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: documenta politica real y limites FW |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Frontera de diagnóstico con configuración persistida en DEV-14.
 
 El adaptador real no completa umbrales ausentes ni presupone SemVer para FW-06.
@@ -14,6 +15,7 @@ from typing import Protocol
 
 @dataclass(frozen=True)
 class UmbralesTemperaturaDispositivo:
+    """Umbrales de temperatura operativa y crítica de un dispositivo."""
     maximo_operativo: Decimal
     critico: Decimal | None = None
 
@@ -28,6 +30,7 @@ class UmbralesTemperaturaDispositivo:
 
 @dataclass(frozen=True)
 class ComparacionFirmware:
+    """Resultado de comparar el firmware instalado con la versión mínima."""
     version_minima: str
     es_anterior: bool
 
@@ -37,7 +40,10 @@ class ComparacionFirmware:
 
 
 class DiagnosticoHeartbeatPort(Protocol):
-    def obtener_umbrales_temperatura(self, id_dispositivo: int) -> UmbralesTemperaturaDispositivo: ...
+    """Puerto para la política de temperatura y firmware de los dispositivos."""
+    def obtener_umbrales_temperatura(self, id_dispositivo: int) -> UmbralesTemperaturaDispositivo:
+        """Devuelve los umbrales de temperatura del dispositivo."""
+        ...
 
     def comparar_firmware(self, id_dispositivo: int, version_instalada: str) -> ComparacionFirmware:
         """Aplica la convención aprobada de FW-06; nunca orden lexicográfico."""

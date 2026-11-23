@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Value object ``UbicacionFinca`` — datos geográficos de una finca (RF-19).
 
 Encapsula el JSONB: departamento, municipio, vereda (solo letras/espacios/tildes/ñ)
@@ -74,6 +77,7 @@ class UbicacionFinca:
         object.__setattr__(self, "longitud", lon)
 
     def to_dict(self) -> dict:
+        """Serializa la ubicación."""
         return {
             "departamento": self.departamento,
             "municipio": self.municipio,

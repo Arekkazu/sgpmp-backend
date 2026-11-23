@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101 5.2: credenciales del cliente solo en el pedido de token |
 # | 2026-11-06 | Arekkazu | RF-SSO02: acepta los nombres de campo que AgroFusion envía sin traducir |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTOs de entrada para la integración server-to-server con AgroFusion (canal de identidad, RF-SSO02).
 
 Desde RF-101 v2.0 ``client_id``/``client_secret`` solo llegan en el pedido de token
@@ -114,6 +115,7 @@ class AgroFusionCreateUserDTO(_ApellidosDTO):
     @field_validator("numero_identificacion")
     @classmethod
     def validar_identificacion(cls, v: str, info: ValidationInfo) -> str:
+        """Valida la identificación según su tipo."""
         tipo = info.data.get("tipo_identificacion")
         if not identificacion_valida(tipo, v):
             raise ValueError(mensaje_identificacion_invalida(tipo))

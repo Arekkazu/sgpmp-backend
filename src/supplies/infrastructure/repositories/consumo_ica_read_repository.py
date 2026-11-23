@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`ConsumoICAReadPort` (RF-74).
 
 Suma el alimento VALIDADO de ``modulo5.registros_consumo_alimentos`` en el período.
@@ -18,12 +21,18 @@ from src.supplies.infrastructure.models.registro_consumo_alimento_model import R
 
 
 class SqlAlchemyConsumoICAReadRepository(ConsumoICAReadPort):
+    """Implementación SQLAlchemy de ``ConsumoICAReadPort``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def sumar_alimento_validado(
         self, id_activo_biologico: int, fecha_desde: date, fecha_hasta: date
     ) -> Optional[Decimal]:
+        """Suma de kg de alimento VALIDADO en ``[fecha_desde, fecha_hasta]``.
+
+        Devuelve ``None`` si no hay ningún registro VALIDADO en el período (para
+        distinguir "sin registros" de "cero").
+        """
         total = (
             self.db.query(func.sum(RegistroConsumoAlimentoModel.cantidad_suministrada))
             .filter(

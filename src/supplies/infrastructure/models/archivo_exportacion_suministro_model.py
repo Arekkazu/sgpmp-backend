@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77/RF-81: archivos exportados          |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo5.archivos_exportacion_suministros`` (RF-77 24 h / RF-81 72 h)."""
 import datetime
 import uuid
@@ -13,6 +14,7 @@ from .base_model import Base
 
 
 class ArchivoExportacionSuministroModel(Base):
+    """Modelo ORM de la tabla ``modulo5.archivos_exportacion_suministros``."""
     __tablename__ = "archivos_exportacion_suministros"
     __table_args__ = {"schema": "modulo5"}
 

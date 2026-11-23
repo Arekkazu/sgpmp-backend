@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: reportes permitidos por RBAC y alcance del solicitante |
 # | 2026-11-19 | Arekkazu | M08 RF-104: rol de quien genera, para el encabezado del reporte |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Quién pide un reporte: los tipos que su rol puede generar (permiso Ejecutar sobre ``reporte_<tipo>`` en
 ``modulo1.permisos``), sus fincas y su nombre (para la firma del Contador). Una sola consulta de permisos."""
 from __future__ import annotations
@@ -27,6 +28,7 @@ _RECURSOS = {d.recurso: d.tipo for d in CATALOGO.values()}
 
 
 def construir_solicitante(db: Session, id_usuario: int, id_rol: int, zona_horaria: str) -> Solicitante:
+    """Arma el solicitante con los reportes permitidos y las fincas del usuario."""
     permitidos = {_RECURSOS[f.nombre_recurso] for f in db.execute(
         _SQL_PERMITIDOS, {"rol": id_rol, "recursos": list(_RECURSOS)})}
     return Solicitante(

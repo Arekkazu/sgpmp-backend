@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: listar el catálogo de tipos de alimento (RF-75).
 
 El registro de consumo exige un ``id_tipo_alimento`` existente y ACTIVO
@@ -22,4 +23,5 @@ class ListarTiposAlimentoUseCase:
         self.consumo_repo = consumo_repo
 
     def execute(self, *, solo_activos: bool = True) -> list[TipoAlimentoRef]:
+        """Lista los tipos de alimento, por defecto solo los activos."""
         return self.consumo_repo.listar_tipos_alimento(solo_activos=solo_activos)

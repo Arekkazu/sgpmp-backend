@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74 E5: auditoría del fallo manual      |
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: conectar el notificador de M01 con la interrupción manual. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Fábricas de wiring del CU-02 (RF-74).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases listos.
@@ -86,6 +87,7 @@ def build_ejecutar_batch_use_case(db: Session) -> EjecutarBatchICAUseCase:
 
 
 def build_interrumpir_batch_use_case(db: Session) -> InterrumpirBatchICAUseCase:
+    """Construye ``InterrumpirBatchICAUseCase`` con sus dependencias."""
     return InterrumpirBatchICAUseCase(
         db=db,
         ejecucion_repo=SqlAlchemyEjecucionBatchICARepository(db),
@@ -94,6 +96,7 @@ def build_interrumpir_batch_use_case(db: Session) -> InterrumpirBatchICAUseCase:
 
 
 def build_reintentar_ica_use_case(db: Session) -> ReintentarICAManualUseCase:
+    """Construye ``ReintentarICAManualUseCase`` con sus dependencias."""
     return ReintentarICAManualUseCase(
         db=db,
         calcular_uc=build_calcular_ica_use_case(db),

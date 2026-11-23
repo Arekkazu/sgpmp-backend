@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-317-G17 RF-84: cálculo en revisión y validación del valor neto ≤ 0 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-84 R3 / FA-2: el Contador valida con justificación un cálculo con valor neto ≤ 0.
 
 El cálculo pasa de REVISION_REQUERIDA a CALCULADO y la validación (justificación, Contador y fecha)
@@ -23,12 +24,14 @@ MIN_JUSTIFICACION = 20
 
 
 class ValidarCalculoNoPositivoUseCase:
+    """Valida manualmente un cálculo de valor razonable no positivo."""
     def __init__(self, db: Session, valoraciones: ValoracionRepository, contabilizador: Contabilizador) -> None:
         self.db = db
         self.valoraciones = valoraciones
         self.contabilizador = contabilizador
 
     def execute(self, id_calculo_valor_razonable: int, justificacion: Optional[str], id_usuario: int) -> dict:
+        """Acepta el cálculo con su justificación y lo contabiliza."""
         texto = (justificacion or "").strip()
         if len(texto) < MIN_JUSTIFICACION:
             raise ValidationError(code="JUSTIFICACION_VALIDACION_REQUERIDA", field="justificacion", message=(

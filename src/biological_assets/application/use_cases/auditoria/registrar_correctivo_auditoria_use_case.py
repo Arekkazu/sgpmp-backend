@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-52 E5: "El administrador puede crear un registro correctivo en RF-52 con
 tipo_evento = REGISTRO_CORRECTIVO_AUDITORIA y el motivo". El historial RF-46 no
 se modifica; solo se completa su rastro en la bitácora.
@@ -38,6 +41,11 @@ class RegistrarCorrectivoAuditoriaUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, dto: RegistrarCorrectivoAuditoriaDTO, usuario: UsuarioActual) -> EventoAuditoria:
+        """Registra un evento correctivo sobre un registro auditado.
+
+        Raises:
+            NotFoundError: Si el registro no existe.
+        """
         registro = self.repo.obtener_registro(dto.tabla, dto.id_registro)
         if registro is None:
             raise NotFoundError(

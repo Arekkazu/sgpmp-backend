@@ -8,6 +8,7 @@
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la bitácora no deja evento |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
 # | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU09 H-05 RF-73: tipo de evento o severidad que no existen responden 4xx, no 500 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para bitácora de auditoría del módulo de predicción.
 
 RF-73 CU-09 Dev scope:
@@ -135,6 +136,7 @@ def listar_auditoria(
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> AuditoriaM04ListResponse:
+    """Lista la auditoría del motor con filtros y paginación."""
     use_case = ConsultarAuditoriaM04UseCase(repo=SqlAlchemyEventoAuditoriaM04Repository(db))
     items, total = use_case.listar(
         tipo_evento=tipo_evento,
@@ -183,6 +185,7 @@ def exportar_auditoria(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> StreamingResponse:
+    """Exporta la auditoría del motor filtrada."""
     use_case = ExportarAuditoriaM04UseCase(
         db=db,
         repo=SqlAlchemyEventoAuditoriaM04Repository(db),
@@ -223,6 +226,7 @@ def obtener_evento(
     id_evento: uuid.UUID,
     db: Session = Depends(get_db),
 ) -> EventoAuditoriaM04Response:
+    """Devuelve un evento de la auditoría del motor."""
     use_case = ConsultarAuditoriaM04UseCase(repo=SqlAlchemyEventoAuditoriaM04Repository(db))
     entidad = use_case.obtener_por_id(id_evento)
     return _con_nombre_referencia(db, _con_nombre_usuario(db, [EventoAuditoriaM04Response.model_validate(entidad)]))[0]

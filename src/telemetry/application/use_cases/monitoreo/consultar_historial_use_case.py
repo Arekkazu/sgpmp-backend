@@ -6,6 +6,8 @@
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
 # | 2026-10-31 | Arekkazu | TC-DIS-160 RF-59: más de 90 días solo con filtro de variable, sensor o especie |
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58/59: mismo semáforo que el dashboard (bandas RF-17 + tolerancia T) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta del historial de lecturas y su resumen estadístico."""
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -67,6 +69,7 @@ class ConsultarHistorialUseCase:
         id_usuario: Optional[int] = None,
         id_rol: Optional[int] = None,
     ) -> tuple[list[LecturaHistorica], list[ResumenEstadistico], int, dict]:
+        """Devuelve las lecturas, su resumen estadístico, el total y metadatos de la consulta."""
         # Fase 2 / E2: todo parámetro inválido responde 422 (INC-M03-180-G111).
         self._validar_fechas(filtros)
         self._validar_combinacion(filtros)

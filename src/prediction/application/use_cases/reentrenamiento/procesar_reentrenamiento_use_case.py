@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71 BE-2/BE-3/BE-5: el motor toma, reporta y cierra procesos; vigilante de latidos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Lo que hace el motor de IA (token de servicio) sobre los procesos, más el vigilante.
 
 - ``tomar``: el PENDIENTE más antiguo pasa a EN_CURSO (``FOR UPDATE SKIP LOCKED``: dos
@@ -30,6 +31,7 @@ SISTEMA = "motor-ia"
 
 @dataclass(frozen=True)
 class ActualizacionProceso:
+    """Cambio de fase, progreso o estado de un proceso de reentrenamiento."""
     fase: Optional[int] = None
     progreso: Optional[int] = None
     cpu: Optional[Decimal] = None
@@ -44,6 +46,7 @@ class ActualizacionProceso:
 
 
 class ProcesarReentrenamientoUseCase:
+    """Toma y actualiza procesos de reentrenamiento."""
     def __init__(self, *, db: Session, procesos: ProcesoReentrenamientoRepository,
                  auditoria_repo: EventoAuditoriaM04Repository) -> None:
         self._db = db
@@ -51,6 +54,7 @@ class ProcesarReentrenamientoUseCase:
         self._auditoria = auditoria_repo
 
     def tomar(self, ahora: Optional[datetime] = None) -> Optional[ProcesoReentrenamiento]:
+        """Reclama el siguiente proceso pendiente, o ``None``."""
         ahora = ahora or datetime.now(timezone.utc)
         try:
             proceso = self._procesos.tomar_siguiente()
@@ -75,6 +79,7 @@ class ProcesarReentrenamientoUseCase:
 
     def actualizar(self, id_proceso: uuid.UUID, cambio: ActualizacionProceso,
                    ahora: Optional[datetime] = None) -> ProcesoReentrenamiento:
+        """Aplica el cambio al proceso y lo audita."""
         ahora = ahora or datetime.now(timezone.utc)
         if cambio.estado not in (None, "COMPLETADO", "FALLIDO"):
             raise ValidationError("ESTADO_INVALIDO", "estado solo puede ser COMPLETADO o FALLIDO.", field="estado")

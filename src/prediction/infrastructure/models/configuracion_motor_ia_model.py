@@ -2,6 +2,8 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: mapear el perfil persistido de cálculo de contagio. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.configuraciones_motor_ia``."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -16,6 +18,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class ConfiguracionMotorIAModel(Base):
+    """Modelo ORM de la tabla ``modulo4.configuraciones_motor_ia``."""
     __tablename__ = "configuraciones_motor_ia"
     __table_args__ = {"schema": "modulo4"}
 

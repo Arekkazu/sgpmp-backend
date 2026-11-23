@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: puerto de indicadores del sistema de alertas |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de los indicadores de estado del sistema de alertas (RF-57, Salida 3)."""
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ from src.telemetry.domain.entities.indicadores_alertas import (
 
 
 class IndicadoresAlertasRepository(ABC):
+    """Puerto de cálculo de indicadores de alertas."""
 
     @abstractmethod
     def calcular(self, filtro: FiltroIndicadoresAlertas) -> IndicadoresAlertas:

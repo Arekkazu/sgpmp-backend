@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``AuditoriaFincaRepository``."""
 from __future__ import annotations
 
@@ -11,6 +14,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyAuditoriaFincaRepository(AuditoriaFincaRepository):
+    """Implementación SQLAlchemy de ``AuditoriaFincaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -24,6 +28,9 @@ class SqlAlchemyAuditoriaFincaRepository(AuditoriaFincaRepository):
         valores_nuevos: dict[str, Any],
         valores_anteriores: Optional[dict[str, Any]] = None,
     ) -> None:
+        """Inserta un registro de auditoría inmutable sobre la finca con los valores
+        antes/después.
+        """
         orm = AuditoriaFincaModel(
             id_finca=id_finca,
             id_usuario=id_usuario,

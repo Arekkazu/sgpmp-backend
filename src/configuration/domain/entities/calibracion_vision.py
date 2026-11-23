@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidades de la calibración por visión (RF-24 v2.0, RFC-011).
 
 - ``CalibracionVision``: un intento de cálculo de línea base, exitoso o no
@@ -55,6 +58,7 @@ class CalibracionVision:
         fecha_calibracion: datetime.datetime,
         observaciones: Optional[str] = None,
     ) -> "CalibracionVision":
+        """Crea la calibración a partir del resultado de la línea base."""
         linea_base = None
         if resultado.es_exitosa:
             linea_base = {
@@ -80,6 +84,7 @@ class CalibracionVision:
 
     @property
     def es_exitosa(self) -> bool:
+        """Indica si la calibración fue exitosa."""
         return self.estado == EstadoCalibracionVision.EXITOSA
 
     def _snapshot(self) -> dict:

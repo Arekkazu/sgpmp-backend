@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`CicloBiologicoRepository`."""
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
+    """Implementación SQLAlchemy de ``CicloBiologicoRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -39,12 +41,17 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
         )
 
     def obtener_por_id(self, id_ciclo_biologico: int, *, bloquear: bool = False) -> Optional[CicloBiologico]:
+        """Obtiene una etapa por su identidad. Retorna ``None`` si no existe.
+
+        ``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498).
+        """
         orm = self.db.get(CicloBiologicoModel, id_ciclo_biologico, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre_y_especie(
         self, nombre: NombreEtapa, id_especie: int
     ) -> Optional[CicloBiologico]:
+        """Busca una etapa por nombre normalizado dentro de una especie (unicidad por especie)."""
         orm = (
             self.db.query(CicloBiologicoModel)
             .filter(
@@ -58,6 +65,7 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
     def listar_por_especie(
         self, id_especie: int, *, solo_activas: bool = False
     ) -> list[CicloBiologico]:
+        """Retorna las etapas de una especie ordenadas por nombre."""
         query = self.db.query(CicloBiologicoModel).filter(
             CicloBiologicoModel.id_especie == id_especie
         )
@@ -69,6 +77,7 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
         ]
 
     def guardar(self, ciclo: CicloBiologico) -> CicloBiologico:
+        """Inserta una etapa nueva. Hace ``flush``. El ``commit`` lo emite el use case."""
         orm = CicloBiologicoModel(
             nombre=ciclo.nombre.valor,
             descripcion=ciclo.descripcion,
@@ -85,6 +94,7 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, ciclo: CicloBiologico) -> CicloBiologico:
+        """Persiste cambios de una etapa existente. Hace ``flush``."""
         orm = self.db.get(CicloBiologicoModel, ciclo.id_ciclo_biologico)
         orm.nombre = ciclo.nombre.valor
         orm.descripcion = ciclo.descripcion
@@ -102,6 +112,7 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
         return self._a_entidad(orm)
 
     def desactivar_todos_por_especie(self, id_especie: int) -> None:
+        """Marca como inactivos todos los ciclos activos de una especie. Hace ``flush``."""
         try:
             self.db.query(CicloBiologicoModel).filter(
                 CicloBiologicoModel.id_especie == id_especie,
@@ -112,6 +123,7 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
             raise_from_db_error(exc, {})
 
     def guardar_desde_snapshot(self, datos: dict, id_especie: int) -> None:
+        """Inserta un ciclo a partir de un dict del params_snapshot. Hace ``flush``."""
         orm = CicloBiologicoModel(
             nombre=datos['nombre'],
             descripcion=datos.get('descripcion'),

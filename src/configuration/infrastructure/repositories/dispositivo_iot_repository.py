@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``DispositivoIotRepository``."""
 from __future__ import annotations
 
@@ -15,6 +18,7 @@ from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
+    """Implementación SQLAlchemy de ``DispositivoIotRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -42,6 +46,9 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Optional[DispositivoIot]:
+        """Obtiene el dispositivo por id, o ``None`` si no existe o está fuera de
+        ``ids_fincas_permitidas``.
+        """
         query = self.db.query(DispositivoIotModel).filter(
             DispositivoIotModel.id_dispositivo_iot == id_dispositivo_iot
         )
@@ -55,6 +62,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_serial(self, serial: str) -> Optional[DispositivoIot]:
+        """Obtiene el dispositivo por serial, o ``None`` si no existe."""
         orm = (
             self.db.query(DispositivoIotModel)
             .filter(DispositivoIotModel.serial == serial)
@@ -63,6 +71,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, dispositivo: DispositivoIot) -> DispositivoIot:
+        """Inserta el dispositivo y devuelve la entidad con su id asignado."""
         orm = DispositivoIotModel(
             serial=dispositivo.serial.valor,
             descripcion=dispositivo.descripcion,
@@ -88,6 +97,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, dispositivo: DispositivoIot) -> DispositivoIot:
+        """Persiste los cambios del dispositivo y devuelve la entidad actualizada."""
         orm = self.db.get(DispositivoIotModel, dispositivo.id_dispositivo_iot)
         orm.es_activo = dispositivo.es_activo
         orm.id_dispositivo_gateway = dispositivo.id_dispositivo_gateway
@@ -99,6 +109,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
         return self._a_entidad(orm)
 
     def listar_por_gateway(self, id_dispositivo_gateway: int) -> list[DispositivoIot]:
+        """Dispositivos activos que atiende el Gateway Edge indicado."""
         filas = (
             self.db.query(DispositivoIotModel)
             .filter(
@@ -116,6 +127,9 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
         solo_activos: bool = False,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[DispositivoIot]:
+        """Lista dispositivos, opcionalmente solo activos y limitados a las fincas
+        permitidas.
+        """
         query = self.db.query(DispositivoIotModel)
         if ids_fincas_permitidas is not None:
             query = query.join(

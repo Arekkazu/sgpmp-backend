@@ -9,6 +9,7 @@
 # | 2026-11-14 | Arekkazu | INC-M06-363-G27 RF-85 FA-1: la cosecha pendiente se retoma con un precio registrado en la misma transacción |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | QA-M06 CU04 H-01/H-02 RF-85: cosechas pendientes con su día y filtradas por titular |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`EventoM02Port`.
 
 Entran los eventos de activos con reconocimiento CONFIRMADO y posteriores a él: los anteriores ya
@@ -113,21 +114,28 @@ def _evento(f: dict) -> EventoM02:
 
 
 class EventoM02Adapter(EventoM02Port):
+    """Lee los eventos de activos biológicos pendientes de valorar."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def pendientes(self, limite: int) -> list[EventoM02]:
+        """Eventos posteriores al reconocimiento aún sin procesar (incluye los encolados por un cierre)."""
         return [_evento(f) for f in filas(self.db, _PENDIENTES, {"limite": limite})]
 
     def cosechas_pendientes(self, numero_id_tributaria: Optional[str] = None) -> list[dict]:
+        """Cosechas cuyo reconocimiento quedó pendiente, con activo, producto, cantidad y motivo (RF-85 FA-1/FA-2);
+        con ``numero_id_tributaria``, solo las de ese titular.
+        """
         return [{**f, "admite_costos_manuales": f["clasificacion"] != "CONSUMO"}
                 for f in filas(self.db, _COSECHAS_PENDIENTES, {"nit": numero_id_tributaria})]
 
     def cosecha_pendiente(self, id_evento: int) -> EventoM02 | None:
+        """El evento productivo si su reconocimiento quedó pendiente (MEDICION_PENDIENTE, RF-85 FA-1/FA-2)."""
         f = fila(self.db, _COSECHA_PENDIENTE, {"id": id_evento})
         return _evento(f) if f else None
 
     def registrar_procesamiento(self, id_evento: int, resultado: str, detalle: str | None) -> None:
+        """Registra el resultado de procesar el evento."""
         escribir(self.db, """
             INSERT INTO modulo6.procesamientos_eventos_m02 (id_evento, resultado, detalle, fecha_procesamiento)
             VALUES (:id, :resultado, :detalle, clock_timestamp())
@@ -136,6 +144,7 @@ class EventoM02Adapter(EventoM02Port):
         """, {"id": id_evento, "resultado": resultado, "detalle": (detalle or "")[:2000] or None})
 
     def pendientes_del_titular(self, numero_id_tributaria: str) -> int:
+        """Cuenta los eventos pendientes del titular."""
         f = fila(self.db, f"""
             SELECT count(*) AS n FROM ({_PENDIENTES.replace('LIMIT :limite', '')}) p
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = p.id_activo_biologico

@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: catálogo de los 18 reportes, filtros y validación |
 # | 2026-11-19 | Arekkazu | M08 RF-104: textos de los valores y de los filtros sin elegir, para el PDF |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Catálogo de reportes de RF-104: qué filtros pide cada uno y cómo se validan.
 
 Cada tipo tiene su recurso RBAC (``reporte_<tipo>``, acción Ejecutar): quién lo genera se decide en
@@ -32,6 +33,7 @@ FILAS_VISTA_PREVIA = 20
 
 @dataclass(frozen=True)
 class Filtro:
+    """Filtro aceptado por un reporte."""
     nombre: str
     tipo: str
     obligatorio: bool = False
@@ -50,9 +52,11 @@ class DefinicionReporte:
 
     @property
     def recurso(self) -> str:
+        """Nombre del recurso RBAC del reporte."""
         return self.tipo.lower()
 
     def filtro(self, nombre: str) -> Optional[Filtro]:
+        """Devuelve el filtro por nombre, o ``None``."""
         return next((f for f in self.filtros if f.nombre == nombre), None)
 
 

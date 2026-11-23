@@ -4,6 +4,8 @@
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU09 H-03 RF-73: VERSION_ACTIVADA con id_version_deprecada |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-19 | Arekkazu     | SEG-M04-01 RF-69: verifica archivo y firma antes de activar o poner en sombra |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de activación de una versión de modelo."""
 from __future__ import annotations
 
 import uuid
@@ -18,6 +20,7 @@ from src.shared.errors import NotFoundError
 
 
 class ActivarVersionModeloUseCase:
+    """Activa una versión de modelo y retira la anterior."""
 
     def __init__(
         self,

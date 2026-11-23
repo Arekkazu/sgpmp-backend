@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77/RF-81: archivo exportado y vigencia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad ``ArchivoExportacion`` (RF-77 24 h, RF-81 72 h).
 
 Un archivo PDF/CSV/EXCEL ya generado, disponible para su dueño hasta
@@ -25,6 +26,7 @@ TIPOS_CONTENIDO = {
 
 @dataclass(eq=False)
 class ArchivoExportacion:
+    """Archivo exportado guardado para su descarga posterior."""
     origen: str
     formato: str
     nombre_archivo: str
@@ -41,6 +43,7 @@ class ArchivoExportacion:
     def nuevo(cls, *, origen: str, formato: str, nombre_archivo: str, contenido: bytes,
               total_registros: int, id_usuario: int, ahora: datetime,
               id_referencia: Optional[int] = None) -> "ArchivoExportacion":
+        """Crea un archivo de exportación con su vigencia."""
         return cls(
             origen=origen, formato=formato, nombre_archivo=nombre_archivo, contenido=contenido,
             total_registros=total_registros, id_usuario=id_usuario, fecha_generacion=ahora,
@@ -49,10 +52,12 @@ class ArchivoExportacion:
 
     @property
     def tipo_contenido(self) -> str:
+        """Tipo MIME del formato."""
         return TIPOS_CONTENIDO[self.formato]
 
     @property
     def tamano_bytes(self) -> int:
+        """Tamaño del contenido en bytes."""
         return len(self.contenido or b"")
 
     def contenido_para(self, id_usuario: int, ahora: datetime) -> bytes:

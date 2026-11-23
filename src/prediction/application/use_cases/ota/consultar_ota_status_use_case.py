@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la OTA no emite HISTORIAL_CONSULTADO |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta del estado de los despliegues OTA."""
 from __future__ import annotations
 
 from typing import Optional
@@ -14,6 +16,7 @@ _ESTADOS_VALIDOS = {"EXITOSO", "FALLIDO", "PENDIENTE", "SIN_CAMBIOS", "EN_PROCES
 
 
 class ConsultarOtaStatusUseCase:
+    """Consulta el estado de los despliegues OTA."""
     def __init__(
         self,
         *,
@@ -30,6 +33,7 @@ class ConsultarOtaStatusUseCase:
         id_dispositivo: Optional[int],
         estado: Optional[str],
     ) -> tuple[int, list[DespliegueOta]]:
+        """Devuelve el estado de los despliegues con los filtros dados."""
         if self._version_port.obtener_estado(id_version) is None:
             raise NotFoundError(
                 code="VERSION_NO_ENCONTRADA",

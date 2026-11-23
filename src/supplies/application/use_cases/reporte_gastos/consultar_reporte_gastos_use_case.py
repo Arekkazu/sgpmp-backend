@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77 RNF: regenerar desde el historial   |
 # | 2026-11-07 | Leandro | INC-M05-272-G25 RF-77: auditar la regeneracion sin alterar el snapshot guardado. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consultar un reporte de gastos ya generado (RF-77).
 
 La consulta relee el snapshot persistido de un reporte
@@ -26,6 +27,7 @@ from src.supplies.domain.repositories.reporte_gasto_repository import ReporteGas
 
 
 class ConsultarReporteGastosUseCase:
+    """Consulta y regenera reportes de gastos."""
     def __init__(self, reporte_repo: ReporteGastoRepository, db: Session,
                  auditoria_port: AuditoriaSuministroPort, generador: Optional[object] = None) -> None:
         self.db = db
@@ -34,6 +36,11 @@ class ConsultarReporteGastosUseCase:
         self.generador = generador
 
     def execute(self, id_reporte_gasto_acumulado: int) -> ReporteGasto:
+        """Devuelve el reporte.
+
+        Raises:
+            NotFoundError: Si el reporte no existe.
+        """
         reporte = self.reporte_repo.obtener(id_reporte_gasto_acumulado)
         if reporte is None:
             raise NotFoundError(
@@ -44,6 +51,7 @@ class ConsultarReporteGastosUseCase:
         return reporte
 
     def regenerar(self, id_reporte_gasto_acumulado: int, usuario_actual: UsuarioActual) -> tuple[ReporteGasto, str]:
+        """Regenera el reporte con sus mismos filtros y devuelve el nuevo con un aviso."""
         original = self.execute(id_reporte_gasto_acumulado)
         parametros = original.parametros or {
             "fecha_inicio": original.fecha_inicio.isoformat(),

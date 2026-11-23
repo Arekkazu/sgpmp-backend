@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schema de respuesta para los endpoints de parámetros operativos (RF-18)."""
 from __future__ import annotations
 
@@ -24,10 +27,12 @@ class ConfiguracionGlobalResponse(BaseModel):
     @computed_field(description='Tiempo máximo sin datos, en minutos; distinto de intervalo_heartbeat.')
     @property
     def umbral_sin_senal(self) -> int:
+        """Nombre anterior del heartbeat, conservado por compatibilidad."""
         return self.heartbeat
 
     @classmethod
     def from_entity(cls, config, nombre_usuario: Optional[str] = None) -> ConfiguracionGlobalResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_configuracion_global=config.id_configuracion_global,
             frecuencia_muestreo=config.frecuencia_muestreo.valor,

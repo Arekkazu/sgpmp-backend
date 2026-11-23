@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: 202 del RF, exportación y descarga |
 # | 2026-11-11 | Arekkazu | USAB-M05 T-01 RF-77: el historial de reportes nombra el activo, no su id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI de RF-77 — Reporte de Gastos Acumulados.
 
   POST /suministros/reportes-gastos                         — Generar (200, o 202 si es asíncrono)
@@ -76,6 +77,7 @@ def generar_reporte(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Genera un reporte de gastos, o lo encola si es grande."""
     use_case = build_generar_reporte_gastos_use_case(db)
     filtros = FiltrosReporteGasto(
         fecha_inicio=dto.fecha_inicio_reporte,
@@ -135,6 +137,7 @@ def exportar_reporte(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ArchivoExportacionResponse:
+    """Exporta un reporte de gastos."""
     archivo = build_exportar_reporte_gastos_use_case(db).execute(
         id_reporte_gasto_acumulado, dto.formato_exportacion, usuario_actual
     )
@@ -153,6 +156,7 @@ def descargar_exportacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> StreamingResponse:
+    """Descarga un reporte de gastos exportado."""
     archivo = build_exportar_reporte_gastos_use_case(db).descargar(id_archivo, usuario_actual)
     return StreamingResponse(
         iter([archivo.contenido]),
@@ -173,6 +177,7 @@ def listar_historial(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialReportesResponse:
+    """Lista los reportes de gastos del usuario."""
     use_case = build_listar_historial_reportes_use_case(db)
     reportes = use_case.execute(usuario_actual.id_usuario, limite)
     nombres = nombres_activos(db, (r.id_activo_biologico for r in reportes))
@@ -192,6 +197,7 @@ def consultar_estado_trabajo(
     id_cola: int,
     db: Session = Depends(get_db),
 ) -> EstadoTrabajoReporteResponse:
+    """Devuelve el estado de un trabajo de reporte de gastos."""
     use_case = build_consultar_estado_trabajo_reporte_use_case(db)
     estado = use_case.execute(id_cola)
     reporte = None
@@ -212,6 +218,7 @@ def regenerar_reporte(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ReporteGastoResponse:
+    """Regenera un reporte de gastos con sus mismos filtros."""
     reporte, advertencia = build_consultar_reporte_gastos_use_case(db).regenerar(
         id_reporte_gasto_acumulado, usuario_actual
     )
@@ -231,6 +238,7 @@ def consultar_reporte(
     id_reporte_gasto_acumulado: int,
     db: Session = Depends(get_db),
 ) -> ReporteGastoResponse:
+    """Devuelve un reporte de gastos."""
     use_case = build_consultar_reporte_gastos_use_case(db)
     reporte = use_case.execute(id_reporte_gasto_acumulado)
     return ReporteGastoResponse.desde_entidad(reporte)

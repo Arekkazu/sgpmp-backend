@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-52: registra rechazos RBAC de los endpoints del módulo M02."""
 from __future__ import annotations
 
@@ -16,9 +19,13 @@ logger = logging.getLogger(__name__)
 class UnidadTrabajoAuditoria(Protocol):
     """Operaciones transaccionales mínimas requeridas por el caso de uso."""
 
-    def commit(self) -> None: ...
+    def commit(self) -> None:
+        """Confirma la transacción de auditoría."""
+        ...
 
-    def rollback(self) -> None: ...
+    def rollback(self) -> None:
+        """Revierte la transacción de auditoría."""
+        ...
 
 
 class RegistrarAccesoNoAutorizadoUseCase:
@@ -50,6 +57,7 @@ class RegistrarAccesoNoAutorizadoUseCase:
         ruta: str,
         id_activo_biologico: int | None = None,
     ) -> bool:
+        """Registra en la bitácora un intento de acceso no autorizado."""
         evento = EventoAuditoria(
             rf_origen=rf_origen,
             tipo_evento='ACCESO_NO_AUTORIZADO',

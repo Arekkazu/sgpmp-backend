@@ -1,6 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: calidad de visión pendiente y evaluada |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, schemas y métodos |
+"""Schemas de respuesta de la ingesta y de la calidad de visión (RF-62).
+
+Cubre la telemetría aceptada, el resultado por lote y las observaciones de
+visión con su evaluación de calidad (pendiente o calculada).
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +17,8 @@ from pydantic import BaseModel
 
 
 class TelemetriaResponse(BaseModel):
+    """Identificador y estado de una lectura aceptada."""
+
     id_telemetria: int
     estado_calidad: str
     timestamp_procesamiento: datetime
@@ -18,6 +26,8 @@ class TelemetriaResponse(BaseModel):
 
 
 class ItemBatchResponse(BaseModel):
+    """Resultado de un ítem dentro de un lote de ingesta."""
+
     sensor_id: int
     timestamp_captura: datetime
     estado: str
@@ -26,6 +36,8 @@ class ItemBatchResponse(BaseModel):
 
 
 class IngestaBatchResponse(BaseModel):
+    """Resumen de un lote de ingesta con el detalle por ítem."""
+
     total: int
     aceptados: int
     rechazados: int
@@ -34,6 +46,8 @@ class IngestaBatchResponse(BaseModel):
 
 
 class ObservacionVisionResponse(BaseModel):
+    """Observación de visión con su calidad (puede estar aún pendiente)."""
+
     id_observacion_vision: int
     timestamp_captura: datetime
     # RF-62: la calidad se evalúa después de la ingesta; null mientras está pendiente.
@@ -51,6 +65,7 @@ class ObservacionVisionResponse(BaseModel):
 
     @classmethod
     def desde(cls, o) -> "ObservacionVisionResponse":
+        """Construye la respuesta a partir de la entidad de observación de visión."""
         return cls(
             id_observacion_vision=o.id_observacion_vision,
             timestamp_captura=o.fecha_observacion,
@@ -67,6 +82,8 @@ class ObservacionVisionResponse(BaseModel):
 
 
 class IngestaVisionResponse(BaseModel):
+    """Resumen de un lote de ingesta de observaciones de visión."""
+
     total: int
     aceptadas: int
     duplicadas: int

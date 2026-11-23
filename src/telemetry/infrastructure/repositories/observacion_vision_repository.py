@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: ingesta sin evaluar y evaluación de calidad aparte |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y métodos |
 """Implementación SQLAlchemy de ``ObservacionVisionRepository`` (RF-53/RF-62 v2.0)."""
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from src.telemetry.infrastructure.models.observacion_vision_model import Observa
 
 
 class SqlAlchemyObservacionVisionRepository(ObservacionVisionRepository):
+    """Persistencia de observaciones de visión y de su evaluación de calidad."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -52,6 +54,7 @@ class SqlAlchemyObservacionVisionRepository(ObservacionVisionRepository):
     def fechas_existentes(
         self, id_dispositivo_iot: int, fechas: list[datetime.datetime]
     ) -> set[datetime.datetime]:
+        """Devuelve las fechas de observación ya registradas para el dispositivo."""
         filas = (
             self.db.query(ObservacionVisionModel.fecha_observacion)
             .filter(
@@ -63,6 +66,7 @@ class SqlAlchemyObservacionVisionRepository(ObservacionVisionRepository):
         return {f for (f,) in filas}
 
     def guardar(self, observacion: ObservacionVision) -> ObservacionVision | None:
+        """Inserta la observación si no existe; ``None`` si ya estaba registrada."""
         try:
             sentencia = insert(ObservacionVisionModel).values(
                 id_dispositivo_iot=observacion.id_dispositivo_iot,
@@ -89,10 +93,12 @@ class SqlAlchemyObservacionVisionRepository(ObservacionVisionRepository):
             raise_from_db_error(exc)
 
     def obtener(self, id_observacion_vision: int) -> ObservacionVision | None:
+        """Obtiene la observación bloqueando su fila para la evaluación."""
         orm = self.db.get(ObservacionVisionModel, id_observacion_vision, with_for_update=True)
         return self._a_entidad(orm) if orm else None
 
     def guardar_evaluacion(self, observacion: ObservacionVision) -> None:
+        """Actualiza el bloque de calidad de la observación."""
         try:
             self.db.execute(
                 update(ObservacionVisionModel)

@@ -2,6 +2,8 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: persistir e hidratar el perfil en creación y edición RF-65. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Implementación SQLAlchemy de ``ConfiguracionMotorIARepository``."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -16,6 +18,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
+    """Implementación SQLAlchemy de ``ConfiguracionMotorIARepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
@@ -46,6 +49,7 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
         )
 
     def obtener_por_tipo(self, tipo_modelo: str, *, bloquear: bool = False) -> Optional[ConfiguracionMotorIA]:
+        """bloquear=True toma la fila hasta el commit (RF-65 CA-9: dos ediciones no se cruzan)."""
         consulta = self._db.query(ConfiguracionMotorIAModel).filter(
             ConfiguracionMotorIAModel.tipo_modelo == tipo_modelo
         )
@@ -57,6 +61,7 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
         return self._a_entidad(orm) if orm else None
 
     def listar(self) -> list[ConfiguracionMotorIA]:
+        """Lista todas las configuraciones."""
         orms = (
             self._db.query(ConfiguracionMotorIAModel)
             .order_by(ConfiguracionMotorIAModel.tipo_modelo)
@@ -65,6 +70,7 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
         return [self._a_entidad(orm) for orm in orms]
 
     def guardar(self, entidad: ConfiguracionMotorIA) -> ConfiguracionMotorIA:
+        """Guarda una configuración nueva."""
         try:
             orm = ConfiguracionMotorIAModel(
                 tipo_modelo=entidad.tipo_modelo,
@@ -96,6 +102,7 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             raise_from_db_error(exc)
 
     def actualizar(self, entidad: ConfiguracionMotorIA) -> ConfiguracionMotorIA:
+        """Actualiza la configuración."""
         try:
             orm = self._db.get(ConfiguracionMotorIAModel, entidad.id_configuracion_motor)
             orm.umbral_riesgo_alto = entidad.umbral_riesgo_alto

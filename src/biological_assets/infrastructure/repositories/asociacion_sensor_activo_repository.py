@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``AsociacionSensorActivoRepository`` (RF-49)."""
 
 from __future__ import annotations
@@ -43,6 +46,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         )
 
     def guardar(self, entidad: AsociacionSensorActivo) -> AsociacionSensorActivo:
+        """Guarda una asociación sensor-activo nueva."""
         try:
             orm = AsociacionSensorActivoModel(
                 id_activo_biologico=entidad.id_activo_biologico,
@@ -65,6 +69,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
             raise_from_db_error(exc)
 
     def obtener_por_id(self, id_asociacion: int) -> Optional[AsociacionSensorActivo]:
+        """Devuelve la asociación por id, o ``None``."""
         orm = self.db.get(AsociacionSensorActivoModel, id_asociacion)
         return self._a_entidad(orm) if orm else None
 
@@ -73,6 +78,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         sensor_id: int,
         id_activo_biologico: int,
     ) -> Optional[AsociacionSensorActivo]:
+        """Devuelve la asociación vigente del sensor con el activo."""
         orm = (
             self.db.query(AsociacionSensorActivoModel)
             .filter(
@@ -90,6 +96,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         sensor_id: int,
         tipo_asociacion: Optional[str] = None,
     ) -> list[AsociacionSensorActivo]:
+        """Lista las asociaciones vigentes del sensor."""
         q = self.db.query(AsociacionSensorActivoModel).filter(
             AsociacionSensorActivoModel.id_sensor == sensor_id,
             AsociacionSensorActivoModel.estado_asociacion == 'ACTIVA',
@@ -104,6 +111,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         id_activo_biologico: int,
         tipo_asociacion: Optional[str] = None,
     ) -> list[AsociacionSensorActivo]:
+        """Lista las asociaciones vigentes del activo."""
         q = self.db.query(AsociacionSensorActivoModel).filter(
             AsociacionSensorActivoModel.id_activo_biologico == id_activo_biologico,
             AsociacionSensorActivoModel.estado_asociacion == 'ACTIVA',
@@ -114,6 +122,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         return [self._a_entidad(o) for o in q.all()]
 
     def listar_todas_por_activo(self, id_activo_biologico: int) -> list[AsociacionSensorActivo]:
+        """Lista todas las asociaciones del activo."""
         q = (
             self.db.query(AsociacionSensorActivoModel)
             .filter(AsociacionSensorActivoModel.id_activo_biologico == id_activo_biologico)
@@ -126,6 +135,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         sensor_id: int,
         id_infraestructura: int,
     ) -> Optional[AsociacionSensorActivo]:
+        """Devuelve la asociación vigente del sensor con el área."""
         orm = (
             self.db.query(AsociacionSensorActivoModel)
             .filter(
@@ -140,6 +150,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         return self._a_entidad(orm) if orm else None
 
     def listar_activas_por_infraestructura(self, id_infraestructura: int) -> list[AsociacionSensorActivo]:
+        """Lista las asociaciones vigentes del área."""
         q = self.db.query(AsociacionSensorActivoModel).filter(
             AsociacionSensorActivoModel.id_infraestructura == id_infraestructura,
             AsociacionSensorActivoModel.id_activo_biologico.is_(None),
@@ -149,6 +160,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         return [self._a_entidad(o) for o in q.all()]
 
     def listar_todas_por_infraestructura(self, id_infraestructura: int) -> list[AsociacionSensorActivo]:
+        """Lista todas las asociaciones del área."""
         q = (
             self.db.query(AsociacionSensorActivoModel)
             .filter(
@@ -160,6 +172,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         return [self._a_entidad(o) for o in q.all()]
 
     def actualizar_estado(self, entidad: AsociacionSensorActivo) -> AsociacionSensorActivo:
+        """Actualiza el estado de la asociación."""
         try:
             orm = self.db.get(AsociacionSensorActivoModel, entidad.id_asociacion_activo_sensor)
             if orm is None:
@@ -185,6 +198,7 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         valores_anteriores: Optional[dict],
         valores_nuevos: dict,
     ) -> None:
+        """Registra la auditoría de un cambio en la asociación."""
         try:
             self.db.add(AuditoriaAsociacionSensorModel(
                 id_asociacion_activo_sensor=id_asociacion,

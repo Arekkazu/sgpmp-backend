@@ -4,6 +4,8 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: restringe transiciones manuales       |
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: priorizar buffer confirmado y conservarlo hasta reporte de vaciado. |
 # | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60 CA-7/RF-53 E1: mantenimiento desde cualquier estado y lecturas rechazadas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad de estado de comunicación de un dispositivo IoT y sus transiciones (RF-60)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,6 +16,7 @@ from src.shared.errors import BusinessRuleError
 
 @dataclass
 class EstadoDispositivoIoT:
+    """Estado actual de comunicación de un dispositivo IoT."""
     id_estado_dispositivo_iot: Optional[int]
     id_dispositivo_iot: int
     estado_actual: str
@@ -26,6 +29,11 @@ class EstadoDispositivoIoT:
     id_usuario: Optional[int]
 
     def validar_transicion_manual(self, destino: str) -> None:
+        """Valida que el cambio manual de estado (mantenimiento) esté permitido.
+
+        Raises:
+            BusinessRuleError: Si la transición manual no es válida.
+        """
         # RF-60 CA-7: a mantenimiento desde cualquier estado; CA-8: solo de ahí vuelve a ACTIVO.
         a_mantenimiento = destino == 'EN_MANTENIMIENTO' and self.estado_actual != 'EN_MANTENIMIENTO'
         cierre = (self.estado_actual, destino) == ('EN_MANTENIMIENTO', 'ACTIVO')
@@ -78,6 +86,7 @@ class EstadoDispositivoIoT:
         id_heartbeat: Optional[int] = None,
         id_usuario: Optional[int] = None,
     ) -> None:
+        """Aplica el nuevo estado con su causa y devuelve la transición realizada."""
         if nuevo_estado not in (
             'ACTIVO', 'SIN_SEÑAL', 'BUFFER_ACTIVO', 'INACTIVO', 'EN_MANTENIMIENTO', 'DESCONOCIDO'
         ):

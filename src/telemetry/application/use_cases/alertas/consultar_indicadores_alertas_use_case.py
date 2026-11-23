@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: consulta de indicadores del sistema de alertas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """Caso de uso: indicadores de estado del sistema de alertas (RF-57, Salida 3).
 
 INC-M03-178-G57B: ``alertas_vencidas_sin_atencion`` no estaba en ninguna ruta; tampoco los
@@ -16,10 +17,17 @@ from src.telemetry.domain.repositories.indicadores_alertas_repository import Ind
 
 
 class ConsultarIndicadoresAlertasUseCase:
+    """Calcula los indicadores del sistema de alertas."""
+
     def __init__(self, indicadores_repo: IndicadoresAlertasRepository) -> None:
         self.indicadores_repo = indicadores_repo
 
     def execute(self, filtro: FiltroIndicadoresAlertas) -> IndicadoresAlertas:
+        """Devuelve los indicadores del filtro, validando el rango de fechas.
+
+        Raises:
+            ValidationError: Si ``fecha_desde`` es posterior a ``fecha_hasta``.
+        """
         if filtro.fecha_desde and filtro.fecha_hasta and filtro.fecha_desde > filtro.fecha_hasta:
             raise ValidationError(
                 code='RANGO_FECHAS_INVALIDO',

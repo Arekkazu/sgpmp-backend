@@ -5,6 +5,7 @@
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: emitir la alerta automática con identidad de servicio existente y restaurar al solicitante. |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: conservar evidencia RF-63 al emitir alertas MVP con identidad de servicio y restauración. |
 # | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: preservar RF-63 de alertas por riesgo propio con identidad de servicio y restauración. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-68 paso 8 → RF-57: alerta RIESGO_CONTAGIO del lote en ``modulo3.alertas``.
 
 Usa el repositorio de alertas de M03: la alerta entra al mismo ciclo que las demás
@@ -29,18 +30,21 @@ _VARIABLE = "PROBABILIDAD_CONTAGIO"
 
 
 class AlertaContagioRf57Adapter(AlertaContagioPort):
+    """Genera alertas de riesgo de contagio."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
         self.alertas = SqlAlchemyAlertaRepository(db)
 
     def area_del_lote(self, id_lote: int) -> Optional[int]:
+        """Área productiva (id_infraestructura) del lote, o None si no existe."""
         return self.db.execute(
             text("SELECT id_infraestructura FROM modulo2.activos_biologicos WHERE id_activo_biologico = :id"),
             {"id": id_lote},
         ).scalar_one_or_none()
 
     def emitir(self, resultado: ResultadoRiesgoContagio) -> int:
+        """Crea la alerta, o consolida la que el lote ya tenga activa. Devuelve su id (sin commit)."""
         # RF-57/RF-63: emisión automática del sistema, tras autorizar el lote en RF-68.
         # El contexto existente restaura la identidad del solicitante al salir.
         with como_sistema(self.db):

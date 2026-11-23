@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`FalloCalculoICARepository` (RF-74 / E5)."""
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ from src.supplies.infrastructure.models.fallo_calculo_ica_model import FalloCalc
 
 
 class SqlAlchemyFalloCalculoICARepository(FalloCalculoICARepository):
+    """Implementación SQLAlchemy de ``FalloCalculoICARepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -46,6 +50,7 @@ class SqlAlchemyFalloCalculoICARepository(FalloCalculoICARepository):
         return query.one_or_none()
 
     def registrar(self, fallo: FalloCalculoICA) -> FalloCalculoICA:
+        """Registra (o actualiza el conteo de) un fallo abierto para (activo, período)."""
         try:
             existente = self._buscar_orm_abierto(fallo.id_activo_biologico, fallo.periodo_evaluacion)
             if existente is not None:
@@ -76,10 +81,12 @@ class SqlAlchemyFalloCalculoICARepository(FalloCalculoICARepository):
     def obtener_abierto(
         self, id_activo_biologico: int, periodo: Optional[PeriodoEvaluacion]
     ) -> Optional[FalloCalculoICA]:
+        """Devuelve el fallo sin resolver del activo y periodo, o ``None``."""
         orm = self._buscar_orm_abierto(id_activo_biologico, periodo)
         return self._a_entidad(orm) if orm else None
 
     def listar_no_resueltos(self) -> list[FalloCalculoICA]:
+        """Lista los fallos sin resolver."""
         registros = (
             self.db.query(FalloCalculoIcaModel)
             .filter(FalloCalculoIcaModel.resuelto.is_(False))
@@ -89,6 +96,7 @@ class SqlAlchemyFalloCalculoICARepository(FalloCalculoICARepository):
         return [self._a_entidad(o) for o in registros]
 
     def marcar_resuelto(self, id_fallo: int, *, tipo_resolucion: str, cuando: datetime) -> None:
+        """Marca el fallo como resuelto."""
         orm = self.db.get(FalloCalculoIcaModel, id_fallo)
         if orm is None:
             return

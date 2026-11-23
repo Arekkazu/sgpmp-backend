@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75/76/78: anulación revierte el ledger |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Compensación en el ledger de RF-78 al anular un consumo (RF-75) o medicamento (RF-76).
 
 Un registro ANULADO queda excluido de los cálculos (RF-75 postcondición 4,
@@ -29,6 +30,7 @@ _MAX_MOTIVO = 500
 
 
 class CompensadorAnulacion:
+    """Registra el movimiento compensatorio al anular un suministro costeado."""
     def __init__(
         self,
         registro_repo: RegistroSuministroRepository,
@@ -56,6 +58,7 @@ class CompensadorAnulacion:
         return ledger
 
     def compensar(self, ledger: RegistroSuministroDirecto, motivo: str, id_usuario: int) -> None:
+        """Compensa el costo vigente del registro anulado en el acumulado del ciclo."""
         neto = self.registro_repo.costo_vigente(ledger.id_registro_suministro)
         if neto == 0:
             return

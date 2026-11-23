@@ -4,6 +4,7 @@
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: separar conciliación pendiente de campos ausentes en auditoría. |
 # | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: el rechazo de consolidar o corregir queda en la bitácora |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consolidar la inversión de una instancia de ciclo cerrada (RF-78 Fase 9, RF-79 Fase 2).
 
 Lo dispara el cierre del ciclo (RF-38, ``consolidar_sin_commit`` dentro de la
@@ -73,6 +74,7 @@ _OPERACION = {
 
 
 class ConsolidarCicloUseCase:
+    """Consolida la provisión NIC 41 de suministros de un ciclo."""
     def __init__(
         self,
         db: Session,
@@ -94,6 +96,7 @@ class ConsolidarCicloUseCase:
         self.notificador = notificador
 
     def execute(self, id_gestion_fases: int, usuario_actual: UsuarioActual) -> ProvisionNic41:
+        """Consolida la provisión del ciclo y la confirma."""
         try:
             provision = self.consolidar_sin_commit(id_gestion_fases, usuario_actual.id_usuario)
             self.db.commit()
@@ -237,6 +240,7 @@ class ConsolidarCicloUseCase:
         return guardada
 
     def encolar_para_m06(self, provision: ProvisionNic41) -> None:
+        """Encola la provisión consolidada para el módulo financiero."""
         self.outbox_repo.encolar(
             EventoProvisionM06.consolidado(
                 contenido=provision.contenido_m06(),

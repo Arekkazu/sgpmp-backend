@@ -6,6 +6,7 @@
 # | 2026-11-20 | Arekkazu | QA-M08 CU03 H-01 RF-105: agrupación visual por tipo, nivel y activo; leer o cerrar alcanza al grupo |
 # | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: notificación ajena → 403 con el mensaje del RF |
 # | 2026-11-22 | Arekkazu | INC-M08-394-G013 RF-105: «marcar todas» no cuenta los avisos de inicio de sesión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto de dominio :class:`NotificacionRepository`.
 
 Traduce el estado de envío de texto al enum ``EnumEstadoEnvio`` de la columna y
@@ -134,6 +135,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         contexto: Optional[dict[str, Any]] = None,
         entrega_inmediata: bool = False,
     ) -> int:
+        """Registra una notificación para el usuario."""
         origen = self.db.execute(_SQL_ORIGEN_EVENTO, {"id": id_evento}).first()
         modulo = modulo_desde(origen.modulo if origen else None)
         ahora = datetime.now(timezone.utc)
@@ -210,9 +212,11 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
     # --- Preferencias (R6) y ventana de agrupación (Fase 2.1) ---
 
     def preferencias(self, id_usuario: int) -> dict[tuple[str, str], bool]:
+        """Devuelve las preferencias guardadas por nivel y canal."""
         return {(f.nivel, f.canal): f.es_habilitado for f in self.db.execute(_SQL_PREFERENCIAS, {"u": id_usuario})}
 
     def canal_habilitado(self, id_usuario: int, nivel: str, canal: str) -> bool:
+        """Indica si el canal está habilitado para el nivel según las preferencias del usuario."""
         try:
             with self.db.begin_nested():
                 guardada = self.preferencias(id_usuario).get((nivel, canal))
@@ -222,6 +226,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return canal_por_defecto(nivel, canal) if guardada is None else guardada
 
     def guardar_preferencias(self, id_usuario: int, preferencias: dict[tuple[str, str], bool]) -> None:
+        """Guarda las preferencias de canal del usuario."""
         try:
             for (nivel, canal), habilitado in preferencias.items():
                 self.db.execute(_SQL_GUARDAR_PREFERENCIA, {"u": id_usuario, "nivel": nivel, "canal": canal,
@@ -231,6 +236,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             raise_from_db_error(exc)
 
     def ventana_agrupacion_minutos(self) -> int:
+        """Devuelve la ventana configurada de agrupación de notificaciones."""
         try:
             with self.db.begin_nested():
                 valor = self.db.execute(_SQL_VENTANA).scalar()
@@ -241,6 +247,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
     def sumar_ocurrencia(
         self, id_usuario: int, tipo_evento: int, id_activo_biologico: int, ventana_minutos: int
     ) -> bool:
+        """Suma una ocurrencia a una notificación agrupable reciente; ``True`` si existía."""
         desde = datetime.now(timezone.utc) - timedelta(minutes=ventana_minutos)
         existente = (
             self.db.query(Notificaciones)
@@ -268,6 +275,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return True
 
     def pendientes_de_entrega(self, limite: int) -> list[EntregaPendiente]:
+        """Lista las notificaciones pendientes de entrega por push o correo."""
         ahora = datetime.now(timezone.utc)
         filas = (
             self.db.query(Notificaciones, Eventos.modulo)
@@ -295,6 +303,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
     def registrar_intento_push(
         self, id_notificacion: int, entregada: bool, proximo_intento: Optional[datetime]
     ) -> None:
+        """Registra el resultado de un intento push y el próximo reintento."""
         orm = self.db.get(Notificaciones, id_notificacion)
         if orm is None:
             return
@@ -310,6 +319,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
                                            "nivel": orm.nivel, "canal": "PUSH"})
 
     def purgar_informativas(self, antes_de: datetime) -> int:
+        """Borra las notificaciones informativas anteriores a la fecha."""
         try:
             borradas = (
                 self.db.query(Notificaciones)
@@ -327,6 +337,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             raise_from_db_error(exc)
 
     def actualizar_estado(self, id_notificacion: int, estado: str) -> None:
+        """Cambia el estado de envío de la notificación."""
         notificacion = self.db.get(Notificaciones, id_notificacion)
         notificacion.estado_envio = EnumEstadoEnvio(estado)
         self.db.flush()
@@ -338,6 +349,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
     def verificar_anti_spam(
         self, id_usuario: int, tipo_evento: int, id_canal: int, ventana_minutos: int
     ) -> bool:
+        """Indica si ya se notificó el mismo evento por el canal dentro de la ventana."""
         desde = datetime.now(timezone.utc) - timedelta(minutes=ventana_minutos)
         existe = (
             self.db.query(Notificaciones)
@@ -353,6 +365,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return existe is not None
 
     def buscar_ultimo_evento_id(self, id_usuario: int, tipo_evento: int) -> Optional[int]:
+        """Devuelve el último evento del tipo para el usuario."""
         evento = (
             self.db.query(Eventos)
             .filter(
@@ -365,6 +378,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return evento.id_evento if evento else None
 
     def buscar_estado_cuenta(self, id_usuario: int) -> Optional[int]:
+        """Devuelve el estado de la cuenta del usuario."""
         cuenta = (
             self.db.query(CuentasUsuarios)
             .filter(CuentasUsuarios.id_usuario == id_usuario)
@@ -373,6 +387,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return cuenta.id_estado_cuenta if cuenta else None
 
     def buscar_correo_usuario(self, id_usuario: int) -> Optional[str]:
+        """Devuelve el correo del usuario."""
         fila = (
             self.db.query(Usuarios.correo_electronico)
             .filter(Usuarios.id_usuario == id_usuario)
@@ -381,6 +396,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return fila.correo_electronico if fila else None
 
     def buscar_fcm_tokens(self, id_usuario: int) -> list[str]:
+        """Devuelve los tokens push registrados del usuario."""
         rows = (
             self.db.query(DispositivosFcm.fcm_token)
             .filter(DispositivosFcm.id_usuario == id_usuario)
@@ -465,6 +481,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         offset: int,
         limit: int,
     ) -> list[Notificacion]:
+        """Lista la bandeja interna del usuario con filtros y paginación."""
         otra, _, grupo = self._grupo()
         total_grupo = grupo.with_entities(func.coalesce(func.sum(otra.ocurrencias), 0)).scalar_subquery()
         filas = (
@@ -488,6 +505,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return salida
 
     def contar_internas(self, id_usuario: int, filtro: FiltroBandeja) -> int:
+        """Cuenta la bandeja interna del usuario con los filtros."""
         return self._query_internas(id_usuario, filtro).count()
 
     def obtener_interna(
@@ -495,6 +513,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         id_notificacion: int,
         id_usuario: int,
     ) -> Optional[Notificacion]:
+        """Devuelve una notificación interna del usuario, o ``None``."""
         fila = (
             self._query_internas(id_usuario)
             .filter(Notificaciones.id_notificacion == id_notificacion)
@@ -506,6 +525,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return self._a_entidad(orm, tipo_evento, modulo)
 
     def existe_interna(self, id_notificacion: int) -> bool:
+        """Indica si la notificación existe, sea de quien sea."""
         # La RLS solo deja ver las propias: se pregunta como sistema y solo se devuelve si existe.
         with como_sistema(self.db):
             return self.db.query(
@@ -516,6 +536,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             ).scalar()
 
     def guardar(self, notificacion: Notificacion) -> None:
+        """Persiste el estado de la notificación."""
         orm = (
             self.db.query(Notificaciones)
             .filter(
@@ -569,6 +590,7 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
                     "accion_documentada": notificacion.accion_documentada})
 
     def marcar_todas_leidas(self, id_usuario: int) -> int:
+        """Marca como leídas las notificaciones visibles en la bandeja y devuelve cuántas cambiaron."""
         # INC-M08-394-G013: mismo criterio que la bandeja; los avisos de inicio de sesión no se listan ni se cuentan.
         fuera = select(Eventos.id_evento).where(Eventos.tipo_evento.in_(TIPOS_FUERA_DE_BANDEJA))
         filtro = (Notificaciones.id_usuario == id_usuario, Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,

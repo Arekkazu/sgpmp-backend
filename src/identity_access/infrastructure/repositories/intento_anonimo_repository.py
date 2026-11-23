@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`IntentoAnonimoRepository`."""
 from __future__ import annotations
 
@@ -22,10 +25,12 @@ class SqlAlchemyIntentoAnonimoRepository(IntentoAnonimoRepository):
         self.db = db
 
     def registrar(self, tipo: str, ip: str) -> None:
+        """Registra un intento anónimo desde una IP."""
         self.db.add(IntentosAnonimosIp(tipo=tipo, ip=ip))
         self.db.flush()
 
     def contar_por_ip(self, tipo: str, ip: str, desde: datetime) -> int:
+        """Cuenta los intentos del tipo desde la IP en la ventana."""
         return (
             self.db.query(func.count(IntentosAnonimosIp.id_intento_anonimo_ip))
             .filter(
@@ -39,6 +44,7 @@ class SqlAlchemyIntentoAnonimoRepository(IntentoAnonimoRepository):
     def obtener_fecha_mas_antigua_por_ip(
         self, tipo: str, ip: str, desde: datetime
     ) -> Optional[datetime]:
+        """Devuelve la fecha del intento más antiguo de la IP en la ventana."""
         return (
             self.db.query(func.min(IntentosAnonimosIp.fecha_intento))
             .filter(

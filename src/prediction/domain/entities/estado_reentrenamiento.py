@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RF-71: aviso de datos insuficientes para reentrenar el modelo individual |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Cuántas retroalimentaciones RF-72 nuevas tiene cada modelo individual y qué permiten (RF-71).
 
 "Nuevas" = registradas después de la última versión de ese ``tipo_modelo`` (o todas, si aún no
@@ -19,6 +20,7 @@ TIPOS_MODELO_INDIVIDUAL = ("MODELO_ESPECIES_GRANDES", "MODELO_ESPECIES_MEDIANAS"
 
 @dataclass(frozen=True)
 class EstadoReentrenamiento:
+    """Datos acumulados y umbrales de reentrenamiento de un tipo de modelo."""
     tipo_modelo: str
     registros_nuevos: int
     desde: Optional[datetime]

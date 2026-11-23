@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: exportación sin CSV en la ejecución |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidades del motor async de historial de suministros (RF-81 / CU-04).
 
 Analogía con el motor batch ICA (RF-74) y con ``trabajo_reporte_gasto.py``
@@ -45,6 +46,7 @@ class EjecucionHistorialSuministro:
     id_ejecucion: Optional[int] = None
 
     def completar_consulta(self, *, hora_fin: datetime, total_registros: int, resultado_json: dict) -> None:
+        """Marca la consulta como completada con su resultado."""
         self.estado = EstadoTrabajoAsync.COMPLETADO
         self.hora_fin = hora_fin
         self.total_registros = total_registros
@@ -53,6 +55,7 @@ class EjecucionHistorialSuministro:
     def completar_exportacion(
         self, *, hora_fin: datetime, total_registros: int, contenido_csv: Optional[str], nombre_archivo: str
     ) -> None:
+        """Marca la exportación como completada con su archivo."""
         self.estado = EstadoTrabajoAsync.COMPLETADO
         self.hora_fin = hora_fin
         self.total_registros = total_registros
@@ -60,6 +63,7 @@ class EjecucionHistorialSuministro:
         self.nombre_archivo = nombre_archivo
 
     def fallar(self, *, hora_fin: datetime) -> None:
+        """Marca la ejecución como fallida."""
         self.estado = EstadoTrabajoAsync.FALLIDO
         self.hora_fin = hora_fin
 

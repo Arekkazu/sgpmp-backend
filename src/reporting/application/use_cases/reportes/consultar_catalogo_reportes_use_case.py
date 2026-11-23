@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                              |
 # |------------|----------|----------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: reportes que el rol puede generar y sus filtros |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: catálogo de reportes que el usuario puede generar, con sus filtros (RF-104 Fase 1).
 
 Solo aparecen los tipos para los que el rol tiene el permiso Ejecutar en ``modulo1.permisos``: el front no ofrece
@@ -14,8 +15,10 @@ from src.reporting.domain.reportes.catalogo import CATALOGO, ETIQUETAS, LIMITE_S
 
 
 class ConsultarCatalogoReportesUseCase:
+    """Consulta el catálogo de reportes disponibles para el solicitante."""
 
     def execute(self, solicitante: Solicitante) -> list[dict[str, Any]]:
+        """Lista los reportes permitidos con sus filtros."""
         return [{
             "tipo_reporte": d.tipo, "titulo": d.titulo, "periodo_cerrado": d.periodo_cerrado,
             "compara_periodos": d.compara_periodos, "limite_sincrono": LIMITE_SINCRONO,

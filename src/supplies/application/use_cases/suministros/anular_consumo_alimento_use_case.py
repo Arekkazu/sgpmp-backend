@@ -4,6 +4,7 @@
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75: el aviso de consumo ya anulado da la fecha legible, sin id ni estado crudo |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: anular un registro de consumo de alimento VALIDADO (RF-75 pasos 10-13).
 
 Un registro ANULADO no puede reactivarse ni volver a anularse. La justificación
@@ -42,6 +43,7 @@ class AnularConsumoAlimentoUseCase:
     def execute(
         self, id_consumo: int, dto: AnularRegistroDTO, usuario_actual: UsuarioActual
     ) -> ConsumoAlimento:
+        """Anula un consumo de alimento con su motivo."""
         consumo = self.consumo_repo.obtener_por_id(id_consumo)
         if consumo is None:
             raise NotFoundError(

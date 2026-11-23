@@ -9,6 +9,7 @@
 # | 2026-10-31 | Arekkazu | RF-71: valida los mínimos de registros para solicitar y reentrenar |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: valida el período de gracia del contrato contable |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Carga administrativa explícita; ninguna inicialización ocurre en un request."""
 from decimal import Decimal
 
@@ -45,12 +46,18 @@ _GRACIA = {RF98_GRACIA_MINIMA: RF98_GRACIA_MINIMA_BASE, RF98_GRACIA_DEFECTO: RF9
 
 
 class ConfigurarParametrosMLOpsUseCase:
+    """Configura los parámetros operativos del motor y la telemetría."""
     def __init__(self, db, parametros_repo, configuracion_repo=None):
         self.db = db
         self.parametros_repo = parametros_repo
         self.configuracion_repo = configuracion_repo
 
     def validar(self, cambios):
+        """Valida nombres y rangos de los parámetros a cambiar.
+
+        Raises:
+            ValidationError: Si algún parámetro es desconocido o está fuera de rango.
+        """
         if not isinstance(cambios, dict) or not cambios or set(cambios) - _LIMITES.keys():
             raise ValidationError('PARAMETRO_MLOPS_INVALIDO', 'El archivo contiene parámetros vacíos o ajenos a DEV-14.')
         nombres = set(cambios)
@@ -115,6 +122,7 @@ class ConfigurarParametrosMLOpsUseCase:
         return list(nuevos.values())
 
     def execute(self, cambios, id_usuario):
+        """Guarda los parámetros y los audita."""
         try:
             self.parametros_repo.bloquear_configuracion()
             parametros = self.validar(cambios)

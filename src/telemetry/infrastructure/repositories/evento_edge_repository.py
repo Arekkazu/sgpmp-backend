@@ -4,6 +4,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-2 RF-55: persiste id_regla_alerta del evento Edge |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Repositorio de eventos procesados en el Edge (RF-55/RF-56)."""
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -13,11 +15,13 @@ from src.telemetry.infrastructure.models.evento_edge_model import EventoEdgeComp
 
 
 class SqlAlchemyEventoEdgeRepository(EventoEdgeRepository):
+    """Persiste los eventos de Edge Computing y su clasificación RF-55."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def guardar(self, entidad: EventoEdgeComputing) -> EventoEdgeComputing:
+        """Guarda un evento del Edge y devuelve la entidad persistida."""
         try:
             metadatos = dict(entidad.metadatos)
             # Clasificación RF-55 real almacenada en metadatos (el enum de BD usa valores distintos)

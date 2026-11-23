@@ -4,6 +4,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: PDF con nombres del activo, desglose por período y notas de tendencia |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación de :class:`DetalleGastoReadPort` (RF-77).
 
 SQL propio con ``text()`` (patrón de ``historial_telemetria_repository.py``)
@@ -98,6 +99,7 @@ _SQL_BAJAS = text(
 
 
 class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
+    """Implementación SQLAlchemy de ``DetalleGastoReadPort``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -112,6 +114,10 @@ class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
         categorias: Optional[list[str]] = None,
         ids_permitidos: Optional[list[int]] = None,
     ) -> list[LineaGasto]:
+        """Líneas VALIDADO de ALIMENTACION/MEDICACION en el rango y filtros dados.
+
+        ``ids_permitidos`` limita a los activos que el usuario puede ver (``None`` = sin límite).
+        """
         filas = self.db.execute(
             _SQL_DETALLE,
             {
@@ -146,12 +152,15 @@ class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
         return lineas
 
     def existe_infraestructura(self, id_infraestructura: int) -> bool:
+        """Indica si existe el área."""
         return bool(self.db.execute(_SQL_EXISTE_INFRAESTRUCTURA, {"id": id_infraestructura}).scalar())
 
     def existe_especie(self, id_especie: int) -> bool:
+        """Indica si existe la especie."""
         return bool(self.db.execute(_SQL_EXISTE_ESPECIE, {"id": id_especie}).scalar())
 
     def contar_bajas(self, id_activo_biologico: int, fecha_inicio: date, fecha_fin: date) -> int:
+        """Individuos dados de baja (RF-45) en el período, para la nota del promedio (RF-77 R6)."""
         return int(
             self.db.execute(
                 _SQL_BAJAS,
@@ -161,6 +170,9 @@ class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
 
     def describir_alcance(self, id_activo_biologico: Optional[int], id_infraestructura: Optional[int],
                           id_especie: Optional[int]) -> dict:
+        """Nombres para el encabezado del PDF (RF-77 paso 7): ``identificador``, ``tipo_activo``,
+        ``especie`` e ``infraestructura``. Con activo, la especie y el área salen del propio activo.
+        """
         fila = self.db.execute(
             _SQL_ALCANCE, {"a": id_activo_biologico, "i": id_infraestructura, "e": id_especie}
         ).mappings().first()

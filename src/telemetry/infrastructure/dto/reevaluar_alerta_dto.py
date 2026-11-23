@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: resultado de la reevaluación por IA |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO del resultado de reevaluación devuelto por el motor de inferencia."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -27,6 +29,7 @@ class ReevaluarAlertaDTO(BaseDTO):
     @field_validator("severidad_ia")
     @classmethod
     def validar_severidad(cls, v: str) -> str:
+        """Normaliza y valida la severidad de la IA."""
         v = v.upper().strip()
         if v not in _SEVERIDADES:
             raise ValueError(f"severidad_ia debe ser uno de: {', '.join(sorted(_SEVERIDADES))}")
@@ -35,6 +38,7 @@ class ReevaluarAlertaDTO(BaseDTO):
     @field_validator("tipo_alerta_ia")
     @classmethod
     def validar_tipo(cls, v: Optional[str]) -> Optional[str]:
+        """Normaliza y valida el tipo de alerta opcional."""
         if v is None:
             return v
         v = v.upper().strip()

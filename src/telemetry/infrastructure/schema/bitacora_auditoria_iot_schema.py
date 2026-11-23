@@ -1,6 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: distingue compromiso evidencia incompleta y avisos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de la bitácora de auditoría IoT."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -39,6 +41,7 @@ class EventoAuditoriaIotSchema(BaseModel):
 
 
 class ListaAuditoriaIotSchema(BaseModel):
+    """Página de eventos de auditoría."""
     total: int
     pagina: int
     por_pagina: int
@@ -46,6 +49,7 @@ class ListaAuditoriaIotSchema(BaseModel):
 
 
 class VerificacionIntegridadSchema(BaseModel):
+    """Resultado de verificar la integridad de la bitácora."""
     total_verificados: int
     comprometidos: int
     ids_comprometidos: list[str]

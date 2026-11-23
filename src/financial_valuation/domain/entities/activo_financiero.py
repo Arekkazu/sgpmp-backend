@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82/83: vista financiera del activo biológico (M02 + finca + titular) |
 # | 2026-11-09 | destroyerban | INC-M06-326-G30 RF-85: la magnitud del activo descuenta lo cosechado desde el último pesaje |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Read-model del activo biológico que M06 necesita para valorarlo (NIC 41 ¶10, ¶12)."""
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ ESTADOS_VALORABLES = ("ACTIVO", "EN_TRATAMIENTO")
 
 @dataclass(frozen=True)
 class DatosActivo:
+    """Datos del activo biológico usados en la valoración."""
     id_activo_biologico: int
     identificador: str
     tipo: str  # INDIVIDUAL | POBLACIONAL
@@ -45,6 +47,7 @@ class DatosActivo:
 
     @property
     def es_poblacional(self) -> bool:
+        """Indica si el activo es un lote poblacional."""
         return self.tipo == "POBLACIONAL"
 
     @property
@@ -54,6 +57,7 @@ class DatosActivo:
 
     @property
     def cabezas(self) -> int:
+        """Cantidad de individuos del activo (1 si es individual)."""
         return (self.cantidad_actual or 0) if self.es_poblacional else 1
 
     def magnitud(self, categoria: str) -> tuple[Optional[Decimal], str]:

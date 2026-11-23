@@ -5,6 +5,7 @@
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-04 RF-92/93: alcance de titulares y períodos a las fincas de quien solo consulta |
 # | 2026-11-15 | Arekkazu | INC-M06-93-G44 RF-87/92/93: el nombre de quien cerró, aprobó o solicitó se ve aunque la RLS de usuarios lo oculte |
 # | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-01 RF-COT/94: alcance compartido de titulares de las fincas del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Ayudas de SQL compartidas por los repositorios de M06.
 
 Los repositorios de M06 usan SQL explícito: casi todas sus lecturas cruzan M02, M09 y M05, y las
@@ -33,6 +34,7 @@ CONSUMIDO_POR_COSECHA = """EXISTS (SELECT 1 FROM modulo6.reconocimientos_product
 # períodos son legibles por cualquier usuario autenticado (RLS); `modulo9.fincas` ya está acotada por RLS a las
 # fincas del usuario (el Administrador protegido las ve todas). Un período sin titular no es de nadie: no se ofrece.
 def alcance_titular(columna: str) -> str:
+    """Condición SQL que limita a los titulares visibles para el usuario."""
     return (f"((SELECT modulo1.fn_tiene_permiso('cierre_periodo', 'R')) "
             f"OR {columna} IN (SELECT f.numero_id_tributaria FROM modulo9.fincas f))")
 
@@ -55,12 +57,14 @@ PERIODOS_DE_MIS_FINCAS = """SELECT pc.id_periodo_contable FROM modulo6.periodos_
 
 
 def a_json(valor: Any) -> Optional[str]:
+    """Serializa a JSON convirtiendo decimales y fechas, o ``None``."""
     if valor is None:
         return None
     return json.dumps(valor, default=lambda v: str(v) if isinstance(v, Decimal) else str(v), ensure_ascii=False)
 
 
 def filas(db: Session, sql: str, params: Optional[dict] = None) -> list[dict]:
+    """Ejecuta la consulta y devuelve las filas como diccionarios."""
     return [dict(f._mapping) for f in db.execute(text(sql), params or {})]
 
 
@@ -87,6 +91,7 @@ def con_nombres(db: Session, registros: list[dict], campos: dict[str, str]) -> l
 
 
 def fila(db: Session, sql: str, params: Optional[dict] = None) -> Optional[dict]:
+    """Ejecuta la consulta y devuelve la primera fila, o ``None``."""
     resultado = db.execute(text(sql), params or {}).first()
     return dict(resultado._mapping) if resultado is not None else None
 

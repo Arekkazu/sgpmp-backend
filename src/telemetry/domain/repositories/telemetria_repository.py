@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de lecturas de telemetría."""
 from abc import ABC, abstractmethod
 from datetime import datetime
 from decimal import Decimal
@@ -7,6 +11,7 @@ from src.telemetry.domain.entities.telemetria import Telemetria
 
 
 class TelemetriaRepository(ABC):
+    """Puerto de persistencia y consulta de lecturas de telemetría."""
 
     @abstractmethod
     def guardar(self, entidad: Telemetria) -> Telemetria:

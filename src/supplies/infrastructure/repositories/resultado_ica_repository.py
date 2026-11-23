@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`ResultadoICARepository` (RF-74 / CU-02).
 
 Único punto que cruza la frontera ORM ↔ dominio para los resultados ICA. Usa
@@ -57,6 +60,7 @@ class SqlAlchemyResultadoICARepository(ResultadoICARepository):
     def obtener_vigente(
         self, id_activo_biologico: int, periodo: PeriodoEvaluacion
     ) -> Optional[ResultadoICA]:
+        """Devuelve el resultado vigente del activo para el período, o ``None``."""
         orm = (
             self.db.query(ResultadoIcaModel)
             .filter(
@@ -71,6 +75,7 @@ class SqlAlchemyResultadoICARepository(ResultadoICARepository):
     def listar_historial(
         self, id_activo_biologico: int, periodo: Optional[PeriodoEvaluacion] = None
     ) -> list[ResultadoICA]:
+        """Historial (vigente + no vigentes) del activo, opcionalmente por período."""
         query = self.db.query(ResultadoIcaModel).filter(
             ResultadoIcaModel.id_activo_biologico == id_activo_biologico
         )
@@ -84,6 +89,9 @@ class SqlAlchemyResultadoICARepository(ResultadoICARepository):
         return [self._a_entidad(o) for o in registros]
 
     def tiene_vigente_critica(self, id_activo_biologico: int) -> bool:
+        """``True`` si el activo tiene algún resultado vigente clasificado ``CRITICA``
+        (usado para priorizar en el batch — RF-74 FA-07).
+        """
         existe = (
             self.db.query(ResultadoIcaModel.id_resultado_ica)
             .filter(
@@ -96,6 +104,9 @@ class SqlAlchemyResultadoICARepository(ResultadoICARepository):
         return existe is not None
 
     def guardar(self, resultado: ResultadoICA) -> ResultadoICA:
+        """Persiste un resultado; si es vigente, desmarca el vigente anterior del
+        mismo (activo, período) antes de insertar. Usa ``flush()`` (sin ``commit()``).
+        """
         try:
             if resultado.es_vigente:
                 # Desmarca el vigente anterior (queda como histórico) antes de insertar.

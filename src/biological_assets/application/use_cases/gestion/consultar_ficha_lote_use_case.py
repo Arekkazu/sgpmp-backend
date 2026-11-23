@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-11-10 | Arekkazu | #394 RF-36: estado de la densidad del lote frente al límite de su etapa o especie |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: ficha de gestión de un lote POBLACIONAL (RF-36)."""
 
 from __future__ import annotations
@@ -57,6 +58,7 @@ class ConsultarFichaLoteUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> FichaLote:
+        """Arma la ficha del lote poblacional."""
         activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

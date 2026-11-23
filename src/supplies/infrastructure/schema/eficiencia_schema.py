@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-74: mensaje de la causa (E2-E6)        |
 # | 2026-11-12 | Arekkazu         | USAB-M05-M06 N-05 RF-74: fallos persistentes con el nombre del activo y la causa en palabras |
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: exponer el motivo por separado en el estado del batch. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta del CU-02 — Eficiencia Alimenticia (ICA, RF-74)."""
 from __future__ import annotations
 
@@ -43,6 +44,7 @@ class ResultadoICAResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, r: ResultadoICA) -> "ResultadoICAResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_resultado_ica=r.id_resultado_ica,
             id_activo_biologico=r.id_activo_biologico,
@@ -103,6 +105,7 @@ class EstadoBatchResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, e: EjecucionBatchICA) -> "EstadoBatchResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_ejecucion=e.id_ejecucion,
             estado=e.estado.value,
@@ -122,6 +125,7 @@ class EstadoBatchResponse(BaseModel):
 
 
 class ItemColaResponse(BaseModel):
+    """Ítem de la cola de cálculo de ICA."""
     id_cola: Optional[int]
     id_activo_biologico: int
     prioridad: int
@@ -131,6 +135,7 @@ class ItemColaResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, i: ItemColaICA) -> "ItemColaResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_cola=i.id_cola,
             id_activo_biologico=i.id_activo_biologico,
@@ -142,6 +147,7 @@ class ItemColaResponse(BaseModel):
 
 
 class ColaICAResponse(BaseModel):
+    """Cola de cálculo de ICA."""
     total: int
     items: list[ItemColaResponse]
 
@@ -172,6 +178,7 @@ def causa_legible(causa: Optional[str]) -> str:
 
 
 class FalloICAResponse(BaseModel):
+    """Fallo del cálculo de ICA."""
     id_fallo: Optional[int]
     id_activo_biologico: int
     nombre_activo: Optional[str] = None
@@ -183,6 +190,7 @@ class FalloICAResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, f: FalloCalculoICA, nombre_activo: Optional[str] = None) -> "FalloICAResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_fallo=f.id_fallo,
             id_activo_biologico=f.id_activo_biologico,
@@ -196,6 +204,7 @@ class FalloICAResponse(BaseModel):
 
 
 class FallosICAResponse(BaseModel):
+    """Fallos sin resolver del cálculo de ICA."""
     total: int
     items: list[FalloICAResponse]
 

@@ -2,12 +2,14 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62/57: alerta tecnica por condicion de sensor |
 # | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62/RF-57: devolver alerta de drift pendiente para auditoria sin inventar severidad ni bloquear calidad. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Notificación técnica usando el repositorio y catálogo de fallos existentes."""
 from src.shared.errors import ServiceUnavailableError
 from src.telemetry.domain.entities.alerta import Alerta, SeveridadAlerta
 
 
 class GenerarAlertaCalidadUseCase:
+    """Genera o escala alertas técnicas a partir de una evaluación de calidad."""
     def __init__(self, alerta_repo):
         self.alerta_repo = alerta_repo
 

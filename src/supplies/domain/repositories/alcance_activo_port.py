@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de alcance de activos por usuario/rol (RF-81, restricción de Gestor de Granja).
 
 No existe en el sistema (ningún schema) un modelo real de "unidad productiva
@@ -16,6 +17,7 @@ from typing import Optional
 
 
 class AlcanceActivoPort(ABC):
+    """Puerto que resuelve los activos visibles para el usuario."""
     @abstractmethod
     def listar_ids_activos_permitidos(
         self, id_usuario: int, id_rol: int, id_finca: Optional[int] = None

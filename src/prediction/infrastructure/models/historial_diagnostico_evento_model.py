@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.historial_diagnostico_eventos``."""
 from __future__ import annotations
 
 import uuid
@@ -11,6 +15,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class HistorialDiagnosticoEventoModel(Base):
+    """Modelo ORM de la tabla ``modulo4.historial_diagnostico_eventos``."""
     __tablename__ = "historial_diagnostico_eventos"
     __table_args__ = {"schema": "modulo4"}
 

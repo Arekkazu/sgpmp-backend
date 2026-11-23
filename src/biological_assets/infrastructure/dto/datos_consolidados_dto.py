@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Filtros de ``GET /activos-biologicos/{id_activo}/datos-consolidados`` (RF-50)."""
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ class DatosConsolidadosDTO(BaseDTO):
     @field_validator('tipo_dato', mode='before')
     @classmethod
     def validar_tipo_dato(cls, v: object) -> str:
+        """Normaliza y valida el tipo de dato."""
         v_str = str(v).strip().lower()
         if v_str not in _TIPOS_DATO:
             raise ValueError(
@@ -40,6 +42,7 @@ class DatosConsolidadosDTO(BaseDTO):
     @field_validator('pagina', mode='before')
     @classmethod
     def validar_pagina(cls, v: object) -> int:
+        """Exige una página mayor o igual a 1."""
         val = int(v)
         if val < 1:
             raise ValueError('La página debe ser mayor o igual a 1.')
@@ -48,6 +51,7 @@ class DatosConsolidadosDTO(BaseDTO):
     @field_validator('page_size', mode='before')
     @classmethod
     def validar_page_size(cls, v: object) -> int:
+        """Exige un tamaño de página entre 1 y 100."""
         val = int(v)
         if val < 1 or val > 100:
             raise ValueError('El tamaño de página debe estar entre 1 y 100.')
@@ -55,6 +59,7 @@ class DatosConsolidadosDTO(BaseDTO):
 
     @model_validator(mode='after')
     def validar_rango_fechas(self) -> DatosConsolidadosDTO:
+        """Exige que la fecha de inicio no sea posterior a la final."""
         if self.fecha_inicio and self.fecha_fin and self.fecha_inicio > self.fecha_fin:
             raise ValueError(
                 f'La fecha de inicio ({self.fecha_inicio}) no puede ser posterior '

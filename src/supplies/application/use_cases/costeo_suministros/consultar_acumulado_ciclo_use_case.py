@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-75/76: los mensajes nombran el activo por su identificador, no por su id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consultar el acumulado de inversión de una instancia de ciclo (RF-78).
 
 Dos formas de acceso: por activo (resuelve la fase productiva actualmente
@@ -24,6 +25,11 @@ class ConsultarAcumuladoCicloUseCase:
         self.ciclo_port = ciclo_port
 
     def por_activo(self, id_activo_biologico: int) -> AcumuladoCiclo:
+        """Devuelve el acumulado del ciclo abierto del activo.
+
+        Raises:
+            NotFoundError: Si el activo no tiene ciclo abierto.
+        """
         ciclo = self.ciclo_port.obtener_abierto(id_activo_biologico)
         if ciclo is None or ciclo.id_gestion_fases is None:
             raise NotFoundError(
@@ -33,6 +39,11 @@ class ConsultarAcumuladoCicloUseCase:
         return self.por_gestion_fase(ciclo.id_gestion_fases)
 
     def por_gestion_fase(self, id_gestion_fases: int) -> AcumuladoCiclo:
+        """Devuelve el acumulado del ciclo indicado.
+
+        Raises:
+            NotFoundError: Si no hay acumulado del ciclo.
+        """
         acumulado = self.acumulado_repo.obtener(id_gestion_fases)
         if acumulado is None:
             raise NotFoundError(

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.eventos_crecimeinto`` (subtipo de evento, RF-40).
 
 El nombre de la tabla tiene una errata histórica (``crecimeinto``); se mapea tal cual.
@@ -18,6 +21,7 @@ if TYPE_CHECKING:
 
 
 class EventoCrecimientoModel(Base):
+    """Modelo ORM de los eventos de crecimiento (tabla ``modulo2.eventos_crecimeinto``)."""
     # El nombre de la tabla tiene typo intencional en la BD
     __tablename__ = 'eventos_crecimeinto'
     __table_args__ = (

@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU02 H-04 RF-65: historial con nombres de usuario y versión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para configuración del motor de inferencia IA (`/prediccion/motor-ia`).
 
 RF-65 CU-02: Configurar parámetros del motor de inferencia por tipo de modelo (v2.0, RFC-009:
@@ -108,6 +109,7 @@ def configurar_motor(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> JSONResponse:
+    """Crea o actualiza la configuración del motor de un tipo de modelo."""
     use_case = ConfigurarMotorUseCase(
         db=db,
         repo=SqlAlchemyConfiguracionMotorIARepository(db),
@@ -144,6 +146,7 @@ def configurar_motor(
 def listar_configuraciones(
     db: Session = Depends(get_db),
 ) -> ConfiguracionMotorIAListResponse:
+    """Lista las configuraciones del motor."""
     use_case = ConsultarMotorUseCase(repo=SqlAlchemyConfiguracionMotorIARepository(db))
     items = use_case.listar()
     return ConfiguracionMotorIAListResponse(
@@ -167,6 +170,7 @@ def obtener_configuracion(
     tipo_modelo: str,
     db: Session = Depends(get_db),
 ) -> ConfiguracionMotorIAResponse:
+    """Devuelve la configuración del motor de un tipo de modelo."""
     use_case = ConsultarMotorUseCase(repo=SqlAlchemyConfiguracionMotorIARepository(db))
     entidad = use_case.obtener_por_tipo(tipo_modelo)
     return ConfiguracionMotorIAResponse.from_entity(entidad)
@@ -187,6 +191,7 @@ def consultar_sincronizacion(
     tipo_modelo: str,
     db: Session = Depends(get_db),
 ) -> SincronizacionMotorSchema:
+    """Devuelve la sincronización de la configuración con Edge."""
     use_case = ConsultarSincronizacionMotorUseCase(
         repo=SqlAlchemyConfiguracionMotorIARepository(db),
         sincronizacion_repo=SqlAlchemySincronizacionNodoEdgeRepository(db),
@@ -209,6 +214,7 @@ def consultar_historial(
     tipo_modelo: str,
     db: Session = Depends(get_db),
 ) -> HistorialConfiguracionMotorSchema:
+    """Devuelve el historial de configuración de un tipo de modelo."""
     use_case = ConsultarHistorialMotorUseCase(
         repo=SqlAlchemyConfiguracionMotorIARepository(db),
         historial_repo=SqlAlchemyHistorialConfiguracionMotorRepository(db),

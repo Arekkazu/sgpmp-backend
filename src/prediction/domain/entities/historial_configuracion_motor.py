@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Read-models del historial de la configuración del motor (RF-65 Restricción 5, DEV-36)."""
 from __future__ import annotations
 
@@ -31,10 +32,12 @@ class VersionConfiguracionMotor:
 
 @dataclass
 class HistorialConfiguracionMotor:
+    """Versiones de configuración del motor de un tipo de modelo."""
     tipo_modelo: str
     config_version_vigente: Optional[int]
     versiones: list[VersionConfiguracionMotor]
 
     @property
     def total(self) -> int:
+        """Cantidad de versiones."""
         return len(self.versiones)

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Aviso de RF-58 E7 al Administrador: una variable recibe datos sin umbral en M09.
 
 - Canal: correo de RF-14 (``send_email`` + plantilla común, sin reintentos), como los
@@ -60,10 +61,12 @@ _SQL_ADMINISTRADORES = text(
 
 
 class AvisoSinUmbralEmailAdapter(AvisoSinUmbralPort):
+    """Avisa por correo al Administrador los sensores sin umbral configurado."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def avisar(self, sensores: list[EstadoSensorActual]) -> int:
+        """Envía el aviso de los sensores aún no avisados y devuelve cuántos se avisaron."""
         try:
             pendientes = self._sin_avisar(sensores)
             if not pendientes:

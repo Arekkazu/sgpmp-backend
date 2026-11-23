@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: resultado que envía el motor IA (Salida de RF-66)         |
 # | 2026-10-30 | Arekkazu | RF-66: enfermedad estimada por código del catálogo base RF-64    |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Cuerpo de ``POST /prediccion/inferencias``: la Salida de RF-66 que entrega el motor IA.
 
 ``id_especie`` no viaja: el backend lo toma del activo. ``latencia_excedida`` tampoco:
@@ -22,6 +23,7 @@ Probabilidades = dict[str, Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=
 
 
 class RegistrarResultadoInferenciaDTO(BaseDTO):
+    """Resultado de inferencia enviado por el motor."""
     id_resultado_inferencia: uuid.UUID = Field(
         ..., description="Lo genera el motor. Reenviar el mismo id no duplica el resultado."
     )
@@ -53,6 +55,7 @@ class RegistrarResultadoInferenciaDTO(BaseDTO):
 
     @model_validator(mode="after")
     def ventana_coherente(self):
+        """Exige que el inicio de la ventana sea anterior al fin."""
         if (
             self.fecha_inicio_ventana is not None
             and self.fecha_fin_ventana is not None

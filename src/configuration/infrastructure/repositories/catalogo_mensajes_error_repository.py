@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-107: catálogo de mensajes de error sobre modulo9      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`CatalogoMensajesErrorRepository` sobre ``modulo9.catalogo_mensajes_error``.
 La RLS deja leer a cualquiera y escribir a quien tenga el permiso sobre el recurso del catálogo."""
 from __future__ import annotations
@@ -28,14 +29,17 @@ _SQL_ELIMINAR = text("DELETE FROM modulo9.catalogo_mensajes_error WHERE clave = 
 
 
 class SqlAlchemyCatalogoMensajesErrorRepository(CatalogoMensajesErrorRepository):
+    """Implementación SQLAlchemy de ``CatalogoMensajesErrorRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def listar(self, idioma: Optional[str]) -> list[MensajeError]:
+        """Lista los mensajes, opcionalmente de un idioma."""
         return [MensajeError(**dict(f._mapping)) for f in self.db.execute(_SQL_LISTAR, {"idioma": idioma})]
 
     def guardar(self, mensaje: MensajeError) -> MensajeError:
+        """Crea o reemplaza la entrada de ``(clave, idioma)``."""
         try:
             fila = self.db.execute(_SQL_GUARDAR, {
                 "clave": mensaje.clave, "idioma": mensaje.idioma, "mensaje": mensaje.mensaje,
@@ -47,6 +51,7 @@ class SqlAlchemyCatalogoMensajesErrorRepository(CatalogoMensajesErrorRepository)
             raise_from_db_error(exc)
 
     def eliminar(self, clave: str, idioma: str) -> bool:
+        """Elimina el mensaje; ``False`` si no existe."""
         try:
             borradas = self.db.execute(_SQL_ELIMINAR, {"clave": clave, "idioma": idioma}).rowcount
             self.db.flush()

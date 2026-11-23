@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: persiste rechazos estructurales      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Bitácora de rechazos anteriores al caso de uso de ingesta."""
 import logging
 
@@ -17,6 +18,7 @@ class RegistrarRechazoEstructuraUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, contexto: dict) -> None:
+        """Registra en la bitácora de ingesta una solicitud rechazada por estructura."""
         try:
             self.bitacora_repo.registrar_error(
                 estado_calidad='ERROR_ESTRUCTURA',

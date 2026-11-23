@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 # | 2026-10-30 | Arekkazu     | RF-66: la cola usa el motor IA real si IOT_INFERENCIA_M04_URL está definida |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de las funciones |
 """RF-56 CA-6: cola de reenvío. Cada IOT_INFERENCIA_REENVIO_SEG drena los paquetes PENDIENTE
 cuyo reintento venció, en orden cronológico y en lotes de máximo 500.
 
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def drenar_una_vez() -> None:
+    """Drena los paquetes pendientes una sola vez con una sesión de sistema."""
     db = sesion_sistema()
     try:
         DrenarPaquetesPendientesUseCase(
@@ -41,6 +43,7 @@ def drenar_una_vez() -> None:
 
 
 async def reenviar_paquetes_inferencia_periodicamente() -> None:
+    """Reenvía paquetes pendientes en bucle, según ``IOT_INFERENCIA_REENVIO_SEG``."""
     # 5 s por defecto: es la espera más corta de la política (intento 2).
     intervalo = max(1, int(os.getenv('IOT_INFERENCIA_REENVIO_SEG', '5')))
     while True:

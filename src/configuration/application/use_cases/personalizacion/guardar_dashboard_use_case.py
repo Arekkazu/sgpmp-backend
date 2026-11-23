@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: valida las opciones de cada widget y la frecuencia   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Guardar configuración del dashboard del usuario (PATCH RF-28).
 
 Rechaza, en el orden en que el RF enumera sus flujos alternos: perfil modificado
@@ -43,6 +44,7 @@ class GuardarDashboardUseCase:
         self.widget_repo = widget_repo
 
     def execute(self, dto: GuardarDashboardDTO, usuario_actual: UsuarioActual) -> DashboardLayout:
+        """Guarda el tablero personalizado del usuario."""
         self._verificar_perfil_vigente(dto, usuario_actual)
         claves = self._verificar_catalogo(dto, usuario_actual)
 

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-22 | Arekkazu | USAB2 M01 RF-02: un refresh rotado cuya respuesta se perdió no cierra la sesión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto de dominio :class:`SesionRepository`.
 
 Mapea entre las tablas ``sesiones`` / ``tokens`` y las entidades :class:`Sesion`
@@ -58,6 +59,7 @@ class SqlAlchemySesionRepository(SesionRepository):
         )
 
     def buscar_sesion_activa(self, id_cuenta_usuario: int) -> Optional[Sesion]:
+        """Devuelve la sesión activa de la cuenta, o ``None``."""
         orm = (
             self.db.query(Sesiones)
             .filter(
@@ -69,14 +71,17 @@ class SqlAlchemySesionRepository(SesionRepository):
         return self._sesion_a_entidad(orm) if orm else None
 
     def buscar_sesion_por_token(self, id_token: int) -> Optional[Sesion]:
+        """Devuelve la sesión del token de acceso, o ``None``."""
         orm = self.db.query(Sesiones).filter(Sesiones.id_token == id_token).first()
         return self._sesion_a_entidad(orm) if orm else None
 
     def buscar_sesion_por_id(self, id_sesion: int) -> Optional[Sesion]:
+        """Devuelve la sesión por id, o ``None``."""
         orm = self.db.get(Sesiones, id_sesion)
         return self._sesion_a_entidad(orm) if orm else None
 
     def buscar_token_por_hash(self, hash_valor: str) -> Optional[Token]:
+        """Devuelve el token de refresco por su hash bloqueando la fila."""
         # FOR UPDATE (bloqueante, sin NOWAIT/SKIP LOCKED): dos refrescos
         # concurrentes con el mismo refresh token (dos tabs, doble clic, un
         # bootstrap de sesión que compite con un login explícito) deben
@@ -100,10 +105,12 @@ class SqlAlchemySesionRepository(SesionRepository):
         return self._token_a_entidad(orm) if orm else None
 
     def buscar_token_por_id(self, id_token: int) -> Optional[Token]:
+        """Devuelve el token por id, o ``None``."""
         orm = self.db.get(Tokens, id_token)
         return self._token_a_entidad(orm) if orm else None
 
     def invalidar_sesion(self, sesion: Sesion) -> None:
+        """Cierra la sesión."""
         ahora = datetime.now(timezone.utc)
         orm = self.db.get(Sesiones, sesion.id_sesion)
         orm.es_activa = False
@@ -118,6 +125,7 @@ class SqlAlchemySesionRepository(SesionRepository):
         self.db.flush()
 
     def invalidar_todas_sesiones(self, id_cuenta_usuario: int) -> None:
+        """Cierra todas las sesiones activas de la cuenta."""
         ahora = datetime.now(timezone.utc)
         sesiones = (
             self.db.query(Sesiones)
@@ -140,6 +148,7 @@ class SqlAlchemySesionRepository(SesionRepository):
         self.db.flush()
 
     def crear_token_acceso(self, fecha_expiracion: datetime) -> Token:
+        """Crea un token de acceso con su expiración."""
         orm = Tokens(
             token_tipo=EnumTokenTipo.ACCESO,
             fecha_expiracion=fecha_expiracion,
@@ -155,6 +164,7 @@ class SqlAlchemySesionRepository(SesionRepository):
             raise_from_db_error(e, conflict_messages={})
 
     def crear_token_refresco(self, fecha_expiracion: datetime, hash_valor: str) -> Token:
+        """Crea un token de refresco con su hash y expiración."""
         orm = Tokens(
             token_tipo=EnumTokenTipo.REFRESCO,
             fecha_expiracion=fecha_expiracion,
@@ -171,6 +181,7 @@ class SqlAlchemySesionRepository(SesionRepository):
             raise_from_db_error(e, conflict_messages={})
 
     def vincular_token_a_sesion(self, id_token: int, id_sesion: int) -> None:
+        """Asocia el token a la sesión."""
         orm = self.db.get(Tokens, id_token)
         orm.id_sesion = id_sesion
         self.db.flush()
@@ -182,6 +193,7 @@ class SqlAlchemySesionRepository(SesionRepository):
         nuevo_id_token_refresco: int,
         nueva_fecha_expiracion: datetime,
     ) -> Sesion:
+        """Reemplaza los tokens de la sesión por los nuevos."""
         ahora = datetime.now(timezone.utc)
         orm = self.db.get(Sesiones, sesion.id_sesion)
 
@@ -214,6 +226,7 @@ class SqlAlchemySesionRepository(SesionRepository):
         fecha_expiracion: datetime,
         id_token_refresco: Optional[int] = None,
     ) -> Sesion:
+        """Crea una sesión para la cuenta."""
         ahora = datetime.now(timezone.utc)
         orm = Sesiones(
             id_cuenta_usuario=id_cuenta_usuario,

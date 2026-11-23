@@ -1,6 +1,12 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: construir evidencia FALLA_PERSISTENCIA sin depender de la BD caída. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Caso de uso que resguarda evidencia cuando falla la persistencia (RF-53/RF-63).
+
+Construye el evento FALLA_PERSISTENCIA y lo guarda en el respaldo local sin
+depender de la base de datos, que puede estar caída.
+"""
 from datetime import datetime, timezone
 from uuid import uuid4
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
@@ -11,10 +17,21 @@ from src.telemetry.domain.repositories.respaldo_auditoria_iot_port import Respal
 
 
 class ResguardarFallaPersistenciaUseCase:
+    """Construye y resguarda la evidencia de una ingesta no confirmada."""
+
     def __init__(self, respaldo: RespaldoAuditoriaIotPort):
         self.respaldo = respaldo
 
     def execute(self, endpoint: str, detalle: dict) -> EventoAuditoriaIot:
+        """Crea el evento de falla, le calcula su hash y lo guarda en el respaldo.
+
+        Args:
+            endpoint: Endpoint cuya persistencia falló.
+            detalle: Datos adicionales del fallo (dispositivo, operación, etc.).
+
+        Returns:
+            El evento de auditoría resguardado.
+        """
         clasificacion, retencion = clasificar_componente(ComponenteOrigen.RF53)
         dispositivo = detalle.get('device_id')
         evento = EventoAuditoriaIot(

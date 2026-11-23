@@ -5,6 +5,8 @@
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: consulta del paquete por id con alcance por finca |
 # | 2026-10-30 | Arekkazu | RF-66: la cola bloquea con FOR NO KEY UPDATE (el motor IA inserta resultados que referencian el paquete) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de paquetes de inferencia enviados al motor de IA (RF-56/RF-63)."""
 from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import (
@@ -34,6 +36,7 @@ _ESPERA_SQL = case(
 
 
 class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
+    """Persiste paquetes de inferencia y gestiona su cola de envío y reintentos."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -41,6 +44,7 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
     def obtener_por_evento(
         self, id_evento: int, *, bloquear_evento: bool = False,
     ) -> Optional[PaqueteInferencia]:
+        """Devuelve el paquete de un evento Edge, opcionalmente bloqueando el evento."""
         try:
             if bloquear_evento:
                 # Bloquear el padre también protege el caso sin paquete.
@@ -58,6 +62,7 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
     def obtener(
         self, id_paquete: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Optional[PaqueteInferencia]:
+        """Devuelve un paquete por id, acotado a las fincas permitidas si se indican."""
         try:
             q = self.db.query(PaqueteInferenciaModel).filter(
                 PaqueteInferenciaModel.id_paquetes_inferencia == id_paquete)
@@ -72,6 +77,7 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
             raise_from_db_error(exc)
 
     def guardar(self, entidad: PaqueteInferencia) -> PaqueteInferencia:
+        """Guarda un paquete nuevo y audita su generación (y contexto incompleto)."""
         try:
             orm = PaqueteInferenciaModel(
                 id_sensor=entidad.id_sensor,
@@ -106,6 +112,7 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
     def actualizar_estado(
         self, id_paquete: int, estado: str, intento: int, fecha_intento: Optional[datetime] = None,
     ) -> None:
+        """Actualiza el estado y el intento del paquete, auditando la transición."""
         try:
             orm = self.db.query(PaqueteInferenciaModel).filter(
                 PaqueteInferenciaModel.id_paquetes_inferencia == id_paquete).with_for_update().one()
@@ -125,6 +132,7 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
             raise_from_db_error(exc)
 
     def listar_pendientes(self, limite: int) -> list[PaqueteInferencia]:
+        """Toma un lote de paquetes pendientes listos para envío, bloqueándolos sin esperar."""
         try:
             filas = self.db.query(PaqueteInferenciaModel).join(
                 EventoEdgeComputingModel,

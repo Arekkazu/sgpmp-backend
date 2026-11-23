@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para editar una métrica de producción (Flujo J — RF-16).
 
 Incluye ``fecha_actualizacion`` para control de concurrencia optimista.
@@ -48,6 +49,7 @@ class EditarMetricaDTO(BaseDTO):
     @field_validator("nombre")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         v = v.strip()
         if len(v) < 3 or len(v) > 60:
             raise ValueError("El nombre de la métrica debe tener entre 3 y 60 caracteres.")
@@ -60,6 +62,7 @@ class EditarMetricaDTO(BaseDTO):
     @field_validator("unidad_medida")
     @classmethod
     def validar_unidad_medida(cls, v: str) -> str:
+        """Valida la unidad de medida."""
         v = v.strip()
         if not v:
             raise ValueError("La unidad de medida es obligatoria.")
@@ -70,6 +73,7 @@ class EditarMetricaDTO(BaseDTO):
     @field_validator("tipo_medicion")
     @classmethod
     def validar_tipo_medicion(cls, v: str) -> str:
+        """Valida el tipo de medición."""
         v = v.strip().upper()
         if v not in _TIPOS_VALIDOS:
             raise ValueError(f"El tipo de medición debe ser uno de: {', '.join(sorted(_TIPOS_VALIDOS))}.")
@@ -78,6 +82,7 @@ class EditarMetricaDTO(BaseDTO):
     @field_validator("aplica_a_tipo_activo")
     @classmethod
     def validar_aplica(cls, v: str) -> str:
+        """Valida el tipo de activo al que aplica."""
         v = v.strip().upper()
         if v not in _APLICA_VALIDOS:
             raise ValueError(f"El valor de aplica_a_tipo_activo debe ser uno de: {', '.join(sorted(_APLICA_VALIDOS))}.")
@@ -86,6 +91,7 @@ class EditarMetricaDTO(BaseDTO):
     @field_validator("tipo_dato")
     @classmethod
     def validar_tipo_dato(cls, v: Optional[str]) -> Optional[str]:
+        """Valida el tipo de dato."""
         if v is None:
             return None
         return TipoDatoAtributo.desde_string(v).value

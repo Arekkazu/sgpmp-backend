@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                               |
 # |------------|----------|---------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: aviso al Administrador cuando la TVCO del modelo baja del umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: tras registrar una retroalimentación clínica, revisa la tasa de validación del modelo (RF-106,
 dependencia con RF-105).
 
@@ -21,22 +22,30 @@ UMBRAL_POR_DEFECTO = 60
 
 
 class TasaValidacionPort(ABC):
+    """Puerto de la tasa de validación del modelo y su aviso."""
 
     @abstractmethod
     def tvco_global(self, dias: int) -> tuple[Optional[float], int]:
         """(porcentaje, inferencias validadas sin conflicto) del modelo en los últimos ``dias``."""
 
     @abstractmethod
-    def umbral(self) -> Optional[float]: ...
+    def umbral(self) -> Optional[float]:
+        """Umbral configurado de la tasa de validación, o ``None``."""
+        ...
 
     @abstractmethod
-    def avisado_hoy(self) -> bool: ...
+    def avisado_hoy(self) -> bool:
+        """Indica si ya se avisó hoy la degradación."""
+        ...
 
     @abstractmethod
-    def avisar_administradores(self, mensaje: str, detalle: dict) -> None: ...
+    def avisar_administradores(self, mensaje: str, detalle: dict) -> None:
+        """Avisa la degradación a los administradores."""
+        ...
 
 
 class VigilarDegradacionModeloUseCase:
+    """Avisa a los administradores cuando la tasa de validación cae bajo el umbral."""
 
     def __init__(self, puerto: TasaValidacionPort) -> None:
         self.puerto = puerto

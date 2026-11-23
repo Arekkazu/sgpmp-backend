@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: catálogo del motor IA armado desde la BD            |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Lo que el motor IA necesita para armar su catálogo solo, sin ``catalogo.json`` manual."""
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from src.prediction.domain.entities.animal_motor import AnimalMotor
 
 
 class CatalogoMotorPort(ABC):
+    """Puerto del catálogo de animales y modelos del motor."""
     @abstractmethod
     def animales(self, id_activo: Optional[int] = None) -> list[AnimalMotor]:
         """Animales INDIVIDUAL vivos, con sensor directo, en un área de modelo individual."""

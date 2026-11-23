@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: contexto de alerta desde M09     |
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: excluye vinculaciones SUPERADA del consumo vigente |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Consultas derivadas: nunca se leen los flags obsoletos de telemetrias."""
 from sqlalchemy import select, text
 
@@ -13,7 +14,9 @@ from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import va
 
 
 class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
+    """Consultas del procesamiento posterior a la ingesta de una lectura."""
     def contexto_alerta(self, lectura):
+        """Devuelve variable, dispositivo, área y finca de la lectura para generar alertas."""
         variable = variable_para_alerta(self.db, id_variable=lectura.id_variable)
         dispositivo = self.db.execute(text('''SELECT d.serial,d.id_infraestructura,i.id_finca
             FROM modulo9.dispositivos_iot d JOIN modulo9.infraestructuras i
@@ -22,6 +25,7 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
         return {'variable': variable, **dict(dispositivo)}
 
     def obtener_por_id(self, id_telemetria):
+        """Devuelve la lectura por id, o ``None``."""
         columnas = [c for c in TelemetriaModel.__table__.c
                     if c.name not in ('apto_para_ia', 'apto_para_nic41')]
         fila = self.db.execute(select(*columnas).where(
@@ -33,6 +37,7 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
         return Telemetria(**datos)
 
     def vinculacion(self, identificador):
+        """Devuelve la vinculación vigente de la lectura."""
         return self.db.execute(text("""SELECT id_vinculacion_lectura, id_activo_biologico
             FROM modulo3.vinculaciones_lecturas WHERE id_telemetria=:id
               AND fecha_fin_vinculacion IS NULL
@@ -48,12 +53,14 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
         """), {'id': identificador}).mappings().first()
 
     def evaluacion_omitida(self, identificador):
+        """Indica si se omitió la evaluación de calidad por inactividad."""
         return self.db.execute(text("""SELECT EXISTS(SELECT 1 FROM modulo3.bitacora_auditoria_iot
             WHERE componente_origen='RF62' AND entidad_afectada_tipo='CALIDAD_DATO'
               AND entidad_afectada_id=:id AND tipo_evento='EVALUACION_OMITIDA_POR_INACTIVIDAD')"""),
             {'id':str(identificador)}).scalar_one()
 
     def evaluacion_vigente(self, identificador):
+        """Devuelve la evaluación de calidad vigente de la lectura."""
         return self.db.execute(text("""SELECT q.id_evaluacion, q.apto_para_ia, q.apto_para_nic41
             FROM modulo3.telemetria_calidad q
             WHERE q.id_telemetria=:id AND q.estado_evaluacion='VIGENTE'
@@ -64,10 +71,12 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
         """), {'id': identificador}).mappings().first()
 
     def infraestructura(self, dispositivo):
+        """Devuelve el área del dispositivo."""
         return self.db.execute(text('SELECT id_infraestructura FROM modulo9.dispositivos_iot WHERE id_dispositivo_iot=:id'),
                                {'id': dispositivo}).scalar_one()
 
     def ultima_lectura_valida(self, sensor):
+        """Devuelve la última lectura válida del sensor."""
         identificador = self.db.execute(text("""SELECT id_telemetria FROM modulo3.telemetrias
             WHERE id_sensor=:id AND estado_calidad='LECTURA_VALIDA'
             ORDER BY timestamp_captura DESC, id_telemetria DESC LIMIT 1
@@ -75,6 +84,7 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
         return self.obtener_por_id(identificador) if identificador else None
 
     def restaurar_cache(self, lectura):
+        """Reconstruye el estado actual del sensor desde su captura más reciente."""
         # El trigger vigente sobrescribe el cache aun con lecturas tardías. Se
         # reconstruye desde la mayor captura sin alterar la fila RF-53 original.
         self.db.execute(text("""UPDATE modulo3.estados_actuales_sensores SET
@@ -95,6 +105,7 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
                'dispositivo': lectura.id_dispositivo_iot, 'conectividad': lectura.estado_conectividad})
 
     def aplicar_prioridades(self, lectura, color):
+        """Recalcula el semáforo del sensor respetando conectividad y desactualización."""
         self.db.execute(text("""UPDATE modulo3.estados_actuales_sensores eas
             SET estado_semaforo=CASE
               WHEN eas.dato_desactualizado OR eas.estado_conectividad IN ('SIN_SEÑAL','INACTIVO','EN_MANTENIMIENTO')

@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.detalles_activos_individuales``: raza, sexo, nacimiento y
 peso de un activo INDIVIDUAL.
 """
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
 
 
 class DetalleActivoIndividualModel(Base):
+    """Modelo ORM del detalle de un activo individual (tabla ``modulo2.detalles_activos_individuales``)."""
     __tablename__ = 'detalles_activos_individuales'
     __table_args__ = (
         PrimaryKeyConstraint('id_detalle_activo_individual', name='detalles_activos_individuales_pkey'),

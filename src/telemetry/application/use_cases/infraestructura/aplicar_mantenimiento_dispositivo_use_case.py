@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-42 RF-60: restringe mantenimiento y alcance de finca |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-60 CA-7/CA-8: Transición manual de mantenimiento de un dispositivo IoT.
 
 Permite a Administrador/Ingeniero poner un dispositivo EN_MANTENIMIENTO o
@@ -44,6 +45,7 @@ from src.telemetry.infrastructure.dto.aplicar_mantenimiento_dto import AplicarMa
 
 
 class AplicarMantenimientoDispositivoUseCase:
+    """Pone o saca un dispositivo IoT de mantenimiento."""
 
     def __init__(
         self,
@@ -63,6 +65,7 @@ class AplicarMantenimientoDispositivoUseCase:
         nombre_usuario: str,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> EstadoDispositivoIoT:
+        """Aplica la transición de mantenimiento al dispositivo y la audita."""
         if ids_fincas_permitidas is not None and not self.estado_repo.pertenece_a_fincas(
             id_dispositivo_iot, ids_fincas_permitidas):
             raise NotFoundError('ESTADO_DISPOSITIVO_NO_ENCONTRADO',

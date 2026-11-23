@@ -6,6 +6,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 B-01 RF-82/88/89: montos, porcentajes y fechas con formato colombiano en los mensajes |
 # | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-82 pasos 7-9: el Contador confirma la propuesta y el reconocimiento queda inmutable.
 
 Los costos de venta manuales exigen una referencia documental (RF-84 R4), que queda en el cálculo y en la
@@ -41,6 +42,7 @@ TABLA = "reconocimientos_iniciales"
 
 
 class ConfirmarReconocimientoUseCase:
+    """Confirma el reconocimiento inicial de un activo biológico."""
     def __init__(self, db: Session, activos: ActivoFinancieroPort, valoraciones: ValoracionRepository,
                  proponedor: ProponedorReconocimiento, contabilizador: Contabilizador,
                  notificador: Optional[NotificacionFinancieraPort] = None) -> None:
@@ -54,6 +56,7 @@ class ConfirmarReconocimientoUseCase:
     def execute(self, id_activo_biologico: int, id_usuario: int, *, clasificacion: Optional[str] = None,
                 costos_manuales: Optional[dict] = None, justificacion: Optional[str] = None,
                 referencia_documental: Optional[str] = None) -> dict:
+        """Confirma el reconocimiento del activo y lo contabiliza."""
         manuales = {k: v for k, v in (costos_manuales or {}).items() if v is not None}
         referencia = (referencia_documental or "").strip() or None
         if manuales and referencia is None:  # RF-84 R4

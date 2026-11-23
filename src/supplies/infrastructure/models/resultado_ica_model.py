@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.resultado_ica`` (RF-74 / CU-02).
 
 Generado con sqlacodegen (reflexión de la BD) y adaptado a las convenciones del
@@ -19,6 +22,7 @@ from .base_model import Base
 
 
 class ResultadoIcaModel(Base):
+    """Modelo ORM de la tabla ``modulo5.resultado_ica``."""
     __tablename__ = 'resultado_ica'
     __table_args__ = {'schema': 'modulo5'}
 

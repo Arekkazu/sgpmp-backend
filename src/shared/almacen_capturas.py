@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-53/RF-66: últimas capturas de cada cámara en disco            |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Capturas de las cámaras de visión: el último cuadro de cada ventana con las cajas que detectó
 el nodo (JPEG). Solo para mostrar en Predicción qué está viendo el modelo.
 
@@ -32,6 +33,7 @@ TOLERANCIA = timedelta(seconds=1)
 
 @dataclass(frozen=True)
 class Captura:
+    """Imagen JPEG capturada por un dispositivo con su fecha y conteo de individuos."""
     id_dispositivo_iot: int
     fecha: datetime
     n_individuos: Optional[int]

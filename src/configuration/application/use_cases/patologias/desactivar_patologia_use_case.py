@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Desactivar patología por especie (Flujo G — RF-16).
 
 Desactiva (baja lógica) la patología de esa especie. Bloqueado si el vínculo al
@@ -36,6 +39,7 @@ class DesactivarPatologiaUseCase:
         self.dependencia_port = dependencia_port
 
     def execute(self, id_especies_patologias: int, usuario_actual: UsuarioActual) -> EspeciePatologia:
+        """Desactiva la patología y la audita."""
         entidad = self.especie_patologia_repo.obtener_por_id(id_especies_patologias)
         if entidad is None:
             raise NotFoundError(

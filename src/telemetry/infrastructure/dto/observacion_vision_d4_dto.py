@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: sobre normativo separado del contrato legado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Sobres D4 normativo y legado con rangos de RFC-011.
 
 El contrato normativo exige los metadatos de la ficha. El legado conserva su
@@ -15,16 +16,19 @@ from src.telemetry.domain.entities.calidad_vision import EstadoCalibracionVision
 
 
 class BloqueVisionDTO(BaseDTO):
+    """Base de los bloques del sobre de visión; no admite campos extra."""
     model_config = ConfigDict(extra='forbid')
 
 
 class ComponentesVisionDTO(BloqueVisionDTO):
+    """Componentes del vector de comportamiento observado."""
     densidad_actividad: Decimal = Field(ge=0, le=1, max_digits=5, decimal_places=4, allow_inf_nan=False)
     dispersion_espacial: Decimal = Field(ge=0, max_digits=8, decimal_places=4, allow_inf_nan=False)
     tasa_movimiento: Decimal = Field(ge=0, max_digits=8, decimal_places=4, allow_inf_nan=False)
 
 
 class CalidadVisionD4DTO(BloqueVisionDTO):
+    """Indicadores de calidad de la ventana de visión."""
     cobertura_ventana: Decimal = Field(ge=0, le=1, max_digits=5, decimal_places=4, allow_inf_nan=False)
     n_tracks: StrictInt = Field(ge=0, le=2147483647)
     n_tracks_perdidos: StrictInt = Field(ge=0, le=2147483647)
@@ -33,6 +37,7 @@ class CalidadVisionD4DTO(BloqueVisionDTO):
 
 
 class VersionCascadaDTO(BloqueVisionDTO):
+    """Versiones de los modelos de la cascada de visión."""
     detector: StrictStr = Field(min_length=1)
     seguimiento: StrictStr = Field(min_length=1)
     metricas: StrictStr = Field(min_length=1)
@@ -40,6 +45,7 @@ class VersionCascadaDTO(BloqueVisionDTO):
 
 
 class ObservacionVisionD4LegadoDTO(BloqueVisionDTO):
+    """Observación de visión en el formato anterior del sobre."""
     serial: StrictStr = Field(min_length=1, max_length=50, validation_alias=AliasChoices('serial', 'dispositivo_serial'))
     area_id: StrictInt = Field(gt=0)
     ventana_inicio: AwareDatetime
@@ -51,6 +57,7 @@ class ObservacionVisionD4LegadoDTO(BloqueVisionDTO):
     @model_validator(mode='before')
     @classmethod
     def aliases_sin_ambiguedad(cls, datos):
+        """Rechaza el sobre si trae a la vez un campo y su alias."""
         if isinstance(datos, dict):
             datos = dict(datos)
             for canonico, alias in (('serial', 'dispositivo_serial'), ('calidad', 'indicadores_calidad')):
@@ -62,18 +69,21 @@ class ObservacionVisionD4LegadoDTO(BloqueVisionDTO):
 
     @model_validator(mode='after')
     def ventana_coherente(self):
+        """Exige que el inicio de la ventana sea anterior al fin."""
         if self.ventana_inicio >= self.ventana_fin:
             raise ValueError('ventana_inicio debe ser anterior a ventana_fin.')
         return self
 
 
 class CalidadVisionFichaDTO(CalidadVisionD4DTO):
+    """Indicadores de calidad del formato normativo con estado de calibración."""
     # P-5 no se resuelve derivando tracks a partir del numero de individuos.
     n_tracks: StrictInt | None = Field(default=None, ge=0, le=2147483647)
     estado_calibracion: EstadoCalibracionVision
 
 
 class ObservacionVisionD4DTO(ObservacionVisionD4LegadoDTO):
+    """Observación de visión en el formato normativo del sobre."""
     tipo_dato: Literal['VECTOR_COMPORTAMIENTO']
     n_individuos_observados: StrictInt = Field(ge=0, le=2147483647)
     origen: Literal['TIEMPO_REAL', 'BUFFER_LOCAL']

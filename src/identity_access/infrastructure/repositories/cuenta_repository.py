@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto de dominio :class:`CuentaRepository`.
 
 Mapea entre la tabla ``cuentas_usuarios`` y la entidad :class:`Cuenta`, y
@@ -65,6 +68,7 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         orm.motivo_ultimo_cambio = cuenta.motivo_ultimo_cambio
 
     def crear(self, id_usuario: int, token_hash: str, id_estado_cuenta: Optional[int] = None) -> Cuenta:
+        """Crea la cuenta del usuario con su token de activación."""
         orm = CuentasUsuarios(
             id_usuario=id_usuario,
             id_estado_cuenta=id_estado_cuenta if id_estado_cuenta is not None else Cuenta.ESTADO_PENDIENTE,
@@ -81,6 +85,7 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
             })
 
     def obtener_por_usuario(self, id_usuario: int) -> Optional[Cuenta]:
+        """Devuelve la cuenta del usuario, o ``None``."""
         orm = (
             self.db.query(CuentasUsuarios)
             .filter(CuentasUsuarios.id_usuario == id_usuario)
@@ -89,10 +94,12 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_id(self, id_cuenta_usuario: int) -> Optional[Cuenta]:
+        """Devuelve la cuenta por id, o ``None``."""
         orm = self.db.get(CuentasUsuarios, id_cuenta_usuario)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_hash_token(self, token_hash: str) -> Optional[Cuenta]:
+        """Devuelve la cuenta asociada al hash del token, o ``None``."""
         # Activación y restablecimiento de contraseña: sin identidad todavía
         # (ver SqlAlchemyUsuarioRepository.obtener_por_correo).
         id_usuario = self.db.execute(
@@ -109,6 +116,7 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, cuenta: Cuenta) -> Cuenta:
+        """Persiste los cambios de la cuenta."""
         orm = self.db.get(CuentasUsuarios, cuenta.id_cuenta_usuario)
         self._aplicar_a_orm(cuenta, orm)
         try:
@@ -125,6 +133,7 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         motivo: str,
         id_responsable: int,
     ) -> None:
+        """Registra una gestión administrativa sobre la cuenta."""
         gestion = GestionesCuenta(
             id_cuenta_usuario=id_cuenta_usuario,
             accion_cuenta=EnumAccionCuenta(accion),
@@ -136,6 +145,7 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         self.db.flush()
 
     def contar_usuarios_activos_por_rol(self, id_rol: int) -> int:
+        """Cuenta los usuarios con cuenta activa del rol."""
         return (
             self.db.query(CuentasUsuarios)
             .join(Usuarios, Usuarios.id_usuario == CuentasUsuarios.id_usuario)

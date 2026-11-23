@@ -9,6 +9,8 @@
 # | 2026-10-31 | Arekkazu | TC-DIS-160 RF-59: más de 90 días solo con filtro de variable, sensor o especie |
 # | 2026-10-31 | Claude | INC-M03-247-G92 RF-58: unidad de cada semáforo base para el estado general |
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: semáforo con la última lectura, el umbral vigente y su tolerancia T |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidades y reglas del monitoreo: lecturas históricas, estado de sensores y semáforo (RF-58)."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -211,6 +213,7 @@ COMBINACIONES_FILTROS_VALIDAS: tuple[frozenset[str], ...] = (
 
 
 def describir_combinaciones_validas() -> str:
+    """Describe en texto las combinaciones de filtros válidas del historial."""
     return '; '.join(
         ' + '.join(['fechas', *sorted(c)]) for c in COMBINACIONES_FILTROS_VALIDAS
     )
@@ -295,6 +298,7 @@ class SemaforoCalculator:
         umbral_max: Decimal,
         tolerancia_pct: float = 10.0,
     ) -> str:
+        """Calcula el color del semáforo de un valor frente a su rango y tolerancia."""
         T = (umbral_max - umbral_min) * Decimal(str(tolerancia_pct / 100))
         if umbral_min <= valor <= umbral_max:
             return 'VERDE'

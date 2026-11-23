@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: evidencia obligatoria sin commits implicitos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstring de la función |
 """Construcción única de evidencia; la transacción pertenece al llamador."""
 from datetime import datetime, timezone
 
@@ -13,6 +14,11 @@ from src.telemetry.domain.entities.evento_auditoria_iot import (
 def registrar_evidencia(repo, tipo, componente, *, entidad=None, identificador=None,
                        detalle=None, usuario=None, resultado=TipoResultado.EXITOSO,
                        severidad=SeveridadLog.INFO, fecha=None, descripcion=None):
+    """Construye y registra evidencia obligatoria, devolviendo la entidad persistida.
+
+    Raises:
+        RuntimeError: Si la evidencia no se confirma en la transacción del llamador.
+    """
     clasificacion, retencion = clasificar_componente(componente)
     evento = EventoAuditoriaIot(
         id_evento=None, tipo_evento=tipo, fecha_hora=fecha or datetime.now(timezone.utc),

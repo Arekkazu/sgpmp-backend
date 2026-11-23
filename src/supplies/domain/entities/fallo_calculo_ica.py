@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio :class:`FalloCalculoICA` (RF-74 / E5).
 
 Registra un fallo técnico persistente del cálculo ICA de un activo tras agotar los
@@ -29,6 +32,7 @@ class FalloCalculoICA:
     id_fallo: Optional[int] = None
 
     def resolver(self, *, tipo_resolucion: str, cuando: datetime) -> None:
+        """Marca el fallo como resuelto."""
         self.resuelto = True
         self.tipo_resolucion = tipo_resolucion
         self.fecha_resolucion = cuando

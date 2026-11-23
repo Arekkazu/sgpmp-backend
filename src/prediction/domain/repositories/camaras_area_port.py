@@ -2,6 +2,8 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66: cámaras de visión de un área (para ver sus capturas)      |
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: inventario del área y conteos de la cámara      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de cámaras de un área."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -9,6 +11,7 @@ from typing import Optional
 
 
 class CamarasAreaPort(ABC):
+    """Puerto para listar las cámaras de un área."""
 
     @abstractmethod
     def camaras(self, id_area: int) -> list[int]:

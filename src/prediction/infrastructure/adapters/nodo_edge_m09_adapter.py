@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador real de ``NodoEdgePort`` contra ``modulo9`` (DEV-09, RF-65 FA-08).
 
 Reemplaza a ``NodoEdgeStubAdapter``, que respondía siempre que había nodos: ahora
@@ -42,11 +45,16 @@ _SQL_NODOS_POR_TIPO_MODELO = text(
 
 
 class NodoEdgeM09Adapter(NodoEdgePort):
+    """Lista los nodos Edge activos de un tipo de modelo."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def listar_nodos_activos(self, tipo_modelo: str) -> list[NodoEdge]:
+        """Gateway Edge activos que atienden un área activa con ese ``tipo_modelo`` asignado.
+
+        Vacío decide ``MODO_EDGE_SIN_NODOS`` (FA-08). No depende de quién llama.
+        """
         with como_sistema(self.db):
             filas = self.db.execute(_SQL_NODOS_POR_TIPO_MODELO, {"tipo_modelo": tipo_modelo}).all()
         return [NodoEdge(id_dispositivo_iot=f.id_dispositivo_iot, serial=f.serial) for f in filas]

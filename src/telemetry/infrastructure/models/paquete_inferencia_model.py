@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de los paquetes de inferencia (tabla ``modulo3.paquetes_inferencia``).
+
+Empaqueta una lectura con su calidad, contexto ambiental y versión de modelo
+para enviarla al motor de IA, y registra su estado de envío.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +20,8 @@ from .base_model import Base
 
 
 class PaqueteInferenciaModel(Base):
+    """Fila de la tabla ``modulo3.paquetes_inferencia``."""
+
     __tablename__ = 'paquetes_inferencia'
     __table_args__ = (
         PrimaryKeyConstraint('id_paquetes_inferencia', name='paquetes_inferencia_pkey'),

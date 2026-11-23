@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: id_especies (1..N), nivel_criticidad y capacidad_maxima derivada |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``Infraestructura`` — área productiva de una finca (RF-20)."""
 from __future__ import annotations
 
@@ -53,6 +54,7 @@ class Infraestructura:
         tipo_modelo_asignado: Optional[str] = None,
         nivel_criticidad: str = "MEDIA",
     ) -> Infraestructura:
+        """Crea la entidad validando sus datos."""
         return cls(
             nombre=nombre,
             tipo=tipo,
@@ -77,6 +79,7 @@ class Infraestructura:
         tipo_modelo_asignado: Optional[str] = None,
         nivel_criticidad: Optional[str] = None,
     ) -> None:
+        """Actualiza los datos editables validándolos."""
         self.nombre = nombre
         self.tipo = tipo
         self.superficie = superficie
@@ -89,9 +92,11 @@ class Infraestructura:
             self.nivel_criticidad = nivel_criticidad
 
     def desactivar(self) -> None:
+        """Marca la entidad como inactiva."""
         self.es_activo = False
 
     def activar(self) -> None:
+        """Marca la entidad como activa."""
         self.es_activo = True
 
     def _snapshot(self) -> dict:

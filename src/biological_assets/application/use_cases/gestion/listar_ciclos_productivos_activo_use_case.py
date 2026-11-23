@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Ciclos productivos que se le pueden asignar a un activo (RF-37).
 
 Arekkazu/SGPMP-FRONT-END-PWA#288: el modal "Cambiar fase" no tenía de dónde
@@ -29,6 +32,7 @@ class ListarCiclosProductivosActivoUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[CicloProductivoConsulta]:
+        """Lista los ciclos productivos disponibles para la especie del activo."""
         activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

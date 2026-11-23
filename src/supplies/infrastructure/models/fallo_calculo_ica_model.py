@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.fallos_calculo_ica`` (RF-74 / E5).
 
 Fallos técnicos persistentes tras agotar los reintentos → estado de negocio
@@ -13,6 +16,7 @@ from .base_model import Base
 
 
 class FalloCalculoIcaModel(Base):
+    """Modelo ORM de la tabla ``modulo5.fallos_calculo_ica``."""
     __tablename__ = 'fallos_calculo_ica'
     __table_args__ = {'schema': 'modulo5'}
 

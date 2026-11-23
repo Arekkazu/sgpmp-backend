@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #512 RF-16/RF-37: ciclos productivos de la especie con sus fases en orden |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Editar un ciclo productivo; con activos que ya lo usan solo cambia el nombre (RF-37)."""
 from __future__ import annotations
 
@@ -17,6 +18,11 @@ from src.shared.errors import NotFoundError
 
 
 def obtener_o_404(ciclos: CicloProductivoRepository, id_ciclo_productivo: int) -> CicloProductivo:
+    """Devuelve el ciclo productivo.
+
+    Raises:
+        NotFoundError: Si no existe.
+    """
     ciclo = ciclos.obtener(id_ciclo_productivo)
     if ciclo is None:
         raise NotFoundError(code="CICLO_PRODUCTIVO_NO_ENCONTRADO", message="El ciclo productivo no existe.")
@@ -24,10 +30,12 @@ def obtener_o_404(ciclos: CicloProductivoRepository, id_ciclo_productivo: int) -
 
 
 class EditarCicloProductivoUseCase:
+    """Edita un ciclo productivo."""
     def __init__(self, db: Session, ciclos: CicloProductivoRepository, etapas: CicloBiologicoRepository) -> None:
         self.db, self.ciclos, self.etapas = db, ciclos, etapas
 
     def execute(self, id_ciclo_productivo: int, nombre: str, ids_etapas: list[int]) -> CicloProductivo:
+        """Cambia el nombre y las etapas del ciclo productivo."""
         ciclo = obtener_o_404(self.ciclos, id_ciclo_productivo)
         fases = (ciclo.fases if ids_etapas == [f.id_ciclo_biologico for f in ciclo.fases]  # una etapa ya inactiva sigue
                  else resolver_fases(self.etapas, ciclo.id_especie, ids_etapas))

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.estados_cuentas`.
 
 Catálogo de estados de cuenta: PENDIENTE(1), ACTIVO(2), INACTIVO(3),
@@ -16,6 +19,7 @@ if TYPE_CHECKING:
 
 
 class EstadosCuentas(Base):
+    """Modelo ORM del catálogo de estados de cuenta (tabla ``modulo1.estados_cuentas``)."""
     __tablename__ = 'estados_cuentas'
     __table_args__ = (
         PrimaryKeyConstraint('id_estado_cuenta', name='estados_cuenta_pkey'),

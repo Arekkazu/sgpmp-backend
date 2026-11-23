@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.plantillas`.
 
 Registro inmutable de plantillas de configuración reutilizables (RF-31).
@@ -15,6 +18,7 @@ from .base_model import Base
 
 
 class PlantillaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.plantillas``."""
     __tablename__ = 'plantillas'
     __table_args__ = (
         UniqueConstraint(

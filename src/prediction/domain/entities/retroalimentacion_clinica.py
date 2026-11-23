@@ -2,6 +2,8 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | INC-M04-215/216 RF-72: exceso de patologías y fuente inválida → 422 |
 # | 2026-10-30 | Arekkazu | INC-M04-227-G067 RF-72: estado sin normalizar a mayúsculas           |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad de retroalimentación clínica de una inferencia."""
 from __future__ import annotations
 
 import uuid
@@ -30,6 +32,7 @@ def validar_estado_retroalimentacion(valor: object) -> str:
 
 @dataclass(eq=False)
 class RetroalimentacionClinica:
+    """Retroalimentación del veterinario sobre una inferencia."""
     id_resultado_inferencia: uuid.UUID
     id_activo_biologico: int
     estado_retroalimentacion: str
@@ -57,6 +60,7 @@ class RetroalimentacionClinica:
         id_usuario_veterinario: int,
         es_conflicto_retroalimentacion: bool = False,
     ) -> "RetroalimentacionClinica":
+        """Crea la retroalimentación validando su estado y diagnóstico."""
         estado = validar_estado_retroalimentacion(estado_retroalimentacion)
 
         diags = diagnosticos_reales or []

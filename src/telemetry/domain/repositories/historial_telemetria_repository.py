@@ -2,6 +2,8 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: alertas correlacionadas y validación de variables |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de consulta del historial de telemetría."""
 from abc import ABC, abstractmethod
 
 from src.telemetry.domain.entities.monitoreo import (
@@ -14,6 +16,7 @@ from src.telemetry.domain.entities.monitoreo import (
 
 
 class HistorialTelemetriaRepository(ABC):
+    """Puerto de consulta de lecturas históricas, resumen, vacíos y alertas."""
 
     @abstractmethod
     def consultar(

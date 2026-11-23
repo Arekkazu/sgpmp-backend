@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``SensorArea`` — asociación activa entre sensor y área productiva (RF-22).
 
 `tiene_estado=True` indica asociación activa. `terminar()` cierra la asociación
@@ -38,6 +41,7 @@ class SensorArea:
         punto_instalacion: PuntoInstalacion,
         id_usuario: int,
     ) -> SensorArea:
+        """Crea la entidad validando sus datos."""
         return cls(
             id_sensor=id_sensor,
             id_dispositivo_iot=id_dispositivo_iot,
@@ -49,6 +53,7 @@ class SensorArea:
         )
 
     def terminar(self) -> None:
+        """Termina la asociación del sensor con el área."""
         self.tiene_estado = False
         self.fecha_finalizacion = datetime.datetime.now(datetime.timezone.utc)
 

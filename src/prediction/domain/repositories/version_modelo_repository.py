@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de versiones de modelo."""
 from __future__ import annotations
 
 import uuid
@@ -11,15 +13,22 @@ from src.prediction.domain.entities.version_modelo import VersionModelo
 
 
 class VersionModeloRepository(ABC):
+    """Puerto de persistencia de versiones de modelo."""
 
     @abstractmethod
-    def guardar(self, entidad: VersionModelo) -> VersionModelo: ...
+    def guardar(self, entidad: VersionModelo) -> VersionModelo:
+        """Guarda la versión."""
+        ...
 
     @abstractmethod
-    def actualizar(self, entidad: VersionModelo) -> VersionModelo: ...
+    def actualizar(self, entidad: VersionModelo) -> VersionModelo:
+        """Actualiza la versión."""
+        ...
 
     @abstractmethod
-    def obtener_por_id(self, id_version: int) -> Optional[VersionModelo]: ...
+    def obtener_por_id(self, id_version: int) -> Optional[VersionModelo]:
+        """Devuelve la versión, o ``None``."""
+        ...
 
     @abstractmethod
     def obtener_activo_por_tipo(
@@ -41,7 +50,9 @@ class VersionModeloRepository(ABC):
         estado: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> tuple[list[VersionModelo], int]: ...
+    ) -> tuple[list[VersionModelo], int]:
+        """Lista las versiones con filtros."""
+        ...
 
     @abstractmethod
     def registrar_historial(
@@ -56,4 +67,6 @@ class VersionModeloRepository(ABC):
         id_proceso_rf71: Optional[uuid.UUID] = None,
         correlacion_id: Optional[uuid.UUID] = None,
         motivo: Optional[str] = None,
-    ) -> None: ...
+    ) -> None:
+        """Registra un cambio de estado de la versión."""
+        ...

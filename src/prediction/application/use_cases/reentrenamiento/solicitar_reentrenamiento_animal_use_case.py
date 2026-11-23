@@ -3,6 +3,7 @@
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71 BE-1: solicitar el reentrenamiento de un animal abre un proceso PENDIENTE |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 # | 2026-11-03 | Arekkazu | QA-M04 RF-71: días de lecturas en enteros (sin «0.0 días») |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """BE-1: la solicitud por animal deja el evento en la bitácora (como hasta ahora) y además
 abre el proceso que el motor de IA va a tomar.
 
@@ -35,6 +36,7 @@ DIAS_MINIMOS_LECTURAS = float(os.getenv("REENTRENAMIENTO_DIAS_MINIMOS_LECTURAS",
 
 
 class SolicitarReentrenamientoAnimalUseCase:
+    """Solicita el reentrenamiento del modelo de un animal."""
     def __init__(self, *, db: Session, procesos: ProcesoReentrenamientoRepository,
                  estado_use_case: ConsultarEstadoReentrenamientoUseCase,
                  auditoria_repo: EventoAuditoriaM04Repository, dias_minimos: Optional[float] = None,
@@ -49,6 +51,7 @@ class SolicitarReentrenamientoAnimalUseCase:
 
     def execute(self, *, id_activo_biologico: int, motivo: Optional[str], id_usuario: int,
                 ahora: Optional[datetime] = None) -> tuple[EstadoReentrenamiento, UUID, ProcesoReentrenamiento]:
+        """Encola el reentrenamiento y devuelve el estado con el proceso creado."""
         ahora = ahora or datetime.now(timezone.utc)
         datos = self._procesos.datos_animal(id_activo_biologico)
         if datos is None:

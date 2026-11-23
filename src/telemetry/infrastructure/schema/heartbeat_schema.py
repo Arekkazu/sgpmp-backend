@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta del heartbeat."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -9,6 +13,7 @@ from src.telemetry.infrastructure.dto.heartbeat_dto import SensorOperativoDTO
 
 
 class HeartbeatReciboSchema(BaseModel):
+    """Acuse de recibo de un heartbeat."""
     id_heartbeat: int
     id_dispositivo_iot: int
     tipo_mensaje: str

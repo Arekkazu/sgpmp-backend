@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: observación, lotes y línea base por SQL       |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Lecturas de M02/M03/M09 para RF-66 POBLACIONAL (sin escribir nada)."""
 from __future__ import annotations
 
@@ -45,25 +46,30 @@ _SQL_YA_EVALUADO = text("""
 
 
 class ObservacionPoblacionalM03M09Adapter(ObservacionPoblacionalPort):
+    """Lee las observaciones poblacionales con su área y lotes."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def obtener(self, id_observacion: int) -> Optional[ObservacionPoblacional]:
+        """Devuelve la observación, o ``None``."""
         fila = self._db.execute(_SQL_OBSERVACION, {"id": id_observacion}).first()
         if fila is None:
             return None
         return ObservacionPoblacional(fila[0], fila[1], dict(fila[2] or {}), bool(fila[3]), bool(fila[4]), fila[5], fila[6])
 
     def lotes(self, id_area: int) -> list[LotePoblacional]:
+        """Lotes POBLACIONAL vigentes del área, solo si el área tiene un modelo POBLACIONAL."""
         filas = self._db.execute(_SQL_LOTES, {"id_area": id_area}).all()
         return [LotePoblacional(f[0], f[1], f[2]) for f in filas if es_poblacional(f[2])]
 
     def linea_base(self, id_area: int, id_especie: int) -> Optional[dict]:
+        """``{componente: mediana}`` vigente de RF-24, o None si el par no está calibrado."""
         valores = self._db.execute(_SQL_LINEA_BASE, {"id_area": id_area, "id_especie": id_especie}).scalar()
         return dict(valores) if valores else None
 
     def ya_evaluado(self, id_activo: int, tipo_modelo: str, fecha_fin: datetime) -> bool:
+        """Ya hay un resultado de esa ventana: el worker reintenta y no debe duplicarlo."""
         return bool(self._db.execute(
             _SQL_YA_EVALUADO, {"id_activo": id_activo, "tipo": tipo_modelo, "fin": fecha_fin},
         ).scalar())

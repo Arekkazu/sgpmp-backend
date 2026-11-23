@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Reactivar área productiva inactiva (PATCH /reactivar RF-20 v1.1).
 
 Análogo a RF-19 (fincas) y RF-15 (especies): solo el Administrador, y se audita
@@ -32,6 +35,7 @@ class ReactivarInfraestructuraUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_infraestructura: int, usuario_actual: UsuarioActual) -> Infraestructura:
+        """Reactiva el área y la audita."""
         infra = self.infra_repo.obtener_por_id(id_infraestructura)
         if infra is None:
             raise NotFoundError(

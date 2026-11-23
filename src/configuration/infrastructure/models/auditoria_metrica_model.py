@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.auditorias_metricas_produccion`.
 
 Registro append-only de operaciones sobre métricas de producción (RF-16).
@@ -15,6 +18,7 @@ from .base_model import Base
 
 
 class AuditoriaMetricaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.auditorias_metricas_produccion``."""
     __tablename__ = 'auditorias_metricas_produccion'
     __table_args__ = (
         CheckConstraint(

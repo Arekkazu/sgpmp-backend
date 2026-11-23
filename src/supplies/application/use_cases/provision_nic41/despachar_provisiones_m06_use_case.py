@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-79: entrega del outbox a M06           |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: ciclo, registro y tipo de suministro en los eventos de entrega |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: entregar a M06 los eventos del outbox de provisiones (RF-79).
 
 Corre en segundo plano cada pocos segundos (CA-1: ≤ 5 s desde la persistencia).
@@ -45,6 +46,7 @@ _ultima_alerta_critica: Optional[datetime] = None
 
 
 class DespacharProvisionesM06UseCase:
+    """Entrega al módulo financiero las provisiones pendientes."""
     def __init__(
         self,
         db: Session,
@@ -64,6 +66,7 @@ class DespacharProvisionesM06UseCase:
         self.id_usuario_sistema = id_usuario_sistema
 
     def ejecutar(self) -> int:
+        """Entrega las provisiones pendientes en orden y devuelve cuántas entregó."""
         ahora = datetime.now(timezone.utc)
         entregados = 0
         ciclos_detenidos: set[Optional[int]] = set()

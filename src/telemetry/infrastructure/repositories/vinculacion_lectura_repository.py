@@ -3,6 +3,8 @@
 # | 2026-10-22 | Leandro | DEV-44 RF-61: guarda contexto y serializa vinculaciones |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-61: nombres de activo, área, finca, variable y usuario (read-model) |
 # | 2026-10-26 | Arekkazu | USAB-M03 T-18 RF-61: SQL literal en text() para el SAST (CWE-89) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de vinculaciones lectura-activo con read-model enriquecido (RF-61)."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -19,11 +21,13 @@ from src.telemetry.infrastructure.models.vinculacion_lectura_model import Vincul
 
 
 class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
+    """Persiste vinculaciones y las hidrata con nombres legibles para el listado."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def guardar(self, vinculacion: VinculacionLectura) -> VinculacionLectura:
+        """Guarda una vinculación y devuelve la entidad persistida."""
         try:
             orm = VinculacionLecturaModel(
                 id_telemetria=vinculacion.id_telemetria,
@@ -54,6 +58,7 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Optional[VinculacionLectura]:
+        """Devuelve una vinculación por id, con nombres, si está en las fincas permitidas."""
         orm = self.db.get(VinculacionLecturaModel, id_vinculacion_lectura, populate_existing=True)
         if orm is None:
             return None
@@ -70,6 +75,7 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         return self._con_nombres([self._a_entidad(orm)])[0]
 
     def actualizar(self, vinculacion: VinculacionLectura) -> VinculacionLectura:
+        """Actualiza los campos editables de una vinculación existente."""
         try:
             orm = self.db.get(VinculacionLecturaModel, vinculacion.id_vinculacion_lectura)
             orm.estado_vinculacion = vinculacion.estado_vinculacion
@@ -101,6 +107,7 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         ids_fincas_permitidas: Optional[list[int]] = None,
         modelo_manejo: Optional[str] = None,
     ) -> Tuple[List[VinculacionLectura], int]:
+        """Lista vinculaciones filtradas y paginadas, acotadas a las fincas permitidas."""
         q = select(VinculacionLecturaModel)
         if ids_fincas_permitidas is not None:
             q = q.join(
@@ -183,11 +190,13 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         )
 
     def bloquear_lectura(self, identificador):
+        """Bloquea la lectura y su dispositivo en el mismo orden que la ingesta."""
         # Mismo orden de locks que DEV-05: lectura y despues dispositivo.
         dispositivo=self.db.execute(text('SELECT id_dispositivo_iot FROM modulo3.telemetrias WHERE id_telemetria=:id FOR UPDATE'),{'id':identificador}).scalar_one()
         self.db.execute(text('SELECT pg_advisory_xact_lock(3505,:id)'),{'id':dispositivo})
 
     def vigente(self, identificador):
+        """Devuelve la vinculación vigente de la lectura, si existe."""
         orm=self.db.execute(select(VinculacionLecturaModel).where(
             VinculacionLecturaModel.id_telemetria==identificador,
             VinculacionLecturaModel.fecha_fin_vinculacion.is_(None),
@@ -196,12 +205,14 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         return self._a_entidad(orm) if orm else None
 
     def ultima(self,identificador):
+        """Devuelve la última vinculación registrada para la lectura, sea o no vigente."""
         orm=self.db.execute(select(VinculacionLecturaModel).where(
             VinculacionLecturaModel.id_telemetria==identificador).order_by(
                 VinculacionLecturaModel.id_vinculacion_lectura.desc()).execution_options(populate_existing=True)).scalars().first()
         return self._a_entidad(orm) if orm else None
 
     def contexto_lectura(self, identificador, captura):
+        """Devuelve el sensor, dispositivo, áreas y activos asociados a la lectura."""
         lectura=self.db.execute(text('SELECT id_sensor,id_dispositivo_iot FROM modulo3.telemetrias WHERE id_telemetria=:id'),{'id':identificador}).mappings().one()
         areas=list(self.db.execute(text('''SELECT DISTINCT id_infraestructura FROM modulo9.sensores_areas_asociadas
             WHERE id_sensor=:sensor AND id_dispositivo_iot=:dispositivo

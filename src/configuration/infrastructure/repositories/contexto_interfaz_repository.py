@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``ContextoInterfazRepository`` (RF-25).
 
 Consulta la vista ``modulo9.vw_rf25_contexto_usuario`` para obtener el contexto
@@ -27,11 +30,15 @@ _SQLSTATE_QUERY_CANCELED = "57014"
 
 
 class SqlAlchemyContextoInterfazRepository(ContextoInterfazRepository):
+    """Implementación SQLAlchemy de ``ContextoInterfazRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener_por_usuario(self, id_usuario: int, id_rol: int) -> ContextoInterfaz:
+        """Arma el contexto de interfaz del usuario a partir de su rol, fincas y
+        permisos.
+        """
         try:
             return self._construir(id_usuario, id_rol)
         except OperationalError as exc:

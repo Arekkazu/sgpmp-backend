@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Sincronización de la configuración del motor con los nodos Edge (DEV-09, RF-65).
 
 Al guardar la configuración de un ``tipo_modelo`` se envía a cada Gateway Edge
@@ -34,6 +37,7 @@ SIN_INTEGRACION = "SIN_INTEGRACION"
 
 @dataclass(frozen=True)
 class NodoEdge:
+    """Nodo Edge destino de la configuración del motor."""
     id_dispositivo_iot: int
     serial: str
 
@@ -63,6 +67,7 @@ class ResultadoEnvioConfigMotor:
 
 @dataclass
 class SincronizacionNodoEdge:
+    """Estado de sincronización de la configuración del motor en un nodo."""
     id_dispositivo_iot: int
     serial: str
     tipo_modelo: str
@@ -85,14 +90,17 @@ class ResultadoSincronizacionMotor:
 
     @property
     def hay_desincronizados(self) -> bool:
+        """Indica si algún nodo quedó desincronizado."""
         return any(n.estado_sincronizacion == ESTADO_DESINCRONIZADO for n in self.nodos)
 
     @property
     def hay_sin_confirmar(self) -> bool:
+        """Indica si algún nodo está pendiente o falló."""
         return any(n.estado_sincronizacion in (ESTADO_PENDIENTE, ESTADO_FALLIDA) for n in self.nodos)
 
 
 def consolidar(nodos: list[SincronizacionNodoEdge]) -> ResultadoSincronizacionMotor:
+    """Consolida el estado de sincronización de los nodos."""
     if not nodos:
         return ResultadoSincronizacionMotor(
             estado=ESTADO_APLICADA, mensaje="Ningún nodo Edge atiende este tipo de modelo.", nodos=[]

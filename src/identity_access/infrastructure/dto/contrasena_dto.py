@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTOs de entrada para las operaciones de gestión de contraseña.
 
 Incluye validación de política (mínimo 8 chars, mayúscula, número y especial)
@@ -27,12 +30,14 @@ class CambiarContrasenaDTO(BaseDTO):
     @field_validator("nueva_contrasena")
     @classmethod
     def validar_politica(cls, v: str) -> str:
+        """Exige que la contraseña cumpla la política."""
         if not _POLITICA.match(v):
             raise ValueError(_MENSAJE_POLITICA)
         return v
 
     @model_validator(mode="after")
     def validar_confirmacion(self) -> "CambiarContrasenaDTO":
+        """Exige que la confirmación coincida con la nueva contraseña."""
         if self.nueva_contrasena != self.confirmar_nueva_contrasena:
             raise ValueError(
                 "Error de confirmación. Las contraseñas ingresadas no coinciden. "
@@ -57,12 +62,14 @@ class RestablecerContrasenaDTO(BaseDTO):
     @field_validator("nueva_contrasena")
     @classmethod
     def validar_politica(cls, v: str) -> str:
+        """Exige que la contraseña cumpla la política."""
         if not _POLITICA.match(v):
             raise ValueError(_MENSAJE_POLITICA)
         return v
 
     @model_validator(mode="after")
     def validar_confirmacion(self) -> "RestablecerContrasenaDTO":
+        """Exige que la confirmación coincida con la nueva contraseña."""
         if self.nueva_contrasena != self.confirmar_contrasena:
             raise ValueError(
                 "Error de validación. Las contraseñas ingresadas no coinciden. "

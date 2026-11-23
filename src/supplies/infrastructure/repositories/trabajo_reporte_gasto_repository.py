@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`TrabajoReporteGastoRepository` (RF-77)."""
 from __future__ import annotations
 
@@ -21,6 +24,7 @@ _ACTIVOS = (EstadoTrabajoAsync.PENDIENTE.value, EstadoTrabajoAsync.EN_PROCESO.va
 
 
 class SqlAlchemyTrabajoReporteGastoRepository(TrabajoReporteGastoRepository):
+    """Implementación SQLAlchemy de ``TrabajoReporteGastoRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -49,6 +53,7 @@ class SqlAlchemyTrabajoReporteGastoRepository(TrabajoReporteGastoRepository):
         )
 
     def encolar(self, trabajo: TrabajoReporteGasto) -> TrabajoReporteGasto:
+        """Encola el trabajo."""
         try:
             orm = ColaGeneracionReporteGastoModel(
                 parametros=trabajo.parametros,
@@ -63,6 +68,7 @@ class SqlAlchemyTrabajoReporteGastoRepository(TrabajoReporteGastoRepository):
         return self._trabajo_a_entidad(orm)
 
     def contar_activos(self) -> int:
+        """Trabajos en PENDIENTE + EN_PROCESO (para el control de concurrencia 429)."""
         return (
             self.db.query(ColaGeneracionReporteGastoModel)
             .filter(ColaGeneracionReporteGastoModel.estado.in_(_ACTIVOS))
@@ -70,10 +76,12 @@ class SqlAlchemyTrabajoReporteGastoRepository(TrabajoReporteGastoRepository):
         )
 
     def obtener(self, id_cola: int) -> Optional[TrabajoReporteGasto]:
+        """Devuelve el trabajo, o ``None``."""
         orm = self.db.get(ColaGeneracionReporteGastoModel, id_cola)
         return self._trabajo_a_entidad(orm) if orm else None
 
     def listar_pendientes(self, limite: int) -> list[TrabajoReporteGasto]:
+        """Lista los trabajos pendientes."""
         registros = (
             self.db.query(ColaGeneracionReporteGastoModel)
             .filter(ColaGeneracionReporteGastoModel.estado == EstadoTrabajoAsync.PENDIENTE.value)
@@ -86,6 +94,7 @@ class SqlAlchemyTrabajoReporteGastoRepository(TrabajoReporteGastoRepository):
     def marcar_estado(
         self, id_cola: int, estado: EstadoTrabajoAsync, *, fecha_procesado: Optional[datetime] = None
     ) -> None:
+        """Cambia el estado del trabajo."""
         orm = self.db.get(ColaGeneracionReporteGastoModel, id_cola)
         if orm is None:
             return
@@ -98,6 +107,7 @@ class SqlAlchemyTrabajoReporteGastoRepository(TrabajoReporteGastoRepository):
             raise_from_db_error(exc, {})
 
     def crear_ejecucion(self, ejecucion: EjecucionReporteGasto) -> EjecucionReporteGasto:
+        """Registra una ejecución del trabajo."""
         try:
             orm = EjecucionGeneracionReporteGastoModel(
                 id_cola=ejecucion.id_cola,
@@ -112,6 +122,7 @@ class SqlAlchemyTrabajoReporteGastoRepository(TrabajoReporteGastoRepository):
         return self._ejecucion_a_entidad(orm)
 
     def guardar_ejecucion(self, ejecucion: EjecucionReporteGasto) -> EjecucionReporteGasto:
+        """Actualiza la ejecución."""
         orm = self.db.get(EjecucionGeneracionReporteGastoModel, ejecucion.id_ejecucion)
         if orm is None:
             raise_from_db_error(ValueError(f"Ejecución {ejecucion.id_ejecucion} inexistente"), {})
@@ -127,6 +138,7 @@ class SqlAlchemyTrabajoReporteGastoRepository(TrabajoReporteGastoRepository):
         return self._ejecucion_a_entidad(orm)
 
     def obtener_ultima_ejecucion(self, id_cola: int) -> Optional[EjecucionReporteGasto]:
+        """Devuelve la última ejecución del trabajo, o ``None``."""
         orm = (
             self.db.query(EjecucionGeneracionReporteGastoModel)
             .filter(EjecucionGeneracionReporteGastoModel.id_cola == id_cola)

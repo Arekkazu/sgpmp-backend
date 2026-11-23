@@ -1,6 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: respuesta del monitor de ingesta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y schemas |
+"""Schemas de respuesta del monitor de ingesta de telemetría (RF-53).
+
+Expone las lecturas procesadas con sus nombres resueltos, los indicadores del
+periodo y el listado paginado.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +17,8 @@ from pydantic import BaseModel, ConfigDict
 
 
 class LecturaIngestaSchema(BaseModel):
+    """Lectura de ingesta con los nombres de sensor, área y variable resueltos."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id_bitacora_ingest: int
@@ -44,6 +52,8 @@ class LecturaIngestaSchema(BaseModel):
 
 
 class ListaIngestaSchema(BaseModel):
+    """Página de lecturas de ingesta dentro de un rango de fechas."""
+
     items: list[LecturaIngestaSchema]
     total: int
     pagina: int
@@ -53,6 +63,8 @@ class ListaIngestaSchema(BaseModel):
 
 
 class IndicadoresIngestaSchema(BaseModel):
+    """Conteos de lecturas válidas, fuera de rango y con error."""
+
     model_config = ConfigDict(from_attributes=True)
 
     total: int

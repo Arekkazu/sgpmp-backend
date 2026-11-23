@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.roles`.
 
 Catálogo de roles del sistema para el control de acceso basado en roles (RBAC).
@@ -17,6 +20,7 @@ if TYPE_CHECKING:
 
 
 class Roles(Base):
+    """Modelo ORM de los roles (tabla ``modulo1.roles``)."""
     __tablename__ = 'roles'
     __table_args__ = (
         PrimaryKeyConstraint('id_rol', name='roles_pkey'),

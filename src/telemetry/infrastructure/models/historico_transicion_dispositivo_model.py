@@ -1,3 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de las transiciones de estado de dispositivos (``modulo3.historico_transiciones_dispositivos``).
+
+Conserva el estado anterior y nuevo, la causa, el usuario responsable y las notas.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +18,8 @@ from .base_model import Base
 
 
 class HistoricoTransicionDispositivoModel(Base):
+    """Fila de la tabla ``modulo3.historico_transiciones_dispositivos``."""
+
     __tablename__ = 'historico_transiciones_dispositivos'
     __table_args__ = {'schema': 'modulo3'}
 

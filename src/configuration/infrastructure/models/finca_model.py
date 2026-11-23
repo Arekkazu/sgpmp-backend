@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.fincas` (RF-19)."""
 from __future__ import annotations
 
@@ -18,6 +21,7 @@ _usuarios_fincas = table(
 
 
 class FincaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.fincas``."""
     __tablename__ = 'fincas'
     __table_args__ = (
         PrimaryKeyConstraint('id_finca', name='finca_pkey'),
