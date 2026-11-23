@@ -2,6 +2,7 @@
 # |------------|----------|---------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104/RF-106: puerto de lectura de los datos de reportes |
 # | 2026-11-19 | Arekkazu | M08 RF-104: nombre de una referencia para los parámetros del PDF |
+# | 2026-11-22 | Arekkazu | USAB2 M807 RF-104: valor del portafolio de un período cerrado, igual al NIC 41 |
 """Puerto de lectura de los datos que consolidan los reportes (RF-104) y el historial predictivo (RF-106).
 
 Todo es de solo lectura y se acota a ``fincas`` (``None`` = alcance global, una lista = esas fincas). Las
@@ -142,6 +143,10 @@ class FuenteReportesRepository(ABC):
     @abstractmethod
     def valor_portafolio(self, *, fincas: Fincas, fin: date) -> list[Fila]:
         """Suma del valor del inventario por finca al cierre de ``fin`` (sin filas por animal)."""
+
+    @abstractmethod
+    def valor_portafolio_periodo(self, *, id_periodo: int, fincas: Fincas) -> list[Fila]:
+        """Valor por finca de un período cerrado, sumado de las mismas filas que la valoración NIC 41 del período."""
 
     @abstractmethod
     def bajas_por_tipo(self, *, fincas: Fincas, desde: datetime, hasta: datetime) -> list[Fila]: ...

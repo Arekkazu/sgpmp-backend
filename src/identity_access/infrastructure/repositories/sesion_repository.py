@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-22 | Arekkazu | USAB2 M01 RF-02: un refresh rotado cuya respuesta se perdió no cierra la sesión |
 """Implementación SQLAlchemy del puerto de dominio :class:`SesionRepository`.
 
 Mapea entre las tablas ``sesiones`` / ``tokens`` y las entidades :class:`Sesion`
@@ -94,6 +97,10 @@ class SqlAlchemySesionRepository(SesionRepository):
             .with_for_update()
             .first()
         )
+        return self._token_a_entidad(orm) if orm else None
+
+    def buscar_token_por_id(self, id_token: int) -> Optional[Token]:
+        orm = self.db.get(Tokens, id_token)
         return self._token_a_entidad(orm) if orm else None
 
     def invalidar_sesion(self, sesion: Sesion) -> None:
