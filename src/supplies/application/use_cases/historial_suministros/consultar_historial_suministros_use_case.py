@@ -4,6 +4,7 @@
 # | 2026-11-09 | LuisfNarvaez01   | INC-M05-284-G43 RF-81: el evento guarda filtros aplicados y total retornado |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-358-G43 RF-81: activo ajeno → 403 de E2, no 404 |
 # | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: consulta rechazada auditada; ciclo del resultado en el evento |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consultar el historial/trazabilidad de suministros (RF-81).
 
 Solo lectura. Aplica el alcance por fincas vía :class:`AlcanceActivoPort` (E2,
@@ -69,6 +70,7 @@ _MAX_FILTROS_SINCRONOS = 3
 
 @dataclass(frozen=True)
 class ResultadoConsultaHistorial:
+    """Líneas del historial de suministros con su resumen."""
     lineas: list[LineaHistorialSuministro]
     resumen: ResumenConsultaHistorial
 
@@ -83,10 +85,12 @@ class ConsultaHistorialAsincrona:
 
     @property
     def tiempo_estimado_segundos(self) -> int:
+        """Tiempo estimado de proceso según el nivel de volumen."""
         return TIEMPO_ESTIMADO_SEGUNDOS.get(self.nivel, 60)
 
     @property
     def mensaje(self) -> str:
+        """Mensaje visible que explica por qué la consulta va en segundo plano."""
         return (
             f"La consulta sobre el activo con {self.total_registros_activo} registros (nivel {self.nivel.value}) "
             "supera el límite de procesamiento sincrónico y se procesará de forma asíncrona. El resultado estará "
@@ -96,6 +100,7 @@ class ConsultaHistorialAsincrona:
 
 
 class ConsultarHistorialSuministrosUseCase:
+    """Consulta el historial de suministros, en línea o en segundo plano según el volumen."""
     def __init__(
         self,
         historial_port: HistorialSuministroReadPort,
@@ -117,6 +122,7 @@ class ConsultarHistorialSuministrosUseCase:
     def execute(
         self, filtros: FiltrosHistorialSuministro, *, id_usuario: int, id_rol: int
     ) -> Union[ResultadoConsultaHistorial, ConsultaHistorialAsincrona]:
+        """Devuelve el historial o el aviso de consulta asíncrona."""
         try:
             return self._ejecutar(filtros, id_usuario=id_usuario, id_rol=id_rol)
         except AppError as exc:

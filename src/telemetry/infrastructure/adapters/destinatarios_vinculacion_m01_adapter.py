@@ -1,13 +1,29 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: destinatarios por permisos y finca sin roles quemados |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Adaptador de destinatarios de avisos de vinculación contra el módulo 1 (RF-61).
+
+Resuelve a quién notificar a partir de los permisos RBAC y del alcance de finca
+del usuario, sin quemar roles. Lo consume el caso de uso de avisos.
+"""
 from sqlalchemy import text
 
 
 class DestinatariosVinculacionM01Adapter:
+    """Resuelve los usuarios destinatarios de un aviso de vinculación."""
+
     def __init__(self,db):self.db=db
 
     def obtener(self,area,*,administradores=False):
+        """Devuelve los ids de usuario que deben recibir el aviso del área.
+
+        Args:
+            area: Infraestructura donde ocurrió la vinculación.
+            administradores: Si es ``True``, restringe a administradores con
+                acceso a alertas técnicas; si no, a usuarios con permiso de
+                actualización sobre vinculaciones de lecturas.
+        """
         return list(self.db.execute(text('''SELECT DISTINCT u.id_usuario FROM modulo1.usuarios u
             JOIN modulo1.roles r ON r.id_rol=u.id_rol
             JOIN modulo1.cuentas_usuarios c ON c.id_usuario=u.id_usuario

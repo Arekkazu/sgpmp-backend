@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaEspecieRepository`.
 
 Registro append-only: solo inserta, nunca actualiza ni elimina.
@@ -28,6 +31,17 @@ class SqlAlchemyAuditoriaEspecieRepository(AuditoriaEspecieRepository):
         valores_nuevos: dict[str, Any],
         valores_anteriores: Optional[dict[str, Any]] = None,
     ) -> None:
+        """Inserta un registro de auditoría append-only.
+
+        Hace ``flush`` interno. El ``commit`` lo emite el caso de uso.
+
+        Args:
+            id_especie: Especie sobre la que se realizó la operación.
+            id_usuario: Usuario que ejecutó la operación.
+            tipo_operacion: ``CREATE``, ``UPDATE`` o ``DEACTIVATE``.
+            valores_nuevos: Snapshot del estado tras la operación.
+            valores_anteriores: Snapshot del estado previo. ``None`` en CREATE.
+        """
         orm = AuditoriaEspecieModel(
             id_especie=id_especie,
             id_usuario=id_usuario,

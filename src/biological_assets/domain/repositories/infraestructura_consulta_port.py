@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: el área expone sus especies y la capacidad derivada a M02 (RFC-012) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-11-10 | Arekkazu | #391/#394 RF-16/RF-36: densidad máxima de la etapa del lote |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura de infraestructuras productivas de M09 (RF-34, RF-36, RF-48)."""
 
 from __future__ import annotations
@@ -37,6 +38,7 @@ class InfraestructuraConsulta:
 
     @property
     def id_especies(self) -> list[int]:
+        """Ids de las especies admitidas en el área."""
         return [e.id_especie for e in self.especies]
 
 

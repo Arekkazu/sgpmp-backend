@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar umbrales ambientales por especie (Flujo C — RF-17)."""
 from __future__ import annotations
 
@@ -12,4 +15,5 @@ class ConsultarUmbralesUseCase:
         self.umbral_repo = umbral_repo
 
     def execute(self, id_especie: int, *, solo_activas: bool = False) -> list[UmbralAmbiental]:
+        """Lista los umbrales ambientales de la especie."""
         return self.umbral_repo.listar_por_especie(id_especie, solo_activas=solo_activas)

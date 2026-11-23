@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: ciclos productivos en los que una métrica es producto (RF-43 E-04)."""
 from __future__ import annotations
 
@@ -15,6 +18,7 @@ class ConsultarCiclosMetricaUseCase:
         self.ciclos_repo = ciclos_repo
 
     def execute(self, id_metrica_produccion: int) -> list[CicloMetrica]:
+        """Lista los ciclos productivos de la métrica."""
         metrica = self.metricas_repo.obtener_por_id(id_metrica_produccion)
         if metrica is None:
             raise NotFoundError(

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: crear regla de alerta sin SQL manual |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """Crear una regla de alerta (RF-55/RF-57, BE-0).
 
 Una compuesta marcada para el Edge se propaga a sus Gateway después del commit,
@@ -21,6 +22,7 @@ from src.telemetry.infrastructure.dto.regla_alerta_dto import CrearReglaAlertaDT
 
 
 class CrearReglaAlertaUseCase:
+    """Crea una regla de alerta y, si se propaga al Edge, la sincroniza."""
 
     def __init__(
         self,
@@ -35,6 +37,7 @@ class CrearReglaAlertaUseCase:
     def execute(
         self, dto: CrearReglaAlertaDTO, id_usuario: int,
     ) -> tuple[ReglaAlerta, Optional[ResultadoSincronizacionRegla]]:
+        """Crea la regla y devuelve la regla con el resultado de sincronización."""
         regla = ReglaAlerta(**dto.model_dump(), es_activa=True, id_usuario=id_usuario)
         regla.validar()
         try:

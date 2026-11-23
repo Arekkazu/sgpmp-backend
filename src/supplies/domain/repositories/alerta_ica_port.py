@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-07 RF-74: recalcular el ICA consolida la alerta abierta en vez de duplicarla |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto para generar la alerta de conversión alimenticia crítica (RF-74 paso 8, CA-3).
 
 Al clasificar ``CRITICA`` se persiste una alerta en ``modulo3.alertas`` reutilizando
@@ -16,6 +17,7 @@ from typing import Optional
 
 
 class AlertaICAPort(ABC):
+    """Puerto para generar alertas de conversión alimenticia crítica."""
     @abstractmethod
     def generar_alerta_critica(
         self,

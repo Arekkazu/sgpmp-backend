@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Guardar tema visual global del sistema (PATCH RF-27 — Admin)."""
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ class GuardarTemaGlobalUseCase:
         self.tema_repo = tema_repo
 
     def execute(self, dto: GuardarTemaDTO, usuario_actual: UsuarioActual) -> TemaVisual:
+        """Guarda el tema visual global."""
         existente = self.tema_repo.obtener_global()
 
         try:

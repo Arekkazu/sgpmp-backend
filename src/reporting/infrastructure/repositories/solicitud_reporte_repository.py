@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: persistencia de solicitudes y archivos de reportes  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`SolicitudReporteRepository` (RF-104).
 
 La RLS de ``modulo8`` deja ver a cada usuario sus solicitudes (y al usuario de servicio todas). ``obtener`` busca
@@ -37,11 +38,13 @@ def _archivo(orm: ArchivoReporteModel, con_contenido: bool = True) -> ArchivoRep
 
 
 class SqlAlchemySolicitudReporteRepository(SolicitudReporteRepository):
+    """Implementación SQLAlchemy de las solicitudes de reportes."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def guardar(self, solicitud: SolicitudReporte) -> SolicitudReporte:
+        """Crea o actualiza la solicitud y la devuelve."""
         try:
             orm = (self.db.get(SolicitudReporteModel, solicitud.id_solicitud_reporte)
                    if solicitud.id_solicitud_reporte else None)
@@ -72,6 +75,7 @@ class SqlAlchemySolicitudReporteRepository(SolicitudReporteRepository):
             raise_from_db_error(exc)
 
     def guardar_archivos(self, id_solicitud: UUID, partes: list[ArchivoReporte]) -> None:
+        """Guarda las partes generadas del reporte."""
         try:
             for p in partes:
                 self.db.add(ArchivoReporteModel(
@@ -83,6 +87,7 @@ class SqlAlchemySolicitudReporteRepository(SolicitudReporteRepository):
             raise_from_db_error(exc)
 
     def obtener(self, id_solicitud: UUID, *, bloquear: bool = False) -> Optional[SolicitudReporte]:
+        """Devuelve la solicitud, opcionalmente bloqueándola, o ``None``."""
         consulta = select(SolicitudReporteModel).where(SolicitudReporteModel.id_solicitud_reporte == id_solicitud)
         if bloquear:
             consulta = consulta.with_for_update()
@@ -91,12 +96,14 @@ class SqlAlchemySolicitudReporteRepository(SolicitudReporteRepository):
         return _a_entidad(orm) if orm else None
 
     def obtener_archivo(self, id_solicitud: UUID, numero_parte: int) -> Optional[ArchivoReporte]:
+        """Devuelve la parte del reporte, o ``None``."""
         orm = self.db.execute(select(ArchivoReporteModel).where(
             ArchivoReporteModel.id_solicitud_reporte == id_solicitud,
             ArchivoReporteModel.numero_parte == numero_parte)).scalar_one_or_none()
         return _archivo(orm) if orm else None
 
     def listar_archivos(self, id_solicitud: UUID) -> list[ArchivoReporte]:
+        """Lista las partes del reporte sin su contenido."""
         filas = self.db.execute(
             select(ArchivoReporteModel)
             .options(load_only(ArchivoReporteModel.numero_parte, ArchivoReporteModel.nombre_archivo,
@@ -107,12 +114,14 @@ class SqlAlchemySolicitudReporteRepository(SolicitudReporteRepository):
         return [_archivo(f, con_contenido=False) for f in filas]
 
     def listar_por_usuario(self, id_usuario: int, limite: int) -> list[SolicitudReporte]:
+        """Lista las solicitudes recientes del usuario."""
         filas = self.db.execute(
             select(SolicitudReporteModel).where(SolicitudReporteModel.id_usuario == id_usuario)
             .order_by(SolicitudReporteModel.fecha_solicitud.desc()).limit(limite)).scalars()
         return [_a_entidad(f) for f in filas]
 
     def tomar_pendientes(self, ahora: datetime, limite: int) -> list[SolicitudReporte]:
+        """Toma las solicitudes pendientes listas para procesar."""
         filas = self.db.execute(
             select(SolicitudReporteModel)
             .where(SolicitudReporteModel.estado == EN_PROCESO, SolicitudReporteModel.fecha_proximo_intento <= ahora)
@@ -121,6 +130,7 @@ class SqlAlchemySolicitudReporteRepository(SolicitudReporteRepository):
         return [_a_entidad(f) for f in filas]
 
     def tomar_vencidas(self, ahora: datetime, limite: int) -> list[SolicitudReporte]:
+        """Toma las solicitudes generadas ya vencidas."""
         filas = self.db.execute(
             select(SolicitudReporteModel)
             .where(SolicitudReporteModel.estado == GENERADO, SolicitudReporteModel.fecha_expiracion <= ahora)
@@ -128,6 +138,7 @@ class SqlAlchemySolicitudReporteRepository(SolicitudReporteRepository):
         return [_a_entidad(f) for f in filas]
 
     def borrar_contenido(self, id_solicitud: UUID) -> None:
+        """Borra el contenido de los archivos del reporte."""
         try:
             self.db.execute(update(ArchivoReporteModel)
                             .where(ArchivoReporteModel.id_solicitud_reporte == id_solicitud)

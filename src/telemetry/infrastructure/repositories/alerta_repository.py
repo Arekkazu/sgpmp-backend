@@ -16,6 +16,8 @@
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 # | 2026-10-31 | Claude | INC-M03-241-G74 RF-57: deduplicación de PREDICCION_PATOLOGIA por tipo + activo biológico |
 # | 2026-10-31 | Claude | INC-M03-173-G85 RF-57 E9: eventos PENDIENTE_EVALUACION se reevalúan al configurar la regla |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de alertas: generación, deduplicación, estados y vencimiento (RF-57)."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -50,15 +52,19 @@ def _reglas_activas(orm: AlertaModel) -> list:
 
 
 class SqlAlchemyAlertaRepository(AlertaRepository):
+    """Persiste y consulta alertas con bloqueos asesores por condición."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def bloquear_condicion_calidad(self, id_sensor, anomalia):
+        """Serializa la evaluación de una anomalía de calidad por sensor."""
+
         self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
                         {'clave':f'rf62:alerta:{id_sensor}:{anomalia}'})
 
     def buscar_tecnica_calidad(self, id_sensor, anomalia, id_telemetria):
+        """Busca y bloquea la alerta técnica de calidad de la anomalía dada."""
         orm = self.db.query(AlertaModel).filter(
             AlertaModel.tipo_alerta == 'TECNICA', AlertaModel.id_sensor == id_sensor,
             AlertaModel.metadato_evento['componente_origen'].astext == 'RF62',
@@ -69,20 +75,24 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         return self._a_entidad(orm) if orm else None
 
     def contexto_sensor_calidad(self, id_sensor):
+        """Devuelve el dispositivo y el área asociados al sensor."""
         return dict(self.db.execute(text('''SELECT s.id_dispositivo_iot,d.id_infraestructura
             FROM modulo9.sensores s JOIN modulo9.dispositivos_iot d
               ON d.id_dispositivo_iot=s.id_dispositivo_iot
             WHERE s.id_sensores=:id'''), {'id':id_sensor}).mappings().one())
 
     def escalar_calidad(self, id_alerta, severidad):
+        """Cambia la severidad de una alerta técnica de calidad con bloqueo de fila."""
         orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).with_for_update().one()
         orm.severidad = severidad
         self.db.flush()
 
     def bloquear_dispositivo(self, id_dispositivo: int) -> None:
+        """Toma el lock asesor del dispositivo para serializar sus cambios."""
         self.db.execute(text('SELECT pg_advisory_xact_lock(3505, :id)'), {'id': id_dispositivo})
 
     def escalar_bateria(self, id_alerta, causa, severidad, metadatos):
+        """Anota la condición vigente por batería sin reescribir el tipo original."""
         orm = self.db.get(AlertaModel, id_alerta, populate_existing=True)
         orm.severidad = severidad
         # RF-57 P0006 protege el tipo original. La condición vigente es
@@ -93,6 +103,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         self.db.flush()
 
     def listar_conectividad_abierta(self, id_dispositivo):
+        """Lista las alertas técnicas de conectividad abiertas del dispositivo."""
         filas = self.db.query(AlertaModel).filter(
             AlertaModel.tipo_alerta == 'TECNICA',
             AlertaModel.id_dispositivo_ioit == id_dispositivo,
@@ -103,6 +114,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         return [self._a_entidad(fila) for fila in filas]
 
     def guardar(self, alerta: Alerta) -> Alerta:
+        """Guarda una alerta nueva, normaliza su variable y audita su generación."""
         try:
             variable = variable_para_alerta(self.db, codigo=alerta.tipo_variable) if alerta.tipo_alerta != 'TECNICA' else None
             orm = AlertaModel(
@@ -159,6 +171,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
                               'id_dispositivo_iot': orm.id_dispositivo_ioit})
 
     def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
+        """Busca una alerta técnica activa del dispositivo para la causa dada."""
         consulta = self.db.query(AlertaModel).filter(
             AlertaModel.id_dispositivo_ioit == id_dispositivo,
             AlertaModel.tipo_alerta == 'TECNICA',
@@ -177,6 +190,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         tipo_variable: str,
         ventana_min: int = 30,
     ) -> Optional[Alerta]:
+        """Busca y bloquea una alerta activa duplicada del sensor en la ventana dada."""
         variable = variable_para_alerta(self.db, codigo=tipo_variable)
         equivalentes = variable['aliases'] if variable else [tipo_variable.upper()]
         orm = (
@@ -195,6 +209,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         return self._a_entidad(orm) if orm else None
 
     def buscar_compuesta_activa(self, tipo_alerta, id_infraestructura, ventana_min):
+        """Busca y bloquea una alerta compuesta activa del área en la ventana dada."""
         try:
             self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
                             {'clave': f'rf57:compuesta:{id_infraestructura}:{tipo_alerta}'})
@@ -216,6 +231,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         return self._a_entidad(orm) if orm else None
 
     def buscar_reevaluacion(self, id_alerta_original):
+        """Busca la alerta generada por reevaluación de la alerta original."""
         try:
             self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
                             {'clave': f'rf57:reevaluacion:{id_alerta_original}'})
@@ -228,6 +244,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         return self._a_entidad(orm) if orm else None
 
     def consolidar_compuesta(self, id_alerta, ultima_ocurrencia, reglas_nuevas, nueva_severidad, correlacion):
+        """Consolida un evento nuevo en una alerta compuesta abierta (E14)."""
         try:
             orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).populate_existing().with_for_update().one()
             vistas = {(r.get('id'), r.get('id_sensor')) for r in (orm.reglas_activas or []) if isinstance(r, dict)}
@@ -246,6 +263,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             raise_from_db_error(exc)
 
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
+        """Serializa la evaluación de una condición de sensor y variable."""
         variable = variable_para_alerta(self.db, codigo=tipo_variable)
         clave = str(variable['id_variable']) if variable else tipo_variable.upper()
         try:
@@ -255,6 +273,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             raise_from_db_error(exc)
 
     def listar_pendientes_e9(self, limite: int) -> list[Alerta]:
+        """Toma alertas pendientes de reevaluar (E9) bloqueándolas sin esperar."""
         orms = (
             self.db.query(AlertaModel)
             .filter(
@@ -271,6 +290,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         return [self._a_entidad(o) for o in orms]
 
     def marcar_pendiente_e9_evaluado(self, id_alerta: int, resultado: dict) -> None:
+        """Marca como evaluada una alerta pendiente (E9) y guarda el resultado."""
         try:
             orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).with_for_update().one()
             metadato = dict(orm.metadato_evento or {})
@@ -284,6 +304,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             raise_from_db_error(exc)
 
     def bloquear_condicion_activo(self, id_activo_biologico: int, tipo_alerta: str) -> None:
+        """Serializa la evaluación de una condición por activo y tipo de alerta."""
         try:
             self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
                             {'clave': f'rf57:activo:{id_activo_biologico}:{tipo_alerta}'})
@@ -292,6 +313,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
 
     def buscar_activa_duplicada_por_activo(self, id_activo_biologico: int, tipo_alerta: str,
                                            ventana_min: int = 30) -> Optional[Alerta]:
+        """Busca y bloquea una alerta activa duplicada del activo en la ventana dada."""
         orm = (
             self.db.query(AlertaModel)
             .filter(
@@ -308,6 +330,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         return self._a_entidad(orm) if orm else None
 
     def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
+        """Busca una alerta técnica abierta del dispositivo para la variable dada."""
         orm = (
             self.db.query(AlertaModel)
             .filter(
@@ -327,6 +350,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         ultima_ocurrencia: datetime,
         nueva_severidad: Optional[str] = None,
     ) -> None:
+        """Incrementa la ocurrencia de una alerta duplicada y actualiza su severidad."""
         try:
             orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).populate_existing().with_for_update().first()
             if orm is None:
@@ -351,6 +375,11 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         fecha_atencion: Optional[datetime] = None,
         fecha_resolucion: Optional[datetime] = None,
     ) -> Alerta:
+        """Cambia el estado de una alerta y audita la transición.
+
+        Raises:
+            NotFoundError: Si la alerta no existe.
+        """
         try:
             orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).first()
             if orm is None:
@@ -391,6 +420,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Optional[Alerta]:
+        """Devuelve una alerta con su ubicación, si está en las fincas permitidas."""
         orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).first()
         if orm is None:
             return None
@@ -442,6 +472,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         fecha_resolucion_desde: Optional[datetime] = None,
         id_infraestructura: Optional[int] = None,
     ) -> tuple[list[Alerta], int]:
+        """Lista alertas con filtros, paginación y nombres de ubicación."""
         q = self.db.query(AlertaModel)
         # T-18: el filtro de la vista es el área por nombre, no el ID del sensor.
         if id_infraestructura:
@@ -569,6 +600,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         )
 
     def reclamar_pendientes_notificacion(self, ahora: datetime, ventana_min: int = 10, limite: int = 100) -> list[Alerta]:
+        """Reclama alertas sin notificar para enviarlas, marcando la fecha de notificación."""
         try:
             filas = (
                 self.db.query(AlertaModel)
@@ -590,6 +622,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             raise_from_db_error(exc)
 
     def contexto_incompleto_avisado_desde(self, id_sensor, desde, antes_de):
+        """Indica si ya se avisó un contexto incompleto del sensor en la ventana."""
         return self.db.query(
             self.db.query(AlertaModel.id_alerta).filter(
                 AlertaModel.id_sensor == id_sensor,
@@ -601,6 +634,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         ).scalar()
 
     def contar_generadas_desde(self, desde: datetime) -> tuple[int, dict[int, int]]:
+        """Cuenta alertas generadas desde una fecha, en total y por área."""
         filas = (
             self.db.query(AlertaModel.id_infraestructura, func.count())
             .filter(AlertaModel.fecha_generacion >= desde, AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
@@ -611,6 +645,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         return sum(n for _, n in filas), {area: n for area, n in filas if area is not None}
 
     def existe_tormenta_desde(self, desde: datetime) -> bool:
+        """Indica si ya existe una alerta de tormenta generada desde la fecha dada."""
         return self.db.query(
             self.db.query(AlertaModel).filter(
                 AlertaModel.tipo_alerta == TipoAlerta.TORMENTA_DE_ALERTAS.value,
@@ -619,6 +654,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         ).scalar()
 
     def vencer_activas_con_sla_cumplido(self, ahora: datetime, limite: int = 200) -> list[Alerta]:
+        """Vence alertas activas cuyo SLA ya expiró, excluyendo las técnicas."""
         try:
             filas = (
                 self.db.query(AlertaModel)

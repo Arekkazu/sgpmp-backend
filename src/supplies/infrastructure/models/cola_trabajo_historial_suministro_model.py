@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.cola_trabajos_historial_suministros`` (RF-81 / motor async).
 
 Generado con sqlacodegen y adaptado (Base compartida, sin relationships). Cola de
@@ -17,6 +20,7 @@ from .base_model import Base
 
 
 class ColaTrabajoHistorialSuministroModel(Base):
+    """Modelo ORM de la tabla ``modulo5.cola_trabajos_historial_suministros``."""
     __tablename__ = 'cola_trabajos_historial_suministros'
     __table_args__ = (
         ForeignKeyConstraint(['id_usuario_solicitante'], ['modulo1.usuarios.id_usuario'], name='cola_trabajos_historial_suministros_id_usuario_solicitante_fkey'),

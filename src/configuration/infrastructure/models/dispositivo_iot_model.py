@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.dispositivos_iot` (RF-21).
 
 El serial es único en el sistema. El dispositivo se asocia obligatoriamente
@@ -17,6 +20,7 @@ from .tipo_dispositivo_iot_model import TipoDispositivoIotModel
 
 
 class DispositivoIotModel(Base):
+    """Modelo ORM de la tabla ``modulo9.dispositivos_iot``."""
     __tablename__ = 'dispositivos_iot'
     __table_args__ = (
         ForeignKeyConstraint(

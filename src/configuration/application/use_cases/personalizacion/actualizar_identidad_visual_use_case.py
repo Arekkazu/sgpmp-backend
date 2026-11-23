@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Actualizar identidad visual de una finca (PATCH RF-26).
 
 Concurrencia optimista con campo ``version`` (entero).
@@ -43,6 +46,7 @@ class ActualizarIdentidadVisualUseCase:
         logo_content_type: Optional[str],
         usuario_actual: UsuarioActual,
     ) -> IdentidadVisual:
+        """Actualiza la identidad visual de la finca y la audita."""
         entidad = self.identidad_repo.obtener_por_finca(id_finca, bloquear=True)
         if entidad is None:
             raise NotFoundError(

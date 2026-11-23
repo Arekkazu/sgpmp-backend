@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: asociación de un sensor IoT a un activo biológico (RF-49)."""
 
 from __future__ import annotations
@@ -78,6 +79,7 @@ class AsociarSensorActivoUseCase:
         *,
         ids_fincas_permitidas: list[int] | None = None,
     ) -> AsociacionSensorActivo:
+        """Asocia un sensor al activo validando compatibilidad y solapamientos."""
         def obtener_activo_en_alcance(activo_id: int):
             return self.activo_repo.obtener_por_id(
                 activo_id,

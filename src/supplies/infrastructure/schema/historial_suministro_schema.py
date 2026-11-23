@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: 202, nivel de volumen y archivos   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta de RF-81 — Historial/Trazabilidad de Suministros."""
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from src.supplies.domain.entities.trabajo_historial_suministro import (
 
 
 class LineaHistorialResponse(BaseModel):
+    """Línea del historial de suministros."""
     id_registro_suministro: str
     id_activo_biologico: int
     id_ciclo_productivo: int
@@ -39,6 +41,7 @@ class LineaHistorialResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, l: LineaHistorialSuministro) -> "LineaHistorialResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_registro_suministro=l.id_registro_suministro,
             id_activo_biologico=l.id_activo_biologico,
@@ -62,6 +65,7 @@ class LineaHistorialResponse(BaseModel):
 
 
 class ResumenHistorialResponse(BaseModel):
+    """Resumen del historial filtrado."""
     total_registros_filtrados: int
     monto_total_filtrado: Decimal
     desglose_por_tipo_suministro: dict
@@ -75,6 +79,7 @@ class ResumenHistorialResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, r: ResumenConsultaHistorial) -> "ResumenHistorialResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             total_registros_filtrados=r.total_registros_filtrados,
             monto_total_filtrado=r.monto_total_filtrado,
@@ -109,6 +114,7 @@ class ConsultaAsincronaResponse(BaseModel):
 
 
 class HistorialSuministroListResponse(BaseModel):
+    """Historial de suministros con su resumen."""
     items: list[LineaHistorialResponse]
     resumen: ResumenHistorialResponse
 
@@ -124,6 +130,7 @@ class TrabajoHistorialResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, t: TrabajoHistorialSuministro, mensaje: str) -> "TrabajoHistorialResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_cola=t.id_cola,
             tipo_trabajo=t.tipo_trabajo,
@@ -134,6 +141,7 @@ class TrabajoHistorialResponse(BaseModel):
 
 
 class EstadoTrabajoHistorialResponse(BaseModel):
+    """Estado de un trabajo del historial con su última ejecución."""
     id_cola: Optional[int]
     tipo_trabajo: str
     estado: str
@@ -148,6 +156,7 @@ class EstadoTrabajoHistorialResponse(BaseModel):
     def desde_entidades(
         cls, trabajo: TrabajoHistorialSuministro, ejecucion: Optional[EjecucionHistorialSuministro]
     ) -> "EstadoTrabajoHistorialResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_cola=trabajo.id_cola,
             tipo_trabajo=trabajo.tipo_trabajo,

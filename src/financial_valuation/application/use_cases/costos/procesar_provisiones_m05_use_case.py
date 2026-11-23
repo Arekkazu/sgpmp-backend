@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-90 + M05 RF-79: costos de M05 a M06 (CONSUMO_INVENTARIO / CONSUMO_INSUMO) |
 # | 2026-11-05 | Arekkazu | M06 RF-90: justificación automática sin códigos de módulo |
 # | 2026-11-08 | Arekkazu | INC-M06-330-G86 RF-94: la auditoría del costo automático trae su naturaleza |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso de fondo: convierte cada provisión INCREMENTAL de M05 en un costo de RF-90.
 
 - ALIMENTO y MEDICAMENTO: ``CONSUMO_INVENTARIO`` → línea ``CONSUMO_INSUMO`` (gasto contra el
@@ -46,6 +47,7 @@ _CON_INVENTARIO = ("ALIMENTO", "MEDICAMENTO")
 _OPERACION = {"REGISTRO": "Consumo registrado", "CORRECCION": "Corrección de un consumo", "ANULACION": "Anulación de un consumo"}
 
 class ProcesarProvisionesM05UseCase:
+    """Procesa las provisiones de costos recibidas de suministros."""
     def __init__(self, db: Session, costos: CostoRepository, activos: ActivoFinancieroPort,
                  contabilizador: Contabilizador, id_usuario_servicio: int) -> None:
         self.db = db
@@ -55,6 +57,7 @@ class ProcesarProvisionesM05UseCase:
         self.id_servicio = id_usuario_servicio
 
     def execute(self, limite: int = 500) -> dict:
+        """Procesa hasta ``limite`` recepciones pendientes y devuelve el conteo por resultado."""
         conteo: dict[str, int] = {}
         for id_recepcion, recepcion in self.costos.recepciones_pendientes(limite):
             try:

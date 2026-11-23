@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 """Caso de uso: consultar/filtrar la bitácora de auditoría de M05 (RF-80, CU-06).
 
@@ -16,15 +19,18 @@ from src.supplies.domain.repositories.auditoria_suministro_read_port import (
 
 
 class ConsultarAuditoriaSuministrosUseCase:
+    """Consulta la auditoría de suministros."""
     def __init__(self, read_port: AuditoriaSuministroReadPort) -> None:
         self.read_port = read_port
 
     def listar(
         self, filtros: FiltrosAuditoriaSuministro
     ) -> tuple[list[EventoAuditoriaSuministroConsulta], int]:
+        """Lista los eventos filtrados con su total."""
         return self.read_port.consultar(filtros)
 
     def obtener_por_id(self, id_auditoria_suministro: int) -> EventoAuditoriaSuministroConsulta:
+        """Devuelve un evento de auditoría."""
         return self.read_port.obtener_por_id(id_auditoria_suministro)
 
     def actores(self) -> list[tuple[int, str]]:

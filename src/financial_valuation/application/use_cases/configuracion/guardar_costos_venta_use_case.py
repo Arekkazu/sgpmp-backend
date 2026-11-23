@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-84: costos de venta parametrizados por especie |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-84: porcentajes de costos de venta (transporte, comisiones, impuestos de la
 transacción) por especie y región. El parámetro anterior queda en el historial; los cálculos ya hechos no
 cambian (RNF-84-05).
@@ -22,6 +23,7 @@ from src.financial_valuation.domain.value_objects.nic41 import REGION_GENERAL
 
 
 class GuardarCostosVentaUseCase:
+    """Guarda los porcentajes de costos de venta de una especie."""
     def __init__(self, db: Session, config: ConfiguracionContableRepository, auditoria: AuditoriaFinancieraRepository) -> None:
         self.db = db
         self.config = config
@@ -29,6 +31,7 @@ class GuardarCostosVentaUseCase:
 
     def execute(self, id_especie: int, pct_transporte: Decimal, pct_comisiones: Decimal, pct_impuestos: Decimal,
                 id_usuario: int, region: Optional[str] = None) -> int:
+        """Guarda transporte, comisiones e impuestos de la especie y lo audita."""
         region = (region or "").strip()
         region = REGION_GENERAL if not region or region.upper() == REGION_GENERAL else region
         try:

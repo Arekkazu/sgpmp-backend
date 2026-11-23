@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: reintento manual del cálculo ICA de un activo (RF-74, panel admin, <<extend>>).
 
 Fuerza el recálculo de los tres períodos de un activo que quedó en
@@ -20,6 +23,7 @@ _PERIODOS = (PeriodoEvaluacion.SEMANAL, PeriodoEvaluacion.MENSUAL, PeriodoEvalua
 
 
 class ReintentarICAManualUseCase:
+    """Reintenta manualmente el cálculo de ICA que falló."""
     def __init__(
         self,
         db: Session,
@@ -31,6 +35,7 @@ class ReintentarICAManualUseCase:
         self.fallo_repo = fallo_repo
 
     def execute(self, id_activo_biologico: int, id_usuario: int) -> list[ResultadoICA]:
+        """Reintenta el cálculo de ICA del activo y devuelve los resultados."""
         fallo = self.fallo_repo.obtener_abierto(id_activo_biologico, None)
         intento = (fallo.intentos + 1) if fallo else 1
 

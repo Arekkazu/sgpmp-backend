@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M04 M4-02 RF-64: nombre y unidad de variables y nombre de la especie (read-model) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta del catálogo de patologías."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +13,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class PatologiaVariableResponse(BaseModel):
+    """Variable asociada a una patología."""
     model_config = ConfigDict(from_attributes=True)
 
     id_variable_ambiental: int
@@ -22,6 +25,7 @@ class PatologiaVariableResponse(BaseModel):
 
 
 class PatologiaM04Response(BaseModel):
+    """Patología del catálogo."""
     model_config = ConfigDict(from_attributes=True)
 
     id_patologia: int
@@ -39,6 +43,7 @@ class PatologiaM04Response(BaseModel):
 
     @classmethod
     def from_entity(cls, entidad) -> PatologiaM04Response:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_patologia=entidad.id_patologia,
             nombre_patologia=entidad.nombre,
@@ -64,5 +69,6 @@ class PatologiaM04Response(BaseModel):
 
 
 class PatologiaM04ListResponse(BaseModel):
+    """Patologías del catálogo."""
     total: int
     items: list[PatologiaM04Response]

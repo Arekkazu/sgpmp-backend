@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schema de respuesta para preferencia de tema visual (RF-27)."""
 from __future__ import annotations
 
@@ -19,6 +22,7 @@ class TemaVisualResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, entity) -> TemaVisualResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_tema_visual=entity.id_tema_visual,
             id_usuario=entity.id_usuario,

@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66: GET de lo que ve la cámara de un área                     |
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: la respuesta trae inventario y aviso de discrepancia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Lo que ve la cámara de un área (Predicción › Estado sanitario y detalle de la inferencia).
 
   GET /prediccion/areas/{id_area}/captura[?ventana_fin=] — última captura de sus cámaras, o la de
@@ -30,6 +31,7 @@ _RECURSO = 42  # modulo1.recursos: 'historial_diagnostico'
 
 
 class CapturaCamaraResponse(BaseModel):
+    """Última captura de las cámaras de un área."""
     id_dispositivo_iot: int
     fecha: datetime
     n_individuos: Optional[int]

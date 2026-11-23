@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66: lo que ve la cámara de un área (última captura o la de una ventana) |
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: inventario del área y aviso de discrepancia del conteo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Para Predicción: la captura más reciente de las cámaras del área (ficha del lote) o la de una
 ventana concreta (detalle de una inferencia POBLACIONAL, por su ``fecha_fin_ventana``), junto con el
 inventario del área y, para la captura actual, si el conteo de la cámara se aleja de él."""
@@ -19,6 +20,7 @@ from src.shared.errors import NotFoundError
 
 @dataclass(frozen=True)
 class CapturaArea:
+    """Última captura de un área con la cantidad registrada."""
     captura: Captura
     cantidad_registrada: Optional[int]
     #: Solo para la captura actual: una ventana vieja no dice cómo está el lote hoy.
@@ -26,11 +28,13 @@ class CapturaArea:
 
 
 class ObtenerCapturaAreaUseCase:
+    """Obtiene la última captura de las cámaras de un área."""
 
     def __init__(self, camaras_port: CamarasAreaPort) -> None:
         self.camaras_port = camaras_port
 
     def execute(self, id_area: int, ventana_fin: Optional[datetime] = None) -> CapturaArea:
+        """Devuelve la captura más reciente del área hasta la ventana indicada."""
         camaras = self.camaras_port.camaras(id_area)
         if not camaras:
             raise NotFoundError(code="AREA_SIN_CAMARA", message="El área no tiene cámara de visión.")

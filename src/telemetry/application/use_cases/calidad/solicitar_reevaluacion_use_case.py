@@ -2,6 +2,7 @@
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: regenerar evaluaciones con causa y auditar el lote antes de un solo commit. |
 # | 2026-10-28 | Arekkazu | INC-M03-132-G30 RF-62: la reevaluacion conserva TIME_DESYNC de la lectura |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-62 FA-08: sustituir evaluaciones y auditar el lote en una transacción."""
 from __future__ import annotations
 from dataclasses import dataclass
@@ -16,11 +17,13 @@ from src.telemetry.domain.entities.parametros_reevaluacion import validar_correc
 
 @dataclass
 class ResultadoReevaluacion:
+    """Cantidad de evaluaciones superadas y creadas en una reevaluación masiva."""
     evaluaciones_superadas:int
     evaluaciones_creadas:int
 
 
 class SolicitarReevaluacionUseCase:
+    """Reevalúa masivamente la calidad ante un error documentado de configuración."""
     def __init__(self,db,calidad_repo,telemetria_repo,parametros_port,auditoria_repo=None,
                  contexto_port=None,alertas_calidad=None):
         self.db=db
@@ -32,6 +35,11 @@ class SolicitarReevaluacionUseCase:
         self.alertas_calidad=alertas_calidad
 
     def execute(self,dto,id_usuario:int,nombre_usuario:str)->ResultadoReevaluacion:
+        """Supera las evaluaciones afectadas y crea las nuevas con los parámetros corregidos.
+
+        Raises:
+            BusinessRuleError: Si no se documenta la causa de la reevaluación.
+        """
         if not dto.causa_documentada or not dto.causa_documentada.strip():
             raise BusinessRuleError('REEVALUACION_SIN_CAUSA',
                 'La re-evaluación masiva solo está permitida ante errores documentados de configuración. Debe proporcionar una causa.',

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                                 |
 # |------------|----------|-----------------------------------------------------------------------------|
 # | 2026-11-20 | Arekkazu | A11Y-M08 TC-DIS-288 RF-104: árbol de etiquetas compartido (antes en M05) y decoración marcada como Artifact |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """PDF etiquetado (estructura y orden de lectura para lector de pantalla) con ReportLab, que no lo escribe solo.
 
 Nació en la exportación de Suministros (TC-DIS-204) y lo usan también los reportes (TC-DIS-288). Uso:
@@ -31,12 +32,14 @@ class ArbolEtiquetas:
         self.celdas: dict[int, dict] = {}  # id del Paragraph de la celda -> su TH/TD
 
     def nuevo(self, rol: str, padre: Optional[dict], **extra) -> dict:
+        """Crea un elemento de estructura con el rol dado y lo cuelga de su padre."""
         elemento = {"rol": rol, "padre": padre, "hijos": [], "marcas": [], "arbol": self, **extra}
         if padre is not None:
             padre["hijos"].append(elemento)
         return elemento
 
     def abrir(self, lienzo, elemento: dict) -> None:
+        """Abre en el lienzo una secuencia de contenido marcado (MCID) para el elemento."""
         pagina = lienzo.getPageNumber()
         marcas = self.por_pagina.setdefault(pagina, [])
         elemento["marcas"].append((pagina, len(marcas)))
@@ -44,6 +47,7 @@ class ArbolEtiquetas:
         marcas.append(elemento)
 
     def tabla(self, filas: list[list]) -> None:
+        """Crea la estructura Table/TR/TH/TD para las filas de una tabla."""
         tabla = self.nuevo("Table", self.documento)
         for indice, fila in enumerate(filas):
             tr = self.nuevo("TR", tabla)
@@ -51,6 +55,7 @@ class ArbolEtiquetas:
                 self.celdas[id(parrafo)] = self.nuevo("TH", tr, alcance="Column") if indice == 0 else self.nuevo("TD", tr)
 
     def al_dibujar_tabla(self, tabla, evento: str, *args) -> None:
+        """Callback de dibujo que marca celdas como contenido y fondos/líneas como artefactos."""
         codigo = tabla.canv._code
         if evento in ("startBG", "startLines"):
             codigo.append("/Artifact BMC")
@@ -65,12 +70,14 @@ class ArbolEtiquetas:
                 self.abrir(tabla.canv, elemento)
 
     def al_dibujar_maqueta(self, tabla, evento: str, *args) -> None:
+        """Callback de dibujo que marca fondos y líneas de una tabla de maquetación como artefactos."""
         if evento in ("startBG", "startLines"):
             tabla.canv._code.append("/Artifact BMC")
         elif evento in ("endBG", "endLines"):
             tabla.canv._code.append("EMC")
 
     def escribir(self, lienzo) -> None:
+        """Escribe en el PDF el árbol de estructura (StructTreeRoot) y el mapa de MCID por página."""
         from reportlab.pdfbase.pdfdoc import PDFArray, PDFDictionary, PDFName, PDFString
 
         pdf = lienzo._doc

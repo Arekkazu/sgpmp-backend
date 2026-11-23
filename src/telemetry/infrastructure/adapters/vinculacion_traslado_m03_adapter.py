@@ -1,6 +1,13 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-48/61: cierra origen sin inventar lecturas de destino |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Adaptador que procesa un traslado de activo entre infraestructuras (RF-48/RF-61).
+
+Cierra las vinculaciones confirmadas del origen sin reutilizar lecturas para el
+destino: el worker abrirá las nuevas al recibir lecturas del destino. Es
+idempotente por movimiento y protege la concurrencia con locks de PostgreSQL.
+"""
 from sqlalchemy import text
 from src.shared.errors import ConflictError
 from src.telemetry.application.use_cases.infraestructura.evidencia_vinculacion import registrar_evidencia
@@ -8,10 +15,25 @@ from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository
 
 
 class VinculacionTrasladoM03Adapter:
+    """Procesa el cierre de vinculaciones de origen al trasladar un activo."""
+
     def __init__(self,db):
         self.db=db
 
     def procesar(self, *, id_activo, origen, destino, fecha_efectiva, id_movimiento, id_usuario):
+        """Cierra las vinculaciones del activo en la infraestructura de origen.
+
+        Args:
+            id_activo: Activo trasladado.
+            origen: Infraestructura de la que sale.
+            destino: Infraestructura a la que llega.
+            fecha_efectiva: Fecha del traslado.
+            id_movimiento: Movimiento que origina el traslado (clave de idempotencia).
+            id_usuario: Usuario responsable.
+
+        Raises:
+            ConflictError: Si otro proceso tiene bloqueado un dispositivo del origen.
+        """
         # RF-48 ya mantiene FOR UPDATE sobre el activo. Misma clave para reintentos del movimiento.
         self.db.execute(text('SELECT pg_advisory_xact_lock(3544,:id)'),{'id':id_activo})
         procesado=self.db.execute(text('''SELECT EXISTS(SELECT 1 FROM modulo3.bitacora_auditoria_iot

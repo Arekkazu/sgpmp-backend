@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                      |
 # |------------|----------|------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-106: TVCO global del modelo y aviso a los Administradores |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`TasaValidacionPort`: calcula la TVCO global con las retroalimentaciones de M04 y avisa a los
 Administradores por la bandeja (evento tipo 45 por destinatario, mismo patrón que los avisos de M06)."""
 from __future__ import annotations
@@ -59,18 +60,22 @@ class TasaValidacionM04Adapter(TasaValidacionPort):
             db.close()
 
     def tvco_global(self, dias: int) -> tuple[Optional[float], int]:
+        """Calcula la tasa de validación global de los últimos días."""
         fila = self._leer(_SQL_TVCO, {"dias": dias})
         validadas = fila.validadas or 0
         return (round(fila.correctas / validadas * 100, 2) if validadas else None), validadas
 
     def umbral(self) -> Optional[float]:
+        """Umbral configurado de la tasa de validación, o ``None``."""
         fila = self._leer(_SQL_UMBRAL)
         return float(fila[0]) if fila and fila[0] is not None else None
 
     def avisado_hoy(self) -> bool:
+        """Indica si ya se avisó hoy la degradación."""
         return bool(self._leer(_SQL_AVISADO, {"tipo": _TIPO})[0])
 
     def avisar_administradores(self, mensaje: str, detalle: dict) -> None:
+        """Registra el evento y notifica a los administradores."""
         db = self.session_factory()
         try:
             id_tipo = db.execute(_SQL_TIPO, {"n": _TIPO}).scalar()

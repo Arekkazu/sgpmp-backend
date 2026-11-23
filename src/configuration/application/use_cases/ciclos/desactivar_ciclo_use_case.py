@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Desactivar etapa del ciclo productivo (Flujo C — RF-16).
 
 Bloquea la desactivación si existen activos biológicos en la etapa (FA-03).
@@ -46,6 +49,7 @@ class DesactivarCicloUseCase:
         self.dependencia_port = dependencia_port
 
     def execute(self, id_ciclo_biologico: int, usuario_actual: UsuarioActual) -> CicloBiologico:
+        """Desactiva la etapa del ciclo biológico y la audita."""
         ciclo = self.ciclos_repo.obtener_por_id(id_ciclo_biologico)
         if ciclo is None:
             raise NotFoundError(

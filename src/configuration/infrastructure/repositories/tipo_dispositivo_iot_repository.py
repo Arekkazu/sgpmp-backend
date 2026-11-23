@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``TipoDispositivoIotRepository`` (RF-23)."""
 from __future__ import annotations
 
@@ -11,6 +14,7 @@ from src.configuration.infrastructure.models.tipo_dispositivo_iot_model import T
 
 
 class SqlAlchemyTipoDispositivoIotRepository(TipoDispositivoIotRepository):
+    """Implementación SQLAlchemy de ``TipoDispositivoIotRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -28,9 +32,11 @@ class SqlAlchemyTipoDispositivoIotRepository(TipoDispositivoIotRepository):
         )
 
     def obtener_por_id(self, id_tipo_dispositivo: int) -> Optional[TipoDispositivoIot]:
+        """Obtiene el tipo de dispositivo por id, o ``None`` si no existe."""
         orm = self.db.get(TipoDispositivoIotModel, id_tipo_dispositivo)
         return self._a_entidad(orm) if orm else None
 
     def listar(self) -> list[TipoDispositivoIot]:
+        """Todos los tipos de dispositivo con sus rangos."""
         orms = self.db.query(TipoDispositivoIotModel).order_by(TipoDispositivoIotModel.nombre).all()
         return [self._a_entidad(orm) for orm in orms]

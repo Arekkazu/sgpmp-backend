@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: preservar causas historicas y traducir errores al superar evaluaciones. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de evaluaciones de calidad de telemetría (RF-62)."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -18,6 +20,7 @@ from src.telemetry.infrastructure.models.telemetria_calidad_model import Telemet
 
 
 class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
+    """Persiste evaluaciones de calidad y consulta la evaluación vigente por lectura."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -54,6 +57,7 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         ).filter(vigentes.c.posicion == 1)
 
     def guardar(self, evaluacion: TelemetriaCalidad) -> TelemetriaCalidad:
+        """Guarda una evaluación de calidad y la devuelve persistida."""
         try:
             orm = TelemetriaCalidadModel(
                 id_telemetria=evaluacion.id_telemetria,
@@ -80,6 +84,7 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
             raise_from_db_error(exc)
 
     def obtener_por_lectura(self, id_telemetria: int) -> Optional[TelemetriaCalidad]:
+        """Devuelve la evaluación vigente de la lectura, o ``None`` si no hay."""
         orm = self._consulta_vigentes(id_telemetria).first()
         return self._a_entidad(orm) if orm else None
 
@@ -95,6 +100,7 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[TelemetriaCalidad], int]:
+        """Lista evaluaciones filtradas y paginadas, acotadas a las fincas permitidas."""
         # La consulta ordinaria expone aptitud vigente. El histórico SUPERADA
         # sigue disponible cuando se solicita explícitamente ese estado.
         q = (self._consulta_vigentes() if estado_evaluacion in (None, 'VIGENTE')
@@ -126,6 +132,7 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         return [self._a_entidad(o) for o in items], total
 
     def marcar_superada(self, id_evaluacion: UUID, motivo: str) -> None:
+        """Marca una evaluación como superada sin sobrescribir su motivo original."""
         try:
             orm = self.db.query(TelemetriaCalidadModel).filter(
                 TelemetriaCalidadModel.id_evaluacion == id_evaluacion
@@ -144,6 +151,7 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         fecha_desde: datetime,
         fecha_hasta: datetime,
     ) -> list[TelemetriaCalidad]:
+        """Lista las evaluaciones vigentes de un sensor dentro de un rango de fechas."""
         items = (
             self._consulta_vigentes()
             .filter(

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: GET /iot/ingesta y /iot/ingesta/indicadores (solo lectura) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de los endpoints |
 """Monitor de ingesta (RF-53), solo lectura.
 
   GET /iot/ingesta              — Eventos de la bitácora de ingesta, paginados (24 h por defecto, máx. 31 días)
@@ -52,6 +53,7 @@ def listar_ingesta(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaIngestaSchema:
+    """Lista la bitácora de ingesta de las fincas del usuario."""
     fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     items, total, f = ConsultarIngestaUseCase(SqlAlchemyIngestaRepository(db)).listar(
         ids_fincas=fincas, desde=desde, hasta=hasta, estado_calidad=estado_calidad, origen=origen,
@@ -74,6 +76,7 @@ def indicadores_ingesta(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> IndicadoresIngestaSchema:
+    """Devuelve los indicadores de la ingesta del día en la zona del usuario."""
     fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     return IndicadoresIngestaSchema.model_validate(
         ConsultarIngestaUseCase(SqlAlchemyIngestaRepository(db)).indicadores_de_hoy(fincas))

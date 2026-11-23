@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: read-model del listado de dispositivos con su estado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstring de la clase |
 """Read-model del listado de dispositivos (RF-60, M3-10).
 
 Antes la pantalla solo consultaba un dispositivo por ID y no había forma de ver
@@ -16,6 +17,8 @@ from typing import Optional
 
 @dataclass
 class DispositivoConEstado:
+    """Dispositivo con su estado vigente, ubicación y última señal reportada."""
+
     id_dispositivo_iot: int
     serial: str
     descripcion: Optional[str]

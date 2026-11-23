@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``Plantilla`` — plantilla de configuración reutilizable (RF-31).
 
 Inmutable por diseño: una vez creada, no se modifica. Nuevas versiones se crean
@@ -43,6 +46,7 @@ class Plantilla:
         version: int,
         fecha_creacion: datetime,
     ) -> Plantilla:
+        """Crea la entidad validando sus datos."""
         return cls(
             id_especie=id_especie,
             id_usuario=id_usuario,

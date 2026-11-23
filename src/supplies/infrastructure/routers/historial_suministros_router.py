@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-81: 202 automático, PDF/Excel, 72 h    |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-09 | LuisfNarvaez01   | INC-M05-283-G42 RF-81: más de 200 por página se limita a 200, no se rechaza |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI de RF-81 — Historial/Trazabilidad de Suministros.
 
   GET  /suministros/historial                           — Consulta paginada (200, o 202 en niveles 3-4)
@@ -122,6 +123,7 @@ def consultar_historial(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Consulta el historial de suministros, o lo encola si es grande."""
     filtros = _filtros_desde_query(
         id_activo_biologico, id_ciclo_productivo, fecha_inicio_filtro, fecha_fin_filtro,
         tipo_suministro_filtro, origen_precio_filtro, costo_min, costo_max, pagina, registros_por_pagina,
@@ -174,6 +176,7 @@ def exportar_historial(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Exporta el historial de suministros, o lo encola si es grande."""
     filtros = _filtros_desde_query(
         id_activo_biologico, id_ciclo_productivo, fecha_inicio_filtro, fecha_fin_filtro,
         tipo_suministro_filtro, origen_precio_filtro, costo_min, costo_max, 1, 200,
@@ -214,6 +217,7 @@ def solicitar_trabajo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> TrabajoHistorialResponse:
+    """Encola una consulta o exportación del historial."""
     filtros = FiltrosHistorialSuministro(
         id_activo_biologico=dto.id_activo_biologico,
         id_ciclo_productivo=dto.id_ciclo_productivo,
@@ -245,6 +249,7 @@ def solicitar_trabajo(
     summary="Consultar el estado y el resultado de un trabajo pesado de historial",
 )
 def consultar_estado_trabajo(id_cola: int, db: Session = Depends(get_db)) -> EstadoTrabajoHistorialResponse:
+    """Devuelve el estado de un trabajo del historial."""
     estado = build_consultar_estado_trabajo_historial_use_case(db).execute(id_cola)
     return EstadoTrabajoHistorialResponse.desde_entidades(estado.trabajo, estado.ultima_ejecucion)
 
@@ -266,6 +271,7 @@ def descargar_resultado(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> StreamingResponse:
+    """Descarga el archivo generado por un trabajo del historial."""
     archivo = build_descargar_resultado_trabajo_historial_use_case(db).execute(id_cola, usuario_actual.id_usuario)
     return StreamingResponse(
         iter([archivo.contenido]),

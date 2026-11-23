@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar etapa del ciclo productivo (Flujo A — RF-16)."""
 from __future__ import annotations
 
@@ -43,6 +46,7 @@ class RegistrarCicloUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarCicloDTO, usuario_actual: UsuarioActual) -> CicloBiologico:
+        """Registra una etapa del ciclo biológico de la especie."""
         especie = self.especies_repo.obtener_por_id(dto.id_especie)
         if especie is None:
             raise NotFoundError(

@@ -3,12 +3,18 @@
 # | 2026-10-21 | Leandro | DEV-27 RF-60: comparte efectos de comunicacion    |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-57: conserva motivo_generacion de DEV-49 |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: recuperacion selectiva y heartbeat ausente |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstring de la función |
 """Efectos de aplicación comunes al worker y al evaluador periódico, sin commits."""
 from src.telemetry.domain.entities.alerta import Alerta
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 
 
 def completar_transicion_comunicacion(estado, parametros, tiempo, ahora, alertas, periodos, origen):
+    """Aplica los efectos de una transición de comunicación sin hacer commit.
+
+    Cierra periodos y alertas al reconectar, o genera alertas técnicas cuando el
+    dispositivo queda sin señal o inactivo.
+    """
     nuevo = estado.estado_actual
     if nuevo == 'EN_MANTENIMIENTO':
         return

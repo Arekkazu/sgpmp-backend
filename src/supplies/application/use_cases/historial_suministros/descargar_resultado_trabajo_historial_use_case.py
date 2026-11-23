@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: descarga de 72 h, 410 al vencer    |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: descargar el resultado de una exportación async de historial (RF-81 E3).
 
 Solo aplica a trabajos ``EXPORTACION`` ya ``COMPLETADO`` y solo para quien la
@@ -21,6 +22,7 @@ from src.supplies.domain.value_objects.estado_trabajo_async import EstadoTrabajo
 
 
 class DescargarResultadoTrabajoHistorialUseCase:
+    """Descarga el archivo generado por un trabajo del historial."""
     def __init__(
         self, trabajo_repo: TrabajoHistorialSuministroRepository, archivo_repo: ArchivoExportacionRepository
     ) -> None:
@@ -28,6 +30,11 @@ class DescargarResultadoTrabajoHistorialUseCase:
         self.archivo_repo = archivo_repo
 
     def execute(self, id_cola: int, id_usuario: int) -> ArchivoExportacion:
+        """Devuelve el archivo del trabajo del usuario.
+
+        Raises:
+            NotFoundError: Si el trabajo no existe.
+        """
         trabajo = self.trabajo_repo.obtener(id_cola)
         if trabajo is None:
             raise NotFoundError(

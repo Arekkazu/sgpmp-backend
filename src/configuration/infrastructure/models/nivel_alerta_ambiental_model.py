@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.niveles_alerta_ambientales` (hijos del agregado umbral)."""
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ if TYPE_CHECKING:
 
 
 class NivelAlertaAmbientalModel(Base):
+    """Modelo ORM de la tabla ``modulo9.niveles_alerta_ambientales``."""
     __tablename__ = 'niveles_alerta_ambientales'
     __table_args__ = (
         ForeignKeyConstraint(

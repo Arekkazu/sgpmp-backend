@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar una patología asociada a una especie (Flujo E — RF-16)."""
 from typing import Optional
 import re
@@ -18,6 +21,7 @@ class RegistrarPatologiaDTO(BaseDTO):
     @field_validator("nombre")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         v = v.strip()
         if len(v) < 3 or len(v) > 60:
             raise ValueError("El nombre de la patología debe tener entre 3 y 60 caracteres.")
@@ -28,6 +32,7 @@ class RegistrarPatologiaDTO(BaseDTO):
     @field_validator("descripcion")
     @classmethod
     def validar_descripcion(cls, v: Optional[str]) -> Optional[str]:
+        """Valida la descripción opcional."""
         if v is not None and len(v) > 255:
             raise ValueError("La descripción no puede superar los 255 caracteres.")
         return v

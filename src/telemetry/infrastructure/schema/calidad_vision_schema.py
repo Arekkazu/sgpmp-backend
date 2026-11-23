@@ -1,6 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-62: listado de observaciones de visión evaluadas (el panel mostraba datos de ejemplo) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y schemas |
+"""Schemas de respuesta para la calidad de visión (RF-62).
+
+Expone las observaciones evaluadas, la política vigente y el listado paginado
+que consume el panel de calidad.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +17,8 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ObservacionVisionEvaluadaSchema(BaseModel):
+    """Observación de visión con su evaluación de calidad (puede estar pendiente)."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id_observacion_vision: int
@@ -38,6 +46,8 @@ class ObservacionVisionEvaluadaSchema(BaseModel):
 
 
 class PoliticaVisionSchema(BaseModel):
+    """Política de calidad de visión configurada en M09."""
+
     model_config = ConfigDict(from_attributes=True)
 
     w1: Decimal
@@ -50,6 +60,8 @@ class PoliticaVisionSchema(BaseModel):
 
 
 class ListaCalidadVisionSchema(BaseModel):
+    """Página de observaciones evaluadas con la política vigente."""
+
     items: list[ObservacionVisionEvaluadaSchema]
     total: int
     pagina: int

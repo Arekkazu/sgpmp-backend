@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adapter de ``RecalibracionVisionPort``: calibración por visión automática en M09 (RF-24 v2.0, #551).
 
 Corre en ``BackgroundTasks``, después de la respuesta de M02, con una sesión
@@ -58,9 +61,11 @@ def _recalibrar_vision(id_infraestructura: int, momento: datetime, motivo: str) 
 
 
 class RecalibracionVisionM09Adapter(RecalibracionVisionPort):
+    """Solicita en segundo plano la recalibración de visión de un área."""
 
     def __init__(self, background_tasks: BackgroundTasks) -> None:
         self._background_tasks = background_tasks
 
     def solicitar(self, id_infraestructura: int, momento: datetime, motivo: str) -> None:
+        """Programa la recalibración de visión del área."""
         self._background_tasks.add_task(_recalibrar_vision, id_infraestructura, momento, motivo)

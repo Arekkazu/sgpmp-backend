@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos/auditoria/registros-correctivos`` (RF-52
 E5).
 """
@@ -25,6 +28,7 @@ class RegistrarCorrectivoAuditoriaDTO(BaseDTO):
     @field_validator('motivo')
     @classmethod
     def motivo_no_vacio(cls, v: str) -> str:
+        """Exige un motivo no vacío."""
         v = v.strip()
         if not v:
             raise ValueError('El motivo del registro correctivo es obligatorio.')

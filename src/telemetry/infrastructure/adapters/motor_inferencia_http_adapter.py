@@ -3,6 +3,7 @@
 # | 2026-10-27 | destroyerban | INC-M03-120-G63 RF-56: cliente HTTPS hacia M04 con TLS mínimo 1.3, desactivado sin URL |
 # | 2026-10-30 | Arekkazu     | RF-66: URL base del motor en cualquier dominio y ventana del activo en cada paquete |
 # | 2026-10-31 | Arekkazu     | RF-17/RF-66 C3: el paquete lleva los rangos RF-17 de la especie del activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Cliente de transporte M03 → M04 para paquetes de inferencia (RF-56 Fase 6, INC-M03-120-G63).
 
 RF-56 exige "canales cifrados (TLS/SSL)"; los RNF de M03 fijan TLS 1.3. Este cliente:
@@ -76,6 +77,11 @@ def url_paquetes(url: str) -> str:
 
 
 def contexto_tls(version_minima: str = TLS_MINIMO_POR_DEFECTO, ca_file: Optional[str] = None) -> ssl.SSLContext:
+    """Crea el contexto TLS con la versión mínima y la CA indicadas.
+
+    Raises:
+        CanalInferenciaInseguroError: Si la versión de TLS no está admitida.
+    """
     if version_minima not in VERSIONES_TLS:
         raise CanalInferenciaInseguroError(
             f"versión mínima de TLS '{version_minima}' no admitida (usar {', '.join(VERSIONES_TLS)})"
@@ -86,6 +92,7 @@ def contexto_tls(version_minima: str = TLS_MINIMO_POR_DEFECTO, ca_file: Optional
 
 
 class MotorInferenciaHttpAdapter(MotorInferenciaPort):
+    """Envía paquetes de inferencia al motor por HTTPS."""
 
     def __init__(self, url: str, contexto: ssl.SSLContext, token: str = "",
                  timeout: float = _TIMEOUT_SEGUNDOS, ventanas: Optional[VentanaInferenciaPort] = None) -> None:
@@ -103,10 +110,12 @@ class MotorInferenciaHttpAdapter(MotorInferenciaPort):
 
     @property
     def url(self) -> str:
+        """URL del motor de inferencia."""
         return self._url
 
     @classmethod
     def desde_entorno(cls, ventanas: Optional[VentanaInferenciaPort] = None) -> Optional["MotorInferenciaHttpAdapter"]:
+        """Crea el adaptador desde las variables de entorno, o ``None`` si no hay URL."""
         url = os.environ.get("IOT_INFERENCIA_M04_URL", "").strip()
         if not url:
             return None
@@ -118,9 +127,11 @@ class MotorInferenciaHttpAdapter(MotorInferenciaPort):
                    ventanas=ventanas)
 
     def enviar_paquete(self, paquete: PaqueteInferencia) -> bool:
+        """Envía un paquete; ``True`` si el motor confirmó la entrega."""
         return self._enviar([paquete])
 
     def enviar_lote(self, paquetes: list[PaqueteInferencia]) -> bool:
+        """Envía un lote de paquetes; ``True`` si el motor confirmó la entrega."""
         return self._enviar(paquetes)
 
     def _enviar(self, paquetes: list[PaqueteInferencia]) -> bool:

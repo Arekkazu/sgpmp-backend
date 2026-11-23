@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58/59: mismo semáforo que el dashboard (bandas RF-17 + tolerancia T) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador del umbral ambiental vigente para el semáforo histórico."""
 from datetime import datetime
 from typing import Optional
 
@@ -36,6 +38,7 @@ class UmbralHistoricoM09Adapter(UmbralHistoricoPort):
         id_especie: Optional[int],
         timestamp: datetime,
     ) -> Optional[dict]:
+        """Devuelve el umbral vigente de la variable y especie en la fecha dada."""
         if id_especie is None:
             return None
 
@@ -66,6 +69,7 @@ class UmbralHistoricoM09Adapter(UmbralHistoricoPort):
         timestamp: datetime,
         id_sensor: Optional[int] = None,
     ) -> Optional[dict]:
+        """Devuelve el umbral vigente de la variable para las especies del área."""
         if id_infraestructura is None and id_sensor is None:
             return None
         id_especie = self._db.execute(text(

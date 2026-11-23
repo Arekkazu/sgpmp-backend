@@ -8,6 +8,7 @@
 # | 2026-11-10 | destroyerban | INC-M06-336-G36 RF-86: correctivo de variaciones con aprobación del Contador |
 # | 2026-11-13 | Arekkazu | QA-M06 CU13 H-02 C3 RF-94: autores de la bitácora por nombre |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G93 RF-94: la auditoría se acota a los titulares de las fincas del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-94 Fase 7: consulta paginada (máx. 500), en orden cronológico, con al menos un
 filtro obligatorio. ``formato=LEGIBLE`` traduce el tipo de evento a lenguaje natural (CA-13).
 
@@ -67,10 +68,12 @@ DESCRIPCIONES = {
 
 
 class ConsultarAuditoriaFinancieraUseCase:
+    """Consulta la auditoría financiera."""
     def __init__(self, auditoria: AuditoriaFinancieraRepository) -> None:
         self.auditoria = auditoria
 
     def execute(self, filtros: dict, pagina: int, tamano: int, legible: bool, descendente: bool = False) -> dict:
+        """Devuelve la página de eventos filtrados con su total."""
         if not any(filtros.get(k) for k in ("tipo_evento", "id_periodo_contable", "id_activo_biologico")):
             raise ValidationError(code="FILTRO_OBLIGATORIO", message=(
                 "Indique al menos un filtro: tipo de evento, período contable o activo."))

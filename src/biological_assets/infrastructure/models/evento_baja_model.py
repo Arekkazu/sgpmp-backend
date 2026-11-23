@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.eventos_bajas`` (subtipo de evento, RF-45)."""
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 
 
 class EventoBajaModel(Base):
+    """Modelo ORM de los eventos de baja (tabla ``modulo2.eventos_bajas``)."""
     __tablename__ = 'eventos_bajas'
     __table_args__ = (
         CheckConstraint('cantidad_afectada > 0', name='chk_baja_cantidad_positiva'),

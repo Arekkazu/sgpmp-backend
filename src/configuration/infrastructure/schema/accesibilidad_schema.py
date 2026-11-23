@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de accesibilidad de la identidad visual (RF-26 + RF-27).
 
 Compartidos por la respuesta de identidad visual (RF-26, que el administrador ve al
@@ -40,6 +43,7 @@ class AccesibilidadResponse(BaseModel):
     def from_entity(
         cls, entity: Optional[dominio.AccesibilidadVisual]
     ) -> Optional[AccesibilidadResponse]:
+        """Construye la respuesta a partir de la entidad de dominio."""
         if entity is None:
             return None
         return cls(

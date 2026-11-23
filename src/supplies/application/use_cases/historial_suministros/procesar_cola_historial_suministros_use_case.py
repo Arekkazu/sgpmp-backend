@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: archivo 72 h y aviso al usuario    |
 # | 2026-11-08 | Arekkazu         | INC-M05-259-G07: un error 500/503 se reintenta; INC-M05-265-G32 textos sin códigos |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Worker del motor async de historial de suministros (RF-81).
 
 Análogo a ``ProcesarColaReportesGastosUseCase`` (RF-77) y, en última
@@ -87,6 +88,7 @@ def _resumen_a_json(resumen) -> dict:
 
 
 class ProcesarColaHistorialSuministrosUseCase:
+    """Procesa la cola de trabajos asíncronos del historial."""
     def __init__(
         self,
         trabajo_repo: TrabajoHistorialSuministroRepository,
@@ -110,6 +112,7 @@ class ProcesarColaHistorialSuministrosUseCase:
         self.construir_notificador = construir_notificador
 
     async def ejecutar(self) -> int:
+        """Procesa los trabajos pendientes y devuelve cuántos procesó."""
         config = self.config_repo.obtener()
         if not config.es_activo:
             return 0

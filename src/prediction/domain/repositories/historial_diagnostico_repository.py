@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-143/144/146 RF-67: eventos ordenados, id estable y nombre histórico |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto del historial diagnóstico."""
 from __future__ import annotations
 
 import uuid
@@ -12,6 +14,7 @@ from src.prediction.domain.entities.historial_diagnostico import EventoHistorial
 
 
 class HistorialDiagnosticoRepository(ABC):
+    """Puerto de consulta del historial diagnóstico de un activo."""
     @abstractmethod
     def consultar(
         self,

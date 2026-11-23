@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`DependenciaMetricaPort`.
 
 Verifica si existen registros productivos (``modulo2.eventos_productivos``) que
@@ -13,11 +16,13 @@ from src.configuration.domain.repositories.dependencia_metrica_port import Depen
 
 
 class SqlAlchemyDependenciaMetricaRepository(DependenciaMetricaPort):
+    """Implementación SQLAlchemy de ``DependenciaMetricaPort``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def tiene_dependencias_activas(self, id_metrica_produccion: int) -> bool:
+        """Retorna ``True`` si la métrica tiene registros productivos activos."""
         return bool(
             self.db.execute(
                 text(

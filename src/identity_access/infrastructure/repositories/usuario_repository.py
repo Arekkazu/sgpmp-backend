@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto de dominio :class:`UsuarioRepository`.
 
 Es el **único punto** donde se cruza la frontera entre el modelo ORM
@@ -102,10 +105,12 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
 
     # ── Operaciones del puerto ──────────────────────────────────────────────
     def obtener_por_id(self, id_usuario: int) -> Optional[Usuario]:
+        """Devuelve el usuario por id, o ``None``."""
         orm = self.db.query(Usuarios).filter(Usuarios.id_usuario == id_usuario).first()
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_correo(self, correo: Email) -> Optional[Usuario]:
+        """Devuelve el usuario por correo, también sin identidad en la sesión."""
         # Lo usan flujos sin identidad todavía (login, SSO, recuperación,
         # reenvío de activación): bajo RLS la fila solo la ve su dueño. La
         # función SECURITY DEFINER resuelve quién es y el resto del flujo actúa
@@ -120,6 +125,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, usuario: Usuario) -> Usuario:
+        """Crea un usuario nuevo."""
         # Cubre el alta (id_usuario None → INSERT). La actualización de un
         # usuario existente se hace en :meth:`actualizar` (con optimistic lock).
         orm = self._a_orm(usuario)
@@ -138,6 +144,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         return self._a_entidad(orm)
 
     def cambiar_contrasena(self, usuario: Usuario) -> None:
+        """Guarda el nuevo hash de contraseña del usuario."""
         orm = self.db.get(Usuarios, usuario.id_usuario)
         orm.contrasena_cifrada = usuario.contrasena.hash
         try:
@@ -146,6 +153,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             raise_from_db_error(e, conflict_messages={})
 
     def actualizar(self, usuario: Usuario, version_cliente: int) -> Usuario:
+        """Actualiza el usuario con control de versión optimista."""
         # #498: releer bloqueando, no la copia del identity map; si no, dos ediciones
         # simultáneas comparan contra la misma versión y la segunda pisa a la primera.
         orm = self.db.get(Usuarios, usuario.id_usuario, with_for_update=True, populate_existing=True)
@@ -185,6 +193,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             })
 
     def obtener_detalle(self, id_usuario: int) -> Optional[UsuarioDetalle]:
+        """Devuelve el detalle del usuario con rol, cuenta y fincas."""
         orm = (
             self.db.query(Usuarios)
             .options(
@@ -207,6 +216,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         estado_cuenta: Optional[str] = None,
         actualizado_desde: Optional[datetime] = None,
     ) -> list[UsuarioDetalle]:
+        """Lista usuarios con su detalle, filtrados y paginados."""
         query = self._query_detalle_con_filtros(
             nombre, correo, id_estado, id_rol, estado_cuenta, actualizado_desde
         )
@@ -222,6 +232,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         estado_cuenta: Optional[str] = None,
         actualizado_desde: Optional[datetime] = None,
     ) -> int:
+        """Cuenta los usuarios que cumplen los filtros."""
         return self._query_detalle_con_filtros(
             nombre, correo, id_estado, id_rol, estado_cuenta, actualizado_desde
         ).count()
@@ -277,6 +288,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         return query
 
     def listar_ids_con_permiso(self, id_recurso: int, id_accion: int) -> list[int]:
+        """Lista los ids de usuarios cuyo rol tiene el permiso dado."""
         filas = (
             self.db.query(Usuarios.id_usuario)
             .join(Permisos, Permisos.id_rol == Usuarios.id_rol)

@@ -2,6 +2,12 @@
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Casos de uso de consulta de alertas operativas y técnicas (RF-57/RF-60).
+
+Cada endpoint lista solo las alertas de su ámbito; el ámbito técnico fuerza el
+tipo TECNICA y el operativo excluye las técnicas.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -19,6 +25,7 @@ from src.telemetry.domain.repositories.historico_estado_alerta_repository import
 
 
 class ConsultarAlertasUseCase:
+    """Orquesta el listado y el detalle de alertas según su ámbito."""
 
     def __init__(
         self,
@@ -46,6 +53,11 @@ class ConsultarAlertasUseCase:
         fecha_resolucion_desde: Optional[datetime] = None,
         id_infraestructura: Optional[int] = None,
     ) -> tuple[list[Alerta], int]:
+        """Lista alertas filtradas y paginadas dentro del ámbito indicado.
+
+        Returns:
+            Tupla con la página de alertas y el total de coincidencias.
+        """
         # RF-60 D-09: cada endpoint solo lista las alertas de su ámbito. En el
         # operativo, un filtro tipo_alerta=TECNICA devuelve una página vacía.
         if ambito is AmbitoAlerta.TECNICA:
@@ -74,6 +86,11 @@ class ConsultarAlertasUseCase:
         ambito: AmbitoAlerta,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[Alerta, list[HistoricoEstadoAlerta]]:
+        """Devuelve la alerta y su histórico de estados.
+
+        Raises:
+            NotFoundError: Si la alerta no existe o no pertenece al ámbito.
+        """
         alerta = self.alerta_repo.obtener_por_id(
             id_alerta, ids_fincas_permitidas=ids_fincas_permitidas
         )

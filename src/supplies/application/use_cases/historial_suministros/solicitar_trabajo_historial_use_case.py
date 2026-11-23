@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81 R8: 3 exportaciones por usuario     |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: encolar un trabajo pesado de historial de suministros (RF-81).
 
 Cubre las dos rutas que exigen procesamiento asíncrono: ``CONSULTA_PESADA``
@@ -26,6 +27,7 @@ from src.supplies.domain.value_objects.historial_suministro_enums import TipoTra
 
 
 class SolicitarTrabajoHistorialUseCase:
+    """Encola un trabajo asíncrono del historial."""
     def __init__(
         self,
         db: Session,
@@ -40,6 +42,7 @@ class SolicitarTrabajoHistorialUseCase:
         self, tipo_trabajo: str, filtros: FiltrosHistorialSuministro, id_usuario: int, id_rol: int,
         formato_exportacion: Optional[str] = None,
     ) -> TrabajoHistorialSuministro:
+        """Encola la consulta o exportación del historial y devuelve el trabajo."""
         config = self.config_repo.obtener()
         es_exportacion = tipo_trabajo == TipoTrabajoHistorial.EXPORTACION.value
         limite = config.limite_concurrencia_exportaciones if es_exportacion else config.limite_concurrencia_consultas

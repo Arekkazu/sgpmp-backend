@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: schema del listado de dispositivos con estado |
 # | 2026-10-31 | Arekkazu | CP58 RF-60: nombre del responsable de cada transición de estado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta del estado de dispositivos IoT."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -12,6 +14,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class HistoricoTransicionSchema(BaseModel):
+    """Transición de estado de un dispositivo."""
     id_transaccion: int
     id_dispositivo_iot: int
     estado_anterior: str
@@ -28,6 +31,7 @@ class HistoricoTransicionSchema(BaseModel):
 
 
 class EstadoDispositivoIoTSchema(BaseModel):
+    """Estado actual de un dispositivo."""
     id_estado_dispositivo_iot: int
     id_dispositivo_iot: int
     estado_actual: str
@@ -57,6 +61,7 @@ class EstadoDispositivoIoTSchema(BaseModel):
 
 
 class EstadoDispositivoDetalleSchema(BaseModel):
+    """Estado de un dispositivo con su historial."""
     estado: EstadoDispositivoIoTSchema
     historial: List[HistoricoTransicionSchema]
 

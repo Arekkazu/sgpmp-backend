@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-23 | Leandro | DEV-24 RF-24: excluir observaciones de otras areas de la camara. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Observaciones de visión de M03 para la calibración VISION de RF-24 (RF-53/RF-62 v2.0).
 
 Lee ``modulo3.observaciones_vision`` (POST /iot/telemetria/vision), donde M03 ya
@@ -18,6 +19,7 @@ from src.telemetry.infrastructure.models.observacion_vision_model import Observa
 
 
 class ObservacionVisionM03Adapter(ObservacionVisionPort):
+    """Lee observaciones de visión para calcular la línea base."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -30,6 +32,7 @@ class ObservacionVisionM03Adapter(ObservacionVisionPort):
         *,
         id_infraestructura: int | None = None,
     ) -> list[ObservacionVision]:
+        """Observaciones en [inicio, fin], limitadas al área cuando se informa su ID."""
         consulta = (
             self.db.query(ObservacionVisionModel)
             .filter(

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de resultados de riesgo de contagio."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -9,6 +11,7 @@ from src.prediction.domain.entities.riesgo_contagio import ResultadoRiesgoContag
 
 
 class ResultadoRiesgoContagioRepository(ABC):
+    """Puerto de persistencia de resultados de riesgo de contagio."""
 
     @abstractmethod
     def guardar(self, resultado: ResultadoRiesgoContagio) -> ResultadoRiesgoContagio:

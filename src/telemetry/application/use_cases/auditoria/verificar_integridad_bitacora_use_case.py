@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: incidentes inmutables idempotentes y avisos recuperables |
 # | 2026-10-25 | Arekkazu | INC-M03-135-G177 RF-63: rango acotado; nunca recalcula la bitácora completa |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """E6: el marcador de compromiso es externo al registro protegido por DB-11."""
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -26,6 +27,7 @@ MAX_EVENTOS_VERIFICACION = int(os.getenv('AUDITORIA_IOT_MAX_VERIFICACION', '5000
 
 @dataclass
 class ResultadoVerificacion:
+    """Resultado de verificar la integridad de la bitácora de auditoría."""
     total_verificados: int
     comprometidos: int
     ids_comprometidos: list[str]
@@ -36,6 +38,7 @@ class ResultadoVerificacion:
 
 
 def hash_coincide(evento):
+    """Indica si el hash guardado del evento coincide con el recalculado."""
     # TIMESTAMPTZ conserva el instante, no el offset original. Los productores
     # HTTP usan UTC; SQL puede devolver la zona de la sesión.
     return evento.hash_integridad in {
@@ -45,10 +48,16 @@ def hash_coincide(evento):
 
 
 class VerificarIntegridadBitacoraUseCase:
+    """Verifica los hashes de la bitácora de auditoría y registra incidentes."""
     def __init__(self, db, auditoria_repo, avisos: Optional[AvisoIntegridadPort] = None):
         self.db, self.auditoria_repo, self.avisos = db, auditoria_repo, avisos
 
     def execute(self, fecha_desde: Optional[datetime] = None, fecha_hasta: Optional[datetime] = None):
+        """Verifica los eventos del rango de fechas y devuelve el resultado.
+
+        Raises:
+            ValidationError: Si fecha_desde es posterior a fecha_hasta.
+        """
         if fecha_desde is not None and fecha_hasta is not None and fecha_desde > fecha_hasta:
             raise ValidationError(code='RANGO_FECHAS_INVALIDO', field='fecha_desde',
                                   message='fecha_desde no puede ser posterior a fecha_hasta.')

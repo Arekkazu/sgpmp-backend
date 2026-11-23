@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79 R2: sin consolidado de ciclo activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para la provisión de costos NIC-41 (`/suministros/nic41`).
 
 Expone los flujos de RF-79 (CU-05):
@@ -57,6 +58,7 @@ def consolidar_ciclo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ProvisionNic41Response:
+    """Consolida la provisión NIC 41 de un ciclo."""
     use_case = build_consolidar_ciclo_use_case(db)
     resultado = use_case.execute(id_gestion_fases, usuario_actual)
     return ProvisionNic41Response.desde_entidad(resultado)
@@ -77,6 +79,7 @@ def corregir_provision(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ProvisionNic41Response:
+    """Corrige una provisión NIC 41."""
     use_case = build_corregir_provision_use_case(db)
     resultado = use_case.execute(id_provision, dto.motivo_correccion, usuario_actual)
     return ProvisionNic41Response.desde_entidad(resultado)
@@ -95,6 +98,7 @@ def consultar_provision(
     por_pagina: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> ProvisionNic41Response:
+    """Devuelve una provisión con sus registros paginados."""
     use_case = build_consultar_provision_use_case(db)
     resultado = use_case.execute(id_provision)
     return ProvisionNic41Response.desde_entidad(resultado, pagina=pagina, por_pagina=por_pagina)
@@ -111,6 +115,7 @@ def listar_versiones_provision(
     id_gestion_fases: int,
     db: Session = Depends(get_db),
 ) -> ListaVersionesProvisionResponse:
+    """Lista las versiones de la provisión de un ciclo."""
     use_case = build_listar_versiones_provision_use_case(db)
     versiones = use_case.execute(id_gestion_fases)
     # lista_registros vacía en el listado — solo metadatos de cada versión.

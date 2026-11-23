@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consulta de un activo biológico por id (RF-35 / RF-36)."""
 
 from __future__ import annotations
@@ -37,6 +40,7 @@ class ConsultarActivoUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ActivoBiologico:
+        """Devuelve el activo si existe y es visible para el usuario."""
         activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(

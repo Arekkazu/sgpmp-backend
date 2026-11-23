@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: ampliación de ventana por resultado  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.ampliaciones_ventana_retroalimentacion``."""
 from __future__ import annotations
 
 import uuid
@@ -14,6 +16,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class AmpliacionVentanaRetroalimentacionModel(Base):
+    """Modelo ORM de la tabla ``modulo4.ampliaciones_ventana_retroalimentacion``."""
     __tablename__ = "ampliaciones_ventana_retroalimentacion"
     __table_args__ = {"schema": "modulo4"}
 

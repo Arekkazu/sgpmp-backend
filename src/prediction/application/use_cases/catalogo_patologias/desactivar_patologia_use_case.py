@@ -4,6 +4,8 @@
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: la inactivación toma la siguiente versión del catálogo |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
 # | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-11 RF-64: el intento rechazado queda en la bitácora |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de desactivación de una patología del catálogo."""
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -17,6 +19,7 @@ from src.shared.errors import AppError, ConflictError, MethodNotAllowedError, No
 
 
 class DesactivarPatologiaUseCase:
+    """Desactiva una patología del catálogo."""
     def __init__(
         self,
         *,
@@ -33,6 +36,7 @@ class DesactivarPatologiaUseCase:
         self._modelo_activo_port = modelo_activo_port
 
     def execute(self, id_patologia: int, id_usuario: int):
+        """Desactiva la patología y la audita."""
         try:
             return self._ejecutar(id_patologia, id_usuario)
         except AppError as error:

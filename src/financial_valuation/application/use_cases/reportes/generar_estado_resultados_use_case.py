@@ -4,6 +4,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-337-G37 RF-86: acumulado del período abierto sin versión |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: el estado generado a pedido resta los activos excluidos del cierre |
 # | 2026-11-13 | Arekkazu | TC-M06-G74 RF-93 FA-2: conciliación del estado de resultados con sus fuentes (hechos sin asiento) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso RF-93. Solo sobre períodos CERRADOS (R1), salvo el acumulado de RF-86 (sin versión).
 Cada generación es una versión nueva; la anterior no cambia (R5). Los filtros (especie, activo, infraestructura, finca) suman al consolidado
 porque cada línea y cada costo pertenecen a un solo activo (CA-2, CA-11)."""
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class GenerarEstadoResultadosUseCase:
+    """Genera y aprueba estados de resultados."""
     def __init__(self, db: Session, periodos: PeriodoRepository, reportes: ReporteRepository,
                  constructor: ConstructorEstadoResultados, auditoria: AuditoriaFinancieraRepository,
                  notificador: Optional[NotificacionFinancieraPort] = None) -> None:
@@ -56,6 +58,7 @@ class GenerarEstadoResultadosUseCase:
                 "es_definitivo": periodo.estado == "CERRADO"}
 
     def generar(self, id_periodo_contable: int, filtros: dict, id_usuario: int) -> dict:
+        """Genera el estado de resultados de un periodo cerrado."""
         self._cerrado(id_periodo_contable)
         ejecucion = self.periodos.ultima_ejecucion(id_periodo_contable) or {}
         filtros = {k: v for k, v in filtros.items() if v}
@@ -91,6 +94,11 @@ class GenerarEstadoResultadosUseCase:
             exc.avisar(self.notificador)
 
     def aprobar(self, id_estado: int, id_usuario: int) -> dict:
+        """Aprueba un estado de resultados.
+
+        Raises:
+            NotFoundError: Si el estado no existe.
+        """
         estado = self.reportes.obtener_estado(id_estado)
         if estado is None:
             raise NotFoundError(code="ESTADO_RESULTADOS_NO_ENCONTRADO", message="El estado de resultados no existe.")

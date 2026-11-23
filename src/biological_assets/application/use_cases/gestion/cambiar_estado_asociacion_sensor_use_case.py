@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: activar, inactivar o cerrar una asociación sensor ↔
 activo/infraestructura (RF-49).
 """
@@ -50,6 +53,7 @@ class CambiarEstadoAsociacionSensorUseCase:
         dto: CambiarEstadoAsociacionSensorDTO,
         usuario_actual: UsuarioActual,
     ) -> AsociacionSensorActivo:
+        """Cambia el estado de una asociación sensor-activo."""
         asociacion = self.repo.obtener_por_id(id_asociacion)
         if asociacion is None or asociacion.id_activo_biologico != id_activo:
             raise NotFoundError(

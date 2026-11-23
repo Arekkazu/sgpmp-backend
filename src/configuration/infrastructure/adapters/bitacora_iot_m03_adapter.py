@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Auditoría de credenciales MQTT y de la propagación de umbrales (RF-17) en la
 bitácora IoT de modulo3 (RF-63).
 
@@ -27,6 +30,7 @@ from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository
 
 
 class BitacoraIotM03Adapter(BitacoraIotPort):
+    """Registra en la bitácora IoT las propagaciones de configuración."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -41,6 +45,7 @@ class BitacoraIotM03Adapter(BitacoraIotPort):
         id_usuario: int,
         detalle: dict,
     ) -> None:
+        """Best-effort: nunca lanza. ``detalle`` jamás debe incluir la contraseña."""
         RegistrarEventoAuditoriaIotUseCase(
             db=self.db, auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(self.db)
         ).execute(
@@ -65,6 +70,11 @@ class BitacoraIotM03Adapter(BitacoraIotPort):
         fallo: bool,
         detalle: dict,
     ) -> None:
+        """Un intento de propagar un umbral a sus Gateway Edge. Best-effort: nunca lanza.
+
+        ``estado`` es el consolidado del umbral; ``fallo`` indica si RF-17 lo
+        reporta como error (500) o si no hubo a quién/con qué enviarlo.
+        """
         if estado == "APLICADA":
             resultado, severidad = TipoResultado.EXITOSO, SeveridadLog.INFO
         elif fallo:
@@ -96,6 +106,12 @@ class BitacoraIotM03Adapter(BitacoraIotPort):
         estado: str,
         detalle: dict,
     ) -> None:
+        """DEV-10: resultado de enviar el ``tipo_modelo_asignado`` de un área a UN Gateway Edge.
+
+        Un evento por Gateway, sobre la entidad DISPOSITIVO. ``estado`` es el
+        veredicto del broker (APLICADA / PENDIENTE / NO_CONF / SIN_INTEGRACION).
+        Best-effort: nunca lanza.
+        """
         if estado == "APLICADA":
             resultado, severidad = TipoResultado.EXITOSO, SeveridadLog.INFO
         elif estado == "NO_CONF":

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: avance o cambio de fase del ciclo productivo del activo (RF-37)."""
 
 from __future__ import annotations
@@ -42,6 +45,7 @@ class CambiarFaseUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: CambiarFaseDTO, usuario: UsuarioActual) -> GestionFase:
+        """Cambia la fase productiva del activo y audita el rechazo si falla."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario),
             db=self.db,

@@ -2,6 +2,13 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: estados DB-13 y contexto historico |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-61: nombres de activo, área, finca, variable y usuario (read-model) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Entidad de dominio de la vinculación entre una lectura y un activo biológico (RF-61).
+
+Una lectura puede quedar CONFIRMADA, AMBIGUA, SIN_VINCULAR, PENDIENTE_REVISION
+o SUPERADA. La entidad permite resolver manualmente las abiertas y conserva el
+contexto del activo para el read-model de la tabla de vinculaciones.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -17,6 +24,12 @@ _ESTADOS_RESOLUBLES = ('AMBIGUA', 'SIN_VINCULAR', 'PENDIENTE_REVISION')
 
 @dataclass
 class VinculacionLectura:
+    """Vínculo entre una lectura de telemetría y el activo/infraestructura al que pertenece.
+
+    Los campos de nombre y valor de lectura se llenan al leer (read-model) y no
+    se persisten. ``resolver`` solo aplica a vinculaciones abiertas.
+    """
+
     id_vinculacion_lectura: Optional[int]
     id_telemetria: int
     modelo_manejo: str
@@ -46,6 +59,16 @@ class VinculacionLectura:
     nombre_usuario: Optional[str] = None
 
     def resolver(self, id_activo_biologico: int, id_usuario: int) -> None:
+        """Confirma manualmente la vinculación y la asigna al activo indicado.
+
+        Args:
+            id_activo_biologico: Activo al que se asocia la lectura.
+            id_usuario: Usuario que realiza la corrección.
+
+        Raises:
+            BusinessRuleError: Si la vinculación ya está cerrada o su estado no
+                admite resolución manual.
+        """
         if self.fecha_fin_vinculacion is not None or self.estado_vinculacion not in _ESTADOS_RESOLUBLES:
             raise BusinessRuleError(
                 code='VINCULACION_NO_AMBIGUA',

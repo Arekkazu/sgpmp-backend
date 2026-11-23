@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de consulta del ciclo productivo abierto (RF-37 / RF-38 / RF-78).
 
 Un activo tiene ciclo abierto cuando existe una fase activa en
@@ -32,6 +35,7 @@ class CicloM02Adapter(CicloAbiertoPort):
         self._repo = SqlAlchemyActivoBiologicoRepository(db)
 
     def obtener_abierto(self, id_activo: int) -> Optional[CicloAbierto]:
+        """Devuelve el ciclo abierto del activo, o ``None``."""
         fase = self._repo.obtener_fase_activa(id_activo)
         if fase is None:
             return None
@@ -42,6 +46,7 @@ class CicloM02Adapter(CicloAbiertoPort):
         )
 
     def obtener_por_id(self, id_gestion_fases: int) -> Optional[FaseProductiva]:
+        """Devuelve la fase productiva, o ``None``."""
         orm = self.db.get(GestionFaseModel, id_gestion_fases)
         if orm is None:
             return None

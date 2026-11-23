@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar la configuración operativa activa (GET RF-18)."""
 from __future__ import annotations
 
@@ -14,4 +17,5 @@ class ConsultarConfiguracionUseCase:
         self.config_repo = config_repo
 
     def execute(self) -> Optional[ConfiguracionGlobal]:
+        """Devuelve la configuración global activa, o ``None``."""
         return self.config_repo.obtener_activo()

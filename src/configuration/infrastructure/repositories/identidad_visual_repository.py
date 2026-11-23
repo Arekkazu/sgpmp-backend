@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``IdentidadVisualRepository`` (RF-26)."""
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
+    """Implementación SQLAlchemy de ``IdentidadVisualRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -36,6 +40,7 @@ class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
         )
 
     def obtener_por_finca(self, id_finca: int, *, bloquear: bool = False) -> Optional[IdentidadVisual]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         # Usa la misma lógica que vw_rf26_identidad_visual_activa: última versión por finca
         query = (
             self.db.query(IdentidadVisualModel)
@@ -52,6 +57,7 @@ class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, entidad: IdentidadVisual) -> IdentidadVisual:
+        """Inserta una versión nueva de la identidad visual."""
         orm = IdentidadVisualModel(
             id_finca=entidad.id_finca,
             id_usuario=entidad.id_usuario,
@@ -71,6 +77,9 @@ class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, entidad: IdentidadVisual) -> IdentidadVisual:
+        """Persiste los cambios de la identidad visual y devuelve la entidad
+        actualizada.
+        """
         orm = self.db.get(IdentidadVisualModel, entidad.id_identidad_visual)
         orm.id_usuario = entidad.id_usuario
         orm.logo_path = entidad.logo_path

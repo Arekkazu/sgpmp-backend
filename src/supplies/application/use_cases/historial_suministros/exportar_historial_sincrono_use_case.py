@@ -5,6 +5,7 @@
 # | 2026-11-10 | Arekkazu         | CP088 RF-81: PDF y Excel con encabezados, fechas, montos y catálogos en palabras; sin recorte |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-358-G43 RF-81: activo ajeno → 403 de E2, no 404 |
 # | 2026-11-14 | destroyerban | INC-M05-353-G37 RF-80: exportación rechazada auditada; ciclo del resultado en el evento |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: exportar el historial de suministros a PDF o Excel (RF-81 Fase 6).
 
 - ≤ 10.000 registros: archivo síncrono (≤ 10 s).
@@ -110,6 +111,7 @@ def _fila(l: LineaHistorialSuministro) -> list:
 
 @dataclass(frozen=True)
 class ArchivoHistorial:
+    """Archivo exportado del historial de suministros."""
     contenido: bytes
     nombre_archivo: str
     formato: str
@@ -117,6 +119,7 @@ class ArchivoHistorial:
 
 
 class ExportarHistorialSincronoUseCase:
+    """Exporta el historial de suministros, al momento o en segundo plano."""
     def __init__(
         self,
         historial_port: HistorialSuministroReadPort,
@@ -138,6 +141,7 @@ class ExportarHistorialSincronoUseCase:
     def execute(
         self, filtros: FiltrosHistorialSuministro, formato: str, *, id_usuario: int, id_rol: int
     ) -> Union[ArchivoHistorial, TrabajoHistorialSuministro]:
+        """Devuelve el archivo o el trabajo encolado si el volumen es grande."""
         try:
             return self._ejecutar(filtros, formato, id_usuario=id_usuario, id_rol=id_rol)
         except AppError as exc:

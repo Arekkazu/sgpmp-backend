@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para cambiar el estado de una asociación de sensor (RF-49)."""
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ class CambiarEstadoAsociacionSensorDTO(BaseDTO):
     @field_validator('estado_nuevo')
     @classmethod
     def estado_valido(cls, v: str) -> str:
+        """Exige un estado de asociación permitido."""
         if v not in _ESTADOS_VALIDOS:
             raise ValueError(
                 f'Estado inválido. Valores permitidos: {", ".join(sorted(_ESTADOS_VALIDOS))}.'

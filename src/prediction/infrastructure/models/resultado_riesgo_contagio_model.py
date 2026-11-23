@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.resultados_riesgo_contagio``."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,6 +17,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class ResultadoRiesgoContagioModel(Base):
+    """Modelo ORM de la tabla ``modulo4.resultados_riesgo_contagio``."""
     __tablename__ = "resultados_riesgo_contagio"
     __table_args__ = {"schema": "modulo4"}
 

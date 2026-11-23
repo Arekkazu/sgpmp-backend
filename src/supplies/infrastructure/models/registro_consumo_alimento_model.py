@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: observacion varchar(255)           |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla ``modulo5.registros_consumo_alimentos`` (RF-75).
 
 Generado con sqlacodegen (reflexión de la BD) y adaptado a las convenciones del
@@ -39,6 +40,7 @@ from .base_model import Base
 
 
 class RegistroConsumoAlimentoModel(Base):
+    """Modelo ORM de la tabla ``modulo5.registros_consumo_alimentos``."""
     __tablename__ = 'registros_consumo_alimentos'
     __table_args__ = (
         CheckConstraint("estado_registro::text = 'VALIDADO'::text OR estado_registro::text = 'ANULADO'::text AND justificacion_anulacion IS NOT NULL AND char_length(justificacion_anulacion::text) >= 20", name='chk_consumo_anulacion'),

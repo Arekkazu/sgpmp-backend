@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.sensores_areas_asociadas` (RF-22).
 
 `tiene_estado=True` indica asociación activa. `fecha_finalizacion` se
@@ -15,6 +18,7 @@ from .base_model import Base
 
 
 class SensorAreaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.sensores_areas_asociadas``."""
     __tablename__ = 'sensores_areas_asociadas'
     __table_args__ = (
         ForeignKeyConstraint(

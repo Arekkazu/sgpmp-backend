@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para endpoints de asociaciones sensor-área (RF-22)."""
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ class SensorAreaResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, sensor_area) -> SensorAreaResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_sensores_area_asociada=sensor_area.id_sensores_area_asociada,
             id_sensor=sensor_area.id_sensor,
@@ -56,6 +60,7 @@ class AsociarSensorAreaResponse(SensorAreaResponse):
 
     @classmethod
     def from_resultado(cls, sensor_area, superadas) -> AsociarSensorAreaResponse:
+        """Construye la respuesta a partir del resultado de la asociación."""
         return cls(
             **SensorAreaResponse.from_entity(sensor_area).model_dump(),
             asociaciones_activo_superadas=[

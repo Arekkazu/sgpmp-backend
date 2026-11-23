@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adapter de ``DispositivoIotEstadoPort`` que lee el último contacto de un dispositivo
 en M03 (``modulo3``).
 """
@@ -22,6 +25,7 @@ class DispositivoIotEstadoM03Adapter(DispositivoIotEstadoPort):
         self.db = db
 
     def obtener_estado(self, id_dispositivo_iot: int) -> Optional[EstadoDispositivoIot]:
+        """Devuelve el último contacto del dispositivo, o ``None``."""
         row = self.db.execute(
             text(
                 'SELECT id_dispositivo_iot, fecha_ultimo_contacto '

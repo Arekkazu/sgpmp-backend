@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: contrato temporal y limites aplicados |
 # | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
 # | 2026-10-31 | Claude | INC-M03-236-G16 RF-62: deriva contra el valor de referencia de la calibración vigente |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Contexto histórico explícito, independiente de SQL y de estados actuales."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ from decimal import Decimal
 
 @dataclass(frozen=True)
 class LecturaCalidad:
+    """Lectura usada como serie de referencia en la evaluación de calidad."""
     id_telemetria: int
     timestamp_captura: datetime
     valor: Decimal
@@ -20,12 +22,14 @@ class LecturaCalidad:
 
 @dataclass(frozen=True)
 class IntervaloInactividad:
+    """Periodo en que el dispositivo estuvo inactivo."""
     inicio: datetime
     fin: datetime | None
 
 
 @dataclass(frozen=True)
 class LimitesFisicosCalidad:
+    """Rango físico del sensor con su versión."""
     minimo: Decimal
     maximo: Decimal
     # Solo el proveedor oficial puede identificar una versión histórica.
@@ -35,6 +39,7 @@ class LimitesFisicosCalidad:
 
 @dataclass(frozen=True)
 class ContextoCalidad:
+    """Serie de lecturas, periodos inactivos y límites para evaluar calidad."""
     lecturas: tuple[LecturaCalidad, ...]
     periodos: tuple[IntervaloInactividad, ...]
     frecuencia_muestreo_min: int | None
@@ -43,6 +48,7 @@ class ContextoCalidad:
 
 
 class ContextoCalidadPort(ABC):
+    """Puerto para obtener el contexto de evaluación de calidad de una lectura."""
     @abstractmethod
     def obtener(self, id_telemetria: int, id_sensor: int, id_variable: int,
                 captura: datetime, n: int, *, incluir_sin_calibracion: bool = False) -> ContextoCalidad:
@@ -62,4 +68,6 @@ class ContextoCalidadPort(ABC):
         """Serializa la cadena de evaluaciones de la misma lectura."""
 
     @abstractmethod
-    def omision_registrada(self, id_telemetria: int) -> bool: ...
+    def omision_registrada(self, id_telemetria: int) -> bool:
+        """Indica si ya se registró la omisión de la evaluación de la lectura."""
+        ...

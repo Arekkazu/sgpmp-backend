@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto para seleccionar los activos elegibles del batch ICA (RF-74).
 
 El batch calcula el ICA de todos los activos en estado ACTIVO. Este puerto expone
@@ -20,6 +23,7 @@ class ActivoBatchRef:
 
 
 class ActivosBatchPort(ABC):
+    """Puerto que lista los activos candidatos al cálculo masivo de ICA."""
     @abstractmethod
     def listar_activos_para_batch(self) -> list[ActivoBatchRef]:
         """Activos en estado ACTIVO candidatos al cálculo ICA."""

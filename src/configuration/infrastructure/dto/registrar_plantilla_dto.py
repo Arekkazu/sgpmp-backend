@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para crear una nueva plantilla de configuración (RF-31)."""
 from __future__ import annotations
 
@@ -19,6 +22,7 @@ class RegistrarPlantillaDTO(BaseDTO):
     @field_validator('template_name')
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         v = v.strip()
         if len(v) < 3 or len(v) > 50:
             raise ValueError('El nombre debe tener entre 3 y 50 caracteres.')

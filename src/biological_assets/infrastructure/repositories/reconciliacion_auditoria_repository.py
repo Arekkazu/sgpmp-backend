@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``ReconciliacionAuditoriaRepository`` (RF-52 E5)."""
 
 from __future__ import annotations
@@ -47,18 +50,21 @@ class SqlAlchemyReconciliacionAuditoriaRepository(ReconciliacionAuditoriaReposit
         self.db = db
 
     def adquirir_turno(self) -> bool:
+        """Intenta tomar el lock de reconciliación sin esperar."""
         return bool(self.db.execute(
             text('SELECT pg_try_advisory_xact_lock(:candado)'),
             {'candado': _CANDADO_RECONCILIACION},
         ).scalar_one())
 
     def ids_maximos(self) -> dict[str, int]:
+        """Devuelve el id máximo de cada tabla auditada."""
         return {
             tabla: int(self.db.execute(text(f'SELECT COALESCE(max({pk}), 0) FROM modulo2.{tabla}')).scalar_one())
             for tabla, (pk, _) in _FUENTES_RF46.items()
         }
 
     def ultimas_marcas(self, limite: int) -> list[MarcaReconciliacion]:
+        """Lista las últimas marcas de reconciliación registradas."""
         filas = self.db.execute(
             text(
                 "SELECT timestamp_registro, detalle_tecnico->'hasta' AS hasta "
@@ -79,6 +85,7 @@ class SqlAlchemyReconciliacionAuditoriaRepository(ReconciliacionAuditoriaReposit
         hasta: dict[str, int],
         bitacora_desde: datetime,
     ) -> list[RegistroRf46]:
+        """Lista los registros del rango que no tienen evento en la bitácora."""
         # Una tabla que falte en alguna marca (agregada después) no se revisa en esta
         # corrida: tomarla desde 0 marcaría como inconsistente todo su histórico.
         tablas = [t for t in _FUENTES_RF46 if t in desde and t in hasta and hasta[t] > desde[t]]
@@ -117,6 +124,7 @@ class SqlAlchemyReconciliacionAuditoriaRepository(ReconciliacionAuditoriaReposit
         return [RegistroRf46(tabla=f.tabla, id=f.id, id_activo_biologico=f.id_activo_biologico) for f in filas]
 
     def obtener_registro(self, tabla: str, id_registro: int) -> Optional[RegistroRf46]:
+        """Devuelve el registro auditable de la tabla, o ``None``."""
         if tabla not in _FUENTES_RF46:
             return None
         pk, condicion = _FUENTES_RF46[tabla]
@@ -129,6 +137,7 @@ class SqlAlchemyReconciliacionAuditoriaRepository(ReconciliacionAuditoriaReposit
         return RegistroRf46(tabla=tabla, id=id_registro, id_activo_biologico=fila.id_activo_biologico)
 
     def tiene_auditoria(self, tabla: str, id_registro: int) -> bool:
+        """Indica si el registro ya tiene evento en la bitácora."""
         return bool(self.db.execute(
             text(
                 'SELECT EXISTS ('

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | RFC-019 D-19.6: token de activación de las cuentas creadas por AgroFusion |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Funciones de dominio para proteger tokens de un solo uso.
 
 Los tokens de activación y recuperación tienen suficiente entropía para usar
@@ -25,4 +26,5 @@ PREFIJO_TOKEN_M2M = "m2m-"
 
 
 def es_token_m2m(token: str) -> bool:
+    """Indica si el token es de servicio a servicio (M2M)."""
     return token.startswith(PREFIJO_TOKEN_M2M)

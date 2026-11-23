@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-COT 5.4/5.5: modificar o anular una cotización antes del cierre |
 # | 2026-11-08 | Arekkazu | INC-M06-335-G91 RF-COT: el aviso de cotización no modificable nombra el estado, no su valor de enum |
 # | 2026-11-15 | Arekkazu | QA-M06 CU-COT H-02 RF-COT paso 9: modificación y anulación con su activo y su monto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso RF-COT fases 8-9 con control optimista por ``version`` (5.9, FA-11)."""
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ _ETIQUETA_ESTADO = {"VENCIDA": "vencida", "ANULADA": "anulada", "CONVERTIDA_EN_V
 
 
 class ModificarCotizacionUseCase:
+    """Modifica o anula cotizaciones con control de versión."""
     def __init__(self, db: Session, cotizaciones: CotizacionRepository, auditoria: AuditoriaFinancieraRepository) -> None:
         self.db = db
         self.cotizaciones = cotizaciones
@@ -38,6 +40,7 @@ class ModificarCotizacionUseCase:
         return cotizacion
 
     def modificar(self, id_cotizacion: int, version: int, cambios: dict, justificacion: str, id_usuario: int) -> dict:
+        """Modifica los campos permitidos de la cotización con su justificación."""
         no_permitidos = [c for c in cambios if c not in CAMPOS_MODIFICABLES]
         if no_permitidos:  # FA-9
             raise ConflictError(code="CAMPO_NO_MODIFICABLE", message=f"No se pueden modificar: {', '.join(no_permitidos)}.")
@@ -52,6 +55,7 @@ class ModificarCotizacionUseCase:
         return self._guardar(cotizacion, version, cambios, "COTIZACION_MODIFICADA", justificacion, id_usuario)
 
     def anular(self, id_cotizacion: int, version: int, motivo: str, id_usuario: int) -> dict:
+        """Anula la cotización con su motivo."""
         if len((motivo or "").strip()) < 20:  # FA-10
             raise BusinessRuleError(code="MOTIVO_ANULACION_OBLIGATORIO",
                                     message="El motivo de anulación es obligatorio (mínimo 20 caracteres).")

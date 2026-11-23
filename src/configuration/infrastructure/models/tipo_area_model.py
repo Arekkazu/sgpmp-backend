@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.tipos_area` (RF-20).
 
 Catálogo administrable de tipos de área productiva. Reemplaza el enum fijo
@@ -15,6 +18,7 @@ from .base_model import Base
 
 
 class TipoAreaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.tipos_area``."""
     __tablename__ = 'tipos_area'
     __table_args__ = (
         PrimaryKeyConstraint('id_tipo_area', name='tipos_area_pkey'),

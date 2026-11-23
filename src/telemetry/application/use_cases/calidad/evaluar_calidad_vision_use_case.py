@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-62: evalua sobre normativo con snapshot DEV-14 |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: evalua y persiste la observacion ingerida |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """RF-62: calidad de una observación de visión ya ingerida (AIOT-SPEC-01).
 
 Corre después de la ingesta: lo llaman el worker post-commit (etapa
@@ -16,6 +17,8 @@ from src.shared.errors import NotFoundError
 
 
 class EvaluarCalidadVisionUseCase:
+    """Evalúa la calidad de una observación de visión ya ingerida."""
+
     def __init__(self, db, repo, parametros, dispositivo_port):
         self.db = db
         self.repo = repo
@@ -23,6 +26,11 @@ class EvaluarCalidadVisionUseCase:
         self.dispositivo_port = dispositivo_port
 
     def execute(self, id_observacion_vision):
+        """Evalúa y persiste la observación; si ya estaba evaluada, la devuelve igual.
+
+        Raises:
+            NotFoundError: Si la observación o su cámara no son visibles.
+        """
         observacion = self.repo.obtener(id_observacion_vision)
         if observacion is None:
             raise NotFoundError(

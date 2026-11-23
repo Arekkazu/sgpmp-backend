@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto del repositorio de la cola de cálculo ICA (RF-74)."""
 from __future__ import annotations
 
@@ -10,6 +13,7 @@ from src.supplies.domain.value_objects.eficiencia_enums import EstadoItemCola
 
 
 class ColaCalculoICARepository(ABC):
+    """Puerto de la cola de cálculo de ICA."""
     @abstractmethod
     def encolar(self, item: ItemColaICA) -> Optional[ItemColaICA]:
         """Encola un activo. Devuelve ``None`` si ya estaba pendiente (idempotente
@@ -23,6 +27,7 @@ class ColaCalculoICARepository(ABC):
 
     @abstractmethod
     def contar_pendientes(self) -> int:
+        """Cuenta los ítems pendientes."""
         raise NotImplementedError
 
     @abstractmethod
@@ -33,4 +38,5 @@ class ColaCalculoICARepository(ABC):
         *,
         fecha_procesado: Optional[datetime] = None,
     ) -> None:
+        """Cambia el estado de un ítem de la cola."""
         raise NotImplementedError

@@ -5,6 +5,7 @@
 # | 2026-11-08 | Arekkazu | INC-M06-329-G85 RF-90: reparto sin participación positiva responde 422 antes de tocar el período |
 # | 2026-11-15 | Arekkazu | INC-M06-366-G31 RF-82/84/85: avisos de M06 en la bandeja del Contador |
 # | 2026-11-15 | Arekkazu | QA-M06 CU09 H-02 RF-90: la fecha de la factura debe caer en el período abierto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-90: registro manual de un costo (Contador o Administrador).
 
 Eje 1 (naturaleza, NIC 41) decide el tratamiento; eje 2 (origen) decide el vehículo:
@@ -54,6 +55,7 @@ AVISO_FUENTE_UNICA = ("Esta factura llegará a la contabilidad por la exportaci�
 
 @dataclass
 class SolicitudCosto:
+    """Datos para registrar un costo de un activo."""
     subtipo_costo: str
     origen_costo: str
     monto_costo: Decimal
@@ -75,6 +77,7 @@ class SolicitudCosto:
 
 
 class RegistrarCostoUseCase:
+    """Registra un costo asociado a un activo biológico."""
     def __init__(self, db: Session, costos: CostoRepository, activos: ActivoFinancieroPort,
                  valoraciones: ValoracionRepository, contabilizador: Contabilizador,
                  notificador: Optional[NotificacionFinancieraPort] = None) -> None:
@@ -86,6 +89,7 @@ class RegistrarCostoUseCase:
         self.notificador = notificador
 
     def execute(self, s: SolicitudCosto, id_usuario: int) -> dict:
+        """Registra el costo y su contabilización."""
         if s.origen_costo == OrigenCosto.CONSUMO_INVENTARIO.value:  # FA-12
             raise BusinessRuleError(code="ORIGEN_RESERVADO_M05",
                                     message="El origen consumo de inventario lo registra automáticamente Suministros.")

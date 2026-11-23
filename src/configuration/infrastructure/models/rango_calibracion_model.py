@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.rangos_calibracion` (RF-24).
 
 Catálogo del rango de seguridad (min/max) permitido para el valor de
@@ -17,6 +20,7 @@ from .base_model import Base
 
 
 class RangoCalibracionModel(Base):
+    """Modelo ORM de la tabla ``modulo9.rangos_calibracion``."""
     __tablename__ = 'rangos_calibracion'
     __table_args__ = (
         PrimaryKeyConstraint('id_rango_calibracion', name='rangos_calibracion_pkey'),

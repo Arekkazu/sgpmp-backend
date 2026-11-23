@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de ``ReglaCompuestaEdgePort``: reglas compuestas al Gateway Edge vía broker (DEV-08).
 
 Igual que ``EdgeSincronizacionMqttAdapter`` (umbrales, RF-17), con el comando
@@ -43,12 +46,14 @@ _MENSAJE_BROKER_NO_DISPONIBLE = "El broker MQTT no propagó la regla."
 
 
 class ReglaCompuestaEdgeMqttAdapter(ReglaCompuestaEdgePort):
+    """Propaga reglas compuestas a los gateways Edge vía el broker MQTT."""
 
     def __init__(self) -> None:
         self._base_url = os.environ.get("MQTT_BROKER_URL", "")
         self._token = os.environ.get("MQTT_BROKER_TOKEN", "")
 
     def propagar_regla(self, seriales_gateway: list[str], payload: dict) -> dict[str, ResultadoPropagacionEdge]:
+        """Envía la regla a cada gateway y devuelve el resultado por serial."""
         if not seriales_gateway:
             return {}
         if not self._base_url or not self._token:

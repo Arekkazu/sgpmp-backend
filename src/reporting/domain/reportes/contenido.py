@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: contenido de un reporte, independiente del formato  |
 # | 2026-11-19 | Arekkazu | M08 RF-104: parámetros, indicadores y autor como en las plantillas V1.1 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Contenido de un reporte, igual para PDF, Excel y la vista previa (RF-104).
 
 - ``encabezado``: pares etiqueta/valor (finca, NIT, período…).
@@ -31,6 +32,7 @@ SIN_DATO = "Sin dato"
 
 @dataclass(frozen=True)
 class Columna:
+    """Columna de una tabla del reporte."""
     clave: str
     titulo: str
     tipo: str = TEXTO
@@ -38,6 +40,7 @@ class Columna:
 
 @dataclass
 class Tabla:
+    """Tabla del reporte con sus columnas y filas."""
     titulo: str
     columnas: list[Columna]
     filas: list[dict[str, Any]] = field(default_factory=list)
@@ -46,6 +49,7 @@ class Tabla:
 
 @dataclass(frozen=True)
 class Indicador:
+    """Indicador destacado del reporte."""
     etiqueta: str
     valor: Any
     tipo: str = TEXTO
@@ -53,6 +57,7 @@ class Indicador:
 
 @dataclass
 class Seccion:
+    """Sección del reporte con tablas y textos."""
     titulo: str
     tablas: list[Tabla] = field(default_factory=list)
     textos: list[str] = field(default_factory=list)
@@ -60,6 +65,7 @@ class Seccion:
 
 @dataclass
 class ContenidoReporte:
+    """Contenido completo de un reporte, independiente del formato."""
     titulo: str
     encabezado: list[tuple[str, str]] = field(default_factory=list)
     resumen: list[Tabla] = field(default_factory=list)

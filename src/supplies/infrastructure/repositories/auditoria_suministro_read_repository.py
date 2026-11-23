@@ -7,6 +7,7 @@
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75/76/80: nombre del activo y del usuario en las consultas, no su id |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: «Sistema (cálculo automático)» como autor y actores por nombre para el filtro |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-75/76/80: filtro por finca del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`AuditoriaSuministroReadPort` (RF-80, CU-06).
 
 Mismo patrón de paginación que ``evento_auditoria_m04_repository.py``:
@@ -81,12 +82,14 @@ def _a_entidad(orm: AuditoriaSuministroModel) -> EventoAuditoriaSuministroConsul
 
 
 class SqlAlchemyAuditoriaSuministroReadRepository(AuditoriaSuministroReadPort):
+    """Implementación SQLAlchemy de ``AuditoriaSuministroReadPort``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def consultar(
         self, filtros: FiltrosAuditoriaSuministro
     ) -> tuple[list[EventoAuditoriaSuministroConsulta], int]:
+        """Retorna la página solicitada y el total de registros que matchean los filtros."""
         q = select(AuditoriaSuministroModel)
 
         if filtros.tipo_operacion:
@@ -128,6 +131,7 @@ class SqlAlchemyAuditoriaSuministroReadRepository(AuditoriaSuministroReadPort):
         return self._con_nombres([_a_entidad(row) for row in items]), total
 
     def obtener_por_id(self, id_auditoria_suministro: int) -> EventoAuditoriaSuministroConsulta:
+        """Retorna el detalle de un evento. Lanza ``NotFoundError`` si no existe."""
         orm = self.db.get(AuditoriaSuministroModel, id_auditoria_suministro)
         if orm is None:
             raise NotFoundError(
@@ -146,6 +150,7 @@ class SqlAlchemyAuditoriaSuministroReadRepository(AuditoriaSuministroReadPort):
                 for e in eventos]
 
     def actores(self) -> list[tuple[int, str]]:
+        """``(id_usuario, nombre)`` de quienes aparecen en la bitácora y el usuario actual puede ver, por nombre."""
         ids = self.db.execute(select(AuditoriaSuministroModel.id_usuario).distinct()).scalars().all()
         servicio = id_usuario_servicio(self.db)
         nombres = {**nombres_usuarios(self.db, ids), **({servicio: SISTEMA} if servicio in ids else {})}

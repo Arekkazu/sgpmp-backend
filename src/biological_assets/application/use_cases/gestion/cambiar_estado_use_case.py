@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: cambio manual del estado operativo de un activo (RF-44)."""
 
 from __future__ import annotations
@@ -46,6 +47,7 @@ class CambiarEstadoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: CambiarEstadoDTO, usuario: UsuarioActual) -> HistoricoEstado:
+        """Cambia el estado del activo y audita el rechazo si falla."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario),
             db=self.db,

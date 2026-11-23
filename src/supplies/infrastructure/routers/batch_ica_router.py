@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-05 RF-74: fallos persistentes con el nombre del activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI del motor batch ICA (RF-74, Flujo C — panel de administración).
 
   POST /suministros/eficiencia-alimenticia/batch/ejecutar               — Disparar/reactivar
@@ -73,6 +74,7 @@ async def ejecutar_batch(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EstadoBatchResponse:
+    """Ejecuta manualmente el batch de ICA."""
     use_case = build_ejecutar_batch_use_case(db)
     ejecucion = await use_case.ejecutar(
         tipo_disparo="MANUAL",
@@ -100,6 +102,7 @@ def interrumpir_batch(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EstadoBatchResponse:
+    """Interrumpe una ejecución del batch de ICA."""
     use_case = build_interrumpir_batch_use_case(db)
     ejecucion = use_case.execute(id_ejecucion, usuario_actual.id_usuario, dto.motivo)
     return EstadoBatchResponse.desde_entidad(ejecucion)
@@ -122,6 +125,7 @@ def reintentar_activo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialICAResponse:
+    """Reintenta el cálculo de ICA de un activo."""
     use_case = build_reintentar_ica_use_case(db)
     resultados = use_case.execute(id_activo_biologico, usuario_actual.id_usuario)
     items = [ResultadoICAResponse.desde_entidad(r) for r in resultados]
@@ -140,6 +144,7 @@ def reintentar_activo(
 def estado_batch(
     db: Session = Depends(get_db),
 ) -> list[EstadoBatchResponse]:
+    """Lista las ejecuciones recientes del batch de ICA."""
     ejecuciones = SqlAlchemyEjecucionBatchICARepository(db).listar_recientes(limite=20)
     return [EstadoBatchResponse.desde_entidad(e) for e in ejecuciones]
 
@@ -154,6 +159,7 @@ def estado_batch(
 def consultar_cola(
     db: Session = Depends(get_db),
 ) -> ColaICAResponse:
+    """Lista la cola de cálculo de ICA."""
     pendientes = SqlAlchemyColaCalculoICARepository(db).listar_pendientes()
     items = [ItemColaResponse.desde_entidad(i) for i in pendientes]
     return ColaICAResponse(total=len(items), items=items)
@@ -169,6 +175,7 @@ def consultar_cola(
 def consultar_fallos(
     db: Session = Depends(get_db),
 ) -> FallosICAResponse:
+    """Lista los fallos sin resolver del cálculo de ICA."""
     fallos = SqlAlchemyFalloCalculoICARepository(db).listar_no_resueltos()
     nombres = nombres_activos(db, (f.id_activo_biologico for f in fallos))  # N-05: el activo por su código, no «#159»
     items = [FalloICAResponse.desde_entidad(f, nombres.get(f.id_activo_biologico)) for f in fallos]

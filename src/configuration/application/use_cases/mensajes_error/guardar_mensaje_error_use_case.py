@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                             |
 # |------------|----------|---------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-107 RNF-03: crear o editar un mensaje del catálogo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: el Administrador crea o reemplaza el texto de una clave de error sin tocar código (RNF-03)."""
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ from src.configuration.domain.repositories.catalogo_mensajes_error_repository im
 
 
 class GuardarMensajeErrorUseCase:
+    """Crea o actualiza un mensaje del catálogo de errores."""
 
     def __init__(self, db: Session, repo: CatalogoMensajesErrorRepository) -> None:
         self.db = db
@@ -20,6 +22,7 @@ class GuardarMensajeErrorUseCase:
 
     def execute(self, clave: str, idioma: str, mensaje: str, texto_accion: Optional[str],
                 ruta_accion: Optional[str], es_activo: bool, id_usuario: int) -> MensajeError:
+        """Guarda el mensaje de la clave e idioma."""
         entrada = MensajeError(clave=clave, idioma=idioma, mensaje=mensaje, texto_accion=texto_accion,
                                ruta_accion=ruta_accion, es_activo=es_activo, id_usuario=id_usuario)
         try:

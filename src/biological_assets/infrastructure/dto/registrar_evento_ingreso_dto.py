@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/ingreso`` (RF-36).
 """
 
@@ -30,6 +33,7 @@ class RegistrarEventoIngresoDTO(BaseDTO):
     @field_validator('tipo_ingreso')
     @classmethod
     def tipo_valido(cls, v: str) -> str:
+        """Normaliza y valida el tipo de ingreso."""
         v = v.strip().lower()
         if v not in _TIPOS_INGRESO:
             raise ValueError(f"El tipo de ingreso debe ser uno de: {', '.join(sorted(_TIPOS_INGRESO))}.")
@@ -38,6 +42,7 @@ class RegistrarEventoIngresoDTO(BaseDTO):
     @field_validator('cantidad_ingresada')
     @classmethod
     def cantidad_positiva(cls, v: int) -> int:
+        """Exige una cantidad ingresada positiva."""
         if v <= 0:
             raise ValueError('La cantidad ingresada debe ser un entero positivo.')
         return v
@@ -45,6 +50,7 @@ class RegistrarEventoIngresoDTO(BaseDTO):
     @field_validator('motivo_ingreso')
     @classmethod
     def motivo_no_vacio(cls, v: str) -> str:
+        """Exige un motivo de ingreso no vacío."""
         v = v.strip()
         if not v:
             raise ValueError('El motivo de ingreso no puede estar vacío.')

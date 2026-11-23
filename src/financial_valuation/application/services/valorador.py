@@ -7,6 +7,7 @@
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 # | 2026-11-10 | Arekkazu | Lote M05/M06 RF-84: el cálculo en revisión también lleva los ajustes manuales (#1053 + #1054) |
 # | 2026-11-14 | Arekkazu | INC-M06-365-G21 RF-84: costos de venta por especie y región (departamento de la finca) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Servicio de aplicación: valor razonable menos costos de venta de un activo en una fecha (RF-84).
 
 Toma el precio vigente de RF-89 por la regla de prioridad, la magnitud física de M02 y los costos
@@ -41,6 +42,7 @@ MOTIVOS = {
 
 @dataclass(frozen=True)
 class ResultadoValoracion:
+    """Valor calculado con su precio, o el motivo por el que no se pudo calcular."""
     calculo: Optional[CalculoValor]
     precio: Optional[Precio]
     motivo: Optional[str] = None
@@ -50,15 +52,18 @@ class ResultadoValoracion:
 
     @property
     def es_valido(self) -> bool:
+        """Indica si se pudo calcular el valor."""
         return self.motivo is None
 
 
 class Valorador:
+    """Calcula el valor razonable de un activo con el precio vigente."""
     def __init__(self, precios: PrecioRepository, config: ConfiguracionContableRepository) -> None:
         self.precios = precios
         self.config = config
 
     def categoria(self, id_especie: int) -> str:
+        """Categoría de precio configurada para la especie."""
         parametro = self.config.parametro_especie(id_especie)
         return parametro.categoria_precio if parametro else CategoriaPrecio.PESO_KG.value
 
@@ -88,6 +93,7 @@ class Valorador:
         aceptar_no_positivo: bool = False,
         referencia_documental: Optional[str] = None,
     ) -> ResultadoValoracion:
+        """Calcula el valor razonable del activo en el día dado."""
         textos = {"especie": activo.especie, "activo": activo.identificador}
         if precio_congelado is not None:
             # El cierre congela el último precio conocido si se incluyen activos sin precio vigente (RF-87 FA-2).

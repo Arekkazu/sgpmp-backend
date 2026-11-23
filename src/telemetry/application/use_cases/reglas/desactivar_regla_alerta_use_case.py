@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: desactivar regla de alerta y retirarla del Edge |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """Desactivar una regla de alerta (RF-55/RF-57, BE-0).
 
 Baja lógica (``es_activa = false``): la regla sigue referenciada por alertas y
@@ -21,6 +22,7 @@ from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlert
 
 
 class DesactivarReglaAlertaUseCase:
+    """Desactiva una regla (baja lógica) y la retira del Edge si aplica."""
 
     def __init__(
         self,
@@ -35,6 +37,7 @@ class DesactivarReglaAlertaUseCase:
     def execute(
         self, id_regla_alertas: int, id_usuario: int,
     ) -> tuple[ReglaAlerta, Optional[ResultadoSincronizacionRegla]]:
+        """Desactiva la regla y devuelve la regla con el resultado de sincronización."""
         try:
             regla = obtener_regla_o_404(self.regla_repo, id_regla_alertas, bloquear=True)
             regla.desactivar(id_usuario)

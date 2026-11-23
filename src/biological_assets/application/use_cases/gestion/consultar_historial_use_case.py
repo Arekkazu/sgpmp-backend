@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: historial consolidado del activo biológico (RF-46)."""
 
 from __future__ import annotations
@@ -45,6 +48,7 @@ class ConsultarHistorialUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> PaginaHistorial:
+        """Devuelve el historial del activo filtrado por categoría y paginado."""
         # E-03: "No se ejecuta ninguna consulta" -- se valida antes de tocar la BD.
         if dto.fecha_inicio and dto.fecha_fin and dto.fecha_inicio > dto.fecha_fin:
             raise BusinessRuleError(

@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-95..102: ensamblado de repositorios y casos de uso de la integración |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: los rechazos del ciclo de vida del contrato se auditan aparte |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G37 RF-98: período de gracia leído de los parámetros de M09 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Fábrica de M07: arma los casos de uso con sus repositorios SQL para una sesión."""
 from __future__ import annotations
 
@@ -45,11 +46,13 @@ from src.shared.rate_limit import registrar_llamada
 
 
 class M07:
+    """Fábrica de repositorios y casos de uso de la integración contable."""
     def __init__(self, db: Session):
         self.db = db
 
     @cached_property
     def alertar(self):
+        """Función de alerta al Administrador."""
         return alertador_administrador(sesion_sistema)
 
     @cached_property
@@ -64,33 +67,42 @@ class M07:
 
     @cached_property
     def clientes(self) -> SqlAlchemyClienteExternoRepository:
+        """Repositorio de clientes externos."""
         return SqlAlchemyClienteExternoRepository(self.db)
 
     @cached_property
     def contratos(self) -> SqlAlchemyContratoRepository:
+        """Repositorio de contratos y anexos."""
         return SqlAlchemyContratoRepository(self.db)
 
     @cached_property
     def usuarios(self) -> SqlAlchemyUsuarioCanalRepository:
+        """Repositorio de usuarios del canal."""
         return SqlAlchemyUsuarioCanalRepository(self.db)
 
     def emitir_token(self) -> EmitirTokenCanalUseCase:
+        """Caso de uso de emisión de token de canal."""
         return EmitirTokenCanalUseCase(self.clientes, self.usuarios, create_token_canal, registrar_llamada, self.auditar_aparte)
 
     def verificar_acceso(self) -> VerificarAccesoCanalUseCase:
+        """Caso de uso de verificación de acceso al canal."""
         return VerificarAccesoCanalUseCase(self.clientes, self.usuarios, verify_token_canal, registrar_llamada)
 
     def consultar_aaef(self) -> ConsultarAaefUseCase:
+        """Caso de uso de la exportación contable."""
         return ConsultarAaefUseCase(SqlAlchemyFuenteContableRepository(self.db), self.contratos,
                                     configuracion.SISTEMA_ORIGEN, configuracion.LIMITE_BYTES, hoy_usuario)
 
     def registrar_cliente(self) -> RegistrarClienteExternoUseCase:
+        """Caso de uso de registro de clientes."""
         return RegistrarClienteExternoUseCase(self.clientes, self.auditoria, self.db)
 
     def gestionar_cliente(self) -> GestionarClienteExternoUseCase:
+        """Caso de uso de gestión de clientes."""
         return GestionarClienteExternoUseCase(self.clientes, self.auditoria, self.db)
 
     def gestionar_anexos(self) -> GestionarAnexosUseCase:
+        """Caso de uso de gestión de anexos."""
         return GestionarAnexosUseCase(self.contratos, self.auditoria, self.db)
 
     def gracia(self) -> tuple[int, int]:
@@ -98,8 +110,10 @@ class M07:
         return ParametrosIntegracionContableUseCase(self.db, SqlAlchemyParametrosMLOpsRepository(self.db)).gracia()
 
     def gestionar_contratos(self) -> GestionarContratosUseCase:
+        """Caso de uso de gestión de contratos."""
         return GestionarContratosUseCase(self.contratos, self.auditoria, self.db, configuracion.es_produccion, self.alertar,
                                          configuracion.COMPROBANTE_NIC41_HABILITADO, self.auditar_aparte, self.gracia)
 
     def consultar_auditoria(self) -> ConsultarAuditoriaIntegracionUseCase:
+        """Caso de uso de consulta de la auditoría."""
         return ConsultarAuditoriaIntegracionUseCase(self.auditoria, self.alertar)

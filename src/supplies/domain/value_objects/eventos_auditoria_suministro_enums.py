@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-80: catálogo completo y retención      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Eventos de negocio de RF-78/RF-79 registrados en ``auditorias_suministros``.
 
 Mapea los 8 valores agregados a ``modulo5.enum_auditoria_suministro_tipo_operacion``
@@ -14,6 +15,7 @@ from enum import Enum
 
 
 class TipoEventoAuditoriaSuministro(str, Enum):
+    """Tipos de evento de la auditoría de suministros."""
     SUMINISTRO_REGISTRADO = "SUMINISTRO_REGISTRADO"
     SUMINISTRO_CORREGIDO = "SUMINISTRO_CORREGIDO"
     REGISTRO_FALLIDO = "REGISTRO_FALLIDO"

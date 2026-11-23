@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consultar el resultado ICA vigente de un activo/período (RF-74, Flujo B).
 
 Si no hay resultado (FA-03) devuelve ``None``; el router responde 200 con un mensaje
@@ -13,10 +16,12 @@ from src.supplies.domain.value_objects.eficiencia_enums import PeriodoEvaluacion
 
 
 class ConsultarICAVigenteUseCase:
+    """Consulta el ICA vigente de un activo."""
     def __init__(self, resultado_repo: ResultadoICARepository) -> None:
         self.resultado_repo = resultado_repo
 
     def execute(
         self, id_activo_biologico: int, periodo: PeriodoEvaluacion
     ) -> Optional[ResultadoICA]:
+        """Devuelve el ICA vigente del activo para el periodo, o ``None``."""
         return self.resultado_repo.obtener_vigente(id_activo_biologico, periodo)

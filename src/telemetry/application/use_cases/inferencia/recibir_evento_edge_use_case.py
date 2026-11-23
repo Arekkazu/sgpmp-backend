@@ -11,6 +11,13 @@
 # | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
 # | 2026-10-28 | Arekkazu | BE-2/BE-3 RF-55: id_regla_alerta en el evento y regla aplicada en la alerta |
 # | 2026-11-19 | Arekkazu | SEG-M03-01 RF-57: la alerta del evento Edge que no se genera queda en ERROR con la causa |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método público |
+"""Caso de uso de recepción de un evento procesado en el Edge (RF-55/RF-56).
+
+Valida coherencia temporal, identidad del dispositivo, límite de eventos y
+guarda el evento. Después consolida el paquete de inferencia y genera la alerta
+si hay desviación, sin propagar el fallo de la alerta.
+"""
 from __future__ import annotations
 
 import logging
@@ -91,6 +98,7 @@ def _trazabilidad_completa(metadatos: dict) -> bool:
 
 
 class RecibirEventoEdgeUseCase:
+    """Orquesta la recepción y el procesamiento de eventos del Edge."""
 
     def __init__(
         self,
@@ -117,6 +125,16 @@ class RecibirEventoEdgeUseCase:
         dto: RecibirEventoEdgeDTO,
         gateway_id: Optional[str] = None,
     ) -> ResultadoEventoEdge:
+        """Procesa un evento del Edge y devuelve su resultado persistido.
+
+        Args:
+            dto: Evento recibido del nodo Edge.
+            gateway_id: Identificador del gateway que lo entregó, si aplica.
+
+        Raises:
+            ValidationError: Si los timestamps son futuros, expirados o están invertidos.
+            AuthenticationError: Si el dispositivo o el sensor no son válidos.
+        """
         ahora = datetime.now(timezone.utc)
         ts_captura = dto.timestamp_captura
         if ts_captura.tzinfo is None:

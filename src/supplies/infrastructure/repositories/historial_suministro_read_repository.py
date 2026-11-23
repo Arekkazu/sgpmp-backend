@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-81: tipo real del ledger y ciclo exacto |
 # | 2026-10-23 | Arekkazu | PR-667: SAST Bearer (timeout parametrizado y candados con nombre fijo) |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación de :class:`HistorialSuministroReadPort` (RF-81).
 
 SQL propio con ``text()`` sobre ``modulo5.registro_suministro`` (no la vista
@@ -134,15 +135,20 @@ def _params(filtros: FiltrosHistorialSuministro, ids_activos_permitidos: Optiona
 
 
 class SqlAlchemyHistorialSuministroReadRepository(HistorialSuministroReadPort):
+    """Implementación SQLAlchemy de ``HistorialSuministroReadPort``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def contar_total_activo(self, id_activo_biologico: int) -> int:
+        """Volumen histórico total del activo (ignora filtros de página), para
+        determinar el nivel de volumen (Restricción 11 de RF-81).
+        """
         return self.db.execute(
             _SQL_CONTAR_TOTAL_ACTIVO, {"id_activo_biologico": id_activo_biologico}
         ).scalar_one()
 
     def ciclo_pertenece_a_activo(self, id_activo_biologico: int, id_ciclo_productivo: int) -> bool:
+        """Restricción 7(c) de RF-81: valida la combinación de filtros ciclo/activo."""
         return self.db.execute(
             _SQL_CICLO_PERTENECE_A_ACTIVO,
             {"id_activo_biologico": id_activo_biologico, "id_ciclo_productivo": id_ciclo_productivo},
@@ -154,6 +160,12 @@ class SqlAlchemyHistorialSuministroReadRepository(HistorialSuministroReadPort):
         ids_activos_permitidos: Optional[list[int]],
         tiempo_limite_segundos: Optional[int] = None,
     ) -> ResultadoHistorialSuministro:
+        """Página filtrada + agregados sobre el conjunto completo filtrado.
+
+        ``ids_activos_permitidos`` es ``None`` cuando el rol no tiene
+        restricción de alcance; una lista (posiblemente vacía) cuando sí.
+        Con ``tiempo_limite_segundos`` lanza :class:`ConsultaExcedioTiempo` si no termina a tiempo.
+        """
         if tiempo_limite_segundos is None:
             return self._consultar(filtros, ids_activos_permitidos)
         try:

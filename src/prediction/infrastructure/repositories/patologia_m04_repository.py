@@ -4,6 +4,8 @@
 # | 2026-10-25 | Arekkazu | USAB-M04 M4-02 RF-64: nombre y unidad de variables y nombre de la especie (read-model) |
 # | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64 (motor IA) |
 # | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-14 RF-64: editar e inactivar solo tocan las variables que cambian |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Implementación SQLAlchemy de ``PatologiaM04Repository``."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -23,6 +25,7 @@ from src.shared.errors import InfrastructureError
 
 
 class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
+    """Implementación SQLAlchemy de ``PatologiaM04Repository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
@@ -56,10 +59,12 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
     # Lecturas
     # ------------------------------------------------------------------
     def obtener_por_id(self, id_patologia: int, *, bloquear: bool = False) -> Optional[PatologiaM04]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         orm = self._db.get(PatologiaM04Model, id_patologia, with_for_update=bloquear, populate_existing=bloquear)
         return self._con_nombres([self._a_entidad(orm)])[0] if orm else None
 
     def obtener_por_nombre(self, nombre: str) -> Optional[PatologiaM04]:
+        """Búsqueda en el catálogo global sin distinguir mayúsculas ni espacios repetidos."""
         orm = (
             self._db.query(PatologiaM04Model)
             # Espacios, tabs y saltos repetidos cuentan como uno (INC-M04-140-G003).
@@ -70,6 +75,11 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
         return self._a_entidad(orm) if orm else None
 
     def id_base_por_codigo_rf64(self, codigo: int) -> Optional[int]:
+        """id de la patología base con código ``codigo`` (0–7) del catálogo base de RF-64.
+
+        Las 8 bases son datos de cada ambiente y su id cambia entre bases de datos; el código
+        es su posición en el catálogo (orden de registro). None si no existe.
+        """
         return self._db.execute(
             select(PatologiaM04Model.id_patologia)
             .where(PatologiaM04Model.es_base.is_(True))
@@ -81,6 +91,7 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
     def obtener_por_combinacion_variables(
         self, ids_variables: list[int], especie_aplicable: str, excluir_id: Optional[int] = None
     ) -> Optional[PatologiaM04]:
+        """Devuelve la patología con exactamente el mismo conjunto de variables para la misma especie, si existe."""
         ids_set = sorted(set(ids_variables))
         candidatos = (
             self._db.query(PatologiaM04Model)
@@ -101,6 +112,7 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
         solo_base: Optional[bool] = None,
         nombre: Optional[str] = None,
     ) -> list[PatologiaM04]:
+        """Lista las patologías con filtros."""
         q = self._db.query(PatologiaM04Model)
         if nombre and nombre.strip():
             patron = "%" + nombre.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
@@ -134,6 +146,7 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
     # Escrituras
     # ------------------------------------------------------------------
     def siguiente_version_catalogo(self) -> int:
+        """Versión que toma el próximo cambio del catálogo; serializa los cambios hasta el commit."""
         # El lock dura hasta el commit: dos cambios simultáneos no comparten versión.
         self._db.execute(text("SELECT pg_advisory_xact_lock(hashtext('modulo9.patologias.version_catalogo'))"))
         return self._db.execute(
@@ -141,6 +154,7 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
         ).scalar_one()
 
     def guardar(self, entidad: PatologiaM04) -> PatologiaM04:
+        """Guarda una patología nueva."""
         try:
             orm = PatologiaM04Model(
                 nombre=entidad.nombre,
@@ -169,6 +183,7 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
             raise_from_db_error(exc)
 
     def actualizar(self, entidad: PatologiaM04) -> PatologiaM04:
+        """Actualiza la patología."""
         try:
             orm = self._db.get(PatologiaM04Model, entidad.id_patologia)
             orm.nombre = entidad.nombre

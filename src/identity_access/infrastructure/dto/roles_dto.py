@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTOs de entrada para la gestión de roles y permisos.
 
 `CrearRolDTO` exige al menos un permiso; `EditarRolDTO` acepta modificación
@@ -27,6 +30,7 @@ class CrearRolDTO(BaseDTO):
     @field_validator("nombre_rol")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Exige un nombre de rol no vacío."""
         v = v.strip()
         if not v:
             raise ValueError("El nombre del rol no puede estar vacío.")
@@ -35,6 +39,7 @@ class CrearRolDTO(BaseDTO):
     @field_validator("permisos")
     @classmethod
     def validar_permisos(cls, v: list) -> list:
+        """Exige al menos un permiso."""
         if not v:
             raise ValueError(
                 "Operación rechazada: Todo rol debe poseer al menos un permiso asociado."
@@ -51,6 +56,7 @@ class EditarRolDTO(BaseDTO):
     @field_validator("nombre_rol")
     @classmethod
     def validar_nombre(cls, v: Optional[str]) -> Optional[str]:
+        """Exige un nombre de rol no vacío si se envía."""
         if v is not None:
             v = v.strip()
             if not v:

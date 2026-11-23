@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-107 RNF-03: mensaje de error en lenguaje natural por clave |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entrada del catálogo de mensajes de error (RF-107 RNF-03), configurable por el Administrador en M09.
 
 La clave es la del error que devuelve el backend (``PERIODO_NO_CERRADO``) o una del front (``SIN_CONEXION``); el
@@ -22,6 +23,7 @@ _RUTA = re.compile(r"^[a-z0-9][a-z0-9/_-]{0,199}$")
 
 @dataclass
 class MensajeError:
+    """Mensaje de error personalizado por clave e idioma."""
     clave: str
     idioma: str
     mensaje: str

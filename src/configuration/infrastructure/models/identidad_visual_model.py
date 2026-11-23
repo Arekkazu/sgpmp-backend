@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.identidad_visuales` (RF-26).
 
 Identidad visual institucional por finca. La concurrencia optimista se
@@ -15,6 +18,7 @@ from .base_model import Base
 
 
 class IdentidadVisualModel(Base):
+    """Modelo ORM de la tabla ``modulo9.identidad_visuales``."""
     __tablename__ = 'identidad_visuales'
     __table_args__ = (
         ForeignKeyConstraint(

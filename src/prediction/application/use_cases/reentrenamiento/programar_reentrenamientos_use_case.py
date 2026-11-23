@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: disparador PROGRAMADO de reentrenamientos por antigüedad de la versión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """BE-6: abre procesos PROGRAMADO para los animales cuya versión vigente es más vieja que
 ``dias_reentrenamiento_programado`` (parámetro MLOps, patrón RF-57). Con 0 (valor base) no hace nada.
 
@@ -32,6 +33,7 @@ MAXIMO_POR_PASADA = int(os.getenv("REENTRENAMIENTO_PROGRAMADO_MAXIMO", "5"))
 
 
 class ProgramarReentrenamientosUseCase:
+    """Programa los reentrenamientos periódicos."""
     def __init__(self, *, db: Session, procesos: ProcesoReentrenamientoRepository, parametros: ParametrosMLOpsPort,
                  auditoria_repo: EventoAuditoriaM04Repository, dias_minimos_lecturas: Optional[float] = None) -> None:
         self._db = db
@@ -41,6 +43,7 @@ class ProgramarReentrenamientosUseCase:
         self._dias_lecturas = DIAS_MINIMOS_LECTURAS if dias_minimos_lecturas is None else dias_minimos_lecturas
 
     def dias_configurados(self) -> int:
+        """Días configurados entre reentrenamientos programados."""
         valores = self._parametros.obtener([RF71_DIAS_PROGRAMADO])
         if RF71_DIAS_PROGRAMADO not in valores:
             return RF71_DIAS_PROGRAMADO_BASE

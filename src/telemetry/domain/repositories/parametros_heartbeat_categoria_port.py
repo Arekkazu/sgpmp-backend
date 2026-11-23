@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-04 RF-60: puerto de lectura de parámetros de heartbeat y ventanas de visión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de lectura de la configuración de heartbeat por categoría."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -10,6 +12,7 @@ from src.telemetry.domain.entities.parametros_heartbeat_categoria import Configu
 
 
 class ParametrosHeartbeatCategoriaPort(ABC):
+    """Puerto para leer la configuración de heartbeat y la categoría de un dispositivo."""
 
     @abstractmethod
     def leer_configuracion(self) -> ConfiguracionHeartbeatLeida:

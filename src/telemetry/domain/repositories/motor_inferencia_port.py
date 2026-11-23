@@ -2,6 +2,8 @@
 # |------------|--------------|-------------|
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto hacia el motor de inferencia y su error de integración ausente."""
 from abc import ABC, abstractmethod
 
 from src.shared.errors import BusinessRuleError, ServiceUnavailableError
@@ -29,6 +31,7 @@ class MotorInferenciaRechazoError(BusinessRuleError):
 
 
 class MotorInferenciaPort(ABC):
+    """Puerto de envío de paquetes al motor de inferencia."""
     @abstractmethod
     def enviar_paquete(self, paquete: PaqueteInferencia) -> bool:
         """True confirma entrega; False indica un intento fallido que se reintenta

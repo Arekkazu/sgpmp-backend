@@ -4,6 +4,7 @@
 # | 2026-10-31 | Arekkazu | RF-17/RF-66 C3: rangos de la especie del activo desde M09        |
 # | 2026-11-02 | Arekkazu | RF-62/RF-66: apto_para_ia sale de la evaluación vigente de RF-62  |
 # | 2026-11-02 | Arekkazu | RF-66: lecturas_activo reutilizable para la calibración del motor |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Ventana de lecturas del activo individual para el motor IA (contrato IA-1 v1).
 
 El sensor del paquete se ubica en su activo por la asociación M02 ``directa`` vigente (la
@@ -99,10 +100,12 @@ def lecturas_activo(db: Session, activo: int, desde, hasta) -> list[dict]:
 
 
 class VentanaInferenciaM02Adapter(VentanaInferenciaPort):
+    """Arma las ventanas de lecturas por activo para el motor de inferencia."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def ventanas(self, paquetes: list[PaqueteInferencia]) -> dict[int, VentanaActivo]:
+        """Devuelve la ventana de lecturas de cada paquete por su id."""
         if not paquetes:
             return {}
         try:

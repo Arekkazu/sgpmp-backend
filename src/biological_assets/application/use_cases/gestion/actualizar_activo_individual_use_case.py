@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: edición de los datos de un activo INDIVIDUAL (RF-35)."""
 
 from __future__ import annotations
@@ -51,6 +54,7 @@ class ActualizarActivoIndividualUseCase:
         *,
         ids_fincas_permitidas: list[int] | None = None,
     ) -> ActivoBiologico:
+        """Actualiza los datos editables de un activo individual."""
         return ejecutar_con_auditoria_de_rechazo(
             lambda: self._execute(id_activo, dto, usuario, ids_fincas_permitidas),
             db=self.db,

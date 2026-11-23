@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60/18: valida cadena en actualizacion    |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Actualizar parámetros operativos globales (PATCH RF-18).
 
 Aplica concurrencia optimista: rechaza si ``fecha_actualizacion`` no coincide.
@@ -45,6 +46,7 @@ class ActualizarConfiguracionUseCase:
     def execute(
         self, id_configuracion_global: int, dto: ActualizarConfiguracionDTO, usuario_actual: UsuarioActual
     ) -> ConfiguracionGlobal:
+        """Actualiza la configuración global con control de concurrencia y la audita."""
         self.parametros_repo.bloquear_configuracion()
         config = self.config_repo.obtener_por_id(id_configuracion_global, bloquear=True)
         if config is None:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar umbral ambiental con niveles de alerta (Flujo A — RF-17)."""
 from __future__ import annotations
 
@@ -119,6 +120,7 @@ class RegistrarUmbralUseCase:
         self.bitacora = bitacora
 
     def execute(self, dto: RegistrarUmbralDTO, usuario_actual: UsuarioActual) -> UmbralAmbiental:
+        """Registra un umbral ambiental de la especie y lo propaga a Edge."""
         # FA-01: especie activa
         especie = self.especie_repo.obtener_por_id(dto.id_especie)
         if especie is None or not especie.es_activo:

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Listar o consultar finca(s) (GET RF-19)."""
 from __future__ import annotations
 
@@ -15,9 +18,15 @@ class ConsultarFincasUseCase:
         self.finca_repo = finca_repo
 
     def listar(self, *, ids_fincas_permitidas: Optional[list[int]] = None, solo_activas: bool = False) -> list[Finca]:
+        """Lista las fincas visibles."""
         return self.finca_repo.listar(ids_fincas=ids_fincas_permitidas, solo_activas=solo_activas)
 
     def obtener(self, id_finca: int, *, ids_fincas_permitidas: Optional[list[int]] = None) -> Finca:
+        """Devuelve la finca.
+
+        Raises:
+            NotFoundError: Si no existe o no es visible.
+        """
         finca = self.finca_repo.obtener_por_id(id_finca)
         if finca is None:
             raise NotFoundError(

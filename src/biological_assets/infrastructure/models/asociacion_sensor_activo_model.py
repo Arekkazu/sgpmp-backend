@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.asociaciones_activos_sensores``: sensores IoT vinculados a
 activos o infraestructuras (RF-49).
 """
@@ -25,6 +28,7 @@ from .base_model import Base
 
 
 class AsociacionSensorActivoModel(Base):
+    """Modelo ORM de las asociaciones sensor-activo (tabla ``modulo2.asociaciones_activos_sensores``)."""
     __tablename__ = 'asociaciones_activos_sensores'
     __table_args__ = (
         CheckConstraint(

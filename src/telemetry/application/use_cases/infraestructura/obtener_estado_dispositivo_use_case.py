@@ -1,6 +1,12 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: comprobar finca autorizada antes de leer el estado y su historial. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clases y método |
+"""Caso de uso de consulta del estado de un dispositivo IoT (RF-54/RF-60).
+
+Verifica que el dispositivo pertenezca a una finca autorizada antes de leer su
+estado vigente y el historial de transiciones.
+"""
 from __future__ import annotations
 
 from typing import Optional
@@ -15,6 +21,8 @@ from src.telemetry.domain.repositories.historico_transicion_dispositivo_reposito
 
 
 class ResultadoEstadoDispositivo:
+    """Estado vigente del dispositivo junto con su historial de transiciones."""
+
     def __init__(
         self,
         estado: EstadoDispositivoIoT,
@@ -25,6 +33,7 @@ class ResultadoEstadoDispositivo:
 
 
 class ObtenerEstadoDispositivoUseCase:
+    """Orquesta la consulta del estado y del historial de un dispositivo."""
 
     def __init__(
         self,
@@ -43,6 +52,12 @@ class ObtenerEstadoDispositivoUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ResultadoEstadoDispositivo:
+        """Devuelve el estado vigente y el historial del dispositivo.
+
+        Raises:
+            NotFoundError: Si el dispositivo está fuera de las fincas permitidas
+                o no tiene estado registrado.
+        """
         if ids_fincas_permitidas is not None and not self.estado_repo.pertenece_a_fincas(
             id_dispositivo_iot, ids_fincas_permitidas
         ):

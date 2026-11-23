@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 # | 2026-10-23 | Arekkazu     | DEV-48 RF-69 E1b: el aviso al Administrador usa E sobre auditoria_m04 (DB-08 le dio R al Veterinario) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Avisos por correo del ciclo de vida de versiones de modelo (RF-69 E1b y E3, DEV-48).
 
 Reusa el canal de correo de RF-14 (``send_email`` con la plantilla común) con el
@@ -60,10 +61,12 @@ _SQL_DESTINATARIOS = text(
 
 
 class AvisoVersionModeloEmailAdapter(AvisoVersionModeloPort):
+    """Avisa por correo los eventos de versiones de modelo."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def avisar_carga_externa(self, *, id_proceso_rf71: str, motivo: str) -> None:
+        """RF-69 E1b: avisa al Administrador de un intento de carga de un modelo externo."""
         for nombre, correo in self._destinatarios(RECURSO_AUDITORIA_M04, ACCION_EJECUTAR):
             self._enviar(
                 correo,
@@ -72,6 +75,7 @@ class AvisoVersionModeloEmailAdapter(AvisoVersionModeloPort):
             )
 
     def avisar_version_rechazada(self, version: VersionModelo) -> None:
+        """RF-69 E3: avisa al Veterinario que una versión quedó RECHAZADO por métricas."""
         for nombre, correo in self._destinatarios(RECURSO_VERSION_MODELO, ACCION_ACTUALIZAR):
             self._enviar(
                 correo,

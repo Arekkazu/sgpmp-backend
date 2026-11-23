@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para guardar la preferencia de tema visual (PATCH RF-27)."""
 from pydantic import field_validator
 
@@ -11,6 +14,7 @@ class GuardarTemaDTO(BaseDTO):
     @field_validator("theme_mode")
     @classmethod
     def validar_theme_mode(cls, v: int) -> int:
+        """Valida el modo de tema."""
         if v not in (1, 2, 3):
             raise ValueError(
                 f"El identificador de tema '{v}' no es válido. "

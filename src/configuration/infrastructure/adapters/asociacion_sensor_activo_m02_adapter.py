@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de escritura sobre modulo2 para el cierre de asociaciones
 sensor→activo al reasignar un sensor de área (RF-22, issue #290).
 
@@ -25,6 +28,7 @@ from src.configuration.domain.repositories.asociacion_sensor_activo_dependency_p
 
 
 class AsociacionSensorActivoM02Adapter(AsociacionSensorActivoDependencyPort):
+    """Gestiona las asociaciones sensor-activo afectadas al cambiar el área de un sensor."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -35,6 +39,12 @@ class AsociacionSensorActivoM02Adapter(AsociacionSensorActivoDependencyPort):
         id_usuario: int,
         motivo: str,
     ) -> list[AsociacionActivoSuperada]:
+        """Marca SUPERADA toda asociación ACTIVA ambiental/poblacional de
+        `id_sensor` y registra la auditoría correspondiente en modulo2.
+
+        Devuelve las asociaciones cerradas (lista vacía si el sensor no tenía
+        ninguna vigente de esos tipos).
+        """
         activas = (
             self.db.query(AsociacionSensorActivoModel)
             .filter(

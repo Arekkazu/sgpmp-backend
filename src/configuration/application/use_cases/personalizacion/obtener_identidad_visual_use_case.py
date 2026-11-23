@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Obtener identidad visual activa de una finca (GET RF-26)."""
 from __future__ import annotations
 
@@ -14,4 +17,5 @@ class ObtenerIdentidadVisualUseCase:
         self.identidad_repo = identidad_repo
 
     def execute(self, id_finca: int) -> Optional[IdentidadVisual]:
+        """Devuelve la identidad visual de la finca, o ``None``."""
         return self.identidad_repo.obtener_por_finca(id_finca)

@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: mapear identidad única y versión de integridad de auditoría. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.auditorias_suministros`` (RF-80, RF-78/79 / CU-05).
 
 Generado con sqlacodegen y adaptado (Base compartida, columnas enum de PG
@@ -39,6 +40,7 @@ from .base_model import Base
 
 
 class AuditoriaSuministroModel(Base):
+    """Modelo ORM de la tabla ``modulo5.auditorias_suministros``."""
     __tablename__ = 'auditorias_suministros'
     __table_args__ = (
         ForeignKeyConstraint(['id_activo_biologico'], ['modulo2.activos_biologicos.id_activo_biologico'], name='fk_auditorias_suministros_activo_biologico'),

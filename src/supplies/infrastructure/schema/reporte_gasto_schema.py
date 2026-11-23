@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-77: SIN_DATOS, bajas, archivo y aviso  |
 # | 2026-11-08 | Leandro | INC-M05-277-G20 RF-77: representar el promedio no calculable y conservar el contrato numérico. |
 # | 2026-11-11 | Arekkazu | USAB-M05 T-01 RF-77: el historial de reportes nombra el activo, no su id |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta de RF-77 — Reporte de Gastos Acumulados."""
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from src.supplies.domain.entities.trabajo_reporte_gasto import EjecucionReporteG
 
 
 class DesgloseCategoriaResponse(BaseModel):
+    """Subtotal de gastos de una categoría."""
     categoria: str
     subtotal: Decimal
     num_registros: int
@@ -26,6 +28,7 @@ class DesgloseCategoriaResponse(BaseModel):
 
 
 class DesglosePeriodoResponse(BaseModel):
+    """Subtotal de gastos de un mes o semana."""
     etiqueta: str
     fecha_inicio: datetime.date
     fecha_fin: datetime.date
@@ -33,6 +36,7 @@ class DesglosePeriodoResponse(BaseModel):
 
 
 class TendenciaGastoResponse(BaseModel):
+    """Comparación del gasto con el periodo anterior."""
     gasto_periodo_actual: Decimal
     gasto_periodo_anterior: Optional[Decimal]
     variacion_porcentual: Optional[Decimal]
@@ -41,6 +45,7 @@ class TendenciaGastoResponse(BaseModel):
 
 
 class RegistroSinCostoResponse(BaseModel):
+    """Registro excluido del total por no tener costo."""
     categoria: str
     id_origen: int
     fecha: datetime.date
@@ -48,6 +53,7 @@ class RegistroSinCostoResponse(BaseModel):
 
 
 class ReporteGastoResponse(BaseModel):
+    """Reporte de gastos acumulados."""
     id_reporte_gasto_acumulado: Optional[int]
     id_activo_biologico: Optional[int]
     id_infraestructura: Optional[int]
@@ -73,6 +79,7 @@ class ReporteGastoResponse(BaseModel):
 
     @model_validator(mode="after")
     def representar_promedio_no_calculable(self) -> "ReporteGastoResponse":
+        """Indica la causa cuando el promedio mensual no se puede calcular."""
         # Una causa explícita distingue lo no calculable de un promedio no aplicable.
         # El dominio conserva Decimal/None para evitar mezclar códigos y cálculos.
         if self.gasto_promedio_individuo is None and self.causa_no_calculable_promedio:
@@ -81,6 +88,7 @@ class ReporteGastoResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, r: ReporteGasto) -> "ReporteGastoResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_reporte_gasto_acumulado=r.id_reporte_gasto_acumulado,
             id_activo_biologico=r.id_activo_biologico,
@@ -201,6 +209,7 @@ class ReporteGastoResponse(BaseModel):
 
 
 class HistorialReportesResponse(BaseModel):
+    """Reportes de gastos del usuario."""
     total: int
     items: list[ReporteGastoResponse]
 
@@ -219,6 +228,7 @@ class ArchivoExportacionResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, a: ArchivoExportacion, prefijo_descarga: str) -> "ArchivoExportacionResponse":
+        """Construye la respuesta con el enlace de descarga."""
         return cls(
             id_archivo=a.id_archivo,
             formato=a.formato,
@@ -244,6 +254,7 @@ class TrabajoReporteResponse(BaseModel):
 
     @classmethod
     def desde_entidad(cls, t: TrabajoReporteGasto, mensaje: str) -> "TrabajoReporteResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(id_cola=t.id_cola, estado=t.estado.value, fecha_solicitud=t.fecha_solicitud, mensaje=mensaje)
 
 
@@ -267,6 +278,7 @@ class EstadoTrabajoReporteResponse(BaseModel):
         ejecucion: Optional[EjecucionReporteGasto],
         reporte_snapshot: Optional[ReporteGasto],
     ) -> "EstadoTrabajoReporteResponse":
+        """Construye la respuesta a partir del trabajo y su última ejecución."""
         reporte_response = None
         if ejecucion is not None and ejecucion.resultado_json is not None and reporte_snapshot is not None:
             reporte_response = ReporteGastoResponse.desde_snapshot_y_resultado_json(

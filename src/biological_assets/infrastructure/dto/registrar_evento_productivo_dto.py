@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/productivo``
 (RF-43).
 """
@@ -30,6 +33,7 @@ class RegistrarEventoProductivoDTO(BaseDTO):
     @field_validator('unidad_medida')
     @classmethod
     def unidad_no_vacia(cls, v: str) -> str:
+        """Exige una unidad de medida no vacía."""
         v = v.strip()
         if not v:
             raise ValueError('La unidad de medida no puede estar vacía.')

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Value object ``TipoMedicion`` — tipo de medición de una métrica de producción."""
 from __future__ import annotations
 
@@ -18,6 +21,11 @@ class TipoMedicion(str, Enum):
 
     @classmethod
     def desde_string(cls, valor: str) -> 'TipoMedicion':
+        """Convierte el texto en el valor del catálogo.
+
+        Raises:
+            ValidationError: Si el valor no pertenece al catálogo.
+        """
         normalizado = valor.strip().upper()
         try:
             return cls(normalizado)

@@ -3,6 +3,8 @@
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU02 H-04 RF-65: historial con nombres de usuario y versión |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: exponer el perfil de cálculo separado del despliegue en RF-65. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de la configuración del motor."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,6 +17,7 @@ from src.prediction.domain.entities.configuracion_motor_ia import ConfiguracionM
 
 
 class ConfiguracionMotorIAResponse(BaseModel):
+    """Configuración del motor de un tipo de modelo."""
     model_config = ConfigDict(from_attributes=True)
 
     id_configuracion_motor: int
@@ -43,6 +46,7 @@ class ConfiguracionMotorIAResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, entidad: ConfiguracionMotorIA) -> ConfiguracionMotorIAResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_configuracion_motor=entidad.id_configuracion_motor,
             tipo_modelo=entidad.tipo_modelo,
@@ -71,6 +75,7 @@ class ConfiguracionMotorIAResponse(BaseModel):
 
 
 class ConfiguracionMotorIAListResponse(BaseModel):
+    """Configuraciones del motor."""
     total: int
     items: list[ConfiguracionMotorIAResponse]
 

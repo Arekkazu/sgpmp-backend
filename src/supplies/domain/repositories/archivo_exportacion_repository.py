@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77/RF-81: archivos exportados          |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de los archivos exportados de M05 (RF-77 y RF-81)."""
 from __future__ import annotations
 
@@ -13,12 +14,15 @@ from src.supplies.domain.entities.archivo_exportacion import ArchivoExportacion
 
 
 class ArchivoExportacionRepository(ABC):
+    """Puerto de persistencia de archivos exportados."""
     @abstractmethod
     def guardar(self, archivo: ArchivoExportacion) -> ArchivoExportacion:
+        """Guarda el archivo y lo devuelve."""
         raise NotImplementedError
 
     @abstractmethod
     def obtener(self, id_archivo: UUID) -> Optional[ArchivoExportacion]:
+        """Devuelve el archivo, o ``None``."""
         raise NotImplementedError
 
     @abstractmethod

@@ -4,6 +4,7 @@
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: POST /ampliaciones (excepción por resultado) |
 # | 2026-11-03 | Arekkazu | RF-72: GET /bandeja, inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
 # | 2026-11-18 | Arekkazu | M08 RF-106: tras registrar, avisa al Administrador si la TVCO del modelo baja del umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para retroalimentación clínica M04 (`/prediccion/retroalimentacion`).
 
 RF-72 CU-08: registro de retroalimentación clínica sobre resultados de inferencia.
@@ -87,6 +88,7 @@ def registrar_retroalimentacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> RetroalimentacionClinicaResponse:
+    """Registra la retroalimentación clínica de una inferencia."""
     use_case = RegistrarRetroalimentacionUseCase(
         db=db,
         repo=SqlAlchemyRetroalimentacionClinicaRepository(db),

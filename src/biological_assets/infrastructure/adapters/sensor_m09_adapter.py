@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adapter de ``SensorConsultaPort`` que lee sensores, su dispositivo, área y
 compatibilidad con especies de M09.
 """
@@ -23,6 +26,7 @@ class SensorM09Adapter(SensorConsultaPort):
         self.db = db
 
     def obtener_sensor_con_contexto(self, sensor_id: int) -> Optional[SensorConsulta]:
+        """Devuelve el sensor con su dispositivo y área, o ``None``."""
         row = self.db.execute(
             text(
                 'SELECT '
@@ -59,6 +63,7 @@ class SensorM09Adapter(SensorConsultaPort):
         sensor_id: int,
         especie_id: int,
     ) -> Optional[CompatibilidadSensorEspecie]:
+        """Devuelve la compatibilidad del sensor con la especie."""
         row = self.db.execute(
             text(
                 'SELECT '

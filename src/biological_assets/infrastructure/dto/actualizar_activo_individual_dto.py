@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``PATCH /activos-biologicos/{id_activo}`` (RF-35)."""
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ class ActualizarActivoIndividualDTO(BaseDTO):
     @field_validator('estado_activo')
     @classmethod
     def estado_no_editable(cls, _valor: Any) -> Any:
+        """Rechaza el estado: se cambia por su propia operación."""
         raise ValueError(
             'El estado del activo no se puede modificar en esta operación. '
             'Use el cambio de estado del activo (RF-44).'
@@ -49,6 +51,7 @@ class ActualizarActivoIndividualDTO(BaseDTO):
 
     @model_validator(mode='after')
     def al_menos_un_campo(self) -> ActualizarActivoIndividualDTO:
+        """Exige al menos un campo a actualizar."""
         if all(v is None for v in [self.raza, self.sexo, self.fecha_nacimiento, self.peso_inicial]):
             raise ValueError('Al menos un campo debe estar presente para actualizar.')
         return self
@@ -56,6 +59,7 @@ class ActualizarActivoIndividualDTO(BaseDTO):
     @field_validator('fecha_nacimiento')
     @classmethod
     def fecha_nacimiento_no_futura(cls, valor: Optional[date]) -> Optional[date]:
+        """Rechaza una fecha de nacimiento futura."""
         # RFC-014 (DEV-20): misma regla que el registro. Omitida (None) no cambia la fecha.
         if valor is not None and valor > hoy_usuario():
             raise ValueError('fecha_nacimiento no puede ser futura.')

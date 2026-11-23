@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-129-G27 RF-54/60/63: crear y escalar el aviso de capacidad bajo bloqueo conservando la alerta y sus contratos. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: aviso de buffer del Gateway Edge (RF-54 Fase 4/E1/E6 → RF-60 + RF-63, D10 de AIOT-DEV-03).
 
 El Edge avisa por MQTT (``status`` con ``tipo_mensaje = EVENTO_BUFFER``) que su
@@ -59,6 +60,7 @@ _ACCION_SUGERIDA = {
 
 @dataclass
 class ResultadoEventoBuffer:
+    """Alerta técnica generada o deduplicada por un evento de buffer."""
     id_alerta: int
     es_duplicado: bool
     tipo_alerta_tecnica: str
@@ -70,6 +72,7 @@ def _utc(ts: datetime) -> datetime:
 
 
 class RegistrarEventoBufferUseCase:
+    """Registra los eventos de buffer de un dispositivo como alertas técnicas."""
 
     def __init__(
         self,
@@ -84,6 +87,11 @@ class RegistrarEventoBufferUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RecibirEventoBufferDTO) -> ResultadoEventoBuffer:
+        """Genera o deduplica la alerta del evento de buffer y la audita.
+
+        Raises:
+            NotFoundError: Si no existe un dispositivo con el serial dado.
+        """
         dispositivo = self.dispositivo_port.obtener_por_serial(dto.serial)
         if dispositivo is None:
             raise NotFoundError(

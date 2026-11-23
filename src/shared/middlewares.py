@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Middlewares globales de la aplicación FastAPI.
 
 - `RequestContextMiddleware`: inyecta `request_id`, IP y user-agent en `request.state`,
@@ -72,6 +73,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     los expone como X-Request-ID en la respuesta.
     """
     async def dispatch(self, request: Request, call_next):
+        """Asigna request id, IP, user agent y zona horaria a la petición antes de procesarla."""
         try:
             request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
             request.state.request_id = request_id
@@ -105,6 +107,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 class AccessLogMiddleware(BaseHTTPMiddleware):
     """Logging simple de acceso (útil si no dependes solo del log de Uvicorn)."""
     async def dispatch(self, request: Request, call_next):
+        """Registra en el log la petición y su respuesta con el tiempo de proceso."""
         start = time.time()
         req_id = getattr(request.state, "request_id", "-")
         log.info("Request [%s] %s %s", req_id, request.method, request.url.path)
@@ -133,6 +136,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next):
+        """Agrega las cabeceras de seguridad (CSP, HSTS, nosniff, frame) a la respuesta."""
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"

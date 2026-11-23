@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                   |
 # |------------|----------|---------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-107 RNF-03: catálogo de mensajes de error configurable |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router del catálogo de mensajes de error (`/configuracion/mensajes-error`, RF-107 RNF-03).
 
   GET    /configuracion/mensajes-error?idioma=        — autenticado (el front lo guarda y traduce los errores)
@@ -41,6 +42,7 @@ _CLAVE = Path(pattern=r"^[A-Z0-9_]{2,80}$", description="Clave del error, por ej
 
 
 class MensajeErrorDTO(BaseDTO):
+    """Datos de un mensaje de error personalizado."""
     idioma: Idioma = "es-CO"
     mensaje: str = Field(min_length=5, max_length=500)
     texto_accion: Optional[str] = Field(default=None, max_length=80)
@@ -50,6 +52,7 @@ class MensajeErrorDTO(BaseDTO):
 
 
 class MensajeErrorResponse(BaseModel):
+    """Mensaje de error personalizado."""
     clave: str
     idioma: str
     mensaje: str

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``AuditoriaIdentidadVisualRepository`` (RF-26)."""
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyAuditoriaIdentidadVisualRepository(AuditoriaIdentidadVisualRepository):
+    """Implementación SQLAlchemy de ``AuditoriaIdentidadVisualRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -25,6 +29,9 @@ class SqlAlchemyAuditoriaIdentidadVisualRepository(AuditoriaIdentidadVisualRepos
         valor_anterior: dict,
         valor_nuevo: dict,
     ) -> None:
+        """Inserta un registro de auditoría con la identidad visual antes y después del
+        cambio.
+        """
         orm = AuditoriaIdentidadVisualModel(
             id_usuario=id_usuario,
             fecha_creacion=datetime.now(timezone.utc),

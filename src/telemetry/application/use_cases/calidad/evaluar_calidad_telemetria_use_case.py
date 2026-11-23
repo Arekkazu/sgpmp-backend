@@ -8,6 +8,7 @@
 # | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
 # | 2026-10-31 | Claude | INC-M03-236-G16 RF-62: deriva contra el valor de referencia de la calibración vigente |
 # | 2026-11-19 | Arekkazu | SEG-M03-01 RF-63: la auditoría de calidad que falla queda en el log, no se descarta en silencio |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -56,6 +57,7 @@ from src.telemetry.domain.repositories.telemetria_repository import TelemetriaRe
 logger = logging.getLogger(__name__)
 
 class EvaluarCalidadTelemetriaUseCase:
+    """Evalúa la calidad de una lectura de telemetría y registra su resultado."""
 
     def __init__(
         self,
@@ -96,6 +98,7 @@ class EvaluarCalidadTelemetriaUseCase:
         correcciones: Optional[dict] = None,
         version_calibracion: Optional[str] = None,
     ) -> TelemetriaCalidad | None:
+        """Evalúa la calidad de la lectura indicada y persiste la evaluación."""
         self._confirmar = confirmar
         self._motivo_reevaluacion = motivo_reevaluacion
         self._correcciones = correcciones or {}

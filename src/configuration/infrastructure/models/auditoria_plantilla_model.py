@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.auditorias_plantillas`.
 
 Registro append-only de operaciones sobre plantillas de configuración: creación,
@@ -16,6 +19,7 @@ from .base_model import Base
 
 
 class AuditoriaPlantillaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.auditorias_plantillas``."""
     __tablename__ = 'auditorias_plantillas'
     __table_args__ = (
         CheckConstraint(

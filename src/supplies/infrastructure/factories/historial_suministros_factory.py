@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: 202 automático, archivos y purga   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Fábricas de wiring de RF-81 (Historial/Trazabilidad de Suministros).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases
@@ -58,6 +59,7 @@ from src.supplies.infrastructure.repositories.trabajo_historial_suministro_repos
 
 
 def build_consultar_historial_use_case(db: Session) -> ConsultarHistorialSuministrosUseCase:
+    """Construye ``ConsultarHistorialSuministrosUseCase`` con sus dependencias."""
     return ConsultarHistorialSuministrosUseCase(
         historial_port=SqlAlchemyHistorialSuministroReadRepository(db),
         alcance_port=AlcanceActivoM02Adapter(db),
@@ -70,6 +72,7 @@ def build_consultar_historial_use_case(db: Session) -> ConsultarHistorialSuminis
 
 
 def build_exportar_historial_use_case(db: Session) -> ExportarHistorialSincronoUseCase:
+    """Construye ``ExportarHistorialSincronoUseCase`` con sus dependencias."""
     return ExportarHistorialSincronoUseCase(
         historial_port=SqlAlchemyHistorialSuministroReadRepository(db),
         alcance_port=AlcanceActivoM02Adapter(db),
@@ -82,6 +85,7 @@ def build_exportar_historial_use_case(db: Session) -> ExportarHistorialSincronoU
 
 
 def build_solicitar_trabajo_historial_use_case(db: Session) -> SolicitarTrabajoHistorialUseCase:
+    """Construye ``SolicitarTrabajoHistorialUseCase`` con sus dependencias."""
     return SolicitarTrabajoHistorialUseCase(
         db=db,
         trabajo_repo=SqlAlchemyTrabajoHistorialSuministroRepository(db),
@@ -90,12 +94,14 @@ def build_solicitar_trabajo_historial_use_case(db: Session) -> SolicitarTrabajoH
 
 
 def build_consultar_estado_trabajo_historial_use_case(db: Session) -> ConsultarEstadoTrabajoHistorialUseCase:
+    """Construye ``ConsultarEstadoTrabajoHistorialUseCase`` con sus dependencias."""
     return ConsultarEstadoTrabajoHistorialUseCase(
         trabajo_repo=SqlAlchemyTrabajoHistorialSuministroRepository(db)
     )
 
 
 def build_descargar_resultado_trabajo_historial_use_case(db: Session) -> DescargarResultadoTrabajoHistorialUseCase:
+    """Construye ``DescargarResultadoTrabajoHistorialUseCase`` con sus dependencias."""
     return DescargarResultadoTrabajoHistorialUseCase(
         trabajo_repo=SqlAlchemyTrabajoHistorialSuministroRepository(db),
         archivo_repo=SqlAlchemyArchivoExportacionRepository(db),
@@ -103,6 +109,7 @@ def build_descargar_resultado_trabajo_historial_use_case(db: Session) -> Descarg
 
 
 def build_purgar_archivos_vencidos_use_case(db: Session) -> PurgarArchivosVencidosUseCase:
+    """Construye ``PurgarArchivosVencidosUseCase`` con sus dependencias."""
     return PurgarArchivosVencidosUseCase(
         db=db,
         archivo_repo=SqlAlchemyArchivoExportacionRepository(db),

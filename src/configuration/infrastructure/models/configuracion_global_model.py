@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.configuraciones_globales` (RF-18).
 
 Configuración operativa global única del sistema: frecuencia de muestreo
@@ -14,6 +17,7 @@ from .base_model import Base
 
 
 class ConfiguracionGlobalModel(Base):
+    """Modelo ORM de la tabla ``modulo9.configuraciones_globales``."""
     __tablename__ = 'configuraciones_globales'
     __table_args__ = (
         ForeignKeyConstraint(

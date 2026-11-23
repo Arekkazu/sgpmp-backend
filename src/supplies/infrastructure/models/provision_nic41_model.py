@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.provision_nic41`` (RF-79 / CU-05).
 
 Generado con sqlacodegen y adaptado (Base compartida, enum PG ``modalidad``
@@ -31,6 +34,7 @@ from .base_model import Base
 
 
 class ProvisionNic41Model(Base):
+    """Modelo ORM de la tabla ``modulo5.provision_nic41``."""
     __tablename__ = 'provision_nic41'
     __table_args__ = (
         ForeignKeyConstraint(['id_activo_biologico'], ['modulo2.activos_biologicos.id_activo_biologico'], name='fk_provision_nic41_activos_biologicos'),

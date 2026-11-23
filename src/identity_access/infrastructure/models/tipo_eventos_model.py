@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.tipos_eventos`.
 
 Catálogo descriptivo de los tipos de evento de auditoría (login, logout,
@@ -18,6 +21,7 @@ if TYPE_CHECKING:
 
 
 class TiposEventos(Base):
+    """Modelo ORM del catálogo de tipos de evento (tabla ``modulo1.tipos_eventos``)."""
     __tablename__ = 'tipos_eventos'
     __table_args__ = (
         PrimaryKeyConstraint('id_tipo_evento', name='tipos_evento_pkey'),

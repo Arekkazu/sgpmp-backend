@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.aplicaciones_plantillas`.
 
 Registro de cada aplicación de una plantilla sobre una configuración destino
@@ -16,6 +19,7 @@ from .base_model import Base
 
 
 class AplicacionPlantillaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.aplicaciones_plantillas``."""
     __tablename__ = 'aplicaciones_plantillas'
     __table_args__ = (
         ForeignKeyConstraint(

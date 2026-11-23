@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: proceso de reentrenamiento por animal con fases, latido y resultado |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Proceso de reentrenamiento del modelo individual de un animal (RF-71, AJF-14).
 
 Ciclo: PENDIENTE (lo solicita un usuario) → EN_CURSO (lo toma el motor de IA) →
@@ -41,6 +42,7 @@ class DatosAnimalReentrenamiento:
 
 @dataclass(eq=False)
 class ProcesoReentrenamiento:
+    """Proceso de reentrenamiento de un modelo y su ciclo de vida."""
     tipo_modelo: str
     id_activo_biologico: int
     id_proceso_reentrenamiento: Optional[uuid.UUID] = None
@@ -69,6 +71,7 @@ class ProcesoReentrenamiento:
     @classmethod
     def solicitar(cls, *, tipo_modelo: str, id_activo_biologico: int, id_usuario: Optional[int],
                   ahora: datetime, disparador: str = "MANUAL") -> "ProcesoReentrenamiento":
+        """Crea un proceso de reentrenamiento pendiente."""
         if disparador not in DISPARADORES:
             raise ValidationError("DISPARADOR_INVALIDO", f"disparador debe ser uno de {sorted(DISPARADORES)}.", field="disparador")
         return cls(tipo_modelo=tipo_modelo, id_activo_biologico=id_activo_biologico, disparador=disparador,
@@ -76,9 +79,15 @@ class ProcesoReentrenamiento:
 
     @property
     def abierto(self) -> bool:
+        """Indica si el proceso sigue abierto."""
         return self.estado in ESTADOS_ABIERTOS
 
     def iniciar(self, ahora: datetime, id_version_referencia: Optional[int]) -> None:
+        """Pasa el proceso a en curso.
+
+        Raises:
+            FlowError: Si no estaba pendiente.
+        """
         if self.estado != "PENDIENTE":
             raise FlowError("PROCESO_NO_PENDIENTE", "Solo se puede iniciar un proceso pendiente.")
         self.estado = "EN_CURSO"
@@ -114,6 +123,11 @@ class ProcesoReentrenamiento:
         self.fecha_ultimo_latido = ahora
 
     def completar(self, *, ahora: datetime, id_version_modelo: int) -> None:
+        """Marca el proceso como completado con la versión generada.
+
+        Raises:
+            FlowError: Si no estaba en curso.
+        """
         if self.estado != "EN_CURSO":
             raise FlowError("PROCESO_NO_EN_CURSO", "Solo se completa un proceso en curso.")
         self._abrir_fase(len(FASES), ahora)
@@ -122,6 +136,11 @@ class ProcesoReentrenamiento:
         self.porcentaje_progreso = 100
 
     def fallar(self, *, ahora: datetime, codigo_error: str, motivos: Optional[list] = None) -> None:
+        """Marca el proceso como fallido con su código de error.
+
+        Raises:
+            FlowError: Si el proceso ya estaba cerrado.
+        """
         if self.estado not in ESTADOS_ABIERTOS:
             raise FlowError("PROCESO_CERRADO", "El proceso ya terminó.")
         if not codigo_error or not codigo_error.strip():
@@ -131,11 +150,17 @@ class ProcesoReentrenamiento:
         self._cerrar(ahora, "FALLIDO", resultado_fase="FALLIDA")
 
     def interrumpir(self, ahora: datetime) -> None:
+        """Interrumpe el proceso en curso.
+
+        Raises:
+            FlowError: Si no estaba en curso.
+        """
         if self.estado != "EN_CURSO":
             raise FlowError("PROCESO_NO_EN_CURSO", "Solo se interrumpe un proceso en curso.")
         self._cerrar(ahora, "INTERRUMPIDO", resultado_fase="INTERRUMPIDA")
 
     def sin_latido(self, ahora: datetime, maximo: timedelta = LATIDO_MAXIMO) -> bool:
+        """Indica si el proceso dejó de reportar avance en el tiempo máximo."""
         referencia = self.fecha_ultimo_latido or self.fecha_inicio
         return self.estado == "EN_CURSO" and referencia is not None and ahora - referencia > maximo
 

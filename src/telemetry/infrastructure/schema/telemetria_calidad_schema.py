@@ -1,6 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-62: sensor y lectura por nombre en calidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y schemas |
+"""Schemas de respuesta de la calidad de telemetría (RF-62).
+
+Expone las evaluaciones, el listado paginado y el resumen de una reevaluación,
+con el sensor y la lectura resueltos por nombre.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +17,8 @@ from pydantic import BaseModel, ConfigDict
 
 
 class TelemetriaCalidadSchema(BaseModel):
+    """Evaluación de calidad de una lectura con nombres legibles."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id_evaluacion: UUID
@@ -38,6 +46,8 @@ class TelemetriaCalidadSchema(BaseModel):
 
 
 class ListaCalidadSchema(BaseModel):
+    """Página de evaluaciones de calidad."""
+
     total: int
     pagina: int
     por_pagina: int
@@ -45,5 +55,7 @@ class ListaCalidadSchema(BaseModel):
 
 
 class ReevaluacionResponseSchema(BaseModel):
+    """Resumen de una reevaluación: evaluaciones superadas y creadas."""
+
     evaluaciones_superadas: int
     evaluaciones_creadas: int

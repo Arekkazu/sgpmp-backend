@@ -2,6 +2,8 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-42 RF-60: bloquea estados y verifica alcance de finca |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: listado de dispositivos con estado, batería y señal |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio del estado vigente de los dispositivos IoT (RF-60)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -18,11 +20,13 @@ from src.telemetry.infrastructure.models.estado_dispositivo_iot_model import Est
 
 
 class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
+    """Lee y actualiza el estado de los dispositivos con bloqueo por dispositivo."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def bloquear_por_dispositivo(self, id_dispositivo_iot):
+        """Bloquea el estado del dispositivo y devuelve su fila para actualización."""
         self.db.execute(text('SELECT pg_advisory_xact_lock(3505, :id)'), {'id': id_dispositivo_iot})
         orm = self.db.execute(select(EstadoDispositivoIoTModel).where(
             EstadoDispositivoIoTModel.id_dispositivo_iot == id_dispositivo_iot
@@ -31,6 +35,7 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
         return self._a_entidad(orm) if orm else None
 
     def pertenece_a_fincas(self, id_dispositivo_iot, fincas):
+        """Indica si el dispositivo pertenece a alguna de las fincas dadas."""
         return bool(self.db.execute(text('''SELECT EXISTS (
             SELECT 1 FROM modulo9.dispositivos_iot d JOIN modulo9.infraestructuras i
               ON i.id_infraestructura=d.id_infraestructura
@@ -38,6 +43,7 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
             {'id': id_dispositivo_iot, 'fincas': fincas}).scalar_one())
 
     def listar_con_estado(self, ids_fincas_permitidas, estado=None):
+        """Lista dispositivos activos con estado, batería y señal, ordenados por riesgo."""
         # M3-10: el estado vigente es el más reciente (UNIQUE en BD, LIMIT 1 por si un
         # entorno conserva duplicados); batería y señal salen del último heartbeat.
         filas = self.db.execute(text('''
@@ -66,6 +72,7 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
         return [DispositivoConEstado(**dict(f)) for f in filas]
 
     def obtener_por_dispositivo(self, id_dispositivo_iot: int) -> Optional[EstadoDispositivoIoT]:
+        """Devuelve el estado vigente del dispositivo, o ``None`` si no existe."""
         # Un estado actual por dispositivo (garantizado por UNIQUE en DB). Se ordena y
         # limita a 1 para no romper con 500 si algún entorno todavía tuviera duplicados.
         orm = self.db.execute(
@@ -81,6 +88,7 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
         return self._a_entidad(orm) if orm else None
 
     def listar_activos(self) -> List[EstadoDispositivoIoT]:
+        """Lista los estados de dispositivos que no están en mantenimiento."""
         rows = self.db.execute(
             select(EstadoDispositivoIoTModel).where(
                 EstadoDispositivoIoTModel.estado_actual != 'EN_MANTENIMIENTO'
@@ -89,6 +97,7 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
         return [self._a_entidad(r) for r in rows]
 
     def guardar(self, estado: EstadoDispositivoIoT) -> EstadoDispositivoIoT:
+        """Inserta el estado de un dispositivo y lo devuelve persistido."""
         try:
             orm = EstadoDispositivoIoTModel(
                 id_dispositivo_iot=estado.id_dispositivo_iot,
@@ -109,6 +118,7 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
             raise_from_db_error(exc)
 
     def actualizar(self, estado: EstadoDispositivoIoT) -> EstadoDispositivoIoT:
+        """Actualiza el estado existente y devuelve la entidad refrescada."""
         try:
             orm = self.db.get(EstadoDispositivoIoTModel, estado.id_estado_dispositivo_iot)
             orm.estado_actual = estado.estado_actual

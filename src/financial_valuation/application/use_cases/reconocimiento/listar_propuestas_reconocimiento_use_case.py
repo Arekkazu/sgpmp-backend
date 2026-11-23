@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-82 CA-1: bandeja de propuestas de reconocimiento inicial |
 # | 2026-11-11 | Arekkazu | USAB-M06 M6-03 RF-82/87: razón social del período y listas filtradas por el titular del período |
 # | 2026-11-14 | Arekkazu | FILTRO-FINCA RF-82: la propuesta trae el id de la finca para el filtro |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-82 pasos 1-6: propuestas calculadas al vuelo para los activos sin reconocimiento."""
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from src.shared.errors import NotFoundError
 
 
 def serializar_propuesta(p: Propuesta) -> dict:
+    """Serializa una propuesta de reconocimiento."""
     a = p.activo
     return {
         "id_activo_biologico": a.id_activo_biologico, "identificador": a.identificador, "tipo": a.tipo,
@@ -33,16 +35,19 @@ def serializar_propuesta(p: Propuesta) -> dict:
 
 
 class ListarPropuestasReconocimientoUseCase:
+    """Lista las propuestas de reconocimiento pendientes."""
     def __init__(self, activos: ActivoFinancieroPort, proponedor: ProponedorReconocimiento) -> None:
         self.activos = activos
         self.proponedor = proponedor
 
     def execute(self, id_usuario: int, numero_id_tributaria: Optional[str] = None) -> list[dict]:
+        """Lista las propuestas de los activos sin reconocer, opcionalmente de un titular."""
         return [serializar_propuesta(self.proponedor.proponer(a, id_usuario))
                 for a in self.activos.listar_sin_reconocimiento(numero_id_tributaria)]
 
     def de_activo(self, id_activo_biologico: int, id_usuario: int, costos_manuales: Optional[dict] = None,
                   clasificacion: Optional[str] = None) -> dict:
+        """Devuelve la propuesta de un activo."""
         activo = self.activos.obtener(id_activo_biologico)
         if activo is None:
             raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe.")

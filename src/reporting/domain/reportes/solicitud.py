@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                          |
 # |------------|----------|----------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: solicitud de reporte, ciclo de estados y reglas de descarga |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Solicitud de un reporte (RF-104) y su ciclo: EN_PROCESO → GENERADO → EXPIRADO, o FALLIDO / CANCELADO.
 
 - El archivo queda disponible 48 h desde su generación; después se borra y la solicitud queda EXPIRADA (410).
@@ -27,11 +28,13 @@ MENSAJE_FALLO = "No pudimos generar el reporte. Vuelve a intentarlo; si sigue fa
 
 
 def sha256(contenido: bytes) -> str:
+    """Hash SHA-256 en hexadecimal del contenido."""
     return hashlib.sha256(contenido).hexdigest()
 
 
 @dataclass
 class ArchivoReporte:
+    """Archivo (parte) generado de un reporte."""
     numero_parte: int
     nombre_archivo: str
     tipo_contenido: str
@@ -46,6 +49,7 @@ class ArchivoReporte:
 
 @dataclass(eq=False)
 class SolicitudReporte:
+    """Solicitud de generación de un reporte y su ciclo de vida."""
     id_usuario: int
     tipo_reporte: str
     formato: str
@@ -73,6 +77,7 @@ class SolicitudReporte:
 
     def registrar_generacion(self, partes: list[ArchivoReporte], numero_registros: int,
                              fecha_snapshot: datetime, ahora: datetime) -> None:
+        """Marca la solicitud como generada con sus partes."""
         self.estado = GENERADO
         self.numero_registros = numero_registros
         self.numero_partes = len(partes)
@@ -96,11 +101,17 @@ class SolicitudReporte:
         return False
 
     def marcar_fallida(self, mensaje: str) -> None:
+        """Marca la solicitud como fallida con su mensaje."""
         self.estado = FALLIDO
         self.mensaje_error = mensaje
         self.fecha_proximo_intento = None
 
     def cancelar(self, id_usuario: int) -> None:
+        """Cancela la solicitud en proceso.
+
+        Raises:
+            FlowError: Si la solicitud no está en proceso.
+        """
         self._exigir_propietario(id_usuario)
         if self.estado != EN_PROCESO:
             raise FlowError(code="REPORTE_NO_CANCELABLE", field="estado",
@@ -109,10 +120,12 @@ class SolicitudReporte:
         self.fecha_proximo_intento = None
 
     def expirar(self, ahora: datetime) -> None:
+        """Marca la solicitud como expirada."""
         self.estado = EXPIRADO
         self.fecha_eliminacion = ahora
 
     def vencida(self, ahora: datetime) -> bool:
+        """Indica si el reporte ya expiró."""
         return self.estado == EXPIRADO or (
             self.estado == GENERADO and self.fecha_expiracion is not None and ahora >= self.fecha_expiracion)
 

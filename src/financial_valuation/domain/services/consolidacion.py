@@ -6,6 +6,7 @@
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-358-G71/G72 RF-93: ventas y bajas sin recuperación en componentes de gasto separados |
 # | 2026-11-14 | Arekkazu | INC-M06-364-G24 RF-85/93: la pérdida al reconocer el producto de consumo va al estado de resultados |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Consolidaciones del cierre (RF-87 v1.1) y del estado de resultados (RF-93). Python puro."""
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ from src.financial_valuation.domain.value_objects.nic41 import Sentido, TipoHech
 
 @dataclass(frozen=True)
 class LineaContable:
+    """Línea contable consolidable en un comprobante."""
     id_linea: int
     tipo_hecho: str
     sentido: str
@@ -33,6 +35,7 @@ class LineaContable:
 
 @dataclass(frozen=True)
 class Comprobante:
+    """Comprobante contable NIC 41 consolidado."""
     codigo: str
     numero_id_tributaria: str
     tipo_hecho: str
@@ -44,6 +47,7 @@ class Comprobante:
 
     @property
     def hash_integridad(self) -> str:
+        """Hash de integridad del comprobante."""
         return hash_sha256({"codigo": self.codigo, "fecha": self.fecha_comprobante, "lineas": self.lineas})
 
 
@@ -114,6 +118,7 @@ class MovimientoResultado:
 
 @dataclass(frozen=True)
 class CostoPeriodo:
+    """Costo del periodo con su naturaleza."""
     naturaleza: Optional[str]
     politica: Optional[str]
     monto: Decimal
@@ -123,19 +128,23 @@ class CostoPeriodo:
 
 @dataclass(frozen=True)
 class EstadoResultados:
+    """Estado de resultados NIC 41 por componente."""
     componentes: dict[str, Decimal]
     desglose_mantenimiento: dict[str, Decimal] = field(default_factory=dict)
 
     @property
     def total_ingresos(self) -> Decimal:
+        """Total de ingresos."""
         return sum((self.componentes[c] for c in INGRESOS), CERO)
 
     @property
     def total_gastos(self) -> Decimal:
+        """Total de gastos."""
         return sum((self.componentes[c] for c in GASTOS), CERO)
 
     @property
     def resultado_neto(self) -> Decimal:
+        """Resultado neto (ingresos menos gastos)."""
         return self.total_ingresos - self.total_gastos
 
 

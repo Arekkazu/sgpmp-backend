@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM mínimo para ``modulo9.ciclos_productivos`` (catálogo, M09).
 
 No existía ningún modelo ORM para esta tabla en todo el proyecto — M02
@@ -21,6 +24,7 @@ from .base_model import Base
 
 
 class CicloProductivoModel(Base):
+    """Modelo ORM de la tabla ``modulo9.ciclos_productivos``."""
     __tablename__ = 'ciclos_productivos'
     __table_args__ = (
         PrimaryKeyConstraint('id_ciclo_productivo', name='ciclos_productivos_pkey'),

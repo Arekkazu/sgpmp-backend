@@ -4,6 +4,8 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: bateria unica, reloj futuro y reconexion |
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: conservar las métricas de buffer en la misma transacción del heartbeat. |
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: revalidar la fuente vigente bajo bloqueo y respetar los pendientes reportados. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Casos de uso de recepción y procesamiento del heartbeat de dispositivos IoT."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -19,6 +21,7 @@ from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
 from .transicion_comunicacion import completar_transicion_comunicacion
 
 class RecibirHeartbeatUseCase:
+    """Autentica el dispositivo y persiste el heartbeat recibido."""
 
     def __init__(
         self,
@@ -31,6 +34,7 @@ class RecibirHeartbeatUseCase:
         self.heartbeat_repo = heartbeat_repo
 
     def execute(self, dto: HeartbeatDTO) -> Heartbeat:
+        """Valida el dispositivo, guarda el heartbeat y lo devuelve."""
         device_id = dto.device_id
         ahora = datetime.now(timezone.utc)
 
@@ -94,6 +98,7 @@ class ProcesarHeartbeatPersistidoUseCase:
         self.periodo_repo = periodo_repo
 
     def procesar_estado(self, heartbeat: Heartbeat, es_ultimo: bool):
+        """Actualiza el estado de comunicación del dispositivo con el último heartbeat."""
         if not es_ultimo:
             return
         estado = self.estado_repo.bloquear_por_dispositivo(heartbeat.id_dispositivo_iot)
@@ -123,6 +128,7 @@ class ProcesarHeartbeatPersistidoUseCase:
 
 
     def procesar_alertas(self, heartbeat: Heartbeat, id_infraestructura: int):
+        """Genera las alertas técnicas derivadas del heartbeat (reloj, diagnóstico)."""
         self.alerta_repo.bloquear_dispositivo(heartbeat.id_dispositivo_iot)
         if heartbeat.fecha_registro > heartbeat.fecha_recepcion:
             if not self.alerta_repo.buscar_tecnica_activa_dispositivo(heartbeat.id_dispositivo_iot, 'DESINCRONIZACION_RELOJ'):

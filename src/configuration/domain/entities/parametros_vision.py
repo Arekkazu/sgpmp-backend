@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: parametros de calidad de vision en DEV-14 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Claves del indice RF-62; defaults D solo para siembra explicita."""
 from fractions import Fraction
 
@@ -22,6 +23,7 @@ PREDETERMINADOS_VISION = {
 
 
 def vision_configurada(parametros):
+    """Devuelve la política de visión configurada y validada."""
     valores = {nombre: numero_configurado(parametros, nombre,
         minimo=limites[0], maximo=limites[1], entero=nombre == TOLERABLES)
         for nombre, limites in LIMITES_VISION.items()}

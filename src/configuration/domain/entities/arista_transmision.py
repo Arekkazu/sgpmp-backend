@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: arista de transmisión entre dos áreas      |
 # | 2026-11-02 | Arekkazu | RF-110: editar vía, dirección, intensidad y barrera de una arista |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Arista de la topología sanitaria (RF-110, RFC-021 §1.1): una vía por la que una enfermedad puede
 pasar de un área a otra de la misma finca."""
 from __future__ import annotations
@@ -19,6 +20,7 @@ DIRECCIONES = ("DIRIGIDA", "BIDIRECCIONAL")
 
 @dataclass
 class AristaTransmision:
+    """Arista de transmisión sanitaria entre dos áreas."""
     id_infraestructura_origen: int
     id_infraestructura_destino: int
     via: str
@@ -37,6 +39,7 @@ class AristaTransmision:
     def declarar(cls, *, id_infraestructura_origen: int, id_infraestructura_destino: int, via: str,
                  direccion: str, intensidad: Decimal, factor_barrera: Decimal, descripcion: Optional[str],
                  id_usuario: int) -> "AristaTransmision":
+        """Crea una arista validando sus datos."""
         if id_infraestructura_origen == id_infraestructura_destino:
             raise BusinessRuleError(
                 code="ARISTA_MISMA_AREA",
@@ -62,5 +65,6 @@ class AristaTransmision:
         self.fecha_actualizacion = datetime.now(timezone.utc)
 
     def desactivar(self) -> None:
+        """Marca la entidad como inactiva."""
         self.es_activo = False
         self.fecha_actualizacion = datetime.now(timezone.utc)

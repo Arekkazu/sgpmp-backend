@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de despliegues OTA."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -7,13 +11,16 @@ from src.prediction.domain.entities.despliegue_ota import DespliegueOta
 
 
 class DespliegueOtaRepository(ABC):
+    """Puerto de persistencia de despliegues OTA."""
     @abstractmethod
     def obtener_por_version(
         self,
         id_version: int,
         id_dispositivo: Optional[int] = None,
         estado: Optional[str] = None,
-    ) -> list[DespliegueOta]: ...
+    ) -> list[DespliegueOta]:
+        """Lista los despliegues de la versión."""
+        ...
 
     @abstractmethod
     def listar(
@@ -23,10 +30,14 @@ class DespliegueOtaRepository(ABC):
         estado: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> tuple[list[DespliegueOta], int]: ...
+    ) -> tuple[list[DespliegueOta], int]:
+        """Lista los despliegues con filtros."""
+        ...
 
     @abstractmethod
-    def obtener_por_id(self, id_despliegue: int, *, bloquear: bool = False) -> Optional[DespliegueOta]: ...
+    def obtener_por_id(self, id_despliegue: int, *, bloquear: bool = False) -> Optional[DespliegueOta]:
+        """Devuelve el despliegue, opcionalmente bloqueado, o ``None``."""
+        ...
 
     # ── DEV-15: orquestador OTA ─────────────────────────────────────────────
 
@@ -37,10 +48,14 @@ class DespliegueOtaRepository(ABC):
         ...
 
     @abstractmethod
-    def actualizar(self, entidad: DespliegueOta) -> DespliegueOta: ...
+    def actualizar(self, entidad: DespliegueOta) -> DespliegueOta:
+        """Actualiza el despliegue."""
+        ...
 
     @abstractmethod
-    def listar_por_distribucion(self, id_distribucion: int, fase: Optional[str] = None) -> list[DespliegueOta]: ...
+    def listar_por_distribucion(self, id_distribucion: int, fase: Optional[str] = None) -> list[DespliegueOta]:
+        """Lista los despliegues de la distribución, opcionalmente de una fase."""
+        ...
 
     @abstractmethod
     def nodos_con_despliegue_vigente(

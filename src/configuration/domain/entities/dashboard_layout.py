@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                    |
 # |------------|----------|----------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: opciones por widget y frecuencia de actualización   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``DashboardLayout`` — configuración del dashboard por usuario (RF-28).
 
 Grilla 4×3 con máximo 12 widgets activos. El JSONB se estructura como
@@ -41,6 +42,7 @@ class WidgetConfig:
     parametros: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
+        """Serializa la configuración del widget."""
         datos = {
             "id_widget": self.id_widget,
             "posicion_fila": self.posicion_fila,
@@ -55,6 +57,7 @@ class WidgetConfig:
 
     @classmethod
     def from_dict(cls, d: dict) -> WidgetConfig:
+        """Crea la configuración del widget desde un diccionario."""
         return cls(
             id_widget=d["id_widget"],
             posicion_fila=d["posicion_fila"],
@@ -87,6 +90,7 @@ class DashboardLayout:
         active_widget: list[str],
         frecuencia_actualizacion: int = FRECUENCIA_DEFECTO,
     ) -> DashboardLayout:
+        """Crea la entidad validando sus datos."""
         cls._validar(grid, active_widget)
         cls._validar_frecuencia(frecuencia_actualizacion)
         return cls(
@@ -99,6 +103,7 @@ class DashboardLayout:
 
     def actualizar(self, *, grid: list[WidgetConfig], active_widget: list[str],
                    frecuencia_actualizacion: Optional[int] = None) -> None:
+        """Actualiza los datos editables validándolos."""
         self._validar(grid, active_widget)
         if frecuencia_actualizacion is not None:
             self._validar_frecuencia(frecuencia_actualizacion)
@@ -212,6 +217,7 @@ class DashboardLayout:
             )
 
     def config_jsonb(self) -> dict:
+        """Configuración del tablero en el formato guardado en la base."""
         return {"grid": [w.to_dict() for w in self.grid], "frecuencia_actualizacion": self.frecuencia_actualizacion}
 
     def __eq__(self, other: object) -> bool:

@@ -4,6 +4,8 @@
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-72 P-6: retroalimentaciones con el código RF-64 de cada diagnóstico |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de persistencia de procesos de reentrenamiento."""
 from __future__ import annotations
 
 import uuid
@@ -15,12 +17,17 @@ from src.prediction.domain.entities.proceso_reentrenamiento import DatosAnimalRe
 
 
 class ProcesoReentrenamientoRepository(ABC):
+    """Puerto de persistencia de procesos de reentrenamiento."""
 
     @abstractmethod
-    def crear(self, proceso: ProcesoReentrenamiento) -> ProcesoReentrenamiento: ...
+    def crear(self, proceso: ProcesoReentrenamiento) -> ProcesoReentrenamiento:
+        """Crea el proceso."""
+        ...
 
     @abstractmethod
-    def obtener(self, id_proceso: uuid.UUID) -> Optional[ProcesoReentrenamiento]: ...
+    def obtener(self, id_proceso: uuid.UUID) -> Optional[ProcesoReentrenamiento]:
+        """Devuelve el proceso, o ``None``."""
+        ...
 
     @abstractmethod
     def abierto_de(self, id_activo_biologico: int) -> Optional[ProcesoReentrenamiento]:
@@ -31,12 +38,16 @@ class ProcesoReentrenamientoRepository(ABC):
         """El PENDIENTE más antiguo, bloqueado para esta transacción (``FOR UPDATE SKIP LOCKED``)."""
 
     @abstractmethod
-    def guardar(self, proceso: ProcesoReentrenamiento) -> ProcesoReentrenamiento: ...
+    def guardar(self, proceso: ProcesoReentrenamiento) -> ProcesoReentrenamiento:
+        """Actualiza el proceso."""
+        ...
 
     @abstractmethod
     def listar(self, *, tipo_modelo: Optional[str], id_activo_biologico: Optional[int], estado: Optional[str],
                desde: Optional[datetime], hasta: Optional[datetime], pagina: int, por_pagina: int,
-               ) -> tuple[list[ProcesoReentrenamiento], int]: ...
+               ) -> tuple[list[ProcesoReentrenamiento], int]:
+        """Lista los procesos con filtros y paginación."""
+        ...
 
     @abstractmethod
     def en_curso(self) -> list[ProcesoReentrenamiento]:

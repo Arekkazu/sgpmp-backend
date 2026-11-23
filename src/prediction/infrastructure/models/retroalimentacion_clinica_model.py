@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Modelo ORM de la tabla ``modulo4.retroalimentaciones_clinicas``."""
 from __future__ import annotations
 
 import uuid
@@ -12,6 +16,7 @@ from src.prediction.infrastructure.models.base_model import Base
 
 
 class RetroalimentacionClinicaModel(Base):
+    """Modelo ORM de la tabla ``modulo4.retroalimentaciones_clinicas``."""
     __tablename__ = "retroalimentaciones_clinicas"
     __table_args__ = {"schema": "modulo4"}
 

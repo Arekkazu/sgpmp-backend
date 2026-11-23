@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para el historial diagnóstico M04 (`/prediccion/historial`).
 
 RF-67 CU-04: consulta paginada por cursor del historial diagnóstico de un activo biológico.
@@ -53,6 +56,7 @@ def consultar_historial(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialDiagnosticoResponse:
+    """Consulta el historial diagnóstico de un activo."""
     use_case = ConsultarHistorialUseCase(
         db=db,
         repo=SqlAlchemyHistorialDiagnosticoRepository(db),

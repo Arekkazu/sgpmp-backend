@@ -5,6 +5,8 @@
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: persistir procedencia de densidad y leer snapshots históricos compatibles. |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: conservar el perfil en el snapshot y leer ESTANDAR en resultados legados. |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: la exposición a focos vecinos queda en el detalle del cálculo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de resultados de riesgo de contagio."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -39,11 +41,13 @@ def _snapshot(r: ResultadoRiesgoContagio) -> dict:
 
 
 class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioRepository):
+    """Implementación SQLAlchemy de ``ResultadoRiesgoContagioRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def guardar(self, resultado: ResultadoRiesgoContagio) -> ResultadoRiesgoContagio:
+        """Paso 9: persiste el resultado vinculado al lote (historial RF-67, auditoría RF-73)."""
         try:
             orm = ResultadoRiesgoContagioModel(
                 id_activo_biologico=resultado.id_lote,
@@ -75,6 +79,7 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
             raise_from_db_error(exc)
 
     def ultimos_por_lote(self, id_lote: int, cantidad: int) -> list[ResultadoRiesgoContagio]:
+        """Los últimos cálculos del lote, del más reciente al más antiguo."""
         filas = self.db.execute(
             select(ResultadoRiesgoContagioModel)
             .where(ResultadoRiesgoContagioModel.id_activo_biologico == id_lote)
@@ -85,6 +90,7 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
         return [self._a_entidad(f) for f in filas]
 
     def asociar_alerta(self, id_resultado: int, id_alerta: int) -> None:
+        """Deja el id de la alerta RF-57 en el snapshot del resultado."""
         orm = self.db.get(ResultadoRiesgoContagioModel, id_resultado)
         orm.variables_ambientales_snap = {**(orm.variables_ambientales_snap or {}), "id_alerta_rf57": id_alerta}
         self.db.flush()

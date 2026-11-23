@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: integra avisos con contrato real RF-14 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """Sin semillas ni sustitución por eventos de otros módulos."""
 from sqlalchemy import select, text
 from src.identity_access.infrastructure.models.eventos_model import Eventos
@@ -14,10 +15,18 @@ from src.identity_access.domain.value_objects.evento_categoria import categoria_
 
 
 class AvisoIntegridadM01Adapter:
+    """Notifica a los administradores activos un incidente de integridad IoT."""
+
     def __init__(self, db):
         self.db = db
 
     def notificar(self, id_incidente, ids_comprometidos):
+        """Registra el evento RF-14 y encola avisos internos para los administradores.
+
+        Raises:
+            ServiceUnavailableError: Si falta el contrato de aviso o no hay destinatarios.
+            RuntimeError: Si no se confirma el evento origen.
+        """
         tipo = self.db.execute(text("SELECT id_tipo_evento FROM modulo1.tipos_eventos WHERE nombre='INTEGRIDAD_COMPROMETIDA'")).scalar_one_or_none()
         if tipo is None:
             raise ServiceUnavailableError(code='CONTRATO_AVISO_INTEGRIDAD_PENDIENTE',

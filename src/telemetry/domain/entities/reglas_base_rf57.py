@@ -3,6 +3,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: bandas base de Fase 5, THI y escalada de ESTRES_TERMICO |
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: condición mínima de ESTRES_TERMICO y RIESGO_HIDRICO, THI NRC |
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: variable compañera y reglas simples como objeto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-57 Fase 5: valores base de las reglas simples y de la regla compuesta ESTRES_TERMICO.
 
 La severidad de un evento externo sale del valor, no de lo que declara el emisor
@@ -28,12 +29,14 @@ _SUBIR = {LEVE: MODERADO, MODERADO: CRITICO, CRITICO: CRITICO}
 
 @dataclass(frozen=True)
 class Banda:
+    """Banda de severidad definida por límites inferior, superior o de inicio."""
     severidad: str
     por_debajo_de: Optional[Decimal] = None   # valor < límite
     por_encima_de: Optional[Decimal] = None   # valor > límite
     desde: Optional[Decimal] = None           # valor >= límite
 
     def aplica(self, valor: Decimal) -> bool:
+        """Indica si el valor cae dentro de la banda."""
         return ((self.por_debajo_de is not None and valor < self.por_debajo_de)
                 or (self.por_encima_de is not None and valor > self.por_encima_de)
                 or (self.desde is not None and valor >= self.desde))
@@ -69,21 +72,25 @@ _TEMPERATURA_CORPORAL_ESCALADA = Decimal("40")
 
 
 def calcular_thi(temperatura: Decimal, humedad: Decimal) -> Decimal:
+    """Calcula el índice de temperatura-humedad (THI) redondeado a dos decimales."""
     f = Decimal("1.8") * temperatura
     thi = (f + 32) - (Decimal("0.55") - Decimal("0.0055") * humedad) * (f - 26)
     return thi.quantize(Decimal("0.01"))
 
 
 def severidad_por_bandas(bandas, valor: Decimal) -> Optional[str]:
+    """Devuelve la severidad de la primera banda que aplica al valor, o None."""
     return next((b.severidad for b in bandas if b.aplica(valor)), None)
 
 
 def mayor(a: Optional[str], b: Optional[str]) -> Optional[str]:
+    """Devuelve la mayor de dos severidades."""
     return a if _ORDEN[a] >= _ORDEN[b] else b
 
 
 @dataclass
 class EvaluacionRF57:
+    """Resultado de evaluar un evento contra las bandas base."""
     evaluable: bool
     severidad: Optional[str] = None        # None con evaluable=True → banda NORMAL
     detalle: dict[str, Any] = field(default_factory=dict)
@@ -91,6 +98,7 @@ class EvaluacionRF57:
 
 def evaluar_evento(tipo_variable: str, valor: Decimal,
                    correlacion: Optional[dict[str, Any]] = None) -> EvaluacionRF57:
+    """Evalúa el valor de una variable contra sus bandas base y correlaciones."""
     tipo = tipo_variable.upper()
     if tipo not in BANDAS_BASE:
         return EvaluacionRF57(evaluable=False, detalle={"motivo": "banda dependiente de especie o de media móvil"})
@@ -191,6 +199,7 @@ def regla_simple(tipo_variable: str, valor: Decimal, id_sensor: Optional[int] = 
 
 
 def regla_compuesta(compuesta: str, thi: Optional[str] = None) -> dict[str, Any]:
+    """Describe la regla compuesta aplicada para la trazabilidad de la alerta."""
     return {"id": f"RF57_{compuesta}", "nombre": compuesta, "tipo": "REGLA_COMPUESTA_RF57", "thi": thi}
 
 
@@ -205,6 +214,7 @@ def _motivo_escalada(corr: "_Correlacion") -> Optional[str]:
 
 
 def fuera_de_rango_fisico(valor: Decimal, minimo: Optional[Decimal], maximo: Optional[Decimal]) -> bool:
+    """Indica si el valor está fuera del rango físico del sensor."""
     return (minimo is not None and valor < minimo) or (maximo is not None and valor > maximo)
 
 

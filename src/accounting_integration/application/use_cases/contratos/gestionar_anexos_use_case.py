@@ -3,6 +3,7 @@
 # | 2026-11-06 | Arekkazu | M07 RF-AE02: registro, revisión (validación automática) y aprobación del anexo |
 # | 2026-11-19 | Leandro | INC-M07-377-G60 RF-AE02: bloquear y auditar fallas de cobertura y cuadre del resumen. |
 # | 2026-11-19 | Arekkazu | M7-02 RF-98: la aprobación interna guarda la justificación del Contador |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Anexo de mapeo AAEF (RF-AE02 v3.0): BORRADOR → EN_REVISION → APROBADO, sin vuelta atrás.
 
 - Pasar a revisión es la aprobación interna del Contador (5.9) y exige la validación automática con
@@ -93,6 +94,7 @@ def validar_con_datos_de_prueba() -> list[str]:
 
 
 class GestionarAnexosUseCase:
+    """Registra y hace avanzar los anexos de mapeo de la exportación contable."""
     def __init__(self, contratos: ContratoRepository, auditoria: AuditoriaIntegracionRepository, db: Session):
         self.contratos = contratos
         self.auditoria = auditoria
@@ -118,6 +120,7 @@ class GestionarAnexosUseCase:
 
     def registrar(self, codigo_anexo: str, version_anexo: str, ruta_documento: str, sha256_documento: str,
                   id_usuario: int) -> AnexoMapeo:
+        """Registra un anexo en borrador con el hash de su documento."""
         sha = sha256_documento.strip().lower()
         if not _SHA256.match(sha):
             raise ValidationError(code="HASH_DOCUMENTO_INVALIDO", field="sha256_documento",
@@ -126,6 +129,7 @@ class GestionarAnexosUseCase:
                                "ANEXO_REGISTRADO", id_usuario, {"sha256_documento": sha})
 
     def enviar_a_revision(self, id_mapeo_anexo_aaef: int, id_usuario: int, justificacion: str) -> AnexoMapeo:
+        """Envía el anexo a revisión si pasa las validaciones con datos de prueba."""
         anexo = self._anexo(id_mapeo_anexo_aaef)
         fallas = validar_con_datos_de_prueba()
         if fallas:  # FA-2: no avanza
@@ -145,6 +149,7 @@ class GestionarAnexosUseCase:
                                {"validacion_automatica": "OK", "justificacion": justificacion})
 
     def aprobar(self, id_mapeo_anexo_aaef: int, evidencia: dict, id_usuario: int) -> AnexoMapeo:
+        """Aprueba el anexo con la evidencia de la prueba."""
         anexo = self._anexo(id_mapeo_anexo_aaef)
         anexo.aprobar(datetime.now(timezone.utc), evidencia)
         return self._confirmar(anexo, "ANEXO_APROBADO", id_usuario, {"evidencia": evidencia})

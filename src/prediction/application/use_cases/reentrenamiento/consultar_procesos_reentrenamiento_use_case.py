@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71 BE-4: procesos de reentrenamiento para la pantalla |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta de procesos de reentrenamiento."""
 from __future__ import annotations
 
 import uuid
@@ -23,6 +25,7 @@ class ConsultarProcesosReentrenamientoUseCase:
     def listar(self, *, tipo_modelo: Optional[str] = None, id_activo_biologico: Optional[int] = None,
                estado: Optional[str] = None, desde: Optional[datetime] = None, hasta: Optional[datetime] = None,
                pagina: int = 1, por_pagina: int = 20) -> tuple[list[ProcesoReentrenamiento], int]:
+        """Lista los procesos de reentrenamiento con filtros y paginación."""
         if estado is not None and estado not in ESTADOS_ABIERTOS | ESTADOS_FINALES:
             raise ValidationError("ESTADO_INVALIDO", f"estado debe ser uno de {sorted(ESTADOS_ABIERTOS | ESTADOS_FINALES)}.", field="estado")
         if pagina < 1 or not 1 <= por_pagina <= POR_PAGINA_MAXIMO:
@@ -33,6 +36,11 @@ class ConsultarProcesosReentrenamientoUseCase:
                                      desde=desde, hasta=hasta, pagina=pagina, por_pagina=por_pagina)
 
     def obtener(self, id_proceso: uuid.UUID) -> ProcesoReentrenamiento:
+        """Devuelve el proceso.
+
+        Raises:
+            NotFoundError: Si el proceso no existe.
+        """
         proceso = self._procesos.obtener(id_proceso)
         if proceso is None:
             raise NotFoundError("PROCESO_NO_ENCONTRADO", "El proceso de reentrenamiento no existe o no está en tus fincas.")

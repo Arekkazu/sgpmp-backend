@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: mensaje de cada flujo alterno      |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio :class:`ResultadoICA` (RF-74 / CU-02).
 
 Representa el resultado del cálculo del ICA de un activo en un período. Es pura
@@ -67,6 +68,7 @@ class ResultadoICA:
         peso_final_kg: Optional[Decimal] = None,
         pesaje_descartado: Optional[tuple[date, Decimal]] = None,
     ) -> "ResultadoICA":
+        """Crea el resultado a partir del cálculo de ICA."""
         return cls(
             id_activo_biologico=id_activo_biologico,
             periodo_evaluacion=periodo.periodo,
@@ -119,6 +121,7 @@ class ResultadoICA:
 
     @property
     def es_critica(self) -> bool:
+        """Indica si la conversión es crítica."""
         return self.clasificacion_ca == ClasificacionCA.CRITICA
 
     def _snapshot(self) -> dict:

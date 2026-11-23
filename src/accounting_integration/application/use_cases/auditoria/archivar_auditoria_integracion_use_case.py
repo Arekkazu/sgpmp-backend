@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-19 | Leandro | INC-M07-371-G58 RF-102: verificar el SHA-256 antes y después del traslado. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Archiva lotes de RF-102 y confirma cada traslado solo tras verificar la copia."""
 from datetime import datetime
 from hmac import compare_digest
@@ -10,27 +11,41 @@ from src.accounting_integration.domain.entities.evento_integracion import Evento
 
 
 class ArchivoAuditoria(Protocol):
-    def bloquear_archivado(self) -> bool: ...
+    """Puerto de archivado de eventos de auditoría de integración."""
+    def bloquear_archivado(self) -> bool:
+        """Toma el lock de archivado; ``False`` si otro proceso lo tiene."""
+        ...
 
     def candidatos_archivo(
         self, despues_de: tuple[datetime, str] | None, limite: int,
-    ) -> list[tuple[EventoIntegracion, str, datetime]]: ...
+    ) -> list[tuple[EventoIntegracion, str, datetime]]:
+        """Lista los eventos vencidos a partir del cursor."""
+        ...
 
-    def archivar(self, ids: list[str]) -> list[tuple[EventoIntegracion, str]]: ...
+    def archivar(self, ids: list[str]) -> list[tuple[EventoIntegracion, str]]:
+        """Traslada los eventos indicados al archivo."""
+        ...
 
 
 class TransaccionArchivo(Protocol):
-    def commit(self) -> None: ...
+    """Transacción del archivado."""
+    def commit(self) -> None:
+        """Confirma la transacción."""
+        ...
 
-    def rollback(self) -> None: ...
+    def rollback(self) -> None:
+        """Revierte la transacción."""
+        ...
 
 
 class ArchivarAuditoriaIntegracionUseCase:
+    """Archiva por lotes los eventos de auditoría de integración vencidos."""
     def __init__(self, archivo: ArchivoAuditoria, transaccion: TransaccionArchivo) -> None:
         self.archivo = archivo
         self.transaccion = transaccion
 
     def ejecutar_lote(self, cursor: tuple[datetime, str] | None) -> tuple[tuple[datetime, str] | None, int, list[str]]:
+        """Archiva un lote y devuelve el cursor siguiente, la cantidad y los ids archivados."""
         try:
             if not self.archivo.bloquear_archivado():
                 self.transaccion.rollback()

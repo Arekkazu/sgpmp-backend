@@ -3,6 +3,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-77: guarda y relee los parámetros      |
 # | 2026-11-08 | Leandro | INC-M05-277-G20 RF-77: conservar promedio y causa del reporte en el snapshot JSON existente. |
 # | 2026-11-10 | Arekkazu | H-M05-19 RF-77: el snapshot guarda y devuelve desglose, tendencia y registros sin costo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`ReporteGastoRepository` (RF-77).
 
 Persiste el snapshot en ``modulo5.reporte_gastos_acumulados``: encabezado y totales en sus
@@ -98,6 +99,7 @@ def _desde_resumen(orm: ReporteGastoAcumuladoModel) -> dict:
 
 
 class SqlAlchemyReporteGastoRepository(ReporteGastoRepository):
+    """Implementación SQLAlchemy de ``ReporteGastoRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -125,6 +127,7 @@ class SqlAlchemyReporteGastoRepository(ReporteGastoRepository):
         )
 
     def guardar(self, reporte: ReporteGasto) -> ReporteGasto:
+        """Persiste el snapshot del reporte en ``reporte_gastos_acumulados``."""
         try:
             orm = ReporteGastoAcumuladoModel(
                 id_activo_biologico=reporte.id_activo_biologico,
@@ -164,10 +167,12 @@ class SqlAlchemyReporteGastoRepository(ReporteGastoRepository):
         return reporte
 
     def obtener(self, id_reporte_gasto_acumulado: int) -> Optional[ReporteGasto]:
+        """Devuelve el reporte, o ``None``."""
         orm = self.db.get(ReporteGastoAcumuladoModel, id_reporte_gasto_acumulado)
         return self._a_entidad(orm) if orm else None
 
     def listar_historial(self, id_usuario: Optional[int], limite: int = 20) -> list[ReporteGasto]:
+        """Historial de reportes generados (RNF de RF-77), más recientes primero."""
         query = self.db.query(ReporteGastoAcumuladoModel)
         if id_usuario is not None:
             query = query.filter(ReporteGastoAcumuladoModel.id_usuario == id_usuario)

@@ -6,6 +6,8 @@
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: recibir evidencia opcional y estricta del reloj al capturar la lectura. |
 # | 2026-10-30 | Arekkazu | INC-M03-136-G02 RF-53: verifica el checksum contra el contenido de la lectura |
 # | 2026-11-19 | Arekkazu | SEG-M03-02 RF-53: idempotency_key documentado como ignorado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTOs de ingesta de telemetría individual y por lote (buffer)."""
 from __future__ import annotations
 
 import hashlib
@@ -40,6 +42,7 @@ def checksum_lectura(datos: dict) -> str:
 
 
 class IngerirTelemetriaDTO(BaseDTO):
+    """Lectura de telemetría enviada por un dispositivo."""
     device_id: int = Field(..., gt=0)
     sensor_id: int = Field(..., gt=0)
     tipo_variable: str = Field(..., min_length=2, max_length=40)
@@ -77,6 +80,7 @@ class IngerirTelemetriaDTO(BaseDTO):
     @model_validator(mode='before')
     @classmethod
     def verificar_checksum(cls, datos):
+        """Rechaza la lectura si el checksum no corresponde al contenido."""
         # RF-53 Fase 1 (INC-M03-136-G02): si llega checksum, debe corresponder al contenido
         # recibido; si no, la lectura se rechaza como ERROR_ESTRUCTURA y no se guarda.
         if not isinstance(datos, dict) or datos.get('checksum') is None:
@@ -94,6 +98,7 @@ class IngerirTelemetriaDTO(BaseDTO):
     @field_validator('categoria_variable')
     @classmethod
     def validar_categoria(cls, v: Optional[str]) -> Optional[str]:
+        """Normaliza y valida la categoría de la variable."""
         if v is None:
             return None
         categoria = v.upper()
@@ -104,6 +109,7 @@ class IngerirTelemetriaDTO(BaseDTO):
     @field_validator('origen')
     @classmethod
     def validar_origen(cls, v: str) -> str:
+        """Normaliza y valida el origen de la lectura."""
         valores_validos = {'TIEMPO_REAL', 'BUFFER_LOCAL', 'EDGE_AGREGADO'}
         if v.upper() not in valores_validos:
             raise ValueError(f"origen debe ser uno de: {', '.join(valores_validos)}")
@@ -112,10 +118,12 @@ class IngerirTelemetriaDTO(BaseDTO):
     @field_validator('tipo_variable')
     @classmethod
     def normalizar_tipo_variable(cls, v: str) -> str:
+        """Normaliza el tipo de variable a mayúsculas."""
         return v.upper().strip()
 
 
 class IngerirTelemetriaBatchDTO(BaseDTO):
+    """Lote de lecturas almacenadas en buffer (máximo 500)."""
     registros: list[IngerirTelemetriaDTO] = Field(..., min_length=1, max_length=500)
     # SEG-M03-02: se acepta y se ignora; se conserva para no romper a los clientes que ya lo envían.
     # El duplicado real lo detecta la BD por la clave natural de la lectura (sensor, variable,

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Editar etapa del ciclo productivo (Flujo B — RF-16).
 
 Concurrencia optimista mediante ``fecha_actualizacion`` (FA-07).
@@ -46,6 +49,7 @@ class EditarCicloUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_ciclo_biologico: int, dto: EditarCicloDTO, usuario_actual: UsuarioActual) -> CicloBiologico:
+        """Edita la etapa del ciclo biológico y la audita."""
         ciclo = self.ciclos_repo.obtener_por_id(id_ciclo_biologico, bloquear=True)
         if ciclo is None:
             raise NotFoundError(

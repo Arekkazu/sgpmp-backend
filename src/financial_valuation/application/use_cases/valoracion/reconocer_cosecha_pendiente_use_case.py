@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-323-G27 RF-85 FA-1/FA-2: la cosecha pendiente continúa con precio o costos manuales |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-85 FA-2: el Contador reconoce una cosecha pendiente ingresando a mano sus costos de venta.
 
 La cosecha quedó pendiente porque M09 no tenía costos de venta para la especie. Con los costos manuales y su
@@ -22,6 +23,7 @@ MIN_JUSTIFICACION = 20
 
 
 class ReconocerCosechaPendienteUseCase:
+    """Reconoce una cosecha que quedó pendiente de costos."""
     def __init__(self, db: Session, eventos: EventoM02Port, procesador: ProcesarEventosM02UseCase) -> None:
         self.db = db
         self.eventos = eventos
@@ -29,6 +31,7 @@ class ReconocerCosechaPendienteUseCase:
 
     def execute(self, id_evento: int, costos_manuales: Optional[dict], justificacion: Optional[str],
                 id_usuario: int) -> dict:
+        """Reprocesa el evento de cosecha con los costos manuales indicados."""
         manuales = {k: v for k, v in (costos_manuales or {}).items() if v is not None}
         if not manuales:
             raise ValidationError(code="COSTOS_VENTA_REQUERIDOS", field="costos_manuales",

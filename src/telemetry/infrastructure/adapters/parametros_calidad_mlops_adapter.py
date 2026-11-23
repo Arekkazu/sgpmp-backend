@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Adaptador de los parámetros configurados del algoritmo de calidad."""
 from src.configuration.domain.entities.parametro_mlops import PARAMETROS_CALIDAD, calidad_configurada
 from src.shared.errors import ServiceUnavailableError
 from src.telemetry.domain.repositories.parametros_calidad_port import ParametrosCalidad, ParametrosCalidadPort
@@ -14,6 +18,11 @@ class ParametrosCalidadMLOpsAdapter(ParametrosCalidadPort):
         self.configuracion_repo = configuracion_repo
 
     def obtener_parametros(self, id_sensor, tipo_variable=None):
+        """Devuelve los parámetros de calidad vigentes para el sensor.
+
+        Raises:
+            ServiceUnavailableError: Si falta la configuración operativa.
+        """
         valores = calidad_configurada(self.parametros_repo.obtener(PARAMETROS_CALIDAD))
         configuracion = self.configuracion_repo.obtener_activo()
         if configuracion is None:

@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: guardar el motivo por separado y conservar los pendientes al cortar. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio :class:`EjecucionBatchICA` (RF-74 / motor batch).
 
 Modela una corrida del batch de cálculo ICA y sus transiciones de estado:
@@ -40,9 +41,15 @@ class EjecucionBatchICA:
 
     @property
     def esta_en_ejecucion(self) -> bool:
+        """Indica si la ejecución sigue en curso."""
         return self.estado == EstadoEjecucionBatch.EN_EJECUCION
 
     def completar(self, *, hora_fin: datetime) -> None:
+        """Marca la ejecución como completada.
+
+        Raises:
+            FlowError: Si no estaba en ejecución.
+        """
         if not self.esta_en_ejecucion:
             raise FlowError(
                 code="BATCH_NO_EN_EJECUCION",
@@ -58,6 +65,7 @@ class EjecucionBatchICA:
         self, *, causa: str, hora_corte: datetime,
         id_usuario: Optional[int] = None, motivo: Optional[str] = None,
     ) -> None:
+        """Marca la ejecución como interrumpida con su causa."""
         if not self.esta_en_ejecucion:
             raise FlowError(
                 code="BATCH_NO_EN_EJECUCION",

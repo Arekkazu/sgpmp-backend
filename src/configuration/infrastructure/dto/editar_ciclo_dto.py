@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para editar una etapa del ciclo productivo (Flujo B — RF-16).
 
 Incluye ``fecha_actualizacion`` para control de concurrencia optimista (FA-07).
@@ -29,6 +30,7 @@ class EditarCicloDTO(BaseDTO):
     @field_validator("nombre")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Valida el nombre."""
         v = v.strip()
         if len(v) < 3 or len(v) > 50:
             raise ValueError("El nombre de la etapa debe tener entre 3 y 50 caracteres.")
@@ -41,6 +43,7 @@ class EditarCicloDTO(BaseDTO):
     @field_validator("descripcion")
     @classmethod
     def validar_descripcion(cls, v: Optional[str]) -> Optional[str]:
+        """Valida la descripción opcional."""
         if v is not None and len(v) > 255:
             raise ValueError("La descripción no puede superar los 255 caracteres.")
         return v
@@ -48,6 +51,7 @@ class EditarCicloDTO(BaseDTO):
     @field_validator("duracion_dias")
     @classmethod
     def validar_duracion(cls, v: int) -> int:
+        """Exige una duración mayor a cero."""
         if v <= 0:
             raise ValueError(
                 f"La duración estimada debe ser un número entero positivo mayor a 0. Valor recibido: {v}."

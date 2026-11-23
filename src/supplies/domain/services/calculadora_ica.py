@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: E6 PESO_INVALIDO y score del RF    |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Servicio de dominio: cálculo del Índice de Conversión Alimenticia (RF-74).
 
 Corazón del CU-02. **Puro**: no toca BD, no lanza excepciones de flujo; recibe los
@@ -59,10 +60,12 @@ class ResultadoCalculoICA:
 
     @property
     def es_calculado(self) -> bool:
+        """Indica si el ICA se pudo calcular."""
         return self.estado == EstadoResultadoCA.CALCULADO
 
     @property
     def es_critica(self) -> bool:
+        """Indica si la conversión es crítica."""
         return self.clasificacion_ca == ClasificacionCA.CRITICA
 
 
@@ -80,6 +83,7 @@ class CalculadoraICA:
         peso_inicial_invalido: bool = False,
         peso_final_invalido: bool = False,
     ) -> ResultadoCalculoICA:
+        """Calcula el ICA a partir del alimento y la ganancia de peso del periodo."""
         score = self._data_quality_score(
             alimento_total_kg, peso_inicial_kg, peso_final_kg, peso_inicial_invalido, peso_final_invalido
         )

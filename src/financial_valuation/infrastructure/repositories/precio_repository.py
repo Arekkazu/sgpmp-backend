@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-89: repositorio append-only de precios de mercado |
 # | 2026-11-11 | Arekkazu | TC-M06-G106 RF-89 FA-6: un precio corregido no avisa vencimiento |
 # | 2026-11-14 | Arekkazu | INC-M06-363-G27 RF-85 FA-1: la cosecha pendiente se retoma con un precio registrado en la misma transacción |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`PrecioRepository`. ``categoria`` es un arreglo de un solo valor
 (diseño del baseline, ``ck_precio_mercado_categoria_unica``)."""
 from __future__ import annotations
@@ -28,10 +29,12 @@ def _precio(f: dict) -> Precio:
 
 
 class SqlAlchemyPrecioRepository(PrecioRepository):
+    """Implementación SQLAlchemy de ``PrecioRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def agregar(self, precio: Precio, region: Optional[str], origen: str, id_usuario: int, estado_inicial: str) -> Precio:
+        """Registra el precio y lo devuelve."""
         nuevo_id = escribir(self.db, """
             INSERT INTO modulo6.precios_mercado (id_especie, categoria, precio_unitario, unidad_medida, fecha_vencimiento,
                 fecha_vigencia, fuente, estado, evidencia, justificacion, origen_registro, id_usuario, id_precio_corregido,
@@ -49,11 +52,13 @@ class SqlAlchemyPrecioRepository(PrecioRepository):
         return self.obtener(nuevo_id)
 
     def obtener(self, id_precio_mercado: int) -> Optional[Precio]:
+        """Devuelve el precio, o ``None``."""
         f = fila(self.db, f"SELECT {_COLUMNAS} FROM modulo6.precios_mercado WHERE id_precio_mercado = :id",
                  {"id": id_precio_mercado})
         return _precio(f) if f else None
 
     def de_especie(self, id_especie: int, categoria: str, id_metrica_produccion: Optional[int] = None) -> list[Precio]:
+        """Lista los precios de la especie y categoría."""
         return [_precio(f) for f in filas(self.db, f"""
             SELECT {_COLUMNAS} FROM modulo6.precios_mercado
             WHERE id_especie = :e AND categoria[1]::text = :c
@@ -61,12 +66,14 @@ class SqlAlchemyPrecioRepository(PrecioRepository):
             {"e": id_especie, "c": categoria, "m": id_metrica_produccion})]
 
     def listar(self, id_especie: Optional[int]) -> list[Precio]:
+        """Lista los precios, opcionalmente de una especie."""
         return [_precio(f) for f in filas(self.db, f"""
             SELECT {_COLUMNAS} FROM modulo6.precios_mercado
             WHERE CAST(:e AS integer) IS NULL OR id_especie = :e
             ORDER BY fecha_vigencia DESC, id_precio_mercado DESC""", {"e": id_especie})]
 
     def por_vencer(self, desde: date, hasta: date) -> list[Precio]:
+        """Lista los precios que vencen en el rango."""
         return [_precio(f) for f in filas(self.db, f"""SELECT {_COLUMNAS} FROM modulo6.precios_mercado
                                                        WHERE fecha_vencimiento BETWEEN :d AND :h
                                                          AND NOT EXISTS (SELECT 1 FROM modulo6.precios_mercado c

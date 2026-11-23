@@ -8,6 +8,8 @@
 # | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
 # | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
 # | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de consultas del monitor de predicciones."""
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -146,6 +148,7 @@ def _normalizar_contagio(fila: dict) -> dict:
 
 
 class SqlAlchemyMonitorPrediccionRepository(MonitorPrediccionRepository):
+    """Implementación SQLAlchemy de ``MonitorPrediccionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -153,6 +156,11 @@ class SqlAlchemyMonitorPrediccionRepository(MonitorPrediccionRepository):
     def listar_inferencias(self, *, ids_fincas, tipo_modelo, nivel_riesgo, desde, hasta, limite, por_activo=None,
                            id_activo_biologico=None, id_infraestructura=None, solo_con_alerta=False,
                            incluir_sombra=True, desplazamiento=0):
+        """Más recientes primero; ``ids_fincas`` None = alcance global. Con ``por_activo``, las N más
+        recientes de cada activo (los demás filtros se aplican sobre ellas) y ``limite`` no aplica.
+        AJF-10: filtro por animal o área, solo las que generaron alerta, sin las de prueba (sombra)
+        y ``desplazamiento`` para paginar.
+        """
         ids, limite = self._ultimos(_SQL_ULTIMAS_INFERENCIAS, ids_fincas, por_activo, limite, str)
         filas = self._leer(_SQL_INFERENCIAS, ids_fincas=ids_fincas, tipo=tipo_modelo, nivel=nivel_riesgo,
                            desde=desde, hasta=hasta, limite=limite, ids=ids, activo=id_activo_biologico,
@@ -162,6 +170,7 @@ class SqlAlchemyMonitorPrediccionRepository(MonitorPrediccionRepository):
 
     def contar_inferencias(self, *, ids_fincas, tipo_modelo, nivel_riesgo, desde, hasta, id_activo_biologico=None,
                            id_infraestructura=None, solo_con_alerta=False, incluir_sombra=True):
+        """AJF-10: totales con los mismos filtros que ``listar_inferencias``."""
         filas = self._leer(_SQL_INDICADORES_INFERENCIAS, ids_fincas=ids_fincas, tipo=tipo_modelo, nivel=nivel_riesgo,
                            desde=desde, hasta=hasta, activo=id_activo_biologico, infra=id_infraestructura,
                            solo_alerta=solo_con_alerta, con_sombra=incluir_sombra)
@@ -169,6 +178,9 @@ class SqlAlchemyMonitorPrediccionRepository(MonitorPrediccionRepository):
         return IndicadoresInferencias(**{k: int(f.get(k) or 0) for k in ("total", "en_riesgo", "con_alerta", "animales_distintos")})
 
     def listar_riesgo_contagio(self, *, ids_fincas, nivel_riesgo, desde, hasta, limite, por_activo=None):
+        """Más recientes primero; ``ids_fincas`` None = alcance global. ``por_activo`` como en
+        ``listar_inferencias``.
+        """
         ids, limite = self._ultimos(_SQL_ULTIMOS_CONTAGIOS, ids_fincas, por_activo, limite, int)
         filas = self._leer(_SQL_CONTAGIO, ids_fincas=ids_fincas, nivel=nivel_riesgo,
                            desde=desde, hasta=hasta, limite=limite, ids=ids)

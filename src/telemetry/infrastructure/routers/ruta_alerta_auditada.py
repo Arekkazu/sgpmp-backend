@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                           |
 # |------------|---------|-------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: audita 403 sin modificar el RBAC comun   |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Auditoría CA-17 limitada a las rutas autenticadas de alertas operativas."""
 from __future__ import annotations
 
@@ -64,7 +65,9 @@ def _registrar_denegacion(request: Request, error: AppError | HTTPException) -> 
 
 
 class RutaAlertaAuditada(APIRoute):
+    """Ruta de FastAPI que audita los rechazos de eventos de alerta."""
     def get_route_handler(self):
+        """Envuelve el handler para auditar los errores de la petición."""
         handler = super().get_route_handler()
 
         async def atender(request: Request):

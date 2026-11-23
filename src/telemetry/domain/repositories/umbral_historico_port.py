@@ -1,12 +1,15 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de consulta de umbrales ambientales vigentes en un instante."""
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 
 
 class UmbralHistoricoPort(ABC):
+    """Puerto para obtener el umbral vigente de una variable en una fecha."""
 
     @abstractmethod
     def obtener_umbral_vigente(

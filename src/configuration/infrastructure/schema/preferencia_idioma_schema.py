@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schema de respuesta para preferencia de idioma (RF-29)."""
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ class PreferenciaIdiomaResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, entity, version_perfil: Optional[int] = None) -> PreferenciaIdiomaResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_preferencia_idioma=entity.id_preferencia_idioma,
             id_usuario=entity.id_usuario,
