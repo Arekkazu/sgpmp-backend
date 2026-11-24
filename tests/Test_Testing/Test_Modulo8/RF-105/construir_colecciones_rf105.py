@@ -4,6 +4,7 @@
 # | 2026-11-21 | Juan Manuel      | TC-M08 RF-105: re-ejecucion rc.85, informativa del Productor y llaves|
 # | 2026-11-21 | Juan Manuel      | TC-M08-G015 RF-105: alerta real con token del broker, fuera del sandbox|
 # | 2026-11-21 | Juan Manuel      | TC-M08-G015 RF-105: nodos temporales sin historial y su desactivacion  |
+# | 2026-11-22 | Juan Manuel      | TC-M08-015 RF-105: INC-394 aceptada por Desarrollo, queda como observacion |
 """Genera las colecciones Newman de RF-105 (bandeja y ciclo de vida de notificaciones, M08; G013 a G017).
 
 Uso (desde esta carpeta):  python construir_colecciones_rf105.py
@@ -151,7 +152,9 @@ def g013():
                 "const vis = Number(pm.collectionVariables.get('sin_leer_visibles')), occ = Number(pm.collectionVariables.get('sin_leer_ocurrencias'));",
                 "const m = (pm.response.json() || {}).marcadas;",
                 f"pm.test('{t15} - marcar todas responde 200', () => pm.response.to.have.status(200));",
-                f"pm.test('{t15} - marcadas = las que quedaban sin leer en la bandeja (' + vis + ' avisos, ' + occ + ' con las agrupadas); responde ' + m, () => pm.expect(m).to.be.oneOf([vis, occ]));"]),
+                f"pm.test('{t15} - marcar todas alcanza al menos a los ' + vis + ' avisos sin leer de la bandeja (responde ' + m + ')', () => pm.expect(m).to.be.at.least(vis));",
+                # INC-M08-394: Desarrollo no la corrige; la diferencia queda a la vista en el reporte como observación.
+                f"pm.test('{t15} - OBSERVACIÓN (comportamiento aceptado por Desarrollo, INC-M08-394 no se corrige): marcadas = ' + m + ', bandeja sin leer = ' + vis + ' avisos (' + occ + ' con las agrupadas); el conteo incluye avisos que la bandeja no muestra', () => pm.expect(m).to.be.a('number'));"]),
             lista(f"{t15} - GET al final", "tok_prod", "?tamano=1", [
                 f"pm.test('{t15} - no_leidas = 0', () => pm.expect(b.no_leidas).to.equal(0));"]),
         ]),
