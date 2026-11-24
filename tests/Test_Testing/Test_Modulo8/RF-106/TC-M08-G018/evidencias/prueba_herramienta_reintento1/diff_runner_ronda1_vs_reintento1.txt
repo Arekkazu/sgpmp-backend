@@ -1,0 +1,103 @@
+--- /dev/fd/63	2026-11-23 00:10:16.094648906 -0500
++++ /dev/fd/62	2026-11-23 00:10:16.094648906 -0500
+@@ -2,6 +2,7 @@
+ # | 2026-11-19 | Juan Sebastian Gutierrez | v2 (ronda 1 parcial): se quita el activo de baja (CP-10 retirado), 12 checkpoints, trazas RETIRADO |
+ # | 2026-11-19 | Juan Sebastian Gutierrez | -CuentaVet M08: usa TEST_M08_VET_EMAIL/TEST_M08_VET_PASSWORD (Veterinario de la finca 494) sin tocar TEST_VET_* |
+ # | 2026-11-20 | Juan Sebastian Gutierrez | v3 (corrida oficial de la ronda 1): -IdActivoBaja (CP-10), 13 checkpoints, escaneo al final con reescaneo de resumen y escaneo |
++# | 2026-11-23 | Juan Sebastian Gutierrez | v4 (reintento 1): 12 checkpoints con lista explicita de ids; el JSON propio lo genera el runner con convertir_json_g018.mjs (node) antes del resumen y del escaneo; no corre si ya existe el JSON en resultados\ |
+ #
+ # Uso (desde la carpeta del caso, PowerShell 5.1):
+ #   .\ejecutar_tc_m08_g018.ps1 -IdActivoOtraFinca 2556 -IdActivoBaja 2946 -CuentaVet TEST -Reintento 0   (ronda 1)
+@@ -9,7 +10,7 @@
+ #
+ # Codigos de salida:
+ #   0 todos los checkpoints OK | 1 hay checkpoints FALLA (corrida valida) | 2 configuracion o precondicion local
+-#   3 corrida invalida (ABORT, sin cierre o numero de checkpoints distinto de 13) | 4 hallazgos en el escaneo de secretos
++#   3 corrida invalida (ABORT, ids de checkpoints distintos de los 12 del diseno o JSON no generado) | 4 hallazgos en el escaneo de secretos
+ #   5 el cierre del sandbox no respondio 200 "Rollback exitoso" | 6 resultados\ cambio durante la corrida
+ param(
+   [Parameter(Mandatory = $true)][int]$IdActivoOtraFinca,
+@@ -22,11 +23,13 @@
+ $kVetEmail = if ($CuentaVet -eq 'M08') { 'TEST_M08_VET_EMAIL' } else { 'TEST_VET_EMAIL' }
+ $kVetPass = if ($CuentaVet -eq 'M08') { 'TEST_M08_VET_PASSWORD' } else { 'TEST_VET_PASSWORD' }
+ $tc = 'TC-M08-G018'
+-$checkpointsEsperados = 13
++$checkpointsEsperados = 12
++$idsEsperados = @('CP-01', 'CP-02', 'CP-04', 'CP-05', 'CP-06a', 'CP-06b', 'CP-07a', 'CP-07b', 'CP-08', 'CP-09a', 'CP-10', 'CP-11')
+ $raiz = $PSScriptRoot
+ $repo = (Resolve-Path (Join-Path $raiz '..\..\..\..\..')).Path
+ $envFile = Join-Path $repo '.env.test'
+ $col = Join-Path $raiz 'tc-m08-g018.postman_collection.json'
++$conversor = Join-Path $raiz 'convertir_json_g018.mjs'
+ $resultados = Join-Path $raiz 'resultados'
+ 
+ function Salir([int]$codigo, [string]$motivo) {
+@@ -65,6 +68,10 @@
+ # ---- precondiciones locales
+ if (-not (Test-Path $envFile)) { Salir 2 "no existe $envFile" }
+ if (-not (Test-Path $col)) { Salir 2 "no existe la coleccion $col" }
++if (-not (Test-Path $conversor)) { Salir 2 "no existe $conversor" }
++$node = Get-Command node.exe -ErrorAction SilentlyContinue
++if (-not $node) { $node = Get-Command node -ErrorAction SilentlyContinue }
++if (-not $node) { Salir 2 'node no esta en el PATH' }
+ $newman = Get-Command newman.cmd -ErrorAction SilentlyContinue
+ if (-not $newman) { $newman = Get-Command newman -ErrorAction SilentlyContinue }
+ if (-not $newman) { Salir 2 'newman no esta instalado' }
+@@ -80,6 +87,8 @@
+ $sufijo = if ($Reintento -gt 0) { "_reintento$Reintento" } else { '' }
+ $nombreReporte = "resultado_$tc$sufijo.html"
+ if (Test-Path (Join-Path $resultados $nombreReporte)) { Salir 2 "ya existe resultados\$nombreReporte" }
++$nombreJson = "resultado_$tc$sufijo.json"
++if (Test-Path (Join-Path $resultados $nombreJson)) { Salir 2 "ya existe resultados\$nombreJson" }
+ 
+ # ---- credenciales: solo en memoria
+ $cfg = @{}
+@@ -102,6 +111,7 @@
+ $shaResultadosAntes = ShaCarpeta $resultados
+ $shaCol = (Get-FileHash -Algorithm SHA256 -Path $col).Hash
+ $shaRunner = (Get-FileHash -Algorithm SHA256 -Path $PSCommandPath).Hash
++$shaConversor = (Get-FileHash -Algorithm SHA256 -Path $conversor).Hash
+ 
+ $a = @(
+   'run', $col, '-r', 'cli,htmlextra',
+@@ -166,8 +176,21 @@
+ $cierre = @($trazas | Where-Object { $_ -like 'CIERRE|*' })
+ $cierreOk = ($cierre.Count -eq 1 -and $cierre[0] -like 'CIERRE|200|Rollback exitoso|*')
+ $abort = @($trazas | Where-Object { $_ -like 'ABORT|*' })
++$idsObtenidos = @($cps | ForEach-Object { if ($_ -match '^(OK|FALLA)\s+\|\s+(CP-\S+)') { $matches[2] } })
++$idsOk = (($idsObtenidos -join ',') -ceq ($idsEsperados -join ','))
++$jsonOk = $false
++$salidaConversor = '(no se ejecuto)'
+ if ($abort.Count -gt 0) { Escribir (Join-Path $staging 'RUN_INVALIDA.txt') ("ABORT: " + ($abort -join ' / ') + "`r`n") }
+-elseif ($cps.Count -ne $checkpointsEsperados) { Escribir (Join-Path $staging 'RUN_INVALIDA.txt') ("Checkpoints: $($cps.Count) de $checkpointsEsperados`r`n") }
++elseif (-not $idsOk) { Escribir (Join-Path $staging 'RUN_INVALIDA.txt') ("Checkpoints: $($cps.Count) de $checkpointsEsperados; ids=" + ($idsObtenidos -join ',') + "`r`n") }
++else {
++  # JSON propio (manual 2.1) desde el mismo staging, antes del resumen y del escaneo para que el escaneo lo cubra
++  $ErrorActionPreference = 'Continue'
++  $salidaConversor = ((& $node.Source $conversor $staging "$Reintento" $runId 2>&1 | ForEach-Object { "$_" }) -join ' ').Trim()
++  $rcConversor = $LASTEXITCODE
++  $ErrorActionPreference = 'Stop'
++  $jsonOk = ($rcConversor -eq 0 -and (Test-Path (Join-Path $staging $nombreJson)))
++  if (-not $jsonOk) { Escribir (Join-Path $staging 'RUN_INVALIDA.txt') ("JSON no generado (exit $rcConversor): $salidaConversor`r`n") }
++}
+ 
+ $resumen = @(
+   "Caso: $tc   Reintento: $Reintento   run_id: $runId",
+@@ -178,6 +201,8 @@
+   "resultados\ sin cambios: $($shaResultadosAntes -eq $shaResultadosDespues)",
+   "SHA-256 coleccion: $shaCol",
+   "SHA-256 runner:    $shaRunner",
++  "SHA-256 conversor: $shaConversor",
++  "JSON (staging): $(if ($jsonOk) { (Join-Path $staging $nombreJson) + ' SHA-256 ' + (Get-FileHash -Algorithm SHA256 -Path (Join-Path $staging $nombreJson)).Hash } else { 'no generado' })   conversor: $salidaConversor",
+   "Reporte (staging): $html"
+ ) -join "`r`n"
+ $rutaResumen = Join-Path $staging "resumen_$tc$sufijo.txt"
+@@ -215,6 +240,7 @@
+ if ($shaResultadosAntes -ne $shaResultadosDespues) { Salir 6 'resultados\ cambio durante la corrida' }
+ if ($hallazgos.Count -gt 0) { Salir 4 'hay hallazgos en el escaneo de secretos' }
+ if (-not $cierreOk) { Salir 5 'el cierre del sandbox no respondio 200 Rollback exitoso' }
+-if ($cps.Count -ne $checkpointsEsperados) { Salir 3 'numero de checkpoints distinto del diseno' }
++if (-not $idsOk) { Salir 3 'checkpoints distintos de los 12 del diseno' }
++if (-not $jsonOk) { Salir 3 'no se genero el JSON propio' }
+ if ($falla -gt 0) { Salir 1 "$falla checkpoint(s) FALLA" }
+ Salir 0 'todos los checkpoints OK'

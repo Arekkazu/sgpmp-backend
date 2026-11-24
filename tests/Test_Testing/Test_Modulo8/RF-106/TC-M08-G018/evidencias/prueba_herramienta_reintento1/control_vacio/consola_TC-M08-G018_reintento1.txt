@@ -1,0 +1,60 @@
+newman
+
+TC-M08-G018
+
+Root Z00 Login Veterinario
+  POST http://127.0.0.1:18814/sesiones/ [200 OK, 254B, 14ms]
+  -
+  | 'PRE|Z00|login Veterinario HTTP 200|req=0d198bb4-9a69-
+  | 401e-a2fb-27bd78a800c2'
+  | 'PRE|FECHAS|hoy=2026-11-23 hace12m=2025-11-23 hace24m=
+  | 2024-11-23 futuro30=2026-12-23'
+  -
+
+Root Z01 Perfil Veterinario
+  GET http://127.0.0.1:18814/usuarios/me [200 OK, 258B, 2ms]
+  -
+  | 'PRE|Z01|id_usuario=97 nombre_rol=Veterinario|req=53d8
+  | 5d35-7abf-47ef-b87f-92129db886f7'
+  -
+
+Root T00 Linea base historial
+  GET http://127.0.0.1:18814/historial-predictivo/885 [200 OK, 1.72kB, 1ms]
+  -
+  | 'ABORT|T00|HTTP 200 error_code=- predicciones=7 evento
+  | s=0 retroalimentaciones=0 (el activo A necesita al men
+  | os una prediccion, un evento sanitario y una retroalim
+  | entacion; sin ellos CP-11 tendria cobertura parcial)|r
+  | eq=6cca9ce8-4f62-4867-9642-922990b4379b'
+  | 'Using "postman.setNextRequest" is deprecated. Use "pm
+  | .execution.setNextRequest()" instead.'
+  -
+
+Attempting to set next request to Z99 Cierre del sandbox
+
+Root Z99 Cierre del sandbox
+  DELETE http://127.0.0.1:18814/test-control/runs/qa-m08-g018-prueba-vacio [200 OK, 207B, 2ms]
+  -
+  | 'CIERRE|200|Rollback exitoso|req=16b52ddb-fc0d-4c79-b1
+  | 54-4b697eff0d2f'
+  -
+
+---------------------------------------------------------------
+|                         |        executed |          failed |
+--------------------------+-----------------+------------------
+|              iterations |               1 |               0 |
+--------------------------+-----------------+------------------
+|                requests |               4 |               0 |
+--------------------------+-----------------+------------------
+|            test-scripts |               4 |               0 |
+--------------------------+-----------------+------------------
+|      prerequest-scripts |               5 |               0 |
+--------------------------+-----------------+------------------
+|              assertions |               0 |               0 |
+---------------------------------------------------------------
+| total run duration: 95ms                                    |
+---------------------------------------------------------------
+| total data received: 1.73kB (approx)                        |
+---------------------------------------------------------------
+| average response time: 4ms [min: 1ms, max: 14ms, s.d.: 5ms] |
+---------------------------------------------------------------
