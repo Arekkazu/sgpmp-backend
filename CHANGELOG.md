@@ -1,3 +1,9 @@
+## [1.4.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.6...v1.4.7) (2026-11-24)
+
+### Bug Fixes
+
+* **identity:** RF-01 el asterisco cuenta como caracter especial en la contrasena del registro ([5aab6cc](https://github.com/Arekkazu/sgpmp-backend/commit/5aab6cc60f7c31f311a8911d044f665ca7034cb4))
+
 ## [1.4.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.5...v1.4.6) (2026-11-24)
 
 ### Bug Fixes
