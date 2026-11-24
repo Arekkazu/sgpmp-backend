@@ -9,6 +9,7 @@
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
 # | 2026-10-31 | Claude | INC-M03-242-G117 RF-59: alertas correlacionadas por fecha del evento, no de generación |
 # | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+# | 2026-11-24 | Arekkazu | HOTFIX RF-59: filtro y columna de especie con la especie del área si la lectura no tiene activo |
 """Repositorio de consulta del historial de telemetría (RF-59)."""
 from __future__ import annotations
 
@@ -47,7 +48,13 @@ SELECT
     i.nombre                                        AS infraestructura,
     f.nombre                                        AS finca,
     vl_lat.id_activo_biologico,
-    esp.nombre                                      AS especie,
+    -- Sin activo vinculado, la especie del área (como el semáforo, N-06).
+    COALESCE(esp.nombre, (
+        SELECT string_agg(e2.nombre, ', ' ORDER BY e2.nombre)
+        FROM modulo9.infraestructuras_especies ie2
+        JOIN modulo9.especies e2 ON e2.id_especie = ie2.id_especie
+        WHERE ie2.id_infraestructura = i.id_infraestructura
+    ))                                              AS especie,
     ab.id_especie,
     ab.identificador                                AS identificador_activo,
     ab.tipo::text                                   AS tipo_activo,
@@ -309,7 +316,14 @@ def _build_query(filtros: FiltrosHistorial, template: str) -> tuple[str, dict]:
         conds.append('vl_lat.id_activo_biologico = :id_activo_biologico')
         params['id_activo_biologico'] = filtros.id_activo_biologico
     if filtros.especie:
-        conds.append("esp.nombre = :especie")
+        # Sin activo vinculado (sensores de ambiente o agua) cuenta la especie del área,
+        # igual que el semáforo; antes esas lecturas quedaban fuera del filtro.
+        conds.append(
+            "(esp.nombre = :especie OR (ab.id_especie IS NULL AND EXISTS ("
+            "SELECT 1 FROM modulo9.infraestructuras_especies ie3 "
+            "JOIN modulo9.especies e3 ON e3.id_especie = ie3.id_especie "
+            "WHERE ie3.id_infraestructura = i.id_infraestructura AND e3.nombre = :especie)))"
+        )
         params['especie'] = filtros.especie
     if filtros.estado_dato:
         conds.append("t.estado_calidad::text = :estado_dato")

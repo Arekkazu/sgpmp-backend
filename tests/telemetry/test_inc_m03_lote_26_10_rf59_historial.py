@@ -3,6 +3,7 @@
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: combinaciones, variables, E3, series, filtros y 422 |
 # | 2026-10-30 | Arekkazu | INC-M04-225-G112 RF-59: categoria_variable, estado_dato y origen_dato solos |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: el fake de umbral responde también por área |
+# | 2026-11-24 | Arekkazu | HOTFIX RF-59: filtro de especie con la especie del área sin activo |
 """RF-59 (INC-M03-180..193): combinaciones de la Restricción 12, varias variables,
 estado vacío, series, filtros de área/activo y 422 en parámetros inválidos."""
 from __future__ import annotations
@@ -172,3 +173,11 @@ def test_historial_y_auditoria_m04_declaran_422_en_el_contrato():
         operacion = rutas[ruta]['get']
         assert operacion['x-codigo-validacion'] == 422 and '422' in operacion['responses']
     assert 'correlacion_id' in [p['name'] for p in rutas['/prediccion/auditoria']['get']['parameters']]
+
+
+def test_filtro_de_especie_usa_la_del_area_si_la_lectura_no_tiene_activo():
+    # Sensores de ambiente o agua de un estanque: sin activo vinculado, la especie es la del área.
+    sql, params = _build_query(_filtros(especie='Cachama Blanca'), _COUNT_HISTORIAL)
+    assert 'esp.nombre = :especie OR (ab.id_especie IS NULL' in sql
+    assert 'ie3.id_infraestructura = i.id_infraestructura' in sql
+    assert params['especie'] == 'Cachama Blanca'
