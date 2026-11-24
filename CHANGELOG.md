@@ -1,3 +1,9 @@
+## [1.4.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.5...v1.4.6) (2026-11-24)
+
+### Bug Fixes
+
+* **telemetry:** RF-59 filtro y columna de especie del historial con la especie del area ([8c617c4](https://github.com/Arekkazu/sgpmp-backend/commit/8c617c4f0673db07b76fb0476221ba0beff6c565))
+
 ## [1.4.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.4...v1.4.5) (2026-11-23)
 
 ### Bug Fixes
