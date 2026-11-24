@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-23 | Leandro | DEV-24 RF-24: representar la coleccion de lineas vigentes por especie. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta de la calibración por visión (RF-24 v2.0)."""
 from __future__ import annotations
 
@@ -47,6 +48,7 @@ class CalibracionVisionResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, calibracion) -> "CalibracionVisionResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_calibracion_vision=calibracion.id_calibracion_vision,
             area_id=calibracion.id_infraestructura,
@@ -82,6 +84,7 @@ class LineaBaseVisionResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, linea_base) -> "LineaBaseVisionResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             area_id=linea_base.id_infraestructura,
             especie_id=linea_base.id_especie,

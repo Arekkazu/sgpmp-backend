@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto (ABC): destinos y estado por nodo de las reglas compuestas (DEV-08)."""
 from __future__ import annotations
 
@@ -9,6 +12,7 @@ from src.telemetry.domain.entities.sincronizacion_regla_edge import GatewayEdge,
 
 
 class SincronizacionReglaEdgeRepository(ABC):
+    """Puerto del estado de sincronización de reglas por gateway Edge."""
 
     @abstractmethod
     def listar_gateways_destino(self, id_regla_alertas: int) -> list[GatewayEdge]:
@@ -39,4 +43,6 @@ class SincronizacionReglaEdgeRepository(ABC):
         ...
 
     @abstractmethod
-    def listar_por_regla(self, id_regla_alertas: int) -> list[SincronizacionReglaEdge]: ...
+    def listar_por_regla(self, id_regla_alertas: int) -> list[SincronizacionReglaEdge]:
+        """Lista el estado de sincronización de la regla en cada gateway."""
+        ...

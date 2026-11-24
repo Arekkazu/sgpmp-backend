@@ -5,6 +5,7 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: captura rechazo estructural sin cambiar HTTP |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: la ingesta de vision responde la calidad pendiente |
 # | 2026-11-02 | Arekkazu | RF-53: POST /vision/captura, la imagen de la ventana aparte del D4 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para ingesta de telemetría IoT (`/iot/telemetria`).
 
 RF-53 — CU01 Dev scope:
@@ -89,6 +90,7 @@ def ingerir_telemetria(
     db: Session = Depends(get_db_sistema),
     x_gateway_id: Optional[str] = Header(default=None, alias="X-Gateway-Id"),
 ) -> TelemetriaResponse:
+    """Ingiere una lectura de telemetría."""
     resultado = _build_use_case(db).execute(dto, gateway_id=x_gateway_id)
     return TelemetriaResponse(
         id_telemetria=resultado.id_telemetria,
@@ -116,6 +118,7 @@ def sincronizar_buffer(
     db: Session = Depends(get_db_sistema),
     x_gateway_id: Optional[str] = Header(default=None, alias="X-Gateway-Id"),
 ) -> IngestaBatchResponse:
+    """Ingiere un lote de lecturas almacenadas en buffer."""
     use_case = SincronizarBufferUseCase(
         ingerir_use_case_factory=lambda: _build_use_case(db),
         db=db,
@@ -156,6 +159,7 @@ def ingerir_observaciones_vision(
     dto: ObservacionVisionD4DTO | ObservacionVisionD4LegadoDTO | IngerirObservacionesVisionDTO,
     db: Session = Depends(get_db_sistema),
 ) -> IngestaVisionResponse:
+    """Ingiere observaciones de visión de una cámara."""
     resultado = IngerirObservacionesVisionUseCase(
         db=db,
         repo=SqlAlchemyObservacionVisionRepository(db),

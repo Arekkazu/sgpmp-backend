@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Tipo primitivo esperado para un atributo dinámico configurado en RF-16."""
 from __future__ import annotations
 
@@ -15,6 +18,11 @@ class TipoDatoAtributo(str, Enum):
 
     @classmethod
     def desde_string(cls, valor: str) -> "TipoDatoAtributo":
+        """Convierte el texto en el valor del catálogo.
+
+        Raises:
+            ValidationError: Si el valor no pertenece al catálogo.
+        """
         normalizado = valor.strip().upper()
         try:
             return cls(normalizado)

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                             |
 # |------------|----------|---------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: especie del activo para el resultado del motor IA |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador real de acceso a activos biológicos para ``prediction`` (RF-25).
 
 Sustituye al ``ActivoBiologicoStubAdapter``: valida que el activo exista y que
@@ -28,10 +29,12 @@ _SQL_FINCA_DEL_ACTIVO = text(
 
 
 class ActivoBiologicoM02Adapter(ActivoBiologicoPort):
+    """Verifica el acceso a activos biológicos según las fincas del usuario."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def activo_existe_y_accesible(self, id_activo: int, id_usuario: int, id_rol: int) -> bool:
+        """Indica si el activo existe y está en las fincas del usuario."""
         fila = self._db.execute(
             _SQL_FINCA_DEL_ACTIVO, {"id_activo": id_activo}
         ).first()
@@ -44,6 +47,7 @@ class ActivoBiologicoM02Adapter(ActivoBiologicoPort):
         return ids_fincas is not None and fila.id_finca in ids_fincas
 
     def obtener_especie(self, id_activo: int) -> Optional[int]:
+        """id_especie del activo, o None si no existe (RF-66: lo usa el motor IA)."""
         return self._db.execute(
             text("SELECT id_especie FROM modulo2.activos_biologicos WHERE id_activo_biologico = :id"),
             {"id": id_activo},

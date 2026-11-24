@@ -7,6 +7,8 @@
 # | 2026-10-30 | Arekkazu | INC-M04-227-G067 RF-72: estado validado sin normalizar a mayúsculas |
 # | 2026-10-30 | Arekkazu | INC-M04-228-G068 RF-72: rechaza retroalimentación de un activo en BAJA |
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: respeta la ampliación de ventana del resultado |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de registro de la retroalimentación clínica de una inferencia."""
 from __future__ import annotations
 
 import logging
@@ -42,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 class RegistrarRetroalimentacionUseCase:
+    """Registra la retroalimentación clínica del veterinario."""
 
     def __init__(
         self,
@@ -65,6 +68,7 @@ class RegistrarRetroalimentacionUseCase:
     def execute(
         self, dto: RegistrarRetroalimentacionDTO, id_usuario_veterinario: int
     ) -> RetroalimentacionClinica:
+        """Registra la retroalimentación y la audita."""
         # FA-01: verificar que el resultado de inferencia existe
         resultado = self._resultado_port.obtener_por_id(dto.id_resultado_inferencia)
         if resultado is None:

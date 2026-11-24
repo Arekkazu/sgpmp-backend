@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Filtros de ``GET /activos-biologicos/{id_activo}/indicadores`` (RF-51)."""
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ class ConsultarIndicadoresDTO(BaseDTO):
     @field_validator('tipo_indicador', mode='before')
     @classmethod
     def validar_tipo(cls, v: object) -> str:
+        """Normaliza y valida el tipo de indicador."""
         v_str = str(v).strip().upper()
         if v_str not in _TIPOS_VALIDOS:
             raise ValueError(
@@ -34,6 +38,7 @@ class ConsultarIndicadoresDTO(BaseDTO):
 
     @model_validator(mode='after')
     def validar_rango_fechas(self) -> ConsultarIndicadoresDTO:
+        """Exige que la fecha de inicio no sea posterior a la final."""
         if self.fecha_inicio and self.fecha_fin and self.fecha_inicio > self.fecha_fin:
             raise ValueError(
                 f'La fecha de inicio ({self.fecha_inicio}) no puede ser posterior '

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-97 CA-14 / RF-AE02 5.10: réplica del esquema que valida AgroFusion |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Réplica de ``AccountingConsultResponse`` de AgroFusion (``agrofusion-backendint``,
 ``app/schemas/checks.py``), con los mismos nombres y tipos. Si el envelope no valida aquí,
 AgroFusion responde 502 al usuario. Mantener sincronizada con su código.
@@ -13,11 +14,13 @@ from pydantic import BaseModel
 
 
 class RequestedPeriod(BaseModel):
+    """Periodo solicitado en la consulta contable."""
     From: str
     To: str
 
 
 class SourceSystem(BaseModel):
+    """Sistema origen de la consulta contable."""
     SystemId: str
     SystemName: str
     SystemNIT: str
@@ -25,6 +28,7 @@ class SourceSystem(BaseModel):
 
 
 class Metadata(BaseModel):
+    """Metadatos del intercambio contable."""
     ExchangeId: str
     GeneratedAt: str
     StandardVersion: str
@@ -34,6 +38,7 @@ class Metadata(BaseModel):
 
 
 class Summary(BaseModel):
+    """Totales del intercambio contable."""
     TotalDocuments: int
     TotalInvoices: int
     TotalTransactions: int
@@ -43,11 +48,13 @@ class Summary(BaseModel):
 
 
 class DocumentType(BaseModel):
+    """Tipo de documento contable."""
     Code: str
     Name: str
 
 
 class InvoiceHeader(BaseModel):
+    """Encabezado de una factura."""
     DocumentId: str
     Prefix: str
     Serial: str
@@ -59,6 +66,7 @@ class InvoiceHeader(BaseModel):
 
 
 class ThirdParty(BaseModel):
+    """Tercero de una factura."""
     NIT: Optional[str]
     Name: str
     Address: Optional[str] = None
@@ -68,6 +76,7 @@ class ThirdParty(BaseModel):
 
 
 class InvoiceTotals(BaseModel):
+    """Totales de una factura."""
     Subtotal: float
     TotalVAT: float
     TotalWithholdings: float
@@ -77,6 +86,7 @@ class InvoiceTotals(BaseModel):
 
 
 class InvoiceLine(BaseModel):
+    """Línea de una factura."""
     Code: str
     Name: str
     Description: str
@@ -89,6 +99,7 @@ class InvoiceLine(BaseModel):
 
 
 class Invoice(BaseModel):
+    """Factura del intercambio contable."""
     Header: InvoiceHeader
     ThirdParty: ThirdParty
     Totals: InvoiceTotals
@@ -96,6 +107,7 @@ class Invoice(BaseModel):
 
 
 class AccountingConsultResponse(BaseModel):
+    """Respuesta completa de la consulta contable."""
     metadata: Metadata
     summary: Summary
     invoices: List[Invoice]

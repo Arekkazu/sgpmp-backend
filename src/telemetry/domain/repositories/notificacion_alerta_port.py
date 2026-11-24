@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-32 RF-57: puerto de notificación de alertas (destinatarios, envío, reintento) |
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: nombres del área, finca, animal y sensor para los correos de alertas |
 # | 2026-11-14 | Arekkazu | M08 RF-105: la alerta viaja para fijar nivel y destino |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de notificación de alertas de RF-57 (Fase 8, E6, E7, E8, E10)."""
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ class ContextoAlerta:
 
 
 class NotificacionAlertaPort(ABC):
+    """Puerto de contexto y envío de notificaciones de alertas."""
 
     @abstractmethod
     def contexto(

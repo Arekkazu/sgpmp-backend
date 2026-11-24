@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada de ``POST /infraestructuras/{id_infraestructura}/sensores`` (RF-49
 Tipo B).
 """
@@ -31,6 +32,7 @@ class AsociarSensorInfraestructuraDTO(BaseDTO):
     @field_validator('motivo', mode='before')
     @classmethod
     def limpiar_motivo(cls, v: object) -> Optional[str]:
+        """Quita espacios del motivo y lo deja en ``None`` si queda vacío."""
         if v is None:
             return None
         s = str(v).strip()

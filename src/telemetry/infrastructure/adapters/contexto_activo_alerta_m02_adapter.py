@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3: resuelve el activo de la alerta (RF-61, asociación del sensor, unidad) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-57 Fase 3 / E6 / CA-7: a qué activo biológico pertenece la alerta de un sensor.
 
 Orden (del dato más preciso al más general):
@@ -46,11 +47,13 @@ _SQL_DESCRIPCION = text("""
 
 
 class ContextoActivoAlertaM02Adapter(ContextoActivoAlertaPort):
+    """Resuelve el activo biológico y su contexto para una alerta de sensor."""
     def __init__(self, db):
         self.db = db
         self._historico = ActivoBiologicoM02Adapter(db)
 
     def resolver(self, id_sensor, id_infraestructura, momento, id_telemetria=None):
+        """Devuelve el activo de la lectura o del área en el instante, o el motivo de no tenerlo."""
         try:
             if id_telemetria is not None:
                 activo = self.db.execute(_SQL_VINCULACION, {"lectura": id_telemetria}).scalar_one_or_none()

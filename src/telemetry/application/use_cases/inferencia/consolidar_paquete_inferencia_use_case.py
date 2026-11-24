@@ -6,6 +6,8 @@
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 # | 2026-10-27 | destroyerban | INC-M03-117-G60 RF-56: huella SHA-256 del contenido del paquete para idempotencia |
 # | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-56: el paquete conserva la regla que produjo la clasificación |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso que consolida eventos Edge en paquetes y los envía al motor de inferencia."""
 from __future__ import annotations
 
 import logging
@@ -98,6 +100,7 @@ def _evaluar_contexto(variables: list[dict]) -> tuple[dict, bool]:
 
 
 class ConsolidarEnviarPaqueteUseCase:
+    """Consolida el paquete de inferencia de un evento y lo envía al motor."""
 
     def __init__(
         self,

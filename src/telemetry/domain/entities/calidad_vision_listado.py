@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-62: listado de observaciones de visión evaluadas (el panel mostraba datos de ejemplo) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Read-models del panel de calidad de visión (RF-62, Telemetría → Calidad).
 
 El panel calculaba el índice en el navegador sobre cuatro observaciones inventadas. La evaluación
@@ -21,6 +22,7 @@ SIN_EVALUAR = "SIN_EVALUAR"
 
 @dataclass(frozen=True)
 class FiltrosCalidadVision:
+    """Filtros del listado de observaciones de visión evaluadas."""
     desde: datetime
     hasta: datetime
     ids_fincas: Optional[list[int]]
@@ -32,6 +34,7 @@ class FiltrosCalidadVision:
 
 @dataclass(frozen=True)
 class ObservacionVisionEvaluada:
+    """Observación de visión con el resultado de su evaluación de calidad."""
     id_observacion_vision: int
     id_dispositivo_iot: int
     serial_camara: Optional[str]

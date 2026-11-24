@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar nueva finca (POST RF-19)."""
 from __future__ import annotations
 
@@ -30,6 +33,7 @@ class RegistrarFincaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarFincaDTO, usuario_actual: UsuarioActual) -> Finca:
+        """Registra una finca."""
         nombre = NombreFinca(dto.nombre)
 
         existente = self.finca_repo.obtener_por_nombre(nombre)

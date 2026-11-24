@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.movimientos``: transferencias internas entre infraestructuras
 (RF-48).
 """
@@ -14,6 +17,7 @@ from .base_model import Base
 
 
 class MovimientoModel(Base):
+    """Modelo ORM de los traslados de activos entre áreas (tabla ``modulo2.movimientos``)."""
     __tablename__ = 'movimientos'
     __table_args__ = {'schema': 'modulo2'}
 

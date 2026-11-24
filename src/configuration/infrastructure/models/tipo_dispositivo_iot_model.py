@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.tipos_dispositivo_iot` (RF-23).
 
 Catálogo de tipos de dispositivo con los rangos min/max permitidos para cada
@@ -15,6 +18,7 @@ from .base_model import Base
 
 
 class TipoDispositivoIotModel(Base):
+    """Modelo ORM de la tabla ``modulo9.tipos_dispositivo_iot``."""
     __tablename__ = 'tipos_dispositivo_iot'
     __table_args__ = (
         PrimaryKeyConstraint('id_tipo_dispositivo', name='tipos_dispositivo_iot_pkey'),

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                              |
 # |------------|----------|--------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: generación en segundo plano con 2 reintentos y aviso al usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: genera los reportes de más de 1.000 registros (RF-104 Fase 3, RNF-02, RNF-07).
 
 Toma de a una las solicitudes EN_PROCESO cuyo intento ya llegó (``SKIP LOCKED``: dos procesos no toman la misma),
@@ -37,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProcesarReportesPendientesUseCase:
+    """Genera en segundo plano los reportes pendientes."""
 
     def __init__(self, db: Session, repo: SolicitudReporteRepository, abrir_fuente: AbrirFuente,
                  renderizador: RenderizadorReportePort, avisos: AvisosReportesPort,
@@ -49,6 +51,7 @@ class ProcesarReportesPendientesUseCase:
         self.solicitante = solicitante
 
     def execute(self, ahora: Optional[datetime] = None, maximo: int = 5) -> int:
+        """Procesa hasta ``maximo`` reportes pendientes y devuelve cuántos procesó."""
         procesadas = 0
         for _ in range(maximo):
             ahora_i = ahora or datetime.now(timezone.utc)

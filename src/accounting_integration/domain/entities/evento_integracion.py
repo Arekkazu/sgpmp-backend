@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-102: evento de auditoría de integración con hash de integridad |
 # | 2026-11-19 | LuisfNarvaez01 | INC-M07-375 RF-98: campos obligatorios de la transición rechazada y la versión modificada |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Evento de auditoría de M07 (RF-102 v1.1). Se crea una vez y no cambia nunca."""
 from __future__ import annotations
 
@@ -36,11 +37,13 @@ _OBLIGATORIOS = {
 
 
 def ahora_utc() -> datetime:
+    """Instante actual en UTC."""
     return datetime.now(timezone.utc)
 
 
 @dataclass(frozen=True)
 class EventoIntegracion:
+    """Evento de auditoría de la integración contable."""
     tipo_evento: str
     severidad: str = "INFO"
     tipo_actor: str = "SISTEMA"

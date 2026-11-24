@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: SUPERADO y entrega a M06           |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`ProvisionNic41Repository` (RF-79, CU-05).
 
 Usa ``flush()``/``refresh()`` (nunca ``commit()``) y traduce errores de BD con
@@ -56,6 +57,7 @@ class SqlAlchemyProvisionNic41Repository(ProvisionNic41Repository):
         )
 
     def guardar(self, provision: ProvisionNic41) -> ProvisionNic41:
+        """Persiste un reporte consolidado nuevo (nunca actualiza uno existente)."""
         orm = ProvisionNic41Model(
             id_activo_biologico=provision.id_activo_biologico,
             id_ciclo_productivo=provision.id_ciclo_productivo,
@@ -81,10 +83,12 @@ class SqlAlchemyProvisionNic41Repository(ProvisionNic41Repository):
         return self._a_entidad(orm)
 
     def obtener(self, id_provision: int) -> Optional[ProvisionNic41]:
+        """Devuelve un reporte por id, o ``None`` si no existe."""
         orm = self.db.get(ProvisionNic41Model, id_provision)
         return self._a_entidad(orm) if orm else None
 
     def obtener_ultima_version(self, id_gestion_fases: int) -> Optional[ProvisionNic41]:
+        """Devuelve la versión más reciente del reporte consolidado de una instancia de ciclo."""
         orm = (
             self.db.query(ProvisionNic41Model)
             .filter(ProvisionNic41Model.id_gestion_fases == id_gestion_fases)
@@ -94,6 +98,7 @@ class SqlAlchemyProvisionNic41Repository(ProvisionNic41Repository):
         return self._a_entidad(orm) if orm else None
 
     def listar_versiones(self, id_gestion_fases: int) -> list[ProvisionNic41]:
+        """Lista todas las versiones (cadena de correcciones) de una instancia de ciclo."""
         registros = (
             self.db.query(ProvisionNic41Model)
             .filter(ProvisionNic41Model.id_gestion_fases == id_gestion_fases)
@@ -103,12 +108,14 @@ class SqlAlchemyProvisionNic41Repository(ProvisionNic41Repository):
         return [self._a_entidad(o) for o in registros]
 
     def marcar_superado(self, id_provision: int) -> None:
+        """La versión anterior queda SUPERADO al generarse una corrección (RF-79 E4)."""
         orm = self.db.get(ProvisionNic41Model, id_provision)
         if orm is not None:
             orm.estado = "SUPERADO"
             self.db.flush()
 
     def marcar_entregado(self, id_provision: int, fecha: datetime) -> None:
+        """M06 confirmó la recepción del reporte consolidado (RF-79 Fase 3)."""
         orm = self.db.get(ProvisionNic41Model, id_provision)
         if orm is not None:
             orm.fecha_entrega_m06 = fecha

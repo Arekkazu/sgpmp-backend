@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo9.metricas_produccion`.
 
 M09 CU02 gestiona las columnas agregadas por RF-16: id_especie, es_activo,
@@ -17,6 +20,7 @@ from .base_model import Base
 
 
 class MetricaProduccionModel(Base):
+    """Modelo ORM de la tabla ``modulo9.metricas_produccion``."""
     __tablename__ = 'metricas_produccion'
     __table_args__ = (
         ForeignKeyConstraint(

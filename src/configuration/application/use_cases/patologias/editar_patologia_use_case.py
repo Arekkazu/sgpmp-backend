@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Editar patología por especie (Flujo F — RF-16).
 
 Edita la entidad M09 en `especies_patologias` (nombre/descripción de esa especie).
@@ -37,6 +40,7 @@ class EditarPatologiaUseCase:
     def execute(
         self, id_especies_patologias: int, dto: EditarPatologiaDTO, usuario_actual: UsuarioActual
     ) -> EspeciePatologia:
+        """Edita la patología y la audita."""
         entidad = self.especie_patologia_repo.obtener_por_id(id_especies_patologias, bloquear=True)
         if entidad is None:
             raise NotFoundError(

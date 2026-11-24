@@ -4,6 +4,7 @@
 # | 2026-11-08 | Arekkazu | INC-M05-264-G31 RF-78: 3 reintentos tras el intento inicial (esperas de 1, 3 y 5 s) |
 # | 2026-11-08 | Arekkazu | INC-M05-265-G32: textos visibles sin códigos de requisito ni de módulo |
 # | 2026-11-14 | destroyerban     | INC-M05-353-G37 RF-80: registro y tipo de suministro en el fallo de la corrección |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: corregir un registro de suministro existente (RF-78, tipo_operacion=CORRECCION).
 
 A diferencia del registro directo (que delega la concurrencia al lock de fila
@@ -98,6 +99,7 @@ class RegistrarCorreccionSuministroUseCase:
         dto: RegistrarCorreccionSuministroDTO,
         usuario_actual: UsuarioActual,
     ) -> ResultadoRegistroDirecto:
+        """Registra la corrección de un suministro costeado, que reemplaza al original."""
         existente = self.registro_repo.existe_idempotente(dto.id_idempotencia)
         if existente is not None:
             return ResultadoRegistroDirecto(registro=existente, estado="YA_PROCESADO")

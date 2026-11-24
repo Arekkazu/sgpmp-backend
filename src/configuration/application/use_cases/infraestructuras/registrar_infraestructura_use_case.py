@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: registra 1..N especies del mismo grupo y nivel_criticidad |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar área productiva (POST RF-20)."""
 from __future__ import annotations
 
@@ -43,6 +44,7 @@ class RegistrarInfraestructuraUseCase:
         self.propagador_tipo_modelo = propagador_tipo_modelo
 
     def execute(self, dto: RegistrarInfraestructuraDTO, usuario_actual: UsuarioActual) -> Infraestructura:
+        """Registra un área en la finca."""
         finca = self.finca_repo.obtener_por_id(dto.finca_id)
         if finca is None:
             raise NotFoundError(

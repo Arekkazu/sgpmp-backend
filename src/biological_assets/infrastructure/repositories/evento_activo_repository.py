@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-45/RF-93: valor y referencia de la venta en la baja |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``EventoActivoRepository`` (RF-39 a RF-45)."""
 
 from __future__ import annotations
@@ -133,6 +134,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
     # ── Operaciones del puerto ───────────────────────────────────────────────
 
     def guardar(self, evento: EventoActivo) -> EventoActivo:
+        """Guarda el evento del activo con su detalle por tipo."""
         ahora = evento.fecha or datetime.now(timezone.utc)
         try:
             # F2: `app.usuario_id` ya lo setea get_current_user una vez por
@@ -216,6 +218,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
         return self._a_entidad(orm)
 
     def listar_por_activo(self, id_activo: int) -> list[EventoActivo]:
+        """Lista los eventos del activo."""
         rows = (
             self.db.query(EventoActivoModel)
             .filter(EventoActivoModel.id_activo_biologico == id_activo)
@@ -225,6 +228,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
         return [self._a_entidad(orm) for orm in rows]
 
     def obtener_ultima_fecha(self, id_activo: int) -> Optional[datetime]:
+        """Devuelve la fecha del último evento del activo."""
         return (
             self.db.query(func.max(EventoActivoModel.fecha))
             .filter(EventoActivoModel.id_activo_biologico == id_activo)
@@ -232,6 +236,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
         )
 
     def tiene_diagnostico_previo(self, id_activo: int) -> bool:
+        """Indica si el activo tiene un diagnóstico sanitario previo."""
         return (
             self.db.query(EventoActivoModel)
             .join(EventoSanitarioModel, EventoSanitarioModel.id_evento == EventoActivoModel.id_eventos)
@@ -243,6 +248,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
         ) is not None
 
     def tiene_servicio_o_inseminacion_previa(self, id_activo: int) -> bool:
+        """Indica si el activo tiene un servicio o inseminación previa."""
         return (
             self.db.query(EventoActivoModel)
             .join(EventoReproductivoModel, EventoReproductivoModel.id_evento_reproductivo == EventoActivoModel.id_eventos)
@@ -254,6 +260,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
         ) is not None
 
     def tiene_diagnostico_positivo_previo(self, id_activo: int) -> bool:
+        """Indica si el activo tiene un diagnóstico de preñez positivo previo."""
         return (
             self.db.query(EventoActivoModel)
             .join(EventoReproductivoModel, EventoReproductivoModel.id_evento_reproductivo == EventoActivoModel.id_eventos)
@@ -266,6 +273,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
         ) is not None
 
     def existe_productivo_duplicado(self, id_activo: int, id_metrica_produccion: int, fecha: date) -> bool:
+        """Indica si ya existe un evento productivo de la métrica en la fecha."""
         return (
             self.db.query(EventoActivoModel)
             .join(EventoProductivoModel, EventoProductivoModel.id_evento == EventoActivoModel.id_eventos)

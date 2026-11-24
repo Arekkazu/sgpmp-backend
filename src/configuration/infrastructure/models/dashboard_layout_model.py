@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.dashboard_layouts` (RF-28).
 
 El JSONB ``config`` almacena ``{"grid": [...WidgetConfig...]}``.
@@ -15,6 +18,7 @@ from .base_model import Base
 
 
 class DashboardLayoutModel(Base):
+    """Modelo ORM de la tabla ``modulo9.dashboard_layouts``."""
     __tablename__ = 'dashboard_layouts'
     __table_args__ = (
         ForeignKeyConstraint(

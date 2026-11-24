@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-52 restricción 3: un fallo en la bitácora no bloquea el flujo operativo
 de M02. Pero el patrón anterior (`except Exception: pass`) descartaba ese
 fallo sin dejar rastro — la ausencia de un evento dejaba de probar que la
@@ -113,6 +116,7 @@ class ControlCarga:
             return {"tasa_eventos_por_segundo": tasa, "umbral": self.umbral}
 
     def contar_encolado(self) -> None:
+        """Suma un evento encolado al contador de carga."""
         with self._candado:
             self.encolados += 1
 

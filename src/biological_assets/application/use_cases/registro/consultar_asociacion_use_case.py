@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: consulta de la infraestructura del activo (RF-34)."""
 
 from __future__ import annotations
@@ -67,6 +68,7 @@ class ConsultarAsociacionUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ResultadoConsultaAsociacion:
+        """Consulta la asociación del activo con su área o sensores."""
         if tipo_consulta not in ('ACTIVA', 'HISTORIAL'):
             raise ValidationError(
                 code='TIPO_CONSULTA_INVALIDO',

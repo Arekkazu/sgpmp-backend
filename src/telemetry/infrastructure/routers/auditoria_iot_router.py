@@ -7,6 +7,7 @@
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
 # | 2026-10-29 | Arekkazu | H-M3-18/19 RF-63: la exportación respeta los mismos filtros y el alcance por finca del listado |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-14 RF-63: sin datos técnicos solo se ven y exportan registros NIC 41 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para bitácora de auditoría IoT.
 
 RF-63 — CU06 Dev scope:
@@ -103,6 +104,7 @@ def listar_auditoria(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaAuditoriaIotSchema:
+    """Lista eventos de la bitácora de auditoría IoT con filtros y paginación."""
     use_case = ConsultarBitacoraIotUseCase(
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
@@ -245,6 +247,7 @@ def obtener_evento(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EventoAuditoriaIotSchema:
+    """Devuelve un evento de la bitácora de auditoría IoT."""
     use_case = ConsultarBitacoraIotUseCase(
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )

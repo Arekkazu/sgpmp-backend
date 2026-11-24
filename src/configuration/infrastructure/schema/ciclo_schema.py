@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para los endpoints de etapas del ciclo productivo (RF-16)."""
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ class CicloBiologicoResponse(BaseModel):
     @field_validator("nombre", mode="before")
     @classmethod
     def extraer_nombre(cls, v: object) -> str:
+        """Convierte el value object del nombre en texto."""
         if hasattr(v, "valor"):
             return v.valor  # type: ignore[attr-defined]
         return str(v)
@@ -36,6 +38,7 @@ class CicloBiologicoResponse(BaseModel):
     @field_validator("duracion_dias", mode="before")
     @classmethod
     def extraer_duracion(cls, v: object) -> int:
+        """Convierte el value object de la duración en entero."""
         if hasattr(v, "valor"):
             return v.valor  # type: ignore[attr-defined]
         return int(v)  # type: ignore[arg-type]

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Obtener contexto de interfaz adaptativa del usuario (GET RF-25).
 
 Además del rol, la finca activa y las especies configuradas, resuelve la identidad
@@ -26,6 +29,7 @@ class ObtenerContextoUseCase:
         self.identidad_repo = identidad_repo
 
     def execute(self, usuario_actual: UsuarioActual) -> ContextoInterfaz:
+        """Devuelve el contexto de interfaz del usuario."""
         contexto = self.contexto_repo.obtener_por_usuario(
             id_usuario=usuario_actual.id_usuario,
             id_rol=usuario_actual.id_rol,

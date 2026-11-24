@@ -4,6 +4,7 @@
 # | 2026-10-27 | Leandro | INC-M03-131-G23 RF-53/54: conservar la secuencia recibida en metadatos del INSERT comun HTTP y batch. |
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: enviar evidencia de reloj en metadatos a la funcion comun antes del INSERT. |
 # | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60 CA-7/RF-53 E1: mantenimiento desde cualquier estado y lecturas rechazadas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-53 B+: HTTP adapta el sobre; la función SQL valida y persiste la fila."""
 from typing import Any, Optional
 
@@ -33,6 +34,7 @@ _ESTADOS_PERSISTIDOS = {'LECTURA_VALIDA', 'FUERA_DE_RANGO', 'ERROR_CALIBRACION'}
 
 
 class IngerirTelemetriaUseCase:
+    """Ingiere una lectura de telemetría validando dispositivo, sensor y variable."""
     def __init__(self, db, ingesta_port: IngestaTelemetriaPort, dispositivo_port, bitacora_repo, catalogo_port: VariableCatalogoPort):
         self.db = db
         self.ingesta_port = ingesta_port
@@ -41,6 +43,7 @@ class IngerirTelemetriaUseCase:
         self.catalogo_port = catalogo_port
 
     def execute(self, dto: IngerirTelemetriaDTO, gateway_id: Optional[str] = None) -> ResultadoIngesta:
+        """Ingiere la lectura y devuelve el resultado de la ingesta."""
         try:
             # DEV-06: el serial es la identidad del nodo, no una credencial; el
             # device_id debe pertenecerle. Que el sensor sea de ese dispositivo
@@ -134,6 +137,7 @@ class SincronizarBufferUseCase:
         dto: IngerirTelemetriaBatchDTO,
         gateway_id: Optional[str] = None,
     ) -> dict[str, Any]:
+        """Ingiere un lote de lecturas almacenadas en buffer y resume el resultado por ítem."""
         total = len(dto.registros)
         aceptados = 0
         rechazados = 0

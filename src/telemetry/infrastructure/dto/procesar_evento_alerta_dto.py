@@ -3,6 +3,8 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M03-161-G66 RF-57: contrato del evento externo y reglas como objeto |
 # | 2026-10-30 | Arekkazu | INC-M04-224-G66 RF-57: categoria_variable, tipo_evento y estado_conectividad del catálogo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTOs de eventos que pueden generar alertas (internos y externos)."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -19,6 +21,7 @@ from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferenci
 
 
 class ProcesarEventoAlertaDTO(BaseDTO):
+    """Evento de una lectura que se evalúa para generar alerta."""
     device_id: int = Field(..., gt=0)
     sensor_id: int = Field(..., gt=0)
     serial: str = Field(..., min_length=1, max_length=100)
@@ -50,11 +53,13 @@ class ProcesarEventoAlertaDTO(BaseDTO):
     @field_validator('tipo_variable')
     @classmethod
     def normalizar_tipo_variable(cls, v: str) -> str:
+        """Normaliza el tipo de variable a mayúsculas."""
         return v.upper().strip()
 
     @field_validator('estado_dato')
     @classmethod
     def validar_estado_dato(cls, v: str) -> str:
+        """Valida el estado de calidad del dato."""
         validos = {'LECTURA_VALIDA', 'FUERA_DE_RANGO', 'ERROR_CALIBRACION'}
         v = v.upper()
         if v not in validos:
@@ -64,6 +69,7 @@ class ProcesarEventoAlertaDTO(BaseDTO):
     @field_validator('severidad_edge', 'severidad_ia')
     @classmethod
     def validar_severidad(cls, v: Optional[str]) -> Optional[str]:
+        """Normaliza y valida la severidad opcional."""
         if v is None:
             return v
         validos = {'LEVE', 'MODERADO', 'CRITICO'}
@@ -75,6 +81,7 @@ class ProcesarEventoAlertaDTO(BaseDTO):
     @field_validator('origen_evento')
     @classmethod
     def validar_origen(cls, v: str) -> str:
+        """Normaliza y valida el origen del evento."""
         validos = {'EDGE', 'BACKEND', 'IA'}
         v = v.upper()
         if v not in validos:
@@ -128,6 +135,7 @@ class EventoAlertaExternoDTO(ProcesarEventoAlertaDTO):
     @field_validator("categoria_variable", "tipo_evento")
     @classmethod
     def validar_catalogo(cls, v: Optional[str], info) -> Optional[str]:
+        """Valida la categoría o el tipo de evento contra su catálogo."""
         if v is None:
             return v
         validos = {"AMBIENTAL", "ANIMAL", "HIDRICA"} if info.field_name == "categoria_variable" else _TIPOS_EVENTO
@@ -138,6 +146,7 @@ class EventoAlertaExternoDTO(ProcesarEventoAlertaDTO):
     @field_validator("tipo_variable")
     @classmethod
     def validar_tipo_variable(cls, v: str) -> str:
+        """Exige un tipo de variable del catálogo de alertas."""
         if v not in _UNIDADES_POR_VARIABLE:
             raise ValueError(
                 "tipo_variable no pertenece al catálogo de RF-57: "
@@ -149,12 +158,14 @@ class EventoAlertaExternoDTO(ProcesarEventoAlertaDTO):
     @field_validator("timestamp_evento")
     @classmethod
     def validar_no_futuro(cls, v: datetime) -> datetime:
+        """Rechaza eventos con fecha futura."""
         if v > datetime.now(timezone.utc) + _MAX_DESFASE_FUTURO:
             raise ValueError("timestamp_evento no puede ser futuro.")
         return v
 
     @model_validator(mode="after")
     def validar_coherencia(self) -> "EventoAlertaExternoDTO":
+        """Exige que la unidad corresponda a la variable."""
         permitidas = {_normalizar_unidad(u) for u in _UNIDADES_POR_VARIABLE[self.tipo_variable]}
         if _normalizar_unidad(self.unidad) not in permitidas:
             raise ValueError(

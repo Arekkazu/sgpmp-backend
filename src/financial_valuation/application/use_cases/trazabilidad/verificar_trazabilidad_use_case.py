@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-91: verificación de la cadena de trazabilidad de las líneas de asiento |
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-288-G32 RF-91: una cadena de período cerrado no aborta la verificación |
 # | 2026-11-13 | Leandro | TC-M06-G52 RF-91: reevaluar cadenas antiguas y auditar fuentes indisponibles. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-91: verifica cada línea (CADENA_COMPLETA → VERIFICADO; si falta un eslabón →
 PENDIENTE_TRAZABILIDAD). La re-verificación de una línea pendiente la lleva a VERIFICADO cuando el
 eslabón se resolvió (FA-4). Las líneas de períodos cerrados no se tocan (R4).
@@ -59,6 +60,7 @@ class VerificadorTrazabilidad:
         return pendientes
 
     def verificar(self, lineas: list[LineaAsiento], id_usuario: Optional[int]) -> dict[str, list[dict]]:
+        """Clasifica las líneas según su trazabilidad hacia el origen."""
         resultado: dict[str, list[dict]] = {
             "VERIFICADO": [], "PENDIENTE_TRAZABILIDAD": [], "VERIFICACION_PENDIENTE": [],
         }
@@ -109,6 +111,7 @@ class VerificadorTrazabilidad:
 
 
 class VerificarTrazabilidadUseCase:
+    """Verifica la trazabilidad de los asientos de un periodo."""
     def __init__(self, db: Session, asientos: AsientoRepository, verificador: VerificadorTrazabilidad,
                  periodos) -> None:
         self.db = db
@@ -117,6 +120,7 @@ class VerificarTrazabilidadUseCase:
         self.periodos = periodos
 
     def execute(self, id_periodo_contable: int, id_usuario: int) -> dict:
+        """Verifica las líneas del periodo y devuelve el resultado por categoría."""
         periodo = self.periodos.obtener(id_periodo_contable)
         if periodo is None or not periodo.esta_abierto:
             raise BusinessRuleError(code="PERIODO_NO_ABIERTO",

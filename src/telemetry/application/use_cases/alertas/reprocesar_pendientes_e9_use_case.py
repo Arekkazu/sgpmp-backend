@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-10-31 | Claude | INC-M03-173-G85 RF-57 E9: eventos PENDIENTE_EVALUACION se reevalúan al configurar la regla |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-57 E9 — recuperación tras corregir la configuración (#878, BUG-G85-01 parte 2).
 
 Un evento de una variable sin umbral RF-17 queda PENDIENTE_EVALUACION dentro de una alerta
@@ -35,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReprocesarPendientesE9UseCase:
+    """Reprocesa eventos que quedaron pendientes por falta de regla o umbral (E9)."""
     def __init__(
         self,
         db: Session,
@@ -51,6 +53,7 @@ class ReprocesarPendientesE9UseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, limite: int = 20) -> dict:
+        """Reevalúa hasta limite alertas pendientes y devuelve el resumen del lote."""
         resumen = {'reevaluados': 0, 'sin_regla': 0, 'fallidos': 0}
         for tecnica in self.alerta_repo.listar_pendientes_e9(limite):
             evento = dict((tecnica.metadato_evento or {}).get('evento_pendiente') or {})

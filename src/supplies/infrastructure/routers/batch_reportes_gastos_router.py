@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI del panel de administración del motor async de RF-77.
 
   POST /suministros/reportes-gastos/batch/ejecutar — Disparo manual (debug/panel admin)
@@ -38,6 +41,7 @@ _RECURSO = 53
     summary="Disparar manualmente un ciclo del worker de reportes de gastos (debug/panel admin)",
 )
 async def ejecutar_ciclo(db: Session = Depends(get_db)) -> dict:
+    """Procesa un ciclo de la cola de reportes de gastos."""
     use_case = build_procesar_cola_reportes_gastos_use_case(db)
     procesados = await use_case.ejecutar()
     return {"trabajos_procesados": procesados}
@@ -50,6 +54,7 @@ async def ejecutar_ciclo(db: Session = Depends(get_db)) -> dict:
     summary="Consultar la cola de trabajos pendientes de generación de reportes",
 )
 def consultar_cola(db: Session = Depends(get_db)) -> dict:
+    """Lista los trabajos pendientes de reportes de gastos."""
     pendientes = SqlAlchemyTrabajoReporteGastoRepository(db).listar_pendientes(limite=50)
     return {
         "total": len(pendientes),
@@ -67,6 +72,7 @@ def consultar_cola(db: Session = Depends(get_db)) -> dict:
     summary="Consultar los fallos persistentes del motor de reportes de gastos",
 )
 def consultar_fallos(db: Session = Depends(get_db)) -> dict:
+    """Lista los fallos sin resolver de reportes de gastos."""
     fallos = SqlAlchemyFalloReporteGastoRepository(db).listar_no_resueltos()
     return {
         "total": len(fallos),

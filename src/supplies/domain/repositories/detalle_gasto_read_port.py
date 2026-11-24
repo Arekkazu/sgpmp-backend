@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, existencia y bajas RF-45  |
 # | 2026-11-10 | Arekkazu | INC-M05-269-G23 RF-77: PDF con nombres del activo, desglose por período y notas de tendencia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de lectura de las líneas de gasto fuente del reporte (RF-77).
 
 Consolida los registros VALIDADOS de RF-75 (consumo de alimento) y RF-76
@@ -18,6 +19,7 @@ from src.supplies.domain.entities.reporte_gasto import LineaGasto
 
 
 class DetalleGastoReadPort(ABC):
+    """Puerto de lectura del detalle de gastos de suministros."""
     @abstractmethod
     def consultar(
         self,
@@ -38,10 +40,12 @@ class DetalleGastoReadPort(ABC):
 
     @abstractmethod
     def existe_infraestructura(self, id_infraestructura: int) -> bool:
+        """Indica si existe el área."""
         raise NotImplementedError
 
     @abstractmethod
     def existe_especie(self, id_especie: int) -> bool:
+        """Indica si existe la especie."""
         raise NotImplementedError
 
     @abstractmethod

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar un dispositivo IoT (POST RF-21)."""
 from __future__ import annotations
 
@@ -35,6 +38,7 @@ class RegistrarDispositivoIotDTO(BaseDTO):
     @field_validator("serial")
     @classmethod
     def validar_serial(cls, v: str) -> str:
+        """Valida el serial del dispositivo."""
         if not v.strip():
             raise ValueError("El serial del dispositivo es obligatorio.")
         if len(v.strip()) > 50:
@@ -44,6 +48,7 @@ class RegistrarDispositivoIotDTO(BaseDTO):
     @field_validator("descripcion")
     @classmethod
     def validar_descripcion(cls, v: str) -> str:
+        """Valida la descripción opcional."""
         if not v.strip():
             raise ValueError("La descripción del dispositivo es obligatoria.")
         if len(v.strip()) > 100:

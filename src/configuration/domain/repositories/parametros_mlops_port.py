@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto de parámetros operativos configurables."""
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
@@ -5,6 +9,7 @@ from src.configuration.domain.entities.parametro_mlops import ParametroMLOps
 
 
 class ParametrosMLOpsPort(ABC):
+    """Puerto de lectura y escritura de parámetros operativos."""
     @abstractmethod
     def bloquear_configuracion(self) -> None:
         """Serializa la validación y escritura administrativa del grupo de parámetros."""

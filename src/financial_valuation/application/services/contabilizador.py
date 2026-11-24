@@ -3,6 +3,7 @@
 # | 2026-11-04 | Arekkazu | M06 RF-86/87/94: período del hecho, cuentas de la matriz y auditoría |
 # | 2026-11-08 | destroyerban | INC-M06-312-G14 RF-83: evento en período cerrado queda pendiente y alerta |
 # | 2026-11-10 | Arekkazu | INC-M06-342-G40 RF-86 FA-5: la línea sin cuenta avisa al Contador la combinación faltante |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Servicio de aplicación compartido: ubica el período de un hecho, crea su línea de asiento con
 las cuentas de la matriz (RF-86 v2.0, RF-109) y registra la auditoría (RF-94). No hace commit."""
 from __future__ import annotations
@@ -38,6 +39,7 @@ class PeriodoEnCierreError(FlowError):
 
 
 class Contabilizador:
+    """Genera los asientos contables NIC 41 y audita los hechos contabilizados."""
     def __init__(self, config: ConfiguracionContableRepository, periodos: PeriodoRepository,
                  asientos: AsientoRepository, auditoria: AuditoriaFinancieraRepository,
                  notificador: Optional[NotificacionFinancieraPort] = None,
@@ -151,4 +153,5 @@ class Contabilizador:
         return nuevas
 
     def auditar(self, evento: EventoAuditoria) -> None:
+        """Registra un evento en la auditoría financiera."""
         self.auditoria.registrar(evento)

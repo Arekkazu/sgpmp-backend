@@ -5,6 +5,12 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: resuelve conectividad en transaccion externa |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcula el semáforo al resolver o descartar |
 # | 2026-10-28 | destroyerban | INC-M03-172-G79 RF-57 CA-11: estado no catalogado (FINALIZADA, vacío, null) → 422 TRANSICION_INVALIDA |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de cambio de estado de una alerta (RF-57/RF-60).
+
+Valida la transición contra el catálogo de estados y el ámbito del endpoint
+(operativo o técnico) antes de persistirla.
+"""
 from __future__ import annotations
 
 import logging
@@ -29,6 +35,7 @@ _ESTADOS_CATALOGO = {e.value for e in EstadoAlerta}
 
 
 class ActualizarEstadoAlertaUseCase:
+    """Aplica transiciones de estado a una alerta respetando su ámbito."""
 
     @staticmethod
     def resolver_conectividad(alerta, alerta_repo, ahora):
@@ -69,6 +76,11 @@ class ActualizarEstadoAlertaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_alerta: int, dto: ActualizarEstadoAlertaDTO, id_usuario: int) -> Alerta:
+        """Cambia el estado de la alerta indicada y devuelve la alerta actualizada.
+
+        Raises:
+            NotFoundError: Si la alerta no existe o no pertenece al ámbito.
+        """
         alerta = self.alerta_repo.obtener_por_id(id_alerta)
         # RF-60 D-09: el Productor no resuelve alertas técnicas por /iot/alertas,
         # ni el Ingeniero alertas operativas por /iot/alertas-tecnicas.

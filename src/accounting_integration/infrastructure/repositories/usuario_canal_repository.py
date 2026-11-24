@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-SSO02: lectura del usuario que actúa por el canal |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Usuario del canal, leído como Sistema: el endpoint de token no tiene identidad declarada y la RLS
 de ``modulo1`` lo dejaría ciego."""
 from __future__ import annotations
@@ -23,6 +24,7 @@ _SELECT = f"""
 
 
 class SqlAlchemyUsuarioCanalRepository(UsuarioCanalRepository):
+    """Implementación SQLAlchemy de usuarios del canal."""
     def __init__(self, db: Session):
         self.db = db
 
@@ -32,7 +34,9 @@ class SqlAlchemyUsuarioCanalRepository(UsuarioCanalRepository):
         return UsuarioCanal(**f) if f else None
 
     def obtener_por_correo(self, correo: str) -> Optional[UsuarioCanal]:
+        """Devuelve el usuario por correo, o ``None``."""
         return self._uno("lower(u.correo_electronico) = lower(:correo)", {"correo": correo})
 
     def obtener(self, id_usuario: int) -> Optional[UsuarioCanal]:
+        """Devuelve el usuario por id, o ``None``."""
         return self._uno("u.id_usuario = :id", {"id": id_usuario})

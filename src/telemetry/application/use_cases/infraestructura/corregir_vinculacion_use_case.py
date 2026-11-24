@@ -1,6 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: correccion SUPERADA conserva periodo y contexto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de corrección de una vinculación lectura-activo (RF-61-C)."""
 from __future__ import annotations
 
 import logging
@@ -40,6 +42,7 @@ class CorregirVinculacionUseCase:
     def execute(
         self, id_vinculacion_lectura: int, dto: CorregirVinculacionDTO, id_usuario: int, *, ids_fincas_permitidas=None
     ) -> VinculacionLectura:
+        """Supera la vinculación original y crea una nueva con el activo corregido."""
         ahora = datetime.now(timezone.utc)
         try:
             original = self.vinculacion_repo.obtener_por_id(id_vinculacion_lectura,ids_fincas_permitidas=ids_fincas_permitidas)

@@ -4,6 +4,7 @@
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G67 RF-92: una sección bloqueada impide aprobar el informe |
 # | 2026-11-13 | Leandro | TC-M06-G61 RF-92: avisar al Contador tras guardar el informe con faltantes. |
 # | 2026-11-14 | Arekkazu | QA-M06: los textos que ve el usuario no citan párrafos de la norma |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso RF-92. El informe se genera en BORRADOR sobre un período CERRADO; las alertas de
 consistencia no lo bloquean, pero continuar con ellas exige justificación (paso 3, FA-2). Al aprobar
 una versión, la APROBADA anterior pasa a ARCHIVADO (R4)."""
@@ -23,6 +24,7 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 
 class GenerarInformeRevelacionesUseCase:
+    """Genera y resuelve informes de revelaciones."""
     def __init__(self, db: Session, periodos: PeriodoRepository, reportes: ReporteRepository,
                  constructor: ConstructorInformeRevelaciones, auditoria: AuditoriaFinancieraRepository,
                  notificador: NotificacionFinancieraPort) -> None:
@@ -35,6 +37,7 @@ class GenerarInformeRevelacionesUseCase:
 
     def generar(self, id_periodo_contable: int, manuales: dict, justificacion_inconsistencias: Optional[str],
                 id_usuario: int) -> dict:
+        """Genera el informe de revelaciones del periodo."""
         periodo = self.periodos.obtener(id_periodo_contable)
         if periodo is None or periodo.estado != "CERRADO":  # FA-1
             raise BusinessRuleError(code="PERIODO_NO_CERRADO", message="El informe solo se genera sobre períodos cerrados.")
@@ -69,6 +72,7 @@ class GenerarInformeRevelacionesUseCase:
         return resultado
 
     def resolver(self, id_informe: int, aprobar: bool, razon: Optional[str], id_usuario: int) -> dict:
+        """Aprueba o rechaza un informe de revelaciones."""
         informe = self.reportes.obtener_informe(id_informe)
         if informe is None:
             raise NotFoundError(code="INFORME_NO_ENCONTRADO", message="El informe no existe.")

@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: catálogo de los 18 reportes, filtros y validación |
 # | 2026-11-19 | Arekkazu | M08 RF-104: textos de los valores y de los filtros sin elegir, para el PDF |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Catálogo de reportes de RF-104: qué filtros pide cada uno y cómo se validan.
 
 Cada tipo tiene su recurso RBAC (``reporte_<tipo>``, acción Ejecutar): quién lo genera se decide en
@@ -27,11 +28,14 @@ _REFERENCIAS = (FINCA, ESPECIE, ACTIVO, LOTE, INFRAESTRUCTURA, SENSOR, PERIODO)
 
 # Hasta 1.000 registros se genera al momento; por encima, en segundo plano (RF-104 Fase 3).
 LIMITE_SINCRONO = 1000
+# La telemetría crece ~10.000 lecturas por sensor al mes y el reporte se arma en memoria: un mes por reporte.
+MAX_DIAS_TELEMETRIA = 31
 FILAS_VISTA_PREVIA = 20
 
 
 @dataclass(frozen=True)
 class Filtro:
+    """Filtro aceptado por un reporte."""
     nombre: str
     tipo: str
     obligatorio: bool = False
@@ -50,9 +54,11 @@ class DefinicionReporte:
 
     @property
     def recurso(self) -> str:
+        """Nombre del recurso RBAC del reporte."""
         return self.tipo.lower()
 
     def filtro(self, nombre: str) -> Optional[Filtro]:
+        """Devuelve el filtro por nombre, o ``None``."""
         return next((f for f in self.filtros if f.nombre == nombre), None)
 
 
@@ -192,6 +198,9 @@ def validar_filtros(definicion: DefinicionReporte, crudos: Optional[dict[str, An
     inicio, fin = limpios.get("fecha_inicio"), limpios.get("fecha_fin")
     if inicio and fin and inicio > fin:
         raise _invalido("fecha_inicio", "La fecha de inicio no puede ser posterior a la fecha de fin.")
+    if definicion.tipo == "REPORTE_TELEMETRIA" and inicio and fin and (fin - inicio).days > MAX_DIAS_TELEMETRIA:
+        raise _invalido("fecha_inicio", f"El reporte de telemetría cubre como máximo {MAX_DIAS_TELEMETRIA} días. "
+                                        "Divida el rango en varios reportes.")
     for nombre in ("fecha_fin", "fecha_corte"):
         if limpios.get(nombre) and limpios[nombre] > hoy:
             raise _invalido(nombre, f"«{ETIQUETAS[nombre]}» no puede ser una fecha futura.")

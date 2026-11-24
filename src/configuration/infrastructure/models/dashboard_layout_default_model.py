@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.dashboard_layouts_default` — layout base por rol (RF-28).
 
 Una fila por rol. Reemplaza al diccionario vacío que estaba quemado en la entidad
@@ -13,6 +16,7 @@ from .base_model import Base
 
 
 class DashboardLayoutDefaultModel(Base):
+    """Modelo ORM de la tabla ``modulo9.dashboard_layouts_default``."""
     __tablename__ = 'dashboard_layouts_default'
     __table_args__ = (
         ForeignKeyConstraint(

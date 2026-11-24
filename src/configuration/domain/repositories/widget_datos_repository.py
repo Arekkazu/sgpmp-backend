@@ -9,6 +9,6 @@ class WidgetDatosRepository(ABC):
     """Contrato de lectura de los datos de cada widget según su fuente."""
 
     @abstractmethod
-    def obtener(self, fuente_datos: str) -> list[dict[str, Any]]:
-        """Filas de la fuente indicada, o lista vacía si la fuente no está soportada."""
+    def obtener(self, fuente_datos: str, id_usuario: int) -> list[dict[str, Any]]:
+        """Filas de la fuente indicada de las fincas del usuario, o lista vacía si la fuente no está soportada."""
         raise NotImplementedError

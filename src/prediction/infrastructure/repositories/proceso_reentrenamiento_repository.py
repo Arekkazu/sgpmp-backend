@@ -4,6 +4,8 @@
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-72 P-6: retroalimentaciones con el código RF-64 (0-7) que etiqueta el motor |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de procesos de reentrenamiento."""
 from __future__ import annotations
 
 import copy
@@ -145,10 +147,12 @@ def _volcar(p: ProcesoReentrenamiento, orm: ProcesoReentrenamientoModel) -> None
 
 
 class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepository):
+    """Implementación SQLAlchemy de ``ProcesoReentrenamientoRepository``."""
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def crear(self, proceso):
+        """Crea el proceso."""
         try:
             orm = ProcesoReentrenamientoModel()
             _volcar(proceso, orm)
@@ -160,6 +164,7 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
             raise_from_db_error(exc)
 
     def obtener(self, id_proceso):
+        """Devuelve el proceso, o ``None``."""
         try:
             orm = self._db.get(_M, id_proceso)
         except Exception as exc:
@@ -167,6 +172,7 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
         return self._con_nombres([_a_entidad(orm)])[0] if orm else None
 
     def abierto_de(self, id_activo_biologico):
+        """El proceso PENDIENTE o EN_CURSO del animal, si hay."""
         try:
             orm = self._db.execute(select(_M).where(
                 _M.id_activo_biologico == id_activo_biologico, _M.estado.in_(("PENDIENTE", "EN_CURSO")))).scalars().first()
@@ -175,6 +181,7 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
         return _a_entidad(orm) if orm else None
 
     def tomar_siguiente(self):
+        """El PENDIENTE más antiguo, bloqueado para esta transacción (``FOR UPDATE SKIP LOCKED``)."""
         try:
             orm = self._db.execute(
                 select(_M).where(_M.estado == "PENDIENTE").order_by(_M.fecha_solicitud, _M.id_proceso_reentrenamiento)
@@ -184,6 +191,7 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
         return _a_entidad(orm) if orm else None
 
     def guardar(self, proceso):
+        """Actualiza el proceso."""
         try:
             orm = self._db.get(_M, proceso.id_proceso_reentrenamiento)
             _volcar(proceso, orm)
@@ -194,6 +202,7 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
             raise_from_db_error(exc)
 
     def listar(self, *, tipo_modelo, id_activo_biologico, estado, desde, hasta, pagina, por_pagina):
+        """Lista los procesos con filtros y paginación."""
         q = select(_M)
         if tipo_modelo:
             q = q.where(_M.tipo_modelo == tipo_modelo)
@@ -214,12 +223,14 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
         return self._con_nombres([_a_entidad(o) for o in filas]), total
 
     def en_curso(self):
+        """Procesos EN_CURSO (para el vigilante de latidos)."""
         try:
             return [_a_entidad(o) for o in self._db.execute(select(_M).where(_M.estado == "EN_CURSO")).scalars().all()]
         except Exception as exc:
             raise_from_db_error(exc)
 
     def datos_animal(self, id_activo_biologico):
+        """None si el animal no existe o no está en el alcance."""
         try:
             f = self._db.execute(_SQL_DATOS_ANIMAL, {"id": id_activo_biologico}).mappings().first()
         except Exception as exc:
@@ -229,12 +240,18 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
         return DatosAnimalReentrenamiento(f["tipo_modelo"], f["id_version_vigente"])
 
     def horas_de_lecturas(self, id_activo_biologico):
+        """Horas entre la primera y la última lectura válida de los sensores directos del animal
+        (14 días). Se pide con la sesión de sistema: es una regla del motor, no lo que ve el usuario.
+        """
         try:
             return float(self._db.execute(_SQL_HORAS_LECTURAS, {"id": id_activo_biologico}).scalar() or 0)
         except Exception as exc:
             raise_from_db_error(exc)
 
     def candidatos_programados(self, dias):
+        """BE-6: (animal, tipo de modelo) individuales atendidos cuya versión vigente tiene más de
+        ``dias`` días y que no tienen un proceso abierto.
+        """
         from src.prediction.infrastructure.adapters.catalogo_motor_m02_adapter import ESTADOS_ATENDIDOS, TIPOS_INDIVIDUALES
         try:
             filas = self._db.execute(_SQL_CANDIDATOS_PROGRAMADOS, {
@@ -244,6 +261,7 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
         return [(f[0], f[1]) for f in filas]
 
     def version_de_proceso(self, id_proceso):
+        """La versión registrada por RF-69 con ``id_proceso_rf71`` = este proceso (BE-3)."""
         try:
             return self._db.execute(text(
                 "SELECT id_version_modelo FROM modulo4.versiones_modelos WHERE id_proceso_rf71 = :id "
@@ -252,6 +270,12 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
             raise_from_db_error(exc)
 
     def retroalimentaciones_verificadas(self, id_activo_biologico):
+        """Diagnósticos clínicos vigentes del animal con la ventana de su inferencia (RF-72).
+
+        Además de los ids de ``diagnosticos_reales``, cada fila trae ``codigos_rf64_reales`` (el
+        código 0-7 de cada diagnóstico, en el mismo orden), ``codigo_rf64_inferido`` y
+        ``nivel_riesgo_inferido`` de la inferencia: con eso el motor etiqueta sus ventanas.
+        """
         try:
             filas = self._db.execute(_SQL_RETRO_VERIFICADAS, {"id": id_activo_biologico}).mappings().all()
         except Exception as exc:

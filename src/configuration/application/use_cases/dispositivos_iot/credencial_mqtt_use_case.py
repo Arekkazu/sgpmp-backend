@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso: credencial MQTT del Gateway Edge (RF-23, TC-M09-250/251).
 
 Lo que se conecta al broker es el Gateway Edge (la computadora de borde del
@@ -69,6 +72,7 @@ class EmitirCredencialMqttUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> CredencialMqtt:
+        """Emite la credencial MQTT del dispositivo."""
         dispositivo = _obtener_dispositivo(self.dispositivo_repo, id_dispositivo_iot, ids_fincas_permitidas)
         if not dispositivo.es_activo:
             raise BusinessRuleError(
@@ -149,6 +153,7 @@ class RevocarCredencialMqttUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> None:
+        """Revoca la credencial MQTT del dispositivo."""
         dispositivo = _obtener_dispositivo(self.dispositivo_repo, id_dispositivo_iot, ids_fincas_permitidas)
         revocar_y_auditar(self.mqtt_port, self.bitacora, dispositivo, usuario_actual.id_usuario)
 

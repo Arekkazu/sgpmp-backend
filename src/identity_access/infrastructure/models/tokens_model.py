@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.tokens`.
 
 Registro de tokens de acceso JWT. `fecha_uso` no-nula indica que el token
@@ -20,6 +23,7 @@ from .enums_models import EnumTokenTipo
 
 
 class Tokens(Base):
+    """Modelo ORM de los tokens de acceso y refresco (tabla ``modulo1.tokens``)."""
     __tablename__ = 'tokens'
     __table_args__ = (
         ForeignKeyConstraint(['id_sesion'], ['modulo1.sesiones.id_sesion'], name='fk_tokens_sesion'),

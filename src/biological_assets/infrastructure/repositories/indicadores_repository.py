@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``IndicadoresRepository``: indicadores zootécnicos
 (RF-51) y datos consolidados (RF-50).
 """
@@ -53,6 +54,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         fecha_fin: Optional[date],
         tipo_indicador: str,
     ) -> ResultadoIndicadores:
+        """Calcula los indicadores del activo en el rango de fechas."""
         ahora = datetime.now(timezone.utc)
         indicadores: list[IndicadorZootecnico] = []
         advertencias: list[str] = []
@@ -469,6 +471,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         pagina: int,
         page_size: int,
     ) -> DatosConsolidados:
+        """Devuelve los datos consolidados del activo por tipo, paginados."""
         ahora = datetime.now(timezone.utc)
 
         row_base = self.db.execute(
@@ -607,6 +610,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         fecha_inicio: Optional[date],
         fecha_fin: Optional[date],
     ) -> int:
+        """Cuenta las mediciones de peso del activo en el rango."""
         # Mismo WHERE que _calcular_ganancia_peso (RF-51): eventos_crecimeinto
         # con tipo_medicion='peso', acotados al rango solicitado.
         row = self.db.execute(

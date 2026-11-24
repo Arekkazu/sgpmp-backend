@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar dispositivos IoT (GET RF-21)."""
 from __future__ import annotations
 
@@ -32,6 +35,7 @@ class ConsultarDispositivosIotUseCase:
         solo_activos: bool = False,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[DispositivoIot]:
+        """Lista los dispositivos visibles con filtros."""
         dispositivos = self.dispositivo_repo.listar(
             solo_activos=solo_activos, ids_fincas_permitidas=ids_fincas_permitidas
         )
@@ -55,6 +59,11 @@ class ConsultarDispositivosIotUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> DispositivoIot:
+        """Devuelve el dispositivo.
+
+        Raises:
+            NotFoundError: Si no existe o no es visible.
+        """
         dispositivo = self.dispositivo_repo.obtener_por_id(
             id_dispositivo_iot, ids_fincas_permitidas=ids_fincas_permitidas
         )

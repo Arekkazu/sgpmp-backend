@@ -1,6 +1,12 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: mapea columnas oficiales DB-13 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de las vinculaciones lectura-activo (tabla ``modulo3.vinculaciones_lecturas``).
+
+Mapea DB-13: modelo de manejo, infraestructura, vigencia, mecanismo y estado de
+la vinculación, además del contexto y la corrección.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,6 +20,8 @@ from .base_model import Base
 
 
 class VinculacionLecturaModel(Base):
+    """Fila de la tabla ``modulo3.vinculaciones_lecturas``."""
+
     __tablename__ = 'vinculaciones_lecturas'
     __table_args__ = {'schema': 'modulo3'}
 

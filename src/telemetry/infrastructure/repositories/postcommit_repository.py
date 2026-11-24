@@ -7,6 +7,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: pendientes de la etapa de calidad de vision |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: reintentos con espera creciente, no un FALLIDO por minuto |
 # | 2026-10-31 | Claude | INC-M03-235-G16 RF-62: pendientes sin anti-join cuadrático bajo RLS |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase, métodos y función |
 """RF-63 es el registro durable de etapas; no se agrega una tabla de transporte.
 
 La conexión queda fijada a una transacción externa. Los commits de los casos de
@@ -104,11 +105,14 @@ def _listo_para_reintento(etapa, identificador, base_seg, tope_seg):
 
 
 class SqlAlchemyPostcommitRepository:
+    """Progreso durable de las etapas postcommit sobre la bitácora de auditoría."""
+
     def __init__(self, db, transaccion):
         self.db = db
         self.transaccion = transaccion
 
     def pendientes(self, etapa, limite, reintento_seg, reintento_max_seg=None):
+        """Lista los identificadores pendientes de la etapa, respetando requisitos y espera."""
         tabla, columna, _ = _fuente(etapa)
         identificador = cast(tabla.c[columna], String)
         consulta = select(tabla.c[columna]).where(
@@ -140,6 +144,7 @@ class SqlAlchemyPostcommitRepository:
         return list(self.db.execute(consulta.order_by(tabla.c[columna]).limit(limite)).scalars())
 
     def reclamar(self, etapa, identificador):
+        """Intenta reservar el identificador; ``False`` si otro proceso lo tomó o falta un requisito."""
         tabla, columna, _ = _fuente(etapa)
         fila = self.db.execute(select(tabla.c.id_dispositivo_iot).where(
             tabla.c[columna] == identificador).with_for_update(skip_locked=True)).first()
@@ -158,6 +163,7 @@ class SqlAlchemyPostcommitRepository:
         return True
 
     def registrar(self, etapa, identificador, error=None, *, detalle=None):
+        """Registra la evidencia de la etapa; sin evidencia confirmada, falla la unidad."""
         if etapa in (EtapaPostcommit.RF53_LECTURAS, EtapaPostcommit.RF53_AUDITORIA):
             componente = ComponenteOrigen.RF53
         elif etapa is EtapaPostcommit.VISION_CALIDAD:
@@ -190,12 +196,14 @@ class SqlAlchemyPostcommitRepository:
             raise RuntimeError('No se confirmó la evidencia RF-63 de postcommit.')
 
     def confirmar(self):
+        """Confirma la sesión y la transacción externa de la unidad."""
         self.db.commit()
         self.transaccion.commit()
 
 
 @contextmanager
 def unidad_postcommit(engine, identidad=True):
+    """Abre una unidad aislada para procesar etapas, con timeouts y rollback al salir."""
     contexto = nullcontext(engine) if isinstance(engine, Connection) else engine.connect()
     with contexto as conexion:
         transaccion = conexion.begin_nested() if conexion.in_transaction() else conexion.begin()

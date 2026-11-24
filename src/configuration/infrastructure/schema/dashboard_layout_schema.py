@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-14 | Arekkazu | M08 RF-103: opciones, frecuencia y cómo se dibuja cada widget        |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta del dashboard: layout, catálogo de widgets y datos (RF-28)."""
 from __future__ import annotations
 
@@ -40,6 +41,7 @@ class DashboardLayoutResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, entity, version_perfil: Optional[int] = None) -> DashboardLayoutResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_dashboard_layout=entity.id_dashboard_layout,
             id_usuario=entity.id_usuario,
@@ -87,6 +89,7 @@ class WidgetCatalogoResponse(BaseModel):
 
     @classmethod
     def desde_widget(cls, widget) -> WidgetCatalogoResponse:
+        """Construye la respuesta a partir del widget del catálogo."""
         definicion = DEFINICIONES.get(widget.clave)
         extra = {} if definicion is None else {
             "visual": definicion.visual,

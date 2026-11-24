@@ -55,6 +55,7 @@ jobs:
             --config "p/jwt" \
             --exclude-rule python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text \
             --severity ERROR \
+            --error \
             --sarif --sarif-output semgrep.sarif \
             src/
 
@@ -64,7 +65,7 @@ jobs:
         with:
           name: semgrep-results
           path: semgrep.sarif
-          retention-days: 14
+          retention-days: 30
 
   bandit-sast:
     name: Bandit Python SAST Scan
@@ -103,7 +104,7 @@ jobs:
         with:
           name: bandit-report
           path: bandit-report.txt
-          retention-days: 14
+          retention-days: 30
 
   bearer-sast:
     name: Bearer SAST & Taint Analysis
@@ -149,6 +150,6 @@ jobs:
           path: |
             bearer-report.txt
             bearer.sarif
-          retention-days: 14
+          retention-days: 30
 
 

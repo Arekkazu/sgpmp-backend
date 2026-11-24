@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-13 | Arekkazu | INC-M06-90-G97 RF-88: consulta de la depreciación lineal de un activo al costo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-88 pasos 4-6: depreciación en línea recta de un activo valorado por costo a una fecha,
 sin registrar nada (la registra cada cierre, paso 4.1).
 
@@ -19,6 +20,7 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class ConsultarDepreciacionUseCase:
+    """Consulta la depreciación de un activo valorado al costo."""
     def __init__(self, activos: ActivoFinancieroPort, valoraciones: ValoracionRepository,
                  config: ConfiguracionContableRepository) -> None:
         self.activos = activos
@@ -26,6 +28,11 @@ class ConsultarDepreciacionUseCase:
         self.config = config
 
     def execute(self, id_activo_biologico: int, fecha: date) -> dict:
+        """Calcula la depreciación acumulada del activo a la fecha.
+
+        Raises:
+            NotFoundError: Si el activo no existe.
+        """
         activo = self.activos.obtener(id_activo_biologico)
         if activo is None:
             raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe.")

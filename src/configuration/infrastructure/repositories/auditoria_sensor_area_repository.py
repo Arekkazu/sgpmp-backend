@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``AuditoriaSensorAreaRepository``."""
 from __future__ import annotations
 
@@ -10,6 +13,7 @@ from src.configuration.infrastructure.models.auditoria_sensor_area_model import 
 
 
 class SqlAlchemyAuditoriaSensorAreaRepository(AuditoriaSensorAreaRepository):
+    """Implementación SQLAlchemy de ``AuditoriaSensorAreaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -23,6 +27,9 @@ class SqlAlchemyAuditoriaSensorAreaRepository(AuditoriaSensorAreaRepository):
         valores_nuevos: dict,
         valores_anteriores: Optional[dict] = None,
     ) -> None:
+        """Inserta un registro de auditoría inmutable sobre la asociación sensor-área
+        con los valores antes/después.
+        """
         orm = AuditoriaSensorAreaModel(
             id_sensores_area_asociada=id_sensores_area_asociada,
             id_usuario=id_usuario,

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87/RF-89/RF-109: periodicidad, umbral de desviación y alertas de precio |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: actualizar la configuración contable de la instalación (fila única).
 
 La periodicidad nueva rige para los períodos que se creen desde ahora (RF-87 v1.1: "un cambio
@@ -17,12 +18,14 @@ from src.financial_valuation.domain.repositories.configuracion_contable_reposito
 
 
 class ActualizarConfiguracionContableUseCase:
+    """Actualiza la configuración contable general."""
     def __init__(self, db: Session, config: ConfiguracionContableRepository, auditoria: AuditoriaFinancieraRepository) -> None:
         self.db = db
         self.config = config
         self.auditoria = auditoria
 
     def execute(self, tipo_cierre: str, pct_umbral: Decimal, dias_alerta: int, id_usuario: int) -> ConfiguracionContable:
+        """Actualiza tipo de cierre, umbral y días de alerta y lo audita."""
         anterior = self.config.obtener()
         try:
             nueva = self.config.actualizar(tipo_cierre, pct_umbral, dias_alerta, id_usuario)

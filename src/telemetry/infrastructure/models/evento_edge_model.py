@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM de los eventos procesados en el Edge (tabla ``modulo3.eventos_edge_computing``).
+
+Conserva la regla aplicada, los umbrales, la desviación y los metadatos del
+evento que el Edge envía al backend.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +20,8 @@ from .base_model import Base
 
 
 class EventoEdgeComputingModel(Base):
+    """Fila de la tabla ``modulo3.eventos_edge_computing``."""
+
     __tablename__ = 'eventos_edge_computing'
     __table_args__ = (
         PrimaryKeyConstraint('id_evento_edge_computing', name='eventos_edge_computing_pkey'),

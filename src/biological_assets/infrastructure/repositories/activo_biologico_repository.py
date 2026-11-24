@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``ActivoBiologicoRepository``.
 
 Mapea el activo y sus detalles (individual/poblacional), la asociación a
@@ -102,6 +105,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
     # ── Operaciones del puerto ───────────────────────────────────────────────
 
     def guardar(self, activo: ActivoBiologico) -> ActivoBiologico:
+        """Crea el activo con su detalle y su ubicación inicial."""
         ahora = datetime.now(timezone.utc)
         try:
             # El trigger trg_auditar_activo_biologico requiere app.usuario_id, ya
@@ -172,6 +176,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         ids_fincas_permitidas: Optional[list[int]] = None,
         bloquear: bool = False,
     ) -> Optional[ActivoBiologico]:
+        """Devuelve el activo si está en las fincas permitidas, o ``None``."""
         orm = self.db.get(ActivoBiologicoModel, id_activo, with_for_update=bloquear, populate_existing=bloquear)
         if orm is None:
             return None
@@ -204,6 +209,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[ActivoBiologico], int]:
+        """Lista activos con filtros y paginación."""
         try:
             q = self.db.query(ActivoBiologicoModel)
             if ids_fincas_permitidas is not None:
@@ -236,6 +242,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             raise_from_db_error(exc)
 
     def existe_identificador(self, identificador: str) -> bool:
+        """Indica si ya existe un activo con ese identificador."""
         return (
             self.db.query(ActivoBiologicoModel)
             .filter(func.lower(ActivoBiologicoModel.identificador) == identificador.lower())
@@ -243,6 +250,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         ) is not None
 
     def obtener_asociacion_activa(self, id_activo: int) -> Optional[HistorialInfraestructura]:
+        """Devuelve la ubicación vigente del activo."""
         row = (
             self.db.query(HistorialInfraestructuraActivoModel, InfraestructuraModel)
             .join(
@@ -272,6 +280,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
     def obtener_asociacion_en_fecha(
         self, id_activo: int, fecha_referencia: datetime
     ) -> Optional[HistorialInfraestructura]:
+        """Devuelve la ubicación del activo en la fecha dada."""
         row = (
             self.db.query(HistorialInfraestructuraActivoModel, InfraestructuraModel)
             .join(
@@ -303,6 +312,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         )
 
     def obtener_historial_infraestructura(self, id_activo: int) -> list[HistorialInfraestructura]:
+        """Lista las ubicaciones históricas del activo."""
         rows = (
             self.db.query(HistorialInfraestructuraActivoModel, InfraestructuraModel)
             .join(
@@ -329,6 +339,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         ]
 
     def actualizar_detalle_individual(self, activo: ActivoBiologico) -> ActivoBiologico:
+        """Actualiza el detalle individual del activo."""
         try:
             orm = self.db.get(ActivoBiologicoModel, activo.id_activo_biologico)
             if orm and orm.detalle_individual and activo.detalle_individual:
@@ -352,6 +363,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         return self._a_entidad(orm)
 
     def obtener_gestiones_fases(self, id_activo: int) -> list[GestionFase]:
+        """Lista las fases del ciclo productivo del activo."""
         rows = self.db.execute(
             text(
                 'SELECT gf.id_gestion_fases, gf.id_activo_biologico, gf.id_ciclo_productiva, '
@@ -421,6 +433,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         return result
 
     def cerrar_gestion_activa(self, id_activo: int, fecha_fin: datetime, motivo: str, usuario_id: int) -> None:
+        """Cierra la fase activa del activo con su motivo."""
         # app.usuario_id ya lo setea get_current_user una vez por request (F2).
         try:
             self.db.execute(
@@ -435,6 +448,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             raise_from_db_error(exc)
 
     def actualizar_detalle_poblacional(self, activo: ActivoBiologico) -> ActivoBiologico:
+        """Actualiza el detalle poblacional del lote."""
         try:
             orm = self.db.get(ActivoBiologicoModel, activo.id_activo_biologico)
             if orm and orm.detalle_poblacional and activo.detalle_poblacional:
@@ -450,12 +464,14 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         return self._a_entidad(orm)
 
     def actualizar_estado(self, id_activo: int, nuevo_id_estado: int) -> None:
+        """Cambia el estado del activo."""
         orm = self.db.get(ActivoBiologicoModel, id_activo)
         if orm:
             orm.id_estado = nuevo_id_estado
             self.db.flush()
 
     def tiene_sensores_activos(self, id_activo: int) -> bool:
+        """Indica si el activo tiene sensores asociados vigentes."""
         ahora = datetime.now(timezone.utc)
         row = self.db.execute(
             text(
@@ -469,6 +485,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         return bool(row)
 
     def registrar_historial(self, historial: HistorialActivo) -> HistorialActivo:
+        """Registra un cambio en el historial del activo."""
         try:
             orm = HistorialActivoModel(
                 id_activo_biologico=historial.id_activo_biologico,
@@ -486,6 +503,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         return historial
 
     def obtener_fase_activa(self, id_activo: int) -> Optional[GestionFase]:
+        """Devuelve la fase activa del activo, o ``None``."""
         orm = (
             self.db.query(GestionFaseModel)
             .filter(
@@ -510,6 +528,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         )
 
     def crear_gestion_fase(self, gestion: GestionFase) -> GestionFase:
+        """Crea una fase del ciclo productivo del activo."""
         try:
             result = self.db.execute(
                 text(

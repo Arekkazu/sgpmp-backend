@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-53: catálogo de calibración de DB-09 con alias del sobre D4 |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: calidad ponderada evaluada después de la ingesta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad ``ObservacionVision`` — vector de comportamiento de un área (RF-53/RF-56/RF-62 v2.0, RFC-011).
 
 La cámara (Edge de visión) envía por ventana un vector estructurado del área y
@@ -29,6 +30,7 @@ from src.telemetry.domain.entities.calidad_vision import (
 
 
 class EstadoCalibracionCamara(str, Enum):
+    """Estado de calibración de la cámara al registrar la observación."""
     # RF-60 v2.0: "cámara con señal pero sin detección válida" (turbidez,
     # oclusión, baja luz) no es fallo del dispositivo sino calidad.
     # DB-09 (be29f17bb7fc) cambió el catálogo SQL a CALIBRADO/EN_CALIBRACION/
@@ -46,6 +48,7 @@ class EstadoCalibracionCamara(str, Enum):
 
 @dataclass
 class ObservacionVision:
+    """Observación de visión enviada por una cámara."""
     id_observacion_vision: Optional[int]
     id_dispositivo_iot: int
     id_infraestructura: int
@@ -74,6 +77,7 @@ class ObservacionVision:
 
     @property
     def esta_evaluada(self) -> bool:
+        """Indica si la observación ya tiene evaluación de calidad."""
         return self.fecha_evaluacion_calidad is not None
 
     @classmethod
@@ -94,6 +98,7 @@ class ObservacionVision:
         n_individuos_observados: Optional[int] = None,
         origen: Optional[str] = None,
     ) -> "ObservacionVision":
+        """Crea una observación nueva validando sus datos de entrada."""
         return cls(
             id_observacion_vision=None,
             id_dispositivo_iot=id_dispositivo_iot,

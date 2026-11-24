@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-04 RF-60: respuesta de parámetros de heartbeat y ventanas de visión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de los parámetros de heartbeat y ventanas de visión."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -26,10 +28,12 @@ class ParametrosHeartbeatCategoriaSchema(BaseModel):
     @computed_field
     @property
     def configurado(self) -> bool:
+        """Indica si la categoría tiene todos sus parámetros configurados."""
         return not self.faltantes
 
 
 class VentanaVisionSchema(BaseModel):
+    """Ventana de visión observada."""
     model_config = ConfigDict(from_attributes=True)
 
     id_observacion_vision: int

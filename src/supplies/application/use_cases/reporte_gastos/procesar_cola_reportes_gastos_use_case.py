@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77 E4/E5: exporta y notifica al usuario |
 # | 2026-11-08 | Arekkazu         | INC-M05-259-G07: un error 500/503 se reintenta, no es regla de negocio |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Worker del motor async de generación de reportes de gastos (RF-77).
 
 Análogo a ``EjecutarBatchICAUseCase`` (RF-74): procesa hasta
@@ -89,6 +90,7 @@ def _resultado_json(reporte) -> dict:
 
 
 class ProcesarColaReportesGastosUseCase:
+    """Procesa la cola de trabajos del reporte de gastos."""
     def __init__(
         self,
         trabajo_repo: TrabajoReporteGastoRepository,
@@ -110,6 +112,7 @@ class ProcesarColaReportesGastosUseCase:
         self.construir_notificador = construir_notificador
 
     async def ejecutar(self) -> int:
+        """Procesa los trabajos pendientes y devuelve cuántos procesó."""
         config = self.config_repo.obtener()
         if not config.es_activo:
             return 0

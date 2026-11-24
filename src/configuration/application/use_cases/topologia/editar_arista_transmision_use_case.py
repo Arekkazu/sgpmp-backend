@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-110: editar vía, dirección, intensidad y barrera de una arista |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """El usuario ajusta su mapa: qué tanto transmite una relación (intensidad), si hay barrera, la vía o la
 dirección. El RLS oculta las aristas de áreas ajenas, así que una que el usuario no ve es 404."""
 from __future__ import annotations
@@ -14,12 +15,18 @@ from src.shared.errors import NotFoundError
 
 
 class EditarAristaTransmisionUseCase:
+    """Edita una arista de transmisión entre áreas."""
 
     def __init__(self, db: Session, arista_repo: AristaTransmisionRepository) -> None:
         self.db = db
         self.arista_repo = arista_repo
 
     def execute(self, id_arista: int, dto: EditarAristaTransmisionDTO) -> AristaTransmision:
+        """Aplica los cambios a la arista.
+
+        Raises:
+            NotFoundError: Si la arista no existe.
+        """
         arista = self.arista_repo.obtener_por_id(id_arista)
         if arista is None:
             raise NotFoundError(code="ARISTA_NO_ENCONTRADA", message=f"No existe la arista {id_arista}.")

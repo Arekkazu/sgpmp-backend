@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-10 | Arekkazu | #391 RF-16: densidad y biomasa máximas de la etapa con aviso preventivo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Densidad máxima de una etapa (#391): animales por m², biomasa opcional en kg por m² y aviso preventivo."""
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from src.shared.fechas import FechaHoraUtc
 
 
 class ConfigurarDensidadEtapaDTO(BaseDTO):
+    """Límites de densidad y biomasa de una etapa."""
     densidad_maxima: Decimal = Field(gt=0, le=200, max_digits=6, decimal_places=2,
                                      description="Animales por m² que admite un lote en esta etapa.")
     biomasa_maxima: Optional[Decimal] = Field(default=None, gt=0, max_digits=8, decimal_places=2,

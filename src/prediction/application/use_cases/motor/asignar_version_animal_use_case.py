@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-69/RFC-010: copia automática en sombra para un animal nuevo   |
 # | 2026-11-19 | Arekkazu | SEG-M04-01 RF-69: la copia lleva la firma y se verifica antes de la sombra |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Un animal individual sin versión recibe una propia, en SOMBRA, para que el motor IA lo atienda.
 
 RFC-010 exige que un modelo INDIVIDUAL sea de un animal y que no produzca resultados de otro.
@@ -23,6 +24,7 @@ SISTEMA = "motor-ia"
 
 
 class AsignarVersionAnimalUseCase:
+    """Asigna al animal la versión de modelo que le corresponde."""
     def __init__(
         self,
         db,
@@ -36,6 +38,7 @@ class AsignarVersionAnimalUseCase:
         self._auditoria_repo = auditoria_repo
 
     def execute(self, id_activo: int) -> VersionModelo:
+        """Devuelve la versión de modelo asignada al animal."""
         animal = next(iter(self._catalogo.animales(id_activo)), None)
         if animal is None:
             raise NotFoundError(

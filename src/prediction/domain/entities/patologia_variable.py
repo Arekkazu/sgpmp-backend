@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M04 M4-02 RF-64: nombre y unidad de variables y nombre de la especie (read-model) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad de variable asociada a una patología."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -10,6 +12,7 @@ from typing import Optional
 
 @dataclass
 class PatologiaVariable:
+    """Variable ambiental asociada a una patología con su peso de evidencia."""
     id_variable_ambiental: int
     peso_evidencia: Decimal = field(default_factory=lambda: Decimal("1.000"))
     es_variable_critica: bool = False

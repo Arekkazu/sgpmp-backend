@@ -3,6 +3,8 @@
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: lectura paginada de modulo3.bitacora_ingest con datos de la lectura |
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: los eventos sin dispositivo no los ve ningún usuario (RLS) |
 # | 2026-11-03 | Arekkazu | AJF-07 RF-53: estado_calidad, origen y tipo_evento son ENUM: se comparan como texto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de consulta paginada de la bitácora de ingesta (RF-53)."""
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -61,11 +63,13 @@ _SQL_INDICADORES = text("""
 
 
 class SqlAlchemyIngestaRepository(IngestaRepository):
+    """Consulta la bitácora de ingesta y sus indicadores agregados."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def listar(self, filtros: FiltrosIngesta):
+        """Lista las lecturas de ingesta filtradas y devuelve la página junto con el total."""
         try:
             filas = self._db.execute(_SQL_LISTAR, {
                 'desde': filtros.desde, 'hasta': filtros.hasta, 'fincas': filtros.ids_fincas,
@@ -79,6 +83,7 @@ class SqlAlchemyIngestaRepository(IngestaRepository):
         return [LecturaIngesta(**{k: v for k, v in f.items() if k != 'total'}) for f in filas], total
 
     def indicadores(self, desde, hasta, ids_fincas):
+        """Devuelve los conteos de válidas, fuera de rango y errores del rango."""
         try:
             f = self._db.execute(_SQL_INDICADORES, {'desde': desde, 'hasta': hasta, 'fincas': ids_fincas}).mappings().one()
         except Exception as exc:

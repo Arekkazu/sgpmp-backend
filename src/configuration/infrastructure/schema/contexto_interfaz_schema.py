@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schema de respuesta para el contexto adaptativo de interfaz (RF-25)."""
 from __future__ import annotations
 
@@ -44,6 +47,7 @@ class ContextoInterfazResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, entity) -> ContextoInterfazResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         identidad = entity.identidad_visual
         return cls(
             id_usuario=entity.id_usuario,

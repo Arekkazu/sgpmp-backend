@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: consulta serie temporal y contexto RF-60 |
 # | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
 # | 2026-10-31 | Claude | INC-M03-236-G16 RF-62: deriva contra el valor de referencia de la calibración vigente |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Consultas reales sin reconstruir inactividad ni inventar versiones M09."""
 import hashlib
 from decimal import Decimal
@@ -17,20 +18,24 @@ from src.telemetry.domain.repositories.contexto_calidad_port import (
 
 
 class ContextoCalidadM09RF60Adapter(ContextoCalidadPort):
+    """Arma el contexto de evaluación de calidad desde la base de datos."""
     def __init__(self, db):
         self.db = db
 
     def bloquear_evaluacion(self, id_telemetria):
+        """Serializa la evaluación de calidad de una lectura con un lock asesor."""
         self.db.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))"),
                         {'clave': f'rf62:evaluacion:{id_telemetria}'})
 
     def omision_registrada(self, id_telemetria):
+        """Indica si ya se auditó la omisión de la evaluación por inactividad."""
         return self.db.execute(text("""SELECT EXISTS(SELECT 1 FROM modulo3.bitacora_auditoria_iot
             WHERE tipo_evento='EVALUACION_OMITIDA_POR_INACTIVIDAD' AND componente_origen='RF62'
               AND entidad_afectada_tipo='CALIDAD_DATO' AND entidad_afectada_id=:id)"""),
             {'id':str(id_telemetria)}).scalar_one()
 
     def referencia_calibracion(self, id_sensor, captura):
+        """Devuelve el valor de referencia de la última calibración del sensor antes de la captura."""
         fila = self.db.execute(text('''SELECT valor_referencia FROM modulo9.calibraciones
             WHERE id_sensor=:sensor AND fecha_calibracion<=:captura
             ORDER BY fecha_calibracion DESC, id_calibracion DESC LIMIT 1'''),
@@ -52,6 +57,7 @@ class ContextoCalidadM09RF60Adapter(ContextoCalidadPort):
         return LimitesFisicosCalidad(minimo, maximo, f'va{id_variable}:{huella}', 'modulo9.variables_ambientales')
 
     def obtener(self, id_telemetria, id_sensor, id_variable, captura, n, *, incluir_sin_calibracion=False):
+        """Devuelve la serie de lecturas, los periodos inactivos y los límites físicos del sensor."""
         # G169 (R7): con la lectura en ERROR_CALIBRACION se usan también las lecturas
         # sin calibración (valor crudo) para congelado, outlier y gap.
         estados = ['LECTURA_VALIDA', 'ERROR_CALIBRACION'] if incluir_sin_calibracion else ['LECTURA_VALIDA']

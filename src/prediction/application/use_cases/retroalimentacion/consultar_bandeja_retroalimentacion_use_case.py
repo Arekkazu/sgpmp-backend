@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
 # | 2026-11-03 | Claude   | RF-72: página e indicadores en una sola consulta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de la bandeja de inferencias por retroalimentar."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -29,6 +31,7 @@ RANGO_MAXIMO = timedelta(days=366)
 
 @dataclass(frozen=True)
 class PaginaBandejaRetroalimentacion:
+    """Página de la bandeja con su total e indicadores."""
     items: list[InferenciaPorEvaluar]
     total: int
     pagina: int
@@ -51,6 +54,7 @@ class ConsultarBandejaRetroalimentacionUseCase:
         desde: Optional[datetime] = None, hasta: Optional[datetime] = None, pagina: int = 1,
         por_pagina: int = 25, ahora: Optional[datetime] = None,
     ) -> PaginaBandejaRetroalimentacion:
+        """Devuelve una página de la bandeja con sus indicadores."""
         if estado_evaluacion is not None and estado_evaluacion not in ESTADOS_EVALUACION:
             raise ValidationError(
                 code="ESTADO_EVALUACION_INVALIDO",

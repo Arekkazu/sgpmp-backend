@@ -9,6 +9,8 @@
 # | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
 # | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
 # | 2026-10-28 | Arekkazu | BE-2 RF-55: id_regla_alerta en el evento Edge |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidades de la ingesta de telemetría, eventos Edge y paquetes de inferencia."""
 from __future__ import annotations
 
 import hashlib
@@ -21,18 +23,21 @@ from typing import Any, Optional
 
 
 class OrigenTelemetria(str, Enum):
+    """Origen de la lectura: tiempo real, buffer local o agregado Edge."""
     TIEMPO_REAL = "TIEMPO_REAL"
     BUFFER_LOCAL = "BUFFER_LOCAL"
     EDGE_AGREGADO = "EDGE_AGREGADO"
 
 
 class EstadoCalidadTelemetria(str, Enum):
+    """Estado de calidad asignado a una lectura persistida."""
     LECTURA_VALIDA = "LECTURA_VALIDA"
     FUERA_DE_RANGO = "FUERA_DE_RANGO"
     ERROR_CALIBRACION = "ERROR_CALIBRACION"
 
 
 class EstadoCalidadBitacora(str, Enum):
+    """Estado de calidad registrado en la bitácora de ingesta, incluidos los rechazos."""
     LECTURA_VALIDA = "LECTURA_VALIDA"
     FUERA_DE_RANGO = "FUERA_DE_RANGO"
     ERROR_CALIBRACION = "ERROR_CALIBRACION"
@@ -45,12 +50,14 @@ class EstadoCalidadBitacora(str, Enum):
 
 
 class CategoriaTelemetria(str, Enum):
+    """Categoría de la variable medida."""
     AMBIENTAL = "AMBIENTAL"
     ANIMAL = "ANIMAL"
     HIDRICA = "HIDRICA"
 
 
 class TipoDato(str, Enum):
+    """Tipo de dato de la lectura (crudo, agregado o evento Edge)."""
     CRUDO = "CRUDO"
     AGREGADO = "AGREGADO"
     EVENTO_EDGE = "EVENTO_EDGE"
@@ -74,6 +81,7 @@ RANGOS_FISICOS: dict[int, tuple[Decimal, Decimal]] = {
 
 @dataclass
 class Telemetria:
+    """Lectura de telemetría de un sensor."""
     id_sensor: int
     id_variable: int
     id_dispositivo_iot: int
@@ -119,6 +127,7 @@ class Telemetria:
 
 @dataclass
 class DispositivoInfo:
+    """Datos del dispositivo y sensor validados en la ingesta."""
     id_dispositivo_iot: int
     id_sensor: int
     es_activo_dispositivo: bool
@@ -128,6 +137,7 @@ class DispositivoInfo:
 
 @dataclass
 class ReglaVariableI3P1:
+    """Reglas de unidad y rango físico de una variable del catálogo."""
     id_variable: int
     tipo_variable: str
     categoria: str
@@ -139,6 +149,7 @@ class ReglaVariableI3P1:
 
 @dataclass
 class ParametrosCalibacion:
+    """Ganancia, offset y versión de la calibración del sensor."""
     ganancia: Decimal
     offset: Decimal
     version: str
@@ -146,6 +157,7 @@ class ParametrosCalibacion:
 
 @dataclass
 class ResultadoIngesta:
+    """Resultado de ingerir una lectura."""
     id_telemetria: Optional[int]
     estado_calidad: str
     timestamp_procesamiento: datetime
@@ -155,6 +167,7 @@ class ResultadoIngesta:
 
 @dataclass
 class ResultadoItemBatch:
+    """Resultado de un ítem dentro de un lote de buffer."""
     sensor_id: int
     timestamp_captura: datetime
     estado: str
@@ -165,6 +178,7 @@ class ResultadoItemBatch:
 # ─── CU02 / RF-56 ────────────────────────────────────────────────────────────
 
 class TipoEventoEdge(str, Enum):
+    """Clasificación de un evento procesado por el nodo Edge."""
     NORMAL = "NORMAL"
     DESVIACION_SIMPLE = "DESVIACION_SIMPLE"
     DESVIACION_COMPUESTA = "DESVIACION_COMPUESTA"
@@ -172,12 +186,14 @@ class TipoEventoEdge(str, Enum):
 
 
 class SeveridadEdge(str, Enum):
+    """Severidad reportada por el nodo Edge."""
     LEVE = "LEVE"
     MODERADO = "MODERADO"
     CRITICO = "CRITICO"
 
 
 class EstadoPaqueteInferencia(str, Enum):
+    """Estado de envío de un paquete de inferencia."""
     ENVIADO = "ENVIADO"
     PENDIENTE = "PENDIENTE"
     FALLIDO = "FALLIDO"
@@ -219,11 +235,13 @@ def latencia_edge_ms(fecha_captura: datetime, fecha_procesamiento: datetime) -> 
 
 
 def clasificacion_a_tipo_evento_bd(clasificacion_rf55: str) -> str:
+    """Traduce la clasificación Edge al tipo de evento guardado en la base."""
     return _MAPA_TIPO_EVENTO_BD.get(clasificacion_rf55, "DATOS_PROCESADOS")
 
 
 @dataclass
 class EventoEdgeComputing:
+    """Evento recibido desde un nodo Edge."""
     id_dispositivo_iot: int
     id_sensor: int
     clasificacion_rf55: str          # TipoEventoEdge — clasificación real de RF-55
@@ -246,6 +264,7 @@ class EventoEdgeComputing:
 
 @dataclass
 class PaqueteInferencia:
+    """Paquete de datos consolidado para enviar al motor de inferencia."""
     id_sensor: int
     id_dispositivo_iot: int
     id_evento_edge_computing: int
@@ -323,6 +342,7 @@ def huella_coincide(paquete: PaqueteInferencia) -> bool:
 
 @dataclass
 class ResultadoEventoEdge:
+    """Resultado de recibir un evento Edge."""
     id_evento_edge_computing: int
     clasificacion_rf55: str
     severidad: Optional[str]

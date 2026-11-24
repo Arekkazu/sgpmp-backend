@@ -3,6 +3,7 @@
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: ventana de retroalimentación desde M09     |
 # | 2026-10-31 | Arekkazu | RF-71: mínimos de registros para solicitar y reentrenar, desde M09 |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Ventana de retroalimentación de RF-72 y mínimos de RF-71, configurables desde M09.
 
 Antes solo se cargaba con ``scripts/configurar_parametros_dev14.py``. El rango 7..365 lo
@@ -39,5 +40,6 @@ PARAMETROS_RETROALIMENTACION = {
 
 
 class ParametrosRetroalimentacionUseCase(ParametrosAlertasUseCase):
+    """Consulta y actualiza los parámetros de retroalimentación clínica."""
     catalogo = PARAMETROS_RETROALIMENTACION
     codigo_invalido, rf = "PARAMETRO_RETROALIMENTACION_INVALIDO", "RF-72"

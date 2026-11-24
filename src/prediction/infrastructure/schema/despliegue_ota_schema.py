@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU06 H-02 RF-70: nombre de la versión desplegada |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-70: nombre del dispositivo en los despliegues |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de despliegues y distribuciones OTA."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,6 +17,7 @@ from src.shared.tipo_modelo import paradigma_de
 
 
 class DespliegueOtaResponse(BaseModel):
+    """Despliegue OTA en un dispositivo."""
     id_despliegue_ota: int
     id_version_modelo: int
     # CU06 H-02: sin el nombre, la pantalla mostraba "v43" y no se sabía qué modelo se desplegó.
@@ -53,6 +56,7 @@ class DespliegueOtaResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, e: DespliegueOta) -> "DespliegueOtaResponse":
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_despliegue_ota=e.id_despliegue_ota,
             id_version_modelo=e.id_version_modelo,
@@ -85,12 +89,14 @@ class DespliegueOtaResponse(BaseModel):
 
 
 class OtaStatusResponse(BaseModel):
+    """Estado de los despliegues de una versión."""
     id_version_modelo: int
     despliegues: list[DespliegueOtaResponse]
     total: int
 
 
 class DespliegueOtaListResponse(BaseModel):
+    """Despliegues OTA."""
     total: int
     items: list[DespliegueOtaResponse]
 
@@ -118,6 +124,7 @@ class DistribucionOtaResponse(BaseModel):
 
     @classmethod
     def from_resultado(cls, resultado) -> "DistribucionOtaResponse":
+        """Construye la respuesta a partir de la distribución y sus despliegues."""
         d = resultado.distribucion
         return cls(
             id_distribucion_ota=d.id_distribucion_ota,

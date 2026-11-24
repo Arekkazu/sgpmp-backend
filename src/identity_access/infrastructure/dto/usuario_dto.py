@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTOs de entrada para registro de usuarios, login y reenvío de token.
 
 Todos heredan de `BaseDTO` (Pydantic) y aplican validaciones de formato
@@ -57,6 +60,7 @@ class UsuarioCreateDTO(BaseDTO):
     @field_validator("contrasena")
     @classmethod
     def validar_contrasena(cls, v: str) -> str:
+        """Exige que la contraseña cumpla la política."""
         if not PASSWORD.match(v):
             raise ValueError(
                 "La contraseña debe tener mínimo 8 caracteres, "
@@ -71,6 +75,7 @@ class UsuarioCreateDTO(BaseDTO):
         v: str,
         info: ValidationInfo,
     ) -> str:
+        """Exige que la confirmación coincida con la contraseña."""
         # `contrasena` se declara antes, así que ya está en `info.data` salvo
         # que haya fallado su propia política — en ese caso ese error basta.
         contrasena = info.data.get("contrasena")
@@ -84,6 +89,7 @@ class UsuarioCreateDTO(BaseDTO):
     @field_validator("numero_identificacion")
     @classmethod
     def validar_identificacion(cls, v: str, info: ValidationInfo) -> str:
+        """Valida la identificación según su tipo."""
         # Si `tipo_identificacion` no superó el `Literal`, `info.data` no lo
         # trae y se aplica la regla numérica, que es la más estricta.
         tipo = info.data.get("tipo_identificacion")

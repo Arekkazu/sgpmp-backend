@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                  |
 # |------------|----------|--------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M03-137-G09 RF-24: offset negativo validado contra su propio límite |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Registrar calibración de sensor (POST /{id}/calibrar RF-24).
 
 Valida: dispositivo activo, sensor pertenece al dispositivo, sensor tiene
@@ -121,6 +122,7 @@ class RegistrarCalibracionUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Calibracion:
+        """Registra la calibración del sensor y la audita."""
         try:
             valor, offset = self._validar(id_sensor, dto, ids_fincas_permitidas)
         except (NotFoundError, BusinessRuleError, ValidationError) as exc:
@@ -310,6 +312,7 @@ class ConsultarCalibracionesUseCase:
     def listar_por_sensor(
         self, id_sensor: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[Calibracion]:
+        """Lista las calibraciones del sensor."""
         # Mismo criterio que el historial de asociaciones (INC-M09-22-G126-02):
         # el historial de un sensor de una finca ajena responde 404.
         if ids_fincas_permitidas is not None:

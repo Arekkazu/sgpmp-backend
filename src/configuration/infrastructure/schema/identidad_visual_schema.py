@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schema de respuesta para identidad visual institucional (RF-26)."""
 from __future__ import annotations
 
@@ -30,6 +33,7 @@ class IdentidadVisualResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, entity) -> IdentidadVisualResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         # Las tres columnas son nullable en `modulo9.identidad_visuales`: una fila escrita
         # fuera de la API puede traerlas vacías y leer `.valor` sobre `None` reventaba con
         # AttributeError en vez de devolver el registro.

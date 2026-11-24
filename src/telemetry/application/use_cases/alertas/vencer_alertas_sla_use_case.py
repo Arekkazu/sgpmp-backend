@@ -4,6 +4,7 @@
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: envía la notificación de escalamiento al vencer (E10) |
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: correos de alertas con nombres y rótulos legibles en vez de ids y códigos |
 # | 2026-11-19 | Arekkazu | M8-03/M8-16 RF-105: la vencida lleva el nivel de su alerta y el texto sin hora UTC |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: vencer alertas sin atender por SLA (RF-57 E10, CA-12, Restricción 12).
 
 Una alerta operativa ACTIVA que supera su ``fecha_vencimiento`` (5 min CRITICO,
@@ -43,6 +44,7 @@ DESTINATARIOS_ESCALAMIENTO = ("Veterinario", "Administrador")
 
 
 class VencerAlertasSlaUseCase:
+    """Vence las alertas cuyo plazo de atención (SLA) ya expiró y lo audita."""
 
     def __init__(self, db: Session, alerta_repo: AlertaRepository, auditoria_repo: BitacoraAuditoriaIotRepository,
                  notificacion_port: Optional[NotificacionAlertaPort] = None) -> None:

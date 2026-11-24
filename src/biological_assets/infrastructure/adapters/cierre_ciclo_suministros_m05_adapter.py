@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-38→RF-74/76/77/78/79: cierre de ciclo  |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`CierreCicloSuministrosPort` hacia M05 (``src/supplies``).
 
 Usa la misma sesión del cierre: los efectos de M05 participan en la transacción
@@ -25,6 +26,7 @@ from src.supplies.infrastructure.repositories.medicamento_repository import SqlA
 
 
 class CierreCicloSuministrosM05Adapter(CierreCicloSuministrosPort):
+    """Adaptador hacia suministros para el cierre de ciclo."""
     def __init__(self, db: Session) -> None:
         self._servicio = ProcesarCierreCicloSuministrosUseCase(
             activo_port=ActivoM02Adapter(db),
@@ -35,10 +37,13 @@ class CierreCicloSuministrosM05Adapter(CierreCicloSuministrosPort):
         )
 
     def antes_de_cerrar(self, id_activo: int, id_usuario: int, fecha_cierre: date) -> None:
+        """Valida en suministros que el ciclo se pueda cerrar."""
         self._servicio.antes_de_cerrar(id_activo, id_usuario, fecha_cierre)
 
     def despues_de_cerrar(self, id_activo: int, id_gestion_fases: int, id_usuario: int, fecha_cierre: date) -> None:
+        """Procesa en suministros el cierre del ciclo."""
         self._servicio.despues_de_cerrar(id_activo, id_gestion_fases, id_usuario, fecha_cierre)
 
     def despues_del_commit(self) -> None:
+        """Ejecuta las acciones de suministros posteriores al commit."""
         self._servicio.despues_del_commit()

@@ -2,6 +2,7 @@
 # |------------|----------|------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: vista previa con las primeras 20 filas   |
 # | 2026-11-19 | Arekkazu | M08 RF-104: parámetros, indicadores y autor en la vista previa |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: vista previa de un reporte (RF-104 Fase 2.2).
 
 Valida igual que la generación y arma el contenido en la instantánea. Devuelve los totales, las primeras 20 filas
@@ -12,6 +13,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from src.reporting.application.use_cases.reportes.generacion import (
+    limitar_solicitudes,
     SIN_DATOS,
     AbrirFuente,
     Solicitante,
@@ -23,6 +25,7 @@ from src.reporting.domain.reportes.contenido import Tabla
 
 
 def tabla_previa(t: Tabla, limite: Optional[int] = FILAS_VISTA_PREVIA) -> dict[str, Any]:
+    """Serializa una tabla para la vista previa, recortada a ``limite`` filas."""
     filas = t.filas if limite is None else t.filas[:limite]
     return {
         "titulo": t.titulo, "nota": t.nota, "total_filas": len(t.filas),
@@ -32,11 +35,14 @@ def tabla_previa(t: Tabla, limite: Optional[int] = FILAS_VISTA_PREVIA) -> dict[s
 
 
 class PrevisualizarReporteUseCase:
+    """Arma la vista previa de un reporte sin guardarlo."""
 
     def __init__(self, abrir_fuente: AbrirFuente) -> None:
         self.abrir_fuente = abrir_fuente
 
     def execute(self, tipo: str, filtros: Optional[dict[str, Any]], solicitante: Solicitante) -> dict[str, Any]:
+        """Devuelve la vista previa del reporte con los filtros dados."""
+        limitar_solicitudes(solicitante.id_usuario)
         with self.abrir_fuente(solicitante.id_usuario, solicitante.zona_horaria) as fuente:
             preparado = preparar(fuente, tipo, filtros, solicitante)
         c = preparado.contenido

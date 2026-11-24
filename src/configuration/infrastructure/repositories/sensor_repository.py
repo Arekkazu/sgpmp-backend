@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-01 | Arekkazu | RF-22: 409 si el nombre del sensor ya existe en el dispositivo     |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``SensorRepository``."""
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ _NOMBRE_DUPLICADO = {"uq_sensores_nombre": "Ya existe un sensor con ese nombre e
 
 
 class SqlAlchemySensorRepository(SensorRepository):
+    """Implementación SQLAlchemy de ``SensorRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -32,10 +34,12 @@ class SqlAlchemySensorRepository(SensorRepository):
         )
 
     def obtener_por_id(self, id_sensor: int) -> Optional[Sensor]:
+        """Obtiene el sensor por id, o ``None`` si no existe."""
         orm = self.db.get(SensorModel, id_sensor)
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, sensor: Sensor) -> Sensor:
+        """Inserta el sensor y devuelve la entidad con su id asignado."""
         orm = SensorModel(
             nombre=sensor.nombre,
             id_dispositivo_iot=sensor.id_dispositivo_iot,
@@ -51,6 +55,7 @@ class SqlAlchemySensorRepository(SensorRepository):
         return self._a_entidad(orm)
 
     def listar_por_dispositivo(self, id_dispositivo_iot: int) -> list[Sensor]:
+        """Sensores del dispositivo IoT."""
         return [
             self._a_entidad(orm)
             for orm in (

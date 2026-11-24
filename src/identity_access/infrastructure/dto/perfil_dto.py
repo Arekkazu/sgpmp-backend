@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTOs de entrada para la edición de perfil de usuario.
 
 `PerfilBaseDTO` reúne los campos de perfil comunes a los dos endpoints.
@@ -52,6 +55,7 @@ class PerfilBaseDTO(BaseDTO):
     @field_validator("nombre", "apellidos")
     @classmethod
     def validar_nombre(cls, v: str) -> str:
+        """Exige un nombre con letras y espacios."""
         if not NOMBRE.match(v):
             raise ValueError(
                 "Solo se permiten letras, espacios y caracteres del idioma español "
@@ -62,6 +66,7 @@ class PerfilBaseDTO(BaseDTO):
     @field_validator("telefono")
     @classmethod
     def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
+        """Valida el formato del teléfono."""
         if v is not None and not TELEFONO.match(v):
             raise ValueError(
                 "Número telefónico inválido. Asegúrese de ingresar solo dígitos "

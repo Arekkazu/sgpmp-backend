@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``TemaVisual`` — preferencia de tema visual del usuario (RF-27).
 
 Un registro puede ser personal (es_global=False) o global del sistema (es_global=True).
@@ -36,6 +39,7 @@ class TemaVisual:
         id_usuario: int,
         theme_mode: int,
     ) -> TemaVisual:
+        """Crea la preferencia personal del usuario validándola."""
         cls._validar_mode(theme_mode)
         return cls(
             id_usuario=id_usuario,
@@ -51,6 +55,7 @@ class TemaVisual:
         id_usuario: int,
         theme_mode: int,
     ) -> TemaVisual:
+        """Crea la preferencia global validándola."""
         cls._validar_mode(theme_mode)
         return cls(
             id_usuario=id_usuario,
@@ -60,6 +65,7 @@ class TemaVisual:
         )
 
     def actualizar(self, *, theme_mode: int) -> None:
+        """Actualiza los datos editables validándolos."""
         self._validar_mode(theme_mode)
         self.theme_mode = ThemeMode(theme_mode)
         self.fecha_actualizacion = datetime.now(timezone.utc)

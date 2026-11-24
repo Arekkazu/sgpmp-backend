@@ -12,6 +12,7 @@
 # | 2026-11-15 | Arekkazu | INC-M06-364-G71 RF-93: ingreso por venta de activos en el estado de resultados (sin asiento) |
 # | 2026-11-15 | Arekkazu | TC-M06-G62/G64 RF-92: columna de asientos trasladados por el cierre y fuente de cada riesgo |
 # | 2026-11-16 | Arekkazu | QA-M06 CU12 H-01 RF-87/92/93: las descargas nombran titular, NIT y período, también en el nombre del archivo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -216,11 +217,13 @@ def _archivo(doc: Documento, formato: str, pdfa: bool = False) -> tuple[bytes, s
 
 
 class ExportarReporteUseCase:
+    """Exporta los reportes financieros a archivo."""
     def __init__(self, periodos: PeriodoRepository, reportes: ReporteRepository) -> None:
         self.periodos = periodos
         self.reportes = reportes
 
     def comprobantes(self, id_periodo_contable: int, formato: str) -> tuple[bytes, str, str]:
+        """Exporta los comprobantes del periodo."""
         periodo = self.periodos.obtener(id_periodo_contable)
         if periodo is None or periodo.estado != "CERRADO":
             raise BusinessRuleError(code="PERIODO_NO_CERRADO", message="El comprobante existe solo para períodos cerrados.")
@@ -239,6 +242,7 @@ class ExportarReporteUseCase:
         return (*_archivo(doc, formato), _archivo_del_periodo("comprobante_nic41", periodo))
 
     def estado_resultados(self, id_estado: int, formato: str) -> tuple[bytes, str, str]:
+        """Exporta un estado de resultados."""
         estado = self.reportes.obtener_estado(id_estado)
         if estado is None:
             raise NotFoundError(code="ESTADO_RESULTADOS_NO_ENCONTRADO", message="El estado de resultados no existe.")
@@ -271,6 +275,7 @@ class ExportarReporteUseCase:
         return (*_archivo(doc, formato), nombre)
 
     def informe(self, id_informe: int, formato: str) -> tuple[bytes, str, str]:
+        """Exporta un informe de revelaciones."""
         informe = self.reportes.obtener_informe(id_informe)
         if informe is None:
             raise NotFoundError(code="INFORME_NO_ENCONTRADO", message="El informe no existe.")

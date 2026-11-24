@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                      |
 # |------------|----------|------------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M03-135-G01 RF-49: especies compatibles de un sensor desde M09 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-49 R3 / FA-04: especies con las que un sensor puede vincularse a un activo biológico.
 
 M02 exige esta lista antes de asociar un sensor a un animal; antes solo se había cargado
@@ -21,6 +22,7 @@ from src.shared.errors import NotFoundError, ValidationError
 
 
 class EspeciesCompatiblesSensorUseCase:
+    """Consulta y reemplaza las especies compatibles con un sensor."""
     def __init__(
         self, *, db, sensor_repo: SensorRepository, dispositivo_repo: DispositivoIotRepository,
         especie_repo: EspecieRepository, compatibilidad_repo: CompatibilidadSensorEspecieRepository,
@@ -32,12 +34,14 @@ class EspeciesCompatiblesSensorUseCase:
         self.compatibilidad_repo = compatibilidad_repo
 
     def consultar(self, id_sensor: int, ids_fincas_permitidas: Optional[list[int]]) -> list[Especie]:
+        """Lista las especies compatibles con el sensor."""
         self._validar_sensor(id_sensor, ids_fincas_permitidas)
         return [self.especie_repo.obtener_por_id(i) for i in self.compatibilidad_repo.listar_especies(id_sensor)]
 
     def reemplazar(
         self, id_sensor: int, ids_especies: list[int], ids_fincas_permitidas: Optional[list[int]],
     ) -> list[Especie]:
+        """Reemplaza las especies compatibles con el sensor."""
         self._validar_sensor(id_sensor, ids_fincas_permitidas)
         ids = list(dict.fromkeys(ids_especies))
         especies = []

@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: calcular promedio temporal de densidades registradas en los últimos 30 días. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Lecturas históricas de ocupación; sin dependencia de PostgreSQL ni del ORM."""
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ VENTANA_OCUPACION = timedelta(days=30)
 
 @dataclass(frozen=True)
 class MuestraOcupacion:
+    """Muestra histórica de ocupación de un lote."""
     id_registro: int
     fecha: datetime
     densidad: Decimal | None
@@ -20,6 +22,7 @@ class MuestraOcupacion:
 
 @dataclass(frozen=True)
 class OcupacionHistorica:
+    """Densidad promedio histórica de un lote."""
     densidad_promedio: Decimal | None
     desde: datetime
     hasta: datetime
@@ -27,6 +30,7 @@ class OcupacionHistorica:
     registros_utilizados: tuple[int, ...]
 
     def snapshot(self) -> dict:
+        """Serialización auditable de la ocupación con su fuente."""
         return {
             'fuente': 'auditoria.logs_dml:modulo2.detalles_activos_biologicos_poblacionales',
             'fecha_desde': self.desde.isoformat(),

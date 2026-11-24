@@ -8,6 +8,8 @@
 # | 2026-10-30 | Arekkazu | INC-M04-226-G117 RF-59: alertas del periodo con SQL fijo y parámetros (Bearer CWE-89) |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
 # | 2026-10-31 | Claude | INC-M03-242-G117 RF-59: alertas correlacionadas por fecha del evento, no de generación |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de consulta del historial de telemetría (RF-59)."""
 from __future__ import annotations
 
 from datetime import datetime, time, timedelta
@@ -344,11 +346,13 @@ def _build_query(filtros: FiltrosHistorial, template: str) -> tuple[str, dict]:
 
 
 class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
+    """Consulta paginada del historial con estadísticas, alertas y vacíos temporales."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def consultar(self, filtros: FiltrosHistorial) -> tuple[list[LecturaHistorica], int]:
+        """Devuelve la página de lecturas históricas y el total de coincidencias."""
         sql_data, params = _build_query(filtros, _SELECT_HISTORIAL)
         sql_count, params_count = _build_query(filtros, _COUNT_HISTORIAL)
 
@@ -361,6 +365,7 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
         return [self._fila_a_entidad(f) for f in filas], total
 
     def calcular_estadisticas(self, filtros: FiltrosHistorial) -> list[ResumenEstadistico]:
+        """Calcula estadísticas por variable: rango, promedio, desviación y alertas."""
         sql_stats, params = _build_query(filtros, _STATS_HISTORIAL)
         params_stats = {k: v for k, v in params.items() if k not in ('por_pagina', 'offset')}
         filas = self.db.execute(text(sql_stats), params_stats).mappings().all()
@@ -384,6 +389,7 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
         return result
 
     def alertas_correlacionadas(self, filtros: FiltrosHistorial) -> list[AlertaCorrelacionada]:
+        """Devuelve las alertas del periodo ligadas a las lecturas o al sensor/activo."""
         sql_ids, params = _build_query(filtros, _COUNT_HISTORIAL.replace('SELECT COUNT(*)', 'SELECT t.id_telemetria', 1))
         params = {k: v for k, v in params.items() if k not in ('por_pagina', 'offset')}
         params['max_alertas'] = _MAX_ALERTAS
@@ -395,11 +401,13 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
         return [AlertaCorrelacionada(**f) for f in filas]
 
     def variables_no_reconocidas(self, tipos: list[str]) -> list[str]:
+        """Devuelve los tipos de variable que no existen en el catálogo."""
         alias = {v: _ALIAS_VARIABLE.get(v.upper(), v) for v in tipos}
         desconocidas = set(self.db.execute(text(_VARIABLES_NO_RECONOCIDAS), {'tipos': list(alias.values())}).scalars())
         return [v for v, a in alias.items() if a in desconocidas]
 
     def detectar_vacios(self, filtros: FiltrosHistorial) -> list[VacioTemporal]:
+        """Detecta huecos entre lecturas consecutivas mayores a 3× la frecuencia de muestreo."""
         sql, params = _build_query(filtros, _VACIOS_HISTORIAL)
         params = {k: v for k, v in params.items() if k not in ('por_pagina', 'offset')}
         params['max_vacios'] = _MAX_VACIOS

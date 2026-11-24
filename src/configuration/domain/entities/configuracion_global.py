@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``ConfiguracionGlobal`` — parámetros operativos del sistema (RF-18).
 
 Singleton activo: solo puede haber uno con es_activo=True en el sistema.
@@ -36,6 +39,7 @@ class ConfiguracionGlobal:
         id_usuario: int,
         fecha_actualizacion: datetime,
     ) -> ConfiguracionGlobal:
+        """Crea la entidad validando sus datos."""
         cls._validar_coherencia(frecuencia_muestreo, heartbeat)
         return cls(
             frecuencia_muestreo=frecuencia_muestreo,
@@ -53,6 +57,7 @@ class ConfiguracionGlobal:
         id_usuario: int,
         fecha_actualizacion: datetime,
     ) -> None:
+        """Actualiza los datos editables validándolos."""
         self._validar_coherencia(frecuencia_muestreo, heartbeat)
         self.frecuencia_muestreo = frecuencia_muestreo
         self.heartbeat = heartbeat

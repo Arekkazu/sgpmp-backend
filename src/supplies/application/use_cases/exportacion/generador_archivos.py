@@ -6,6 +6,7 @@
 # | 2026-11-12 | Arekkazu | TC-DIS-259/264 RF-92/93: Excel con encabezados en la fila 1 y título y totales en otra hoja |
 # | 2026-11-13 | LuisfNarvaez01 | TC-M06-G70 RF-92: PDF/A-1b opcional para los documentos que se conservan |
 # | 2026-11-20 | Arekkazu         | A11Y-M08 TC-DIS-288 RF-104: el árbol de etiquetas del PDF pasa a src/shared (lo usan los reportes) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Generación de archivos de exportación de M05 (RF-77 y RF-81).
 
 - CSV en bloques de 1.000 filas (RF-77 "chunking" para > 5.000 registros): el
@@ -34,6 +35,7 @@ from decimal import Decimal, InvalidOperation
 from xml.sax.saxutils import escape
 from typing import Iterable, Optional
 
+from src.shared.celdas_seguras import proteger_libro, texto_seguro_csv
 from src.shared.pdf_etiquetado import ArbolEtiquetas, etiquetado
 
 FILAS_POR_PAGINA_PDF = 25
@@ -55,15 +57,18 @@ class Documento:
 
 
 def generar_csv(doc: Documento) -> bytes:
+    """Genera el documento en CSV."""
     salida = io.StringIO()
     escritor = csv.writer(salida)
     escritor.writerow(doc.columnas)
     for inicio in range(0, len(doc.filas), _BLOQUE_CSV):
-        escritor.writerows(_texto(f) for f in doc.filas[inicio:inicio + _BLOQUE_CSV])
+        # Un texto libre (p. ej. la observación) se exporta como texto, nunca como fórmula.
+        escritor.writerows([texto_seguro_csv(v) for v in _texto(f)] for f in doc.filas[inicio:inicio + _BLOQUE_CSV])
     return salida.getvalue().encode("utf-8")
 
 
 def generar_excel(doc: Documento) -> bytes:
+    """Genera el documento en Excel."""
     from openpyxl import Workbook
     from openpyxl.styles import Font
 
@@ -87,6 +92,7 @@ def generar_excel(doc: Documento) -> bytes:
     for linea in [*doc.encabezado, *doc.pie]:
         info.append([linea])
     info.column_dimensions["A"].width = min(100, max(len(str(x)) for x in [doc.titulo, *doc.encabezado, *doc.pie]) + 2)
+    proteger_libro(libro)  # el texto exportado se guarda como texto, nunca como fórmula
     salida = io.BytesIO()
     libro.save(salida)
     return salida.getvalue()

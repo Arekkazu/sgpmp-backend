@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-11-02 | Arekkazu | AJF-01 RF-46: historial con alertas IoT, cambios de riesgo, diagnósticos clínicos y contagio alto |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``TransferenciaRepository``: transferencias (RF-48) e
 historial consolidado (RF-46).
 """
@@ -100,6 +101,7 @@ class SqlAlchemyTransferenciaRepository(TransferenciaRepository):
         self.db = db
 
     def guardar(self, transferencia: Transferencia) -> Transferencia:
+        """Guarda el traslado y actualiza la ubicación del activo."""
         ahora = datetime.now(timezone.utc)
         try:
             orm = MovimientoModel(
@@ -157,6 +159,7 @@ class SqlAlchemyTransferenciaRepository(TransferenciaRepository):
         pagina: int = 1,
         page_size: int = 20,
     ) -> PaginaHistorial:
+        """Lista los traslados del activo en el rango de fechas."""
         registros: list[RegistroHistorial] = []
 
         categorias_a_consultar = {

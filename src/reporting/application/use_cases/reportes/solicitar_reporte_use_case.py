@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: generación inmediata (≤1.000) o en segundo plano (>1.000) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: el usuario confirma la exportación de un reporte (RF-104 Fase 3).
 
 Hasta 1.000 registros el archivo se genera aquí y queda listo para descargar (CA-3); por encima, la solicitud queda
@@ -19,6 +20,7 @@ from src.reporting.application.use_cases.reportes.generacion import (
     Solicitante,
     detalle_auditoria,
     exigir_datos,
+    limitar_solicitudes,
     partir_en_archivos,
     preparar,
 )
@@ -28,12 +30,17 @@ from src.reporting.domain.repositories.solicitud_reporte_repository import (
     SolicitudReporteRepository,
 )
 from src.reporting.domain.reportes.catalogo import LIMITE_SINCRONO, filtros_serializables
-from src.reporting.domain.reportes.solicitud import SolicitudReporte
+from src.reporting.domain.reportes.solicitud import EN_PROCESO, SolicitudReporte
+from src.shared.errors import TooManyRequestsError
+
+# Reportes grandes en cola a la vez por usuario.
+MAX_EN_PROCESO_POR_USUARIO = 5
 
 MENSAJE_SEGUNDO_PLANO = "Tu reporte está siendo generado. Te avisaremos cuando esté listo."
 
 
 class SolicitarReporteUseCase:
+    """Solicita la generación de un reporte."""
 
     def __init__(self, db: Session, repo: SolicitudReporteRepository, abrir_fuente: AbrirFuente,
                  renderizador: RenderizadorReportePort, avisos: AvisosReportesPort) -> None:
@@ -45,7 +52,13 @@ class SolicitarReporteUseCase:
 
     def execute(self, tipo: str, formato: str, filtros: Optional[dict[str, Any]], solicitante: Solicitante,
                 ahora: Optional[datetime] = None) -> SolicitudReporte:
+        """Genera el reporte al momento o lo deja pendiente si es grande."""
         ahora = ahora or datetime.now(timezone.utc)
+        limitar_solicitudes(solicitante.id_usuario)
+        recientes = self.repo.listar_por_usuario(solicitante.id_usuario, 50)
+        if sum(1 for s in recientes if s.estado == EN_PROCESO) >= MAX_EN_PROCESO_POR_USUARIO:
+            raise TooManyRequestsError(code="REPORTES_EN_PROCESO", headers={"Retry-After": "60"}, message=(
+                f"Ya tiene {MAX_EN_PROCESO_POR_USUARIO} reportes en preparación. Espere a que terminen."))
         partes = []
         with self.abrir_fuente(solicitante.id_usuario, solicitante.zona_horaria) as fuente:
             preparado = preparar(fuente, tipo, filtros, solicitante, ahora)

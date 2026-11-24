@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.configuraciones_remotas` (RF-23).
 
 Cada fila representa un comando de configuración. La tabla es el historial
@@ -17,6 +20,7 @@ from .base_model import Base
 
 
 class ConfiguracionRemotaModel(Base):
+    """Modelo ORM de la tabla ``modulo9.configuraciones_remotas``."""
     __tablename__ = 'configuraciones_remotas'
     __table_args__ = (
         ForeignKeyConstraint(

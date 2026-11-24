@@ -1,6 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: nombre, FK id_finca y defaults como en la BD |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM del catálogo de reglas de alerta (tabla ``modulo3.reglas_alertas``).
+
+Define umbrales, ventana de confirmación, severidades, alcance por finca/especie
+y si la regla se ejecuta en el Edge (RF-55).
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,6 +21,8 @@ from .base_model import Base
 
 
 class ReglaAlertaModel(Base):
+    """Fila de la tabla ``modulo3.reglas_alertas``."""
+
     __tablename__ = 'reglas_alertas'
     __table_args__ = {'schema': 'modulo3'}
 

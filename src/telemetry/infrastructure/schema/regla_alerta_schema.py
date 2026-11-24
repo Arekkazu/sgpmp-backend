@@ -1,6 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: respuesta del CRUD de reglas de alerta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, schema y método |
+"""Schema de respuesta del CRUD de reglas de alerta (RF-55).
+
+Incluye la versión de regla para concurrencia optimista y el resultado de su
+propagación a los Gateway Edge.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -13,6 +19,8 @@ from src.telemetry.infrastructure.schema.sincronizacion_regla_edge_schema import
 
 
 class ReglaAlertaResponse(BaseModel):
+    """Regla de alerta tal como se devuelve al cliente."""
+
     id_regla_alertas: int
     nombre: str
     descripcion: Optional[str] = None
@@ -44,6 +52,7 @@ class ReglaAlertaResponse(BaseModel):
 
     @classmethod
     def de(cls, regla: Any, sincronizacion: Any = None) -> "ReglaAlertaResponse":
+        """Construye la respuesta y adjunta la sincronización con el Edge si existe."""
         respuesta = cls.model_validate(regla)
         if sincronizacion is not None:
             respuesta.sincronizacion_edge = SincronizacionReglaSchema.model_validate(sincronizacion)

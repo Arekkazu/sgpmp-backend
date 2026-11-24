@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: releer el acumulado tras el trigger |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`AcumuladoCicloRepository` (RF-78, CU-05).
 
 Solo lectura — la mutación del acumulado la hace el trigger de BD
@@ -52,6 +53,7 @@ class SqlAlchemyAcumuladoCicloRepository(AcumuladoCicloRepository):
         )
 
     def obtener(self, id_gestion_fases: int) -> Optional[AcumuladoCiclo]:
+        """Devuelve el acumulado vigente, o ``None`` si aún no existe (ciclo sin suministros)."""
         orm = (
             self.db.query(AcumuladoCicloModel)
             .filter(AcumuladoCicloModel.id_gestion_fases == id_gestion_fases)
@@ -61,6 +63,7 @@ class SqlAlchemyAcumuladoCicloRepository(AcumuladoCicloRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_bloqueando(self, id_gestion_fases: int) -> Optional[AcumuladoCiclo]:
+        """Igual que ``obtener`` pero con ``SELECT ... FOR UPDATE`` (solo flujo de corrección)."""
         # lock_timeout evita bloqueos indefinidos ante contención — el use case inspecciona
         # InfrastructureError.original_error.orig para traducir LockNotAvailable/DeadlockDetected
         # a CONFLICTO_CONCURRENCIA (FA-08) en vez de un fallo técnico genérico.
@@ -78,6 +81,7 @@ class SqlAlchemyAcumuladoCicloRepository(AcumuladoCicloRepository):
         return self._a_entidad(orm) if orm else None
 
     def marcar_consolidado(self, id_gestion_fases: int) -> None:
+        """Marca ``estado='CONSOLIDADO'`` tras el cierre definitivo del ciclo (informativo)."""
         orm = (
             self.db.query(AcumuladoCicloModel)
             .filter(AcumuladoCicloModel.id_gestion_fases == id_gestion_fases)

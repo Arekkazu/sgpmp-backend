@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Enums de dominio del reporte de gastos acumulados (RF-77 / CU-04)."""
 from __future__ import annotations
 
@@ -21,5 +24,6 @@ class EstadoTendencia(str, Enum):
 
 
 class CategoriaGasto(str, Enum):
+    """Categoría de gasto de suministros."""
     ALIMENTACION = "ALIMENTACION"
     MEDICACION = "MEDICACION"

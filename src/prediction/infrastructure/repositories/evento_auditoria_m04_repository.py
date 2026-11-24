@@ -7,6 +7,8 @@
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: rechazar eventos invalidos con evidencia E1 y resultado tipado. |
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de la auditoría del motor de inferencia con su hash de integridad."""
 from __future__ import annotations
 
 import hashlib
@@ -106,6 +108,7 @@ def _a_entidad(orm: EventoAuditoriaM04Model) -> EventoAuditoriaM04:
 
 
 class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
+    """Implementación SQLAlchemy de ``EventoAuditoriaM04Repository``."""
     def __init__(
         self,
         db: Session,
@@ -142,6 +145,12 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         origen_dato: Optional[str] = None,
         timestamp_evento: Optional[datetime] = None,
     ) -> ResultadoRegistroAuditoriaM04:
+        """Devuelve rechazo E1 sin cancelar el proceso; el commit pertenece al emisor.
+
+        ``timestamp_evento``: instante en que ocurrió el evento en su origen (por omisión,
+        ahora). Si es futuro o anterior al último de su ``correlacion_id`` se corrige al del
+        sistema y se registra TIMESTAMP_CORREGIDO (RF-73 E7).
+        """
         correlacion_id = correlacion_id or uuid.uuid4()
         id_evento = uuid.uuid4()
         errores = validar_evento(
@@ -380,6 +389,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         pagina: int = 1,
         por_pagina: int = 50,
     ) -> tuple[list[EventoAuditoriaM04], int]:
+        """Consulta eventos filtrados y paginados con su total."""
         q = select(EventoAuditoriaM04Model)
         if tipo_modelo:
             # El tipo de modelo viaja en el payload del evento (RF-73 §payload_evento).
@@ -420,6 +430,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         return [_a_entidad(row) for row in items], total
 
     def obtener_por_id(self, id_evento: uuid.UUID) -> EventoAuditoriaM04:
+        """Devuelve un evento de auditoría."""
         orm = self._db.get(EventoAuditoriaM04Model, id_evento)
         if orm is None:
             raise NotFoundError(

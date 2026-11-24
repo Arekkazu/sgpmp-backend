@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3: contexto del activo biológico de la alerta |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Puerto que resuelve el activo biológico y su contexto para una alerta."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -20,6 +22,7 @@ class ContextoActivoAlerta:
 
 
 class ContextoActivoAlertaPort(ABC):
+    """Puerto para resolver el contexto del activo de un sensor en un instante."""
     @abstractmethod
     def resolver(self, id_sensor: int, id_infraestructura: Optional[int], momento: datetime,
                  id_telemetria: Optional[int] = None) -> ContextoActivoAlerta:

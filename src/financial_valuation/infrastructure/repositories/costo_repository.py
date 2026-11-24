@@ -4,6 +4,7 @@
 # | 2026-11-05 | Arekkazu | M06 RF-90: filtro por tipo de costo, especie y finca del activo; mensaje sin códigos |
 # | 2026-11-11 | Arekkazu | USAB-M05-M06 T-01 RF-75..94: el activo sin identificador se nombra «Lote N», nunca null |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M06-359-G79 RF-93: excluir_activos en los costos del estado de resultados |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQL de :class:`CostoRepository`."""
 from __future__ import annotations
 
@@ -51,10 +52,12 @@ def _filtros_sql(filtros: dict) -> tuple[str, dict]:
 
 
 class SqlAlchemyCostoRepository(CostoRepository):
+    """Implementación SQLAlchemy de ``CostoRepository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def agregar(self, datos: dict) -> int:
+        """Registra un costo y devuelve su id."""
         campos = {"naturaleza_costo": None, "subtipo_costo": None, "politica_capitalizacion": None,
                   "estado": "REGISTRADO", "justificacion": None, "id_origen_m05": None, "tercero_nit": None,
                   "tercero_dv": None, "tercero_razon_social": None, "factura_prefijo": None, "factura_numero": None,
@@ -83,9 +86,11 @@ class SqlAlchemyCostoRepository(CostoRepository):
                       "uq_registro_costo_factura_id_activo_biologico": "La factura ya está registrada para este activo."})
 
     def obtener(self, id_registro_costo: int) -> Optional[dict]:
+        """Devuelve el costo, o ``None``."""
         return fila(self.db, f"SELECT {_COLUMNAS} {_JOIN} WHERE c.id_registro_costo = :id", {"id": id_registro_costo})
 
     def clasificar(self, id_registro_costo, naturaleza, politica, vehiculo, cuenta_debito, cuenta_credito, justificacion) -> None:
+        """Guarda la clasificación del costo."""
         escribir(self.db, """
             UPDATE modulo6.registros_costos
             SET naturaleza_costo = CAST(:n AS modulo6.enum_registros_costos_naturaleza_costo),
@@ -98,20 +103,24 @@ class SqlAlchemyCostoRepository(CostoRepository):
               "c": cuenta_credito, "j": justificacion})
 
     def factura_registrada(self, tercero_nit, factura_prefijo, factura_numero) -> Optional[dict]:
+        """Devuelve el costo con esa factura del tercero, o ``None``."""
         return fila(self.db, """SELECT id_registro_costo, id_grupo_reparto FROM modulo6.registros_costos
                                 WHERE tercero_nit = :n AND factura_prefijo IS NOT DISTINCT FROM :p AND factura_numero = :f
                                 LIMIT 1""", {"n": tercero_nit, "p": factura_prefijo, "f": factura_numero})
 
     def listar(self, filtros: dict) -> list[dict]:
+        """Lista los costos con filtros."""
         donde, params = _filtros_sql(filtros)
         return filas(self.db, f"SELECT {_COLUMNAS} {_JOIN} WHERE {donde} ORDER BY c.fecha_costo DESC, c.id_registro_costo DESC LIMIT 500",
                      params)
 
     def del_periodo(self, id_periodo_contable: int, filtros: Optional[dict] = None) -> list[dict]:
+        """Lista los costos del periodo."""
         donde, params = _filtros_sql({**(filtros or {}), "id_periodo_contable": id_periodo_contable})
         return filas(self.db, f"SELECT {_COLUMNAS} {_JOIN} WHERE {donde} AND c.estado = 'REGISTRADO'", params)
 
     def pendientes_clasificacion(self, id_periodo_contable: int) -> list[dict]:
+        """Lista los costos del periodo sin clasificar."""
         return filas(self.db, f"SELECT {_COLUMNAS} {_JOIN} WHERE c.id_periodo_contable = :p AND c.estado = 'PENDIENTE_CLASIFICACION'",
                      {"p": id_periodo_contable})
 
@@ -134,11 +143,13 @@ class SqlAlchemyCostoRepository(CostoRepository):
         return resultado
 
     def marcar_recepcion(self, id_recepcion: int, resultado: str) -> None:
+        """Registra el resultado de procesar una recepción."""
         escribir(self.db, """UPDATE modulo6.recepciones_provisiones_m05
                              SET fecha_procesamiento = now(), resultado_procesamiento = :r
                              WHERE id_recepcion_provision_m05 = :id""", {"id": id_recepcion, "r": resultado[:40]})
 
     def recepciones_pendientes_titular(self, numero_id_tributaria: str, hasta: date) -> int:
+        """Cuenta las recepciones pendientes del titular hasta la fecha."""
         f = fila(self.db, """
             SELECT count(*) AS n FROM modulo6.recepciones_provisiones_m05 r
             JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = r.id_activo_biologico
@@ -150,6 +161,7 @@ class SqlAlchemyCostoRepository(CostoRepository):
         return f["n"] if f else 0
 
     def fecha_aplicacion_m05(self, id_registro_suministro: str) -> Optional[date]:
+        """Fecha de aplicación del suministro de origen, o ``None``."""
         f = fila(self.db, "SELECT fecha_aplicacion FROM modulo5.registro_suministro WHERE id_registro_suministro = CAST(:id AS uuid)",
                  {"id": id_registro_suministro})
         return f["fecha_aplicacion"] if f else None

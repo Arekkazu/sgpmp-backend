@@ -12,6 +12,13 @@
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-06 RF-57: acción sugerida en las alertas ambientales |
 # | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: lectura aislada fuera de NORMAL genera alerta REGLA_SIMPLE, no 422 |
 # | 2026-10-31 | Claude | INC-M03-241-G74 RF-57: deduplicación de PREDICCION_PATOLOGIA por tipo + activo biológico |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método público |
+"""Caso de uso de generación de alertas a partir de eventos de telemetría (RF-57).
+
+Valida el estado del dato, evalúa las reglas simples y compuestas, resuelve el
+contexto del activo, deduplica, clasifica tipo y severidad, y persiste la alerta
+en una única transacción. Los eventos que no generan alerta se auditan.
+"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -72,6 +79,7 @@ _VENTANA_E9_MIN = 24 * 60
 
 
 class GenararAlertaUseCase:
+    """Orquesta la evaluación de un evento y la creación/consolidación de su alerta."""
 
     def __init__(
         self,
@@ -111,6 +119,22 @@ class GenararAlertaUseCase:
         id_dispositivo_ioit: Optional[int] = None,
         id_infraestructura: Optional[int] = None,
     ) -> ResultadoGeneracionAlerta:
+        """Procesa un evento y devuelve el resultado de la generación de alerta.
+
+        Args:
+            dto: Evento a evaluar.
+            id_activo_biologico: Activo asociado, si ya se conoce.
+            contexto_activo_biologico: Contexto del activo para la alerta.
+            id_dispositivo_ioit: Dispositivo que originó el evento.
+            id_infraestructura: Área donde ocurrió el evento.
+
+        Returns:
+            Resultado con la alerta creada, la existente deduplicada o el motivo
+            por el que no se generó.
+
+        Raises:
+            BusinessRuleError: Si una regla compuesta no cumple su condición mínima.
+        """
         ahora = datetime.now(timezone.utc)
         ids = dict(id_activo_biologico=id_activo_biologico, id_dispositivo_ioit=id_dispositivo_ioit,
                    id_infraestructura=id_infraestructura)

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: estados, causas, snapshot e idempotencia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de vinculación automática de lecturas a activos biológicos (RF-61-A/B)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -38,6 +40,7 @@ class VincularLecturaActivoUseCase:
         id_infraestructura: int,
         timestamp_captura: datetime,
     ) -> VinculacionLectura:
+        """Vincula la lectura al activo presente en el área en el instante de captura."""
         ahora = datetime.now(timezone.utc)
 
         try:

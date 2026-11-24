@@ -6,6 +6,7 @@
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 B-01 RF-75/76: fechas de los mensajes como 11/11/2026, sin ids ni estados crudos |
 # | 2026-11-12 | LuisfNarvaez01 | INC-M05-352-G18 RF-76: el fin de retiro por anulación avisa también al Veterinario |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: anular una aplicación de medicamento VALIDADA (RF-76).
 
 - E8: un registro ANULADO no puede volver a anularse (409).
@@ -62,6 +63,7 @@ class AnularMedicamentoUseCase:
     def execute(
         self, id_medicamento: int, dto: AnularRegistroDTO, usuario_actual: UsuarioActual
     ) -> Medicamento:
+        """Anula una aplicación de medicamento con su motivo."""
         medicamento = self.medicamento_repo.obtener_por_id(id_medicamento)
         if medicamento is None:
             raise NotFoundError(

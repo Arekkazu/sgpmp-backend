@@ -2,6 +2,12 @@
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
 # | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: rechazar rangos invertidos antes de consultar y comparar fechas en UTC. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Casos de uso de consulta de la calidad de telemetría (RF-62).
+
+Resuelve la evaluación de una lectura y lista evaluaciones por sensor,
+clasificación y rango, acotadas a las fincas permitidas.
+"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -13,11 +19,17 @@ from src.telemetry.domain.repositories.telemetria_calidad_repository import Tele
 
 
 class ConsultarCalidadUseCase:
+    """Orquesta la consulta y el listado de evaluaciones de calidad."""
 
     def __init__(self, calidad_repo: TelemetriaCalidadRepository) -> None:
         self.calidad_repo = calidad_repo
 
     def get(self, id_telemetria: int) -> TelemetriaCalidad:
+        """Devuelve la evaluación de calidad de una lectura.
+
+        Raises:
+            NotFoundError: Si la lectura no tiene evaluación.
+        """
         evaluacion = self.calidad_repo.obtener_por_lectura(id_telemetria)
         if evaluacion is None:
             raise NotFoundError(
@@ -38,6 +50,11 @@ class ConsultarCalidadUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[TelemetriaCalidad], int]:
+        """Lista evaluaciones de calidad con filtros y paginación.
+
+        Raises:
+            BusinessRuleError: Si ``fecha_desde`` es posterior a ``fecha_hasta``.
+        """
         # Conservar las fechas sin zona admitidas por el contrato, haciendo
         # explícita su interpretación UTC al comparar y consultar TIMESTAMPTZ.
         if fecha_desde is not None:

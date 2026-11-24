@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: leer densidades auditadas de M02 con acceso por lote y fechas UTC. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """RF-68 E2: estados registrados por el trigger existente de auditoría de M02.
 
 Se consultan únicamente densidad, fecha e id; nunca SQL ni datos personales.
@@ -61,10 +62,12 @@ def _densidad(valor) -> Decimal | None:
 
 
 class OcupacionLoteM02Adapter(OcupacionLotePort):
+    """Lee la ocupación histórica de un lote desde la auditoría de cambios."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def obtener_muestras(self, id_lote: int, *, desde: datetime, hasta: datetime) -> list[MuestraOcupacion]:
+        """Estados dentro de la ventana y último previo; solo del lote accesible."""
         try:
             filas = self.db.execute(_SQL_MUESTRAS, {
                 'id_lote': id_lote, 'lote_texto': str(id_lote), 'desde': desde, 'hasta': hasta,

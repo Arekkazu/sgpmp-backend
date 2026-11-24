@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-23 | Leandro | DEV-24 RF-24: serializar publicaciones por area sin requerir edicion de infraestructura. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementaciones SQLAlchemy de los puertos de calibración por visión (RF-24 v2.0)."""
 from __future__ import annotations
 
@@ -27,11 +28,13 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyCalibracionVisionRepository(CalibracionVisionRepository):
+    """Implementación SQLAlchemy de ``CalibracionVisionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def bloquear_area(self, id_infraestructura: int) -> None:
+        """Serializa calibraciones del área hasta commit/rollback, incluso sin línea previa."""
         # Namespace ASCII RF24. No exige UPDATE sobre infraestructura (RLS lo
         # reserva al Administrador); commit/rollback libera el bloqueo.
         self.db.execute(
@@ -61,6 +64,7 @@ class SqlAlchemyCalibracionVisionRepository(CalibracionVisionRepository):
         )
 
     def guardar(self, calibracion: CalibracionVision) -> CalibracionVision:
+        """Registra un intento (exitoso o no) en el historial inmutable."""
         try:
             orm = CalibracionVisionModel(
                 id_infraestructura=calibracion.id_infraestructura,
@@ -86,6 +90,7 @@ class SqlAlchemyCalibracionVisionRepository(CalibracionVisionRepository):
             raise_from_db_error(exc)
 
     def listar_por_area(self, id_infraestructura: int) -> list[CalibracionVision]:
+        """Historial del área, el intento más reciente primero."""
         filas = (
             self.db.query(CalibracionVisionModel)
             .filter(CalibracionVisionModel.id_infraestructura == id_infraestructura)
@@ -99,6 +104,7 @@ class SqlAlchemyCalibracionVisionRepository(CalibracionVisionRepository):
 
 
 class SqlAlchemyLineaBaseVisionRepository(LineaBaseVisionRepository):
+    """Implementación SQLAlchemy de ``LineaBaseVisionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -119,10 +125,12 @@ class SqlAlchemyLineaBaseVisionRepository(LineaBaseVisionRepository):
         )
 
     def obtener_vigente(self, id_infraestructura: int, id_especie: int) -> Optional[LineaBaseVision]:
+        """Línea base vigente del par (área, especie), o ``None`` si nunca se calibró."""
         orm = self._vigente(id_infraestructura, id_especie).first()
         return self._a_entidad(orm) if orm is not None else None
 
     def publicar(self, linea_base: LineaBaseVision) -> LineaBaseVision:
+        """Reemplaza la línea base vigente del par (área, especie), o la crea."""
         try:
             # FOR UPDATE: dos cálculos simultáneos del mismo par no se pisan a medias.
             orm = self._vigente(linea_base.id_infraestructura, linea_base.id_especie).with_for_update().first()

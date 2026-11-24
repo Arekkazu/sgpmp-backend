@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para ``modulo5.configuracion_batch_ica`` (RF-74 / parámetros).
 
 Fila única con los parámetros del motor batch (límite de activos, workers, ventana,
@@ -13,6 +16,7 @@ from .base_model import Base
 
 
 class ConfiguracionBatchIcaModel(Base):
+    """Modelo ORM de la tabla ``modulo5.configuracion_batch_ica``."""
     __tablename__ = 'configuracion_batch_ica'
     __table_args__ = {'schema': 'modulo5'}
 

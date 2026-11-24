@@ -1,11 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101: generación, hash y verificación del client_secret |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """``client_secret`` de un cliente externo (RF-101 5.1, 5.3, RNF-101.1).
 
 Se guarda solo el hash bcrypt (con sal, no reversible) y se compara con ``bcrypt.checkpw``, que no
 corta en el primer byte distinto. Un secreto provisto (para migrar el que AgroFusion ya usa) debe
-tener al menos 16 caracteres; uno generado tiene 256 bits."""
+tener al menos 43 caracteres, lo mismo que uno generado de 256 bits (RNF-101.1). La regla
+solo aplica al registrar o rotar: los hashes ya guardados se siguen verificando igual."""
 from __future__ import annotations
 
 import secrets
@@ -14,15 +16,21 @@ import bcrypt
 
 from src.shared.errors import ValidationError
 
-LONGITUD_MINIMA = 16
+LONGITUD_MINIMA = 43  # = len(secrets.token_urlsafe(32)): 256 bits en base64url
 _LONGITUD_MAXIMA = 72  # bcrypt ignora lo que pase de 72 bytes
 
 
 def generar() -> str:
+    """Genera un secreto aleatorio seguro."""
     return secrets.token_urlsafe(32)
 
 
 def hashear(secreto: str) -> str:
+    """Hashea el secreto con bcrypt.
+
+    Raises:
+        ValidationError: Si la longitud del secreto no es válida.
+    """
     if not LONGITUD_MINIMA <= len(secreto.encode("utf-8")) <= _LONGITUD_MAXIMA:
         raise ValidationError(code="SECRETO_INVALIDO", field="client_secret",
                               message=f"El secreto debe tener entre {LONGITUD_MINIMA} y {_LONGITUD_MAXIMA} caracteres.")
@@ -30,6 +38,7 @@ def hashear(secreto: str) -> str:
 
 
 def coincide(secreto: str, hash_guardado: str) -> bool:
+    """Indica si el secreto coincide con el hash guardado."""
     try:
         return bcrypt.checkpw(secreto.encode("utf-8")[:_LONGITUD_MAXIMA], hash_guardado.encode("utf-8"))
     except ValueError:

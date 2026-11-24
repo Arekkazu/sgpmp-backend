@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: entradas del RF y errores 422      |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """DTO de entrada para registrar un suministro en el ledger de RF-78.
 
 - SERVICIO_VETERINARIO / INSEMINACION: cantidad, unidad, fecha y precio llegan
@@ -25,6 +26,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarSuministroDirectoDTO(BaseDTO):
+    """Datos de un suministro con costo directo."""
     id_activo_biologico: int = Field(gt=0)
     tipo_suministro: str = Field(min_length=1, max_length=30)
     id_idempotencia: UUID

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-62: listado de observaciones de visión evaluadas (el panel mostraba datos de ejemplo) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y método |
+"""Repositorio del listado de calidad de visión evaluada (RF-62)."""
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -36,11 +38,20 @@ _COLUMNAS = tuple(ObservacionVisionEvaluada.__dataclass_fields__)
 
 
 class SqlAlchemyCalidadVisionRepository(CalidadVisionRepository):
+    """Consulta paginada de observaciones de visión con sus métricas de calidad."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def listar(self, filtros):
+        """Lista observaciones filtradas y devuelve la página junto con el total.
+
+        Args:
+            filtros: ``FiltrosCalidadVision`` con rango, fincas, dispositivo y clasificación.
+
+        Returns:
+            Tupla ``(items, total)``.
+        """
         try:
             filas = self._db.execute(_SQL_LISTAR, {
                 "desde": filtros.desde, "hasta": filtros.hasta, "fincas": filtros.ids_fincas,

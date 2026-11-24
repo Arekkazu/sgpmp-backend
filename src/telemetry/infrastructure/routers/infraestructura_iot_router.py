@@ -11,6 +11,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
 # | 2026-10-31 | Arekkazu | CP58 RF-60: nombre del responsable de cada transición de estado |
 # | 2026-11-02 | Arekkazu | AJF-04 RF-60: GET de parámetros de heartbeat por categoría y de ventanas de visión de una cámara |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -113,6 +114,7 @@ def recibir_heartbeat(
     dto: HeartbeatDTO,
     db: Session = Depends(get_db_sistema),
 ) -> HeartbeatReciboSchema:
+    """Recibe el heartbeat de un dispositivo IoT."""
     use_case = RecibirHeartbeatUseCase(
         db=db,
         dispositivo_port=DispositivoM09Adapter(db),
@@ -139,6 +141,7 @@ def recibir_evento_buffer(
     dto: RecibirEventoBufferDTO,
     db: Session = Depends(get_db_sistema),
 ) -> EventoBufferReciboSchema:
+    """Recibe un evento de buffer de un dispositivo y genera su alerta técnica."""
     resultado = RegistrarEventoBufferUseCase(
         db=db,
         dispositivo_port=DispositivoM09Adapter(db),
@@ -227,6 +230,7 @@ def obtener_estado_dispositivo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EstadoDispositivoDetalleSchema:
+    """Devuelve el estado actual de un dispositivo y su historial reciente."""
     use_case = ObtenerEstadoDispositivoUseCase(
         db=db,
         estado_repo=SqlAlchemyEstadoDispositivoIoTRepository(db),
@@ -262,6 +266,7 @@ def listar_historial_dispositivo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> list[HistoricoTransicionSchema]:
+    """Lista el historial de transiciones de estado de un dispositivo."""
     repo = SqlAlchemyHistoricoTransicionDispositivoRepository(db)
     transiciones = repo.listar_por_dispositivo(id_dispositivo_iot, limite=limite)
     return _con_responsable(db, [HistoricoTransicionSchema.model_validate(t) for t in transiciones])
@@ -286,6 +291,7 @@ def aplicar_mantenimiento_dispositivo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EstadoDispositivoIoTSchema:
+    """Pone o saca un dispositivo de mantenimiento."""
     detalle = SqlAlchemyUsuarioRepository(db).obtener_detalle(usuario_actual.id_usuario)
     nombre_usuario = f"{detalle.nombre} {detalle.apellidos}" if detalle else str(usuario_actual.id_usuario)
     use_case = AplicarMantenimientoDispositivoUseCase(
@@ -325,6 +331,7 @@ def listar_alertas_tecnicas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaAlertasSchema:
+    """Lista las alertas técnicas con filtros y paginación."""
     use_case = ConsultarAlertasUseCase(
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
@@ -367,6 +374,7 @@ def actualizar_estado_alerta_tecnica(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AlertaSchema:
+    """Cambia el estado de una alerta técnica."""
     use_case = ActualizarEstadoAlertaUseCase(
         db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),

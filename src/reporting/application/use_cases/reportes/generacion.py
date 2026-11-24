@@ -2,6 +2,8 @@
 # |------------|----------|-------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: validación común, armado y partición en archivos de 50 MB   |
 # | 2026-11-19 | Arekkazu | M08 RF-104: autor, rol y parámetros de selección como en las plantillas |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+# | 2026-11-23 | Arekkazu | QA-M08 CU02 H-02 RF-104: la auditoría lleva los filtros elegidos como se leen        |
 """Pasos comunes de RF-104 que comparten la vista previa, la generación inmediata y el proceso en segundo plano.
 
 1. Permiso por tipo de reporte (Fase 1, 403) — ``Solicitante.permitidos`` sale de ``modulo1.permisos``.
@@ -40,6 +42,7 @@ from src.reporting.domain.reportes.contenido import ContenidoReporte, Tabla
 from src.reporting.domain.reportes.solicitud import ArchivoReporte, sha256
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
 from src.shared.fechas import en_zona_usuario, hoy_usuario
+from src.shared.rate_limit import registrar_llamada
 
 LIMITE_PARTE = 50 * 1024 * 1024  # RF-104 restricción: 50 MB por archivo
 SIN_DATOS = ("No hay datos para los filtros elegidos. Prueba con otro rango de fechas o quita algún filtro.")
@@ -62,6 +65,7 @@ class Solicitante:
 
 @dataclass
 class Preparado:
+    """Reporte validado y con su contenido armado."""
     definicion: DefinicionReporte
     filtros: dict[str, Any]
     contenido: ContenidoReporte
@@ -70,6 +74,11 @@ class Preparado:
 
 
 def exigir_permiso(tipo: str, solicitante: Solicitante) -> DefinicionReporte:
+    """Devuelve la definición del reporte si el solicitante lo puede generar.
+
+    Raises:
+        NotFoundError: Si el reporte no existe o no está permitido.
+    """
     definicion = CATALOGO.get(tipo)
     if definicion is None:
         raise NotFoundError(code="REPORTE_INEXISTENTE", message="Ese reporte no existe.", field="tipo_reporte")
@@ -146,6 +155,15 @@ def _parametros(fuente: FuenteReportesRepository, definicion: DefinicionReporte,
             texto = fuente.nombre_referencia(filtro.tipo, valor) or "Elemento seleccionado"
         salida.append((ETIQUETAS[filtro.nombre], texto))
     return salida
+
+
+# Cada vista previa o solicitud arma el reporte en memoria: tope por usuario y por minuto.
+SOLICITUDES_POR_MINUTO = 30
+
+
+def limitar_solicitudes(id_usuario: int) -> None:
+    """429 con ``Retry-After`` si el usuario pasa de ``SOLICITUDES_POR_MINUTO`` vistas previas o solicitudes."""
+    registrar_llamada(f"m08:reportes:{id_usuario}", SOLICITUDES_POR_MINUTO, 60)
 
 
 def preparar(fuente: FuenteReportesRepository, tipo: str, crudos: Optional[dict[str, Any]],
@@ -227,9 +245,13 @@ def _archivo(numero: int, nombre: str, tipo: str, datos: bytes) -> ArchivoReport
 def detalle_auditoria(preparado: Preparado, formato: str, estado: str, checksum: Optional[str],
                       numero_registros: Optional[int], id_reporte: Any) -> dict[str, Any]:
     """Campos de auditoría de CA-15 (y la exportación contable incluida, para la trazabilidad de M07)."""
+    # QA M08 CU02 H-02: los filtros elegidos como se leen en «Parámetros de selección», para la descripción del
+    # evento que muestra la auditoría (``filtros_aplicados`` guarda los valores crudos).
+    legibles = [f"{etiqueta}: {texto}" for filtro, (etiqueta, texto)
+                in zip(preparado.definicion.filtros, preparado.contenido.parametros) if filtro.nombre in preparado.filtros]
     detalle: dict[str, Any] = {
         "id_reporte": str(id_reporte), "tipo_reporte": preparado.definicion.tipo,
-        "filtros_aplicados": filtros_serializables(preparado.filtros), "formato": formato,
+        "filtros_aplicados": filtros_serializables(preparado.filtros), "filtros_legibles": legibles, "formato": formato,
         "fecha_snapshot": preparado.fecha_snapshot.isoformat() if preparado.fecha_snapshot else None, "estado_final": estado, "checksum": checksum,
         "numero_registros": numero_registros,
     }

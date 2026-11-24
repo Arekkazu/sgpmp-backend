@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-109/RF-86 FA-5: matriz contable y líneas pendientes de cuenta |
 # | 2026-11-15 | Arekkazu | QA-M06 CU09 H-01 RF-86/109: el gasto de consumo o de mano de obra no debita una cuenta de activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso RF-109 (mínimo, D-2): par de cuentas débito/crédito por hecho, sentido, especie y
 subtipo. Al completarse la matriz, las líneas PENDIENTE_CUENTA de períodos abiertos que ahora
 tienen par quedan REGISTRADAS (RF-86 FA-5). Las líneas ya registradas no cambian: un cambio de
@@ -24,6 +25,7 @@ _GASTO_UNICO = {"CONSUMO_INSUMO", "MANO_OBRA_PROPIA"}
 
 
 class GuardarAsignacionCuentaUseCase:
+    """Gestiona la asignación de cuentas contables por tipo de hecho."""
     def __init__(self, db: Session, config: ConfiguracionContableRepository, asientos: AsientoRepository,
                  auditoria: AuditoriaFinancieraRepository) -> None:
         self.db = db
@@ -33,6 +35,7 @@ class GuardarAsignacionCuentaUseCase:
 
     def execute(self, tipo_hecho: str, sentido: str, id_especie: Optional[int], subtipo_costo: Optional[str],
                 cuenta_debito: str, cuenta_credito: str, id_usuario: int) -> dict:
+        """Guarda la asignación de cuentas y resuelve las líneas pendientes."""
         if tipo_hecho in _GASTO_UNICO and sentido == "UNICO" and cuenta_debito.startswith("1"):  # CU09 H-01
             raise BusinessRuleError(code="CUENTA_DEBITO_NO_ES_GASTO", field="cuenta_debito", message=(
                 f"{ETIQUETA_HECHO[tipo_hecho]} en «Único» es gasto del período: el débito debe ser una cuenta de gasto "
@@ -55,6 +58,11 @@ class GuardarAsignacionCuentaUseCase:
         return {"id_asignacion_cuenta_contable": id_asignacion, "lineas_resueltas": resueltas}
 
     def desactivar(self, id_asignacion: int, id_usuario: int) -> None:
+        """Desactiva una asignación de cuenta.
+
+        Raises:
+            NotFoundError: Si la asignación no existe.
+        """
         try:
             if not self.config.desactivar_asignacion(id_asignacion):
                 raise NotFoundError(code="ASIGNACION_NO_ENCONTRADA", message="La asignación no existe o ya está inactiva.")
@@ -67,6 +75,7 @@ class GuardarAsignacionCuentaUseCase:
             raise
 
     def resolver_pendientes(self) -> int:
+        """Asigna cuenta a las líneas pendientes y devuelve cuántas resolvió."""
         resueltas = 0
         for linea in self.asientos.pendientes_de_cuenta():
             asignacion = self.config.resolver_cuenta(linea.tipo_hecho_corregido or linea.tipo_hecho, linea.sentido,

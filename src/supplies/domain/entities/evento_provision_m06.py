@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: evento de provisión hacia M06      |
 # | 2026-11-04 | Arekkazu         | M06 RF-90: el evento INCREMENTAL trae la fecha de aplicación |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad ``EventoProvisionM06`` (RF-79 — provisión de costos hacia M06).
 
 Python puro. Un evento INCREMENTAL (cada movimiento del ledger de RF-78) o
@@ -29,18 +30,21 @@ _ESPERA_RECUPERACION = timedelta(seconds=30)
 
 
 class EstadoEventoProvision(str, Enum):
+    """Estado de entrega de una provisión al módulo financiero."""
     PENDIENTE = "PENDIENTE"
     ENTREGADO = "ENTREGADO"
     PROVISION_PENDIENTE = "PROVISION_PENDIENTE"
 
 
 class ModalidadProvision(str, Enum):
+    """Modalidad de la provisión (incremental o consolidada)."""
     INCREMENTAL = "INCREMENTAL"
     CONSOLIDADO = "CONSOLIDADO"
 
 
 @dataclass(eq=False)
 class EventoProvisionM06:
+    """Provisión pendiente de entregar al módulo financiero."""
     modalidad: str
     id_activo_biologico: int
     contenido: dict
@@ -123,6 +127,7 @@ class EventoProvisionM06:
         return evento
 
     def marcar_entregado(self, ahora: datetime) -> None:
+        """Marca la provisión como entregada."""
         self.numero_intentos += 1
         self.fecha_intentos.append(ahora)
         self.estado = EstadoEventoProvision.ENTREGADO.value

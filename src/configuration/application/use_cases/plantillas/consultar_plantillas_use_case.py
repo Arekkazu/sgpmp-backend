@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Consultar plantillas de configuración e historial de aplicaciones (RF-30)."""
 from __future__ import annotations
 
@@ -37,6 +40,7 @@ class ConsultarPlantillasUseCase:
         self.auditoria_repo = auditoria_repo
 
     def listar_plantillas(self, usuario_actual: UsuarioActual) -> list[Plantilla]:
+        """Lista las plantillas y audita la consulta."""
         resultado = self.plantilla_repo.listar_todas()
         self.auditoria_repo.registrar(
             id_usuario=usuario_actual.id_usuario,
@@ -47,6 +51,7 @@ class ConsultarPlantillasUseCase:
         return resultado
 
     def obtener_plantilla(self, id_plantilla: int, usuario_actual: UsuarioActual) -> Plantilla:
+        """Devuelve la plantilla y audita la consulta."""
         plantilla = self.plantilla_repo.obtener_por_id(id_plantilla)
         if plantilla is None:
             registrar_intento_fallido(
@@ -71,6 +76,7 @@ class ConsultarPlantillasUseCase:
         return plantilla
 
     def listar_historial(self, usuario_actual: UsuarioActual) -> list[AplicacionPlantilla]:
+        """Lista las aplicaciones de plantillas y audita la consulta."""
         resultado = self.aplicacion_repo.listar_todas()
         self.auditoria_repo.registrar(
             id_usuario=usuario_actual.id_usuario,
@@ -81,4 +87,5 @@ class ConsultarPlantillasUseCase:
         return resultado
 
     def listar_auditoria(self) -> list[AuditoriaPlantilla]:
+        """Lista la auditoría de plantillas."""
         return self.auditoria_repo.listar_todas()

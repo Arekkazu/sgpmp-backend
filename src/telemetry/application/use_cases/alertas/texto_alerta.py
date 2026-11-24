@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | QA-M03 RF-57: correos de alertas con nombres y rótulos legibles en vez de ids y códigos |
 # | 2026-11-19 | Arekkazu | M8-16 RF-105: sin la hora UTC en el texto y con el nombre real de la pantalla |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Textos de las notificaciones de alertas (bandeja, push y correo).
 
 Antes salían ids y códigos: «Alerta CRITICO: fiebre en TEMP_CORPORAL. Valor 40.5700 °C.
@@ -70,6 +71,7 @@ def _minuscula(texto: str) -> str:
 
 
 def severidad(codigo: str) -> str:
+    """Devuelve la severidad en texto legible para el usuario."""
     return _SEVERIDAD.get(codigo, codigo.lower())
 
 
@@ -87,12 +89,14 @@ def lugar(ctx: ContextoAlerta) -> str:
 
 
 def titulo(alerta: Alerta, ctx: ContextoAlerta) -> str:
+    """Arma el título visible de la notificación de una alerta."""
     donde = ctx.activo or ctx.area
     base = f"Alerta {severidad(alerta.severidad)}: {_minuscula(etiqueta(alerta.tipo_alerta))}"
     return f"{base} en {donde}" if donde else base
 
 
 def cuerpo(alerta: Alerta, ctx: ContextoAlerta) -> str:
+    """Arma el cuerpo visible de la notificación de una alerta."""
     texto = f"{etiqueta(alerta.tipo_alerta)} ({severidad(alerta.severidad)}) en {lugar(ctx)}."
     variable = etiqueta(alerta.tipo_variable)
     if alerta.valor is not None:
@@ -118,4 +122,5 @@ def resumen(alertas: list[tuple[Alerta, ContextoAlerta]]) -> str:
 
 
 def titulo_resumen(n: int) -> str:
+    """Arma el título del resumen agrupado de n alertas."""
     return f"Resumen de {n} {'alerta' if n == 1 else 'alertas'}"

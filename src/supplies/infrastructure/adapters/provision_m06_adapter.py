@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: entrega a M06 (in-process)         |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`ProvisionM06Port` hacia el M06 provisional (``src/financial_valuation``).
 
 M06 vive en el mismo backend y la misma BD: la entrega es una llamada a su caso
@@ -27,10 +28,12 @@ from src.supplies.domain.repositories.provision_m06_port import ProvisionM06Port
 
 
 class ProvisionM06Adapter(ProvisionM06Port):
+    """Entrega provisiones al módulo financiero con su propia sesión."""
     def __init__(self, session_factory: Callable[[], Session]) -> None:
         self.session_factory = session_factory
 
     def entregar(self, evento: EventoProvisionM06) -> None:
+        """Entrega la provisión al módulo financiero."""
         db = self.session_factory()
         try:
             RecibirProvisionCostosUseCase(db, SqlAlchemyRecepcionProvisionRepository(db)).execute(

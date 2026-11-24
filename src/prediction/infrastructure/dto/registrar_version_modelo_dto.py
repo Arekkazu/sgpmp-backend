@@ -5,6 +5,8 @@
 # | 2026-10-29 | Arekkazu | INC-M04-214 RF-69: tipo_modelo vacío llega al caso de uso (422 con los tipos admitidos) |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-19 | Arekkazu     | SEG-M04-01 RF-69: firma_artefacto del proceso de entrenamiento |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""DTO del formulario de registro de una versión de modelo."""
 from __future__ import annotations
 
 import json

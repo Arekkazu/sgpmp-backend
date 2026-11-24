@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``BitacoraAuditoriaRepository`` (RF-52).
 
 Calcula el hash SHA-256 de integridad de cada entrada antes de insertarla.
@@ -49,6 +52,7 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         self.db = db
 
     def registrar(self, evento: EventoAuditoria) -> None:
+        """Registra un evento en la bitácora de activos biológicos."""
         # RF-52 E2 se aplica aquí porque es el único punto por el que pasan todos
         # los emisores de M02 (use cases, rechazos auditados y el handler de 400).
         causas = evento.marcar_si_incompleto()
@@ -100,6 +104,7 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         ids_fincas_alcance: Optional[list[int]] = None,
         id_usuario_alcance: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
+        """Consulta la bitácora con filtros y paginación."""
         q = self.db.query(BitacoraAuditoriaM02Model)
 
         if ids_fincas_alcance is not None:
@@ -178,6 +183,7 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         )
 
     def activo_en_fincas(self, id_activo: int, ids_fincas: list[int]) -> bool:
+        """Indica si el activo pertenece a alguna de las fincas."""
         return (
             self.db.execute(
                 self._activos_en_fincas(ids_fincas).where(
@@ -188,6 +194,7 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         )
 
     def activo_pertenece_a_usuario(self, id_activo: int, id_usuario: int) -> bool:
+        """Indica si el activo pertenece a las fincas del usuario."""
         return (
             self.db.query(ActivoBiologicoModel.id_activo_biologico)
             .filter(

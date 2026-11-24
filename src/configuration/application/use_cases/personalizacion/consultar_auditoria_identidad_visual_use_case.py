@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Consulta del historial auditable de identidad visual (RF-26, TC-M09-169)."""
 from __future__ import annotations
 
@@ -19,6 +22,11 @@ class ConsultarAuditoriaIdentidadVisualUseCase:
         self.identidad_repo = identidad_repo
 
     def execute(self, id_finca: int) -> list[AuditoriaIdentidadVisual]:
+        """Lista la auditoría de la identidad visual de la finca.
+
+        Raises:
+            NotFoundError: Si la finca no tiene identidad visual.
+        """
         if self.identidad_repo.obtener_por_finca(id_finca) is None:
             raise NotFoundError(
                 code="IDENTIDAD_VISUAL_NO_ENCONTRADA",

@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-101: puerto de clientes externos y credenciales |
 # | 2026-11-19 | Arekkazu | INC-M07-373-G043 RF-101 FA-8: nombre de cliente externo único |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de clientes externos (RF-101 v2.0)."""
 from __future__ import annotations
 
@@ -12,25 +13,34 @@ from src.accounting_integration.domain.entities.cliente_externo import ClienteEx
 
 
 class ClienteExternoRepository(ABC):
+    """Puerto de persistencia de clientes externos."""
     @abstractmethod
-    def obtener(self, id_cliente_externo: int) -> Optional[ClienteExterno]: ...
+    def obtener(self, id_cliente_externo: int) -> Optional[ClienteExterno]:
+        """Devuelve el cliente por id, o ``None``."""
+        ...
 
     @abstractmethod
-    def obtener_por_identificador(self, identificador_publico: str) -> Optional[ClienteExterno]: ...
+    def obtener_por_identificador(self, identificador_publico: str) -> Optional[ClienteExterno]:
+        """Devuelve el cliente por identificador público, o ``None``."""
+        ...
 
     @abstractmethod
     def obtener_por_nombre(self, nombre: str) -> Optional[ClienteExterno]:
         """Sin distinguir mayúsculas ni espacios de los extremos (RF-101 FA-8)."""
 
     @abstractmethod
-    def listar(self) -> list[ClienteExterno]: ...
+    def listar(self) -> list[ClienteExterno]:
+        """Lista los clientes externos."""
+        ...
 
     @abstractmethod
     def guardar(self, cliente: ClienteExterno) -> ClienteExterno:
         """Inserta o actualiza el cliente y reemplaza sus canales."""
 
     @abstractmethod
-    def credencial_activa(self, id_cliente_externo: int) -> Optional[Credencial]: ...
+    def credencial_activa(self, id_cliente_externo: int) -> Optional[Credencial]:
+        """Devuelve la credencial activa del cliente, o ``None``."""
+        ...
 
     @abstractmethod
     def reemplazar_credencial(self, id_cliente_externo: int, credencial: Credencial) -> None:

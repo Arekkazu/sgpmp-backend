@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
 # | 2026-11-03 | Claude   | RF-72: una sola consulta para página e indicadores, filtros antes del escaneo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Repositorio de la bandeja de retroalimentación."""
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -134,11 +136,16 @@ _COLUMNAS = (
 
 
 class SqlAlchemyBandejaRetroalimentacionRepository(BandejaRetroalimentacionRepository):
+    """Implementación SQLAlchemy de ``BandejaRetroalimentacionRepository``."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
 
     def consultar(self, filtros):
+        """Una página de la bandeja (pendientes primero, luego por fecha), el total con el filtro y
+        cuántas hay en cada estado sin contar el filtro de estado. Juntos porque comparten el mismo
+        cálculo, que es lo caro.
+        """
         try:
             filas = self._db.execute(_SQL, {
                 "desde": filtros.desde, "hasta": filtros.hasta, "ahora": filtros.ahora,

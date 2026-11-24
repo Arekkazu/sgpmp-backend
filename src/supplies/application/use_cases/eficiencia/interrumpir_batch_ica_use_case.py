@@ -4,6 +4,7 @@
 # | 2026-11-12 | Leandro | INC-M05-350/351-G05 RF-74: separar causa y motivo y emitir un aviso tras confirmar el corte. |
 # | 2026-11-16 | Arekkazu | QA-M05 RF-74/75/76: mensajes con el identificador del activo y el estado en palabras, sin ids; «ICA» en vez de «CA» |
 # | 2026-11-20 | Arekkazu | QA-M08 CU03 H-03 RF-105: aviso de interrupción del cálculo en lenguaje del usuario |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: interrumpir una corrida del batch ICA en curso (RF-74, FA-12).
 
 Marca la ejecución ``INTERRUMPIDO`` y preserva la cola. Los workers de la corrida en
@@ -24,6 +25,7 @@ from src.supplies.domain.value_objects.eficiencia_enums import CausaInterrupcion
 
 
 class InterrumpirBatchICAUseCase:
+    """Interrumpe una ejecución en curso del batch de ICA."""
     def __init__(
         self, db: Session, ejecucion_repo: EjecucionBatchICARepository,
         notificador: Optional[NotificacionSuministrosPort] = None,
@@ -35,6 +37,7 @@ class InterrumpirBatchICAUseCase:
     def execute(
         self, id_ejecucion: int, id_usuario: Optional[int], motivo: Optional[str] = None
     ) -> EjecucionBatchICA:
+        """Interrumpe la ejecución y la devuelve."""
         ejecucion = self._interrumpir(id_ejecucion, CausaInterrupcionBatch.MANUAL, id_usuario, motivo)
         if self.notificador is not None:
             self.notificador.a_roles(

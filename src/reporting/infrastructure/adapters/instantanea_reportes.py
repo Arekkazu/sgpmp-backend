@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                             |
 # |------------|----------|-------------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: instantánea de lectura con la identidad de quien pidió el reporte |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Instantánea de datos de un reporte (RF-104 Fase 2.1, CA-12, RNF-08).
 
 Abre una sesión aparte en ``REPEATABLE READ`` y solo lectura: todas las consultas del reporte ven la BD tal como
@@ -20,6 +21,8 @@ from src.reporting.infrastructure.repositories.fuente_reportes_repository import
 from src.shared.database import SessionLocal, declarar_identidad, sesion_sistema
 from src.shared.fechas import establecer_zona_usuario, restablecer_zona_usuario
 
+TIMEOUT_CONSULTA_MS = 60_000
+
 _SQL_ROL = text("SELECT r.nombre_rol FROM modulo1.usuarios u JOIN modulo1.roles r ON r.id_rol = u.id_rol "
                 "WHERE u.id_usuario = :id")
 
@@ -34,11 +37,14 @@ def _nombre_rol(id_usuario: int) -> str:
 
 @contextmanager
 def abrir_instantanea(id_usuario: int, zona_horaria: str) -> Generator[FuenteReportesRepository]:
+    """Abre una lectura consistente de los datos con la identidad y zona del usuario."""
     token = establecer_zona_usuario(zona_horaria)
     db = SessionLocal()
     try:
         declarar_identidad(db, id_usuario, _nombre_rol(id_usuario))
         db.connection(execution_options={"isolation_level": "REPEATABLE READ", "postgresql_readonly": True})
+        # Ninguna consulta del reporte retiene la conexión más de un minuto.
+        db.execute(text(f"SET LOCAL statement_timeout = {TIMEOUT_CONSULTA_MS}"))
         yield SqlAlchemyFuenteReportesRepository(db)
     finally:
         db.rollback()

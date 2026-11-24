@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M04 T-18 RF-73: nombre del usuario actor además del id |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Esquemas de respuesta de la auditoría del motor."""
 from __future__ import annotations
 
 import uuid
@@ -14,6 +16,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class EventoAuditoriaM04Response(BaseDTO):
+    """Evento de la auditoría del motor."""
     model_config = ConfigDict(from_attributes=True)
 
     id_evento: uuid.UUID
@@ -44,6 +47,7 @@ class EventoAuditoriaM04Response(BaseDTO):
 
 
 class AuditoriaM04ListResponse(BaseDTO):
+    """Página de eventos de la auditoría del motor."""
     total: int
     pagina: int
     por_pagina: int

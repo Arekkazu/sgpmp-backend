@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: Guardar idioma global del sistema (PATCH RF-29 — Admin)."""
 from __future__ import annotations
 
@@ -18,6 +21,7 @@ class GuardarIdiomaGlobalUseCase:
         self.idioma_repo = idioma_repo
 
     def execute(self, dto: GuardarIdiomaDTO, usuario_actual: UsuarioActual) -> PreferenciaIdioma:
+        """Guarda el idioma global del sistema."""
         self._verificar_perfil_vigente(dto, usuario_actual)
 
         existente = self.idioma_repo.obtener_global()

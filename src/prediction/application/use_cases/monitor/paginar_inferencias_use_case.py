@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor de inferencias paginado, con filtros por animal y totales del periodo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso del listado paginado de inferencias."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,6 +20,7 @@ POR_PAGINA_MAXIMO = 200
 
 @dataclass(frozen=True)
 class PaginaInferencias:
+    """Página de inferencias con su total."""
     items: list[InferenciaMonitor]
     pagina: int
     por_pagina: int
@@ -38,6 +41,7 @@ class PaginarInferenciasUseCase:
         id_activo_biologico: Optional[int] = None, id_infraestructura: Optional[int] = None,
         solo_con_alerta: bool = False, incluir_sombra: bool = True,
     ) -> PaginaInferencias:
+        """Devuelve una página de inferencias con los filtros dados."""
         if pagina < 1:
             raise ValidationError(code="PAGINA_INVALIDA", message="pagina debe ser 1 o mayor.", field="pagina")
         if not 1 <= por_pagina <= POR_PAGINA_MAXIMO:

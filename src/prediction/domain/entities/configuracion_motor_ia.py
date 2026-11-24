@@ -1,6 +1,8 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: representar y versionar el perfil de cálculo ESTANDAR o MVP. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad de configuración del motor de IA por tipo de modelo."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,6 +15,7 @@ from src.shared.tipo_modelo import paradigma_de
 
 @dataclass(eq=False)
 class ConfiguracionMotorIA:
+    """Configuración del motor de IA de un tipo de modelo."""
     tipo_modelo: str
     # RF-65 v2.0 (RFC-009): solo INDIVIDUAL/META; POBLACIONAL usa umbral_score_anomalia.
     umbral_riesgo_alto: Optional[Decimal]
@@ -41,6 +44,7 @@ class ConfiguracionMotorIA:
 
     @property
     def paradigma(self) -> Optional[str]:
+        """Paradigma del tipo de modelo (individual o poblacional)."""
         return paradigma_de(self.tipo_modelo)
 
     @classmethod
@@ -66,6 +70,7 @@ class ConfiguracionMotorIA:
         versiones_activas_por_componente: Optional[dict[str, int]] = None,
         perfil_calculo_contagio: str = "ESTANDAR",
     ) -> ConfiguracionMotorIA:
+        """Crea una configuración validando sus parámetros."""
         return cls(
             tipo_modelo=tipo_modelo,
             perfil_calculo_contagio=perfil_calculo_contagio,
@@ -110,6 +115,7 @@ class ConfiguracionMotorIA:
         versiones_activas_por_componente: Optional[dict[str, int]] = None,
         perfil_calculo_contagio: str = "ESTANDAR",
     ) -> None:
+        """Actualiza los parámetros de la configuración y los valida."""
         self.umbral_riesgo_alto = umbral_riesgo_alto
         self.umbral_alerta_critica = umbral_alerta_critica
         self.ventana_temporal_min = ventana_temporal_min

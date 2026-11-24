@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidad de dominio ``MetricaProduccion`` — métrica de producción por especie (RF-16)."""
 from __future__ import annotations
 
@@ -78,6 +81,7 @@ class MetricaProduccion:
         valor_min: Optional[Decimal] = None,
         valor_max: Optional[Decimal] = None,
     ) -> MetricaProduccion:
+        """Crea la entidad validando sus datos."""
         valor_min, valor_max = normalizar_rango_metrica(tipo_dato, valor_min, valor_max)
         return cls(
             nombre=nombre,
@@ -105,6 +109,7 @@ class MetricaProduccion:
         valor_min: Optional[Decimal] = None,
         valor_max: Optional[Decimal] = None,
     ) -> None:
+        """Actualiza los datos editables validándolos."""
         valor_min, valor_max = normalizar_rango_metrica(tipo_dato, valor_min, valor_max)
         self.nombre = nombre
         self.unidad_medida = unidad_medida
@@ -117,6 +122,7 @@ class MetricaProduccion:
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self) -> None:
+        """Marca la entidad como inactiva."""
         self.es_activo = False
 
     def _snapshot(self) -> dict[str, Any]:

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`EspeciePatologiaRepository`.
 
 Gestiona la tabla ``modulo9.especies_patologias`` como entidad M09 de patologías
@@ -21,6 +24,7 @@ _DUP_MSG = "Ya existe una patología con ese nombre para esta especie."
 
 
 class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
+    """Implementación SQLAlchemy de ``EspeciePatologiaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -39,12 +43,17 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
         )
 
     def obtener_por_id(self, id_especies_patologias: int, *, bloquear: bool = False) -> Optional[EspeciePatologia]:
+        """Obtiene una patología por especie por su identidad. ``None`` si no existe.
+
+        ``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498).
+        """
         orm = self.db.get(EspeciePatologiaModel, id_especies_patologias, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_especie_y_nombre(
         self, id_especie: int, nombre: NombrePatologia
     ) -> Optional[EspeciePatologia]:
+        """Busca una patología por especie por nombre normalizado (case-insensitive)."""
         orm = (
             self.db.query(EspeciePatologiaModel)
             .filter(
@@ -58,6 +67,7 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
     def listar_por_especie(
         self, id_especie: int, *, solo_activas: bool = False
     ) -> list[EspeciePatologia]:
+        """Retorna las patologías configuradas para una especie."""
         query = self.db.query(EspeciePatologiaModel).filter(
             EspeciePatologiaModel.id_especie == id_especie,
         )
@@ -69,6 +79,7 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
         ]
 
     def guardar(self, entidad: EspeciePatologia) -> EspeciePatologia:
+        """Inserta una patología por especie. Hace ``flush``."""
         orm = EspeciePatologiaModel(
             id_especie=entidad.id_especie,
             id_patologia=entidad.id_patologia,
@@ -85,6 +96,7 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, entidad: EspeciePatologia) -> EspeciePatologia:
+        """Persiste cambios de nombre, descripcion y es_activo. Hace ``flush``."""
         orm = self.db.get(EspeciePatologiaModel, entidad.id_especies_patologias)
         orm.nombre = entidad.nombre.valor
         orm.descripcion = entidad.descripcion
@@ -98,6 +110,7 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
         return self._a_entidad(orm)
 
     def eliminar_todas_de_especie(self, id_especie: int) -> None:
+        """Elimina (físicamente) todas las patologías de una especie. Hace ``flush``."""
         try:
             self.db.query(EspeciePatologiaModel).filter(
                 EspeciePatologiaModel.id_especie == id_especie,
@@ -107,6 +120,10 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
             raise_from_db_error(exc, {})
 
     def vincular_desde_snapshot(self, id_especie: int, datos: dict) -> None:
+        """Inserta una patología por especie desde un snapshot de plantilla (RF-32).
+
+        ``datos`` lleva ``nombre``/``descripcion``/``es_activo``. Hace ``flush``.
+        """
         orm = EspeciePatologiaModel(
             id_especie=id_especie,
             nombre=datos["nombre"],

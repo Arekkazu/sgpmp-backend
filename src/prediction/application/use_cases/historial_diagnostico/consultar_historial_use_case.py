@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | INC-M04-143/146 RF-67: cursor sobre (fecha_evento, id_evento) estables |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta del historial diagnóstico de un activo."""
 from __future__ import annotations
 
 import base64
@@ -23,6 +25,7 @@ _LIMITE = 50
 
 
 class ConsultarHistorialUseCase:
+    """Consulta el historial diagnóstico de un activo."""
     def __init__(
         self,
         *,
@@ -49,6 +52,7 @@ class ConsultarHistorialUseCase:
         id_usuario: int,
         id_rol: int,
     ) -> PaginaHistorial:
+        """Devuelve una página del historial con su cursor siguiente."""
         if not self._activo_port.activo_existe_y_accesible(id_activo_biologico, id_usuario, id_rol):
             raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe o no está disponible.")
 

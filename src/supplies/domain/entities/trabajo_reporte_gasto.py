@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Entidades del motor async de generación de reportes de gastos (RF-77 / CU-04).
 
 Analogía con el motor batch ICA (RF-74): ``TrabajoReporteGasto`` es la fila de
@@ -40,12 +43,14 @@ class EjecucionReporteGasto:
     id_ejecucion: Optional[int] = None
 
     def completar(self, *, hora_fin: datetime, id_reporte_resultado: int, resultado_json: dict) -> None:
+        """Marca la ejecución como completada con su reporte."""
         self.estado = EstadoTrabajoAsync.COMPLETADO
         self.hora_fin = hora_fin
         self.id_reporte_resultado = id_reporte_resultado
         self.resultado_json = resultado_json
 
     def fallar(self, *, hora_fin: datetime) -> None:
+        """Marca la ejecución como fallida."""
         self.estado = EstadoTrabajoAsync.FALLIDO
         self.hora_fin = hora_fin
 

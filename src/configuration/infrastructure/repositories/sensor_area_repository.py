@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``SensorAreaRepository``."""
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemySensorAreaRepository(SensorAreaRepository):
+    """Implementación SQLAlchemy de ``SensorAreaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -33,6 +37,7 @@ class SqlAlchemySensorAreaRepository(SensorAreaRepository):
         )
 
     def obtener_asociacion_activa(self, id_sensor: int) -> Optional[SensorArea]:
+        """Retorna la asociación con tiene_estado=True, o None si no existe."""
         orm = (
             self.db.query(SensorAreaModel)
             .filter(
@@ -44,6 +49,7 @@ class SqlAlchemySensorAreaRepository(SensorAreaRepository):
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, sensor_area: SensorArea) -> SensorArea:
+        """Inserta la asociación sensor-área y devuelve la entidad con su id asignado."""
         orm = SensorAreaModel(
             id_sensor=sensor_area.id_sensor,
             id_dispositivo_iot=sensor_area.id_dispositivo_iot,
@@ -63,6 +69,9 @@ class SqlAlchemySensorAreaRepository(SensorAreaRepository):
         return self._a_entidad(orm)
 
     def actualizar(self, sensor_area: SensorArea) -> SensorArea:
+        """Persiste los cambios de la asociación sensor-área y devuelve la entidad
+        actualizada.
+        """
         orm = self.db.get(SensorAreaModel, sensor_area.id_sensores_area_asociada)
         orm.tiene_estado = sensor_area.tiene_estado
         orm.fecha_finalizacion = sensor_area.fecha_finalizacion
@@ -74,6 +83,7 @@ class SqlAlchemySensorAreaRepository(SensorAreaRepository):
         return self._a_entidad(orm)
 
     def listar_por_sensor(self, id_sensor: int) -> list[SensorArea]:
+        """Retorna historial completo de asociaciones del sensor."""
         return [
             self._a_entidad(orm)
             for orm in (

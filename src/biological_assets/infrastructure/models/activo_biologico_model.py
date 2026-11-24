@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.activos_biologicos``: cabecera común de todo activo
 (individual o lote).
 """
@@ -22,6 +25,7 @@ if TYPE_CHECKING:
 
 
 class ActivoBiologicoModel(Base):
+    """Modelo ORM de los activos biológicos (tabla ``modulo2.activos_biologicos``)."""
     __tablename__ = 'activos_biologicos'
     __table_args__ = (
         PrimaryKeyConstraint('id_activo_biologico', name='activos_biologicos_pkey'),

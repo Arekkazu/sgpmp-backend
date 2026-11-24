@@ -10,6 +10,7 @@
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: restringir lote al administrador e inyectar contexto y alertas reales. |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-62: sensor y lectura por nombre en calidad |
 # | 2026-11-03 | Arekkazu | RF-62: GET /vision, observaciones evaluadas y política vigente (panel sin datos de ejemplo) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -120,6 +121,7 @@ def listar_calidad(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaCalidadSchema:
+    """Lista evaluaciones de calidad de telemetría con filtros."""
     use_case = ConsultarCalidadUseCase(
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
     )
@@ -202,6 +204,7 @@ def obtener_calidad(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> TelemetriaCalidadSchema:
+    """Devuelve la evaluación de calidad vigente de una lectura."""
     use_case = ConsultarCalidadUseCase(
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
     )
@@ -262,6 +265,7 @@ def evaluar_calidad(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> TelemetriaCalidadSchema:
+    """Evalúa (o reevalúa) la calidad de una lectura."""
     from sqlalchemy import text
     row = db.execute(
         text(
@@ -320,6 +324,7 @@ def solicitar_reevaluacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ReevaluacionResponseSchema:
+    """Reevalúa masivamente la calidad ante un error de configuración documentado."""
     if not AlcanceFincaAdapter(db).es_global(usuario_actual.id_rol):
         raise AuthorizationError(code='ACCESO_DENEGADO',
             message='La re-evaluación masiva de calidad requiere un Administrador.')

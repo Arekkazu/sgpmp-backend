@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Casos de uso de solo lectura sobre provisiones consolidadas NIC-41 (RF-79)."""
 from __future__ import annotations
 
@@ -13,6 +16,11 @@ class ConsultarProvisionUseCase:
         self.provision_repo = provision_repo
 
     def execute(self, id_provision: int) -> ProvisionNic41:
+        """Devuelve la provisión.
+
+        Raises:
+            NotFoundError: Si la provisión no existe.
+        """
         provision = self.provision_repo.obtener(id_provision)
         if provision is None:
             raise NotFoundError(
@@ -29,4 +37,5 @@ class ListarVersionesProvisionUseCase:
         self.provision_repo = provision_repo
 
     def execute(self, id_gestion_fases: int) -> list[ProvisionNic41]:
+        """Lista las versiones de la provisión del ciclo."""
         return self.provision_repo.listar_versiones(id_gestion_fases)

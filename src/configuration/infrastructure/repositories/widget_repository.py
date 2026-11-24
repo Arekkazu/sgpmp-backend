@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto ``WidgetRepository`` (RF-28)."""
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ _ACCION_LEER = 2
 
 
 class SqlAlchemyWidgetRepository(WidgetRepository):
+    """Implementación SQLAlchemy de ``WidgetRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -31,6 +35,7 @@ class SqlAlchemyWidgetRepository(WidgetRepository):
         )
 
     def obtener_activos(self) -> list[Widget]:
+        """Todos los widgets habilitados del catálogo, sin filtrar por rol."""
         filas = (
             self.db.query(WidgetModel)
             .filter(WidgetModel.es_activo.is_(True))
@@ -40,6 +45,7 @@ class SqlAlchemyWidgetRepository(WidgetRepository):
         return [self._a_entidad(f) for f in filas]
 
     def ids_legibles_por_rol(self, id_rol: int) -> set[int]:
+        """Ids de widgets cuyo recurso el rol puede leer, según ``modulo1.permisos``."""
         filas = (
             self.db.query(WidgetModel.id_widget)
             .join(Permisos, Permisos.id_recurso == WidgetModel.id_recurso)

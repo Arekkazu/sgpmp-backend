@@ -4,6 +4,7 @@
 # | 2026-11-10 | Arekkazu | INC-M06-345-G43 RF-87: cierre en espera de autorización |
 # | 2026-11-11 | Arekkazu | USAB-M06 RF-87/93: titulares con período, filtro sin titular y último cierre de todos los períodos en una consulta |
 # | 2026-11-13 | Arekkazu | INC-M06-91-G43-05 RF-87: precios congelados al iniciar el cierre |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto de los períodos contables, sus cierres y comprobantes (RF-87)."""
 from __future__ import annotations
 
@@ -16,24 +17,35 @@ from src.financial_valuation.domain.services.consolidacion import Comprobante
 
 
 class PeriodoRepository(ABC):
+    """Puerto de persistencia de periodos contables y cierres."""
     @abstractmethod
     def obtener(self, id_periodo_contable: int, bloquear: bool = False) -> Optional[Periodo]:
         """bloquear: SELECT ... FOR UPDATE NOWAIT (un solo cierre a la vez, RF-87)."""
 
     @abstractmethod
-    def que_contiene(self, numero_id_tributaria: str, dia: date) -> Optional[Periodo]: ...
+    def que_contiene(self, numero_id_tributaria: str, dia: date) -> Optional[Periodo]:
+        """Devuelve el periodo del titular que contiene el día, o ``None``."""
+        ...
 
     @abstractmethod
-    def primero_abierto_desde(self, numero_id_tributaria: str, dia: date) -> Optional[Periodo]: ...
+    def primero_abierto_desde(self, numero_id_tributaria: str, dia: date) -> Optional[Periodo]:
+        """Devuelve el primer periodo abierto desde el día, o ``None``."""
+        ...
 
     @abstractmethod
-    def hay_posteriores(self, numero_id_tributaria: str, dia: date) -> bool: ...
+    def hay_posteriores(self, numero_id_tributaria: str, dia: date) -> bool:
+        """Indica si hay periodos posteriores al día."""
+        ...
 
     @abstractmethod
-    def crear(self, numero_id_tributaria: str, tipo_cierre: str, inicio: date, fin: date, id_usuario: int) -> Periodo: ...
+    def crear(self, numero_id_tributaria: str, tipo_cierre: str, inicio: date, fin: date, id_usuario: int) -> Periodo:
+        """Crea un periodo contable."""
+        ...
 
     @abstractmethod
-    def cambiar_estado(self, id_periodo_contable: int, estado: str) -> None: ...
+    def cambiar_estado(self, id_periodo_contable: int, estado: str) -> None:
+        """Cambia el estado del periodo."""
+        ...
 
     @abstractmethod
     def listar(self, numero_id_tributaria: Optional[str], sin_titular: bool = False) -> list[Periodo]:
@@ -44,7 +56,9 @@ class PeriodoRepository(ABC):
         """NIT y razón social de cada titular con períodos visibles; los períodos sin titular, al final (NIT None)."""
 
     @abstractmethod
-    def abierto_anterior(self, periodo: Periodo) -> Optional[Periodo]: ...
+    def abierto_anterior(self, periodo: Periodo) -> Optional[Periodo]:
+        """Devuelve un periodo abierto anterior al dado, o ``None``."""
+        ...
 
     @abstractmethod
     def iniciar_cierre(self, id_periodo_contable: int, id_usuario: int, incluir_sin_precio: bool,
@@ -60,19 +74,29 @@ class PeriodoRepository(ABC):
         """El cierre queda EN_PROCESO esperando la decisión del Contador sobre las exclusiones."""
 
     @abstractmethod
-    def reanudar_cierre(self, id_cierre: int, incluir_sin_precio: bool) -> None: ...
+    def reanudar_cierre(self, id_cierre: int, incluir_sin_precio: bool) -> None:
+        """Reanuda un cierre interrumpido."""
+        ...
 
     @abstractmethod
-    def finalizar_cierre(self, id_cierre: int, estado: str, datos: dict) -> None: ...
+    def finalizar_cierre(self, id_cierre: int, estado: str, datos: dict) -> None:
+        """Finaliza el cierre con su estado y datos."""
+        ...
 
     @abstractmethod
-    def guardar_comprobante(self, comprobante: Comprobante, id_periodo_contable: int, id_cierre: int) -> int: ...
+    def guardar_comprobante(self, comprobante: Comprobante, id_periodo_contable: int, id_cierre: int) -> int:
+        """Guarda el comprobante del cierre y devuelve su id."""
+        ...
 
     @abstractmethod
-    def comprobantes(self, id_periodo_contable: int) -> list[dict]: ...
+    def comprobantes(self, id_periodo_contable: int) -> list[dict]:
+        """Lista los comprobantes del periodo."""
+        ...
 
     @abstractmethod
-    def ultima_ejecucion(self, id_periodo_contable: int) -> Optional[dict]: ...
+    def ultima_ejecucion(self, id_periodo_contable: int) -> Optional[dict]:
+        """Devuelve la última ejecución de cierre del periodo, o ``None``."""
+        ...
 
     @abstractmethod
     def ultimas_ejecuciones(self, ids_periodos: list[int]) -> dict[int, dict]:

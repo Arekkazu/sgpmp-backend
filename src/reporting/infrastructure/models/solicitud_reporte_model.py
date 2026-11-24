@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-11-18 | Arekkazu | M08 RF-104: modelos de solicitudes y archivos de reportes (sqlacodegen) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelos ORM de ``modulo8.solicitudes_reportes`` y ``modulo8.archivos_reportes`` (migración ``a7c3e91f5b20``).
 
 Generados con sqlacodegen; las columnas de tipo ENUM de PostgreSQL se mapean como ``String`` (el tipo ya existe
@@ -17,6 +18,7 @@ from src.shared.base_model import Base
 
 
 class SolicitudReporteModel(Base):
+    """Modelo ORM de las solicitudes de reportes (tabla ``modulo8.solicitudes_reportes``)."""
     __tablename__ = "solicitudes_reportes"
     __table_args__ = {"schema": "modulo8"}
 
@@ -44,6 +46,7 @@ class SolicitudReporteModel(Base):
 
 
 class ArchivoReporteModel(Base):
+    """Modelo ORM de los archivos de reportes (tabla ``modulo8.archivos_reportes``)."""
     __tablename__ = "archivos_reportes"
     __table_args__ = {"schema": "modulo8"}
 

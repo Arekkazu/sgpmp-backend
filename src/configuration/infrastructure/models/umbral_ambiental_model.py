@@ -1,6 +1,7 @@
 # | Fecha      | Nombre | Que se hizo |
 # |------------|--------|-------------|
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.umbrales_ambientales` (agregado raíz de CU03 RF-17)."""
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 
 
 class UmbralAmbientalModel(Base):
+    """Modelo ORM de la tabla ``modulo9.umbrales_ambientales``."""
     __tablename__ = 'umbrales_ambientales'
     __table_args__ = (
         ForeignKeyConstraint(

@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: columna observaciones              |
 # | 2026-11-07 | Leandro | INC-M05-270-G14 RF-76: mapear cantidad como decimal(10,4), conservando la dosis exacta. |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla ``modulo5.registros_medicamentos`` (RF-76).
 
 Generado con sqlacodegen (reflexión de la BD) y adaptado a las convenciones del
@@ -39,6 +40,7 @@ from .base_model import Base
 
 
 class RegistroMedicamentoModel(Base):
+    """Modelo ORM de la tabla ``modulo5.registros_medicamentos``."""
     __tablename__ = 'registros_medicamentos'
     __table_args__ = (
         CheckConstraint("estado_registro::text = 'VALIDADO'::text OR estado_registro::text = 'ANULADO'::text AND justificacion_anulacion IS NOT NULL AND char_length(justificacion_anulacion::text) >= 20", name='chk_medicamento_anulacion'),

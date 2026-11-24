@@ -5,6 +5,8 @@
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU05 H-06/H-03 RF-69: terminales sin notas; POBLACIONAL sin componente no se activa |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-19 | Arekkazu     | SEG-M04-01 RF-69: artefacto íntegro y firmado antes de correr en el motor |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Entidad de versión de modelo entrenado con sus métricas y estado."""
 from __future__ import annotations
 
 import uuid
@@ -26,6 +28,7 @@ FUENTES_DATOS = frozenset({"REAL", "SINTETICA", "EXTERNA", "MIXTA"})
 
 @dataclass(eq=False)
 class VersionModelo:
+    """Versión de un modelo entrenado."""
     nombre_version: str
     tipo_modelo: str
     estado_version: str
@@ -66,6 +69,7 @@ class VersionModelo:
 
     @property
     def paradigma(self) -> Optional[str]:
+        """Paradigma del tipo de modelo."""
         return paradigma_de(self.tipo_modelo)
 
     @classmethod
@@ -94,6 +98,7 @@ class VersionModelo:
         id_activo_biologico: Optional[int] = None,
         fuente_datos: str = "REAL",
     ) -> VersionModelo:
+        """Crea una versión validando artefacto y métricas."""
         # El componente entra al nombre: un mismo proceso RF-71 registra varios
         # componentes de un modelo POBLACIONAL y nombre_version es único. El formato
         # corto (sin MODELO_, fecha en aammdd) viene de cuando la columna era varchar(40);
@@ -262,6 +267,11 @@ class VersionModelo:
         self.esta_produccion = False
 
     def registrar_notas(self, notas: str) -> None:
+        """Registra las notas de la versión.
+
+        Raises:
+            BusinessRuleError: Si las notas están vacías.
+        """
         if not notas or not notas.strip():
             raise BusinessRuleError(
                 code="NOTAS_VACIAS",

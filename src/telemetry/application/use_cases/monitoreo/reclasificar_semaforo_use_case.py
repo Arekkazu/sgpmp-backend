@@ -2,6 +2,8 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-17/53: expone clasificacion por lectura  |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/M3-12 RF-57/58: sin activo se clasifica con la especie del área |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso que recalcula el semáforo de una lectura al conocer su activo biológico."""
 from __future__ import annotations
 
 from typing import Optional
@@ -45,6 +47,7 @@ class ReclasificarSemaforoUseCase:
         self.monitoreo_repo = monitoreo_repo
 
     def execute(self, id_telemetria: int, id_activo_biologico: Optional[int]) -> Optional[str]:
+        """Recalcula y guarda el semáforo de la lectura; devuelve el estado o None."""
         clasificacion = self.clasificar_lectura(id_telemetria, id_activo_biologico)
         if clasificacion is None:
             return None

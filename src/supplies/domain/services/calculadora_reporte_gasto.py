@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Servicio de dominio: cálculo del reporte de gastos acumulados (RF-77).
 
 Puro: no toca BD. Recibe las líneas de gasto ya recolectadas (período actual y
@@ -27,6 +30,7 @@ _CERO = Decimal("0")
 
 @dataclass(frozen=True)
 class ResultadoCalculoReporteGasto:
+    """Totales y desgloses calculados del reporte de gastos."""
     gasto_total_acumulado: Decimal
     desglose_categorias: list[DesgloseCategoria]
     desglose_temporal: list[DesglosePeriodo]
@@ -47,6 +51,7 @@ class CalculadoraReporteGasto:
         periodo_anterior_recortado: bool = False,
         fecha_inicio_ciclo_recorte: Optional[date] = None,
     ) -> ResultadoCalculoReporteGasto:
+        """Calcula totales, desgloses y tendencia a partir de las líneas de gasto."""
         valorizadas = [l for l in lineas if l.monto is not None]
         sin_costo = [l for l in lineas if l.monto is None]
 

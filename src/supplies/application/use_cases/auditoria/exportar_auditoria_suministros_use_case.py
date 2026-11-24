@@ -6,6 +6,7 @@
 # | 2026-11-08 | Leandro | INC-M05-278-G39 RF-80: conservar UUID y versión de integridad al exportar auditoría. |
 # | 2026-11-10 | Arekkazu | CP111/TC-DIS-208 RF-80: PDF y Excel con encabezados y valores legibles; el PDF ya no recorta columnas |
 # | 2026-11-12 | Arekkazu | USAB-M05-M06 N-07 RF-80: Excel y PDF nombran al usuario (o al Sistema) y al activo |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Caso de uso: exportar la bitácora de auditoría de M05 en CSV/Excel/PDF (RF-80, CU-06).
 
 Formatos elegidos por el usuario (no solo CSV, a diferencia del precedente de
@@ -180,12 +181,18 @@ def _evento_a_dict(e: EventoAuditoriaSuministroConsulta) -> dict:
 
 
 class ExportarAuditoriaSuministrosUseCase:
+    """Exporta la auditoría de suministros a archivo."""
     def __init__(self, read_port: AuditoriaSuministroReadPort) -> None:
         self.read_port = read_port
 
     def exportar(
         self, filtros: FiltrosAuditoriaSuministro, *, formato: str
     ) -> tuple[bytes, str, str]:
+        """Genera el archivo de la auditoría filtrada.
+
+        Returns:
+            Tupla con el contenido, el tipo MIME y el nombre del archivo.
+        """
         if formato not in _FORMATOS_VALIDOS:
             raise ValidationError(
                 code="FORMATO_EXPORTACION_INVALIDO",

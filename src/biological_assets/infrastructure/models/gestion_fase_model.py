@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo2.gestiones_fases``: paso del activo por cada fase de su ciclo
 productivo (RF-37).
 """
@@ -13,6 +16,7 @@ from .base_model import Base
 
 
 class GestionFaseModel(Base):
+    """Modelo ORM de las fases del ciclo productivo de un activo (tabla ``modulo2.gestiones_fases``)."""
     __tablename__ = 'gestiones_fases'
     __table_args__ = {'schema': 'modulo2'}
 

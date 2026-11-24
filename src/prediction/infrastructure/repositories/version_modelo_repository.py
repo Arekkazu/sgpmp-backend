@@ -2,6 +2,8 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-22 | Arekkazu | SEG-M04-01 RF-69: guardar firma_artefacto al registrar la versión |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Implementación SQLAlchemy de ``VersionModeloRepository``."""
 from __future__ import annotations
 
 import uuid
@@ -19,6 +21,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
+    """Implementación SQLAlchemy de ``VersionModeloRepository``."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -75,6 +78,7 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
     # ------------------------------------------------------------------
 
     def guardar(self, entidad: VersionModelo) -> VersionModelo:
+        """Guarda la versión."""
         try:
             orm = VersionModeloModel(
                 nombre_version=entidad.nombre_version,
@@ -118,6 +122,7 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
             raise_from_db_error(exc)
 
     def actualizar(self, entidad: VersionModelo) -> VersionModelo:
+        """Actualiza la versión."""
         try:
             orm = self._db.get(VersionModeloModel, entidad.id_version_modelo)
             orm.estado_version = entidad.estado_version
@@ -144,6 +149,7 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
         correlacion_id: Optional[uuid.UUID] = None,
         motivo: Optional[str] = None,
     ) -> None:
+        """Registra un cambio de estado de la versión."""
         try:
             historial = HistorialEstadoModeloModel(
                 id_version_modelo=id_version_modelo,
@@ -166,6 +172,7 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
     # ------------------------------------------------------------------
 
     def obtener_por_id(self, id_version: int) -> Optional[VersionModelo]:
+        """Devuelve la versión, o ``None``."""
         orm = self._db.get(VersionModeloModel, id_version)
         return self._a_entidad(orm) if orm else None
 
@@ -176,6 +183,9 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
         id_activo_biologico: Optional[int] = None,
         estado: str = "ACTIVO",
     ) -> Optional[VersionModelo]:
+        """Versión en ``estado`` (ACTIVO o SOMBRA) de la llave (tipo_modelo, componente,
+        id_activo_biologico) — RF-69 R5 v2.0 con RFC-010.
+        """
         orm = self._db.execute(
             select(VersionModeloModel).where(
                 VersionModeloModel.tipo_modelo == tipo_modelo,
@@ -196,6 +206,7 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
         limit: int = 20,
         offset: int = 0,
     ) -> tuple[list[VersionModelo], int]:
+        """Lista las versiones con filtros."""
         base = select(VersionModeloModel)
         count_q = select(func.count()).select_from(VersionModeloModel)
 

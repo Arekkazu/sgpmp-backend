@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de consulta de una patología."""
 from __future__ import annotations
 
 from src.prediction.domain.entities.patologia_m04 import PatologiaM04
@@ -6,10 +10,16 @@ from src.shared.errors import NotFoundError
 
 
 class ObtenerPatologiaUseCase:
+    """Obtiene una patología del catálogo."""
     def __init__(self, *, repo: PatologiaM04Repository) -> None:
         self._repo = repo
 
     def execute(self, id_patologia: int) -> PatologiaM04:
+        """Devuelve la patología.
+
+        Raises:
+            NotFoundError: Si la patología no existe.
+        """
         entidad = self._repo.obtener_por_id(id_patologia)
         if not entidad:
             raise NotFoundError(code="PATOLOGIA_NO_ENCONTRADA", message="Patología no encontrada.")

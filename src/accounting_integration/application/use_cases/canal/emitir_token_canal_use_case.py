@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-SSO02 / RF-101 Fase 2: token de canal para AgroFusion (GET_AUTHORIZATION) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Emite el token de canal a nombre de un usuario de SGPMP (RF-SSO02, RF-101 Fase 2).
 
 Las credenciales del cliente llegan solo en el cuerpo de esta llamada. El token no crea sesión: la
@@ -19,8 +20,14 @@ from src.shared.errors import AppError, AuthenticationError, AuthorizationError,
 
 EmisorToken = Callable[[int, int, int, str, int], tuple[str, int]]
 
+# Intentos por minuto, contados antes de comparar el secreto con bcrypt.
+# Un cliente legítimo pide pocos tokens (viven de 5 a 60 min), así que estos topes no lo afectan.
+INTENTOS_TOKEN_POR_IP = 10
+INTENTOS_TOKEN_POR_CLIENT_ID = 30
+
 
 class EmitirTokenCanalUseCase:
+    """Emite el token de canal para un cliente externo y un usuario."""
     def __init__(self, clientes: ClienteExternoRepository, usuarios: UsuarioCanalRepository, emitir: EmisorToken,
                  limitar: Limitador, auditar: Callable[[EventoIntegracion], None]):
         self.clientes = clientes
@@ -30,7 +37,11 @@ class EmitirTokenCanalUseCase:
         self.auditar = auditar
 
     def execute(self, client_id: str, client_secret: str, correo: str, ip: Optional[str]) -> tuple[str, int]:
+        """Valida cliente, secreto y usuario y devuelve el token con su vigencia en segundos."""
         id_cliente = id_usuario = None
+        # Antes de bcrypt y fuera del try: el 429 no pasa por la auditoría de credenciales rechazadas.
+        self.limitar(f"m07:token-intentos:ip:{ip or 'desconocida'}", INTENTOS_TOKEN_POR_IP, 60)
+        self.limitar(f"m07:token-intentos:cliente:{client_id}", INTENTOS_TOKEN_POR_CLIENT_ID, 60)
         try:
             cliente = self.clientes.obtener_por_identificador(client_id)
             credencial = self.clientes.credencial_activa(cliente.id_cliente_externo) if cliente else None

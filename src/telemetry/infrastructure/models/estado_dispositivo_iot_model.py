@@ -1,3 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo y modelo ORM |
+"""Modelo ORM del estado actual de un dispositivo IoT (tabla ``modulo3.estados_dispositivos_iot``).
+
+Guarda el estado vigente (activo, sin señal, buffer activo, inactivo, en
+mantenimiento o desconocido), el último contacto y las causas asociadas.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +19,8 @@ from .base_model import Base
 
 
 class EstadoDispositivoIoTModel(Base):
+    """Fila de la tabla ``modulo3.estados_dispositivos_iot``."""
+
     __tablename__ = 'estados_dispositivos_iot'
     __table_args__ = {'schema': 'modulo3'}
 

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: reactivar regla de alerta y volver a enviarla al Edge |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """Reactivar una regla de alerta inactiva (RF-55/RF-57, BE-0).
 
 El nombre es único y el firmware identifica las fórmulas de RF-55.2 por nombre,
@@ -20,6 +21,7 @@ from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlert
 
 
 class ReactivarReglaAlertaUseCase:
+    """Reactiva una regla inactiva y, si aplica, la reenvía al Edge."""
 
     def __init__(
         self,
@@ -34,6 +36,7 @@ class ReactivarReglaAlertaUseCase:
     def execute(
         self, id_regla_alertas: int, id_usuario: int,
     ) -> tuple[ReglaAlerta, Optional[ResultadoSincronizacionRegla]]:
+        """Reactiva la regla y devuelve la regla con el resultado de sincronización."""
         try:
             regla = obtener_regla_o_404(self.regla_repo, id_regla_alertas, bloquear=True)
             regla.reactivar(id_usuario)

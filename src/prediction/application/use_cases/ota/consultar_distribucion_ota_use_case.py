@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Estado de una distribución OTA y de cada nodo (DEV-15; lo consume FE-01b)."""
 from __future__ import annotations
 
@@ -8,12 +11,14 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarDistribucionOtaUseCase:
+    """Consulta una distribución OTA con sus despliegues."""
 
     def __init__(self, *, distribucion_repo: DistribucionOtaRepository, despliegue_repo: DespliegueOtaRepository) -> None:
         self._distribucion_repo = distribucion_repo
         self._despliegue_repo = despliegue_repo
 
     def execute(self, id_distribucion: int) -> ResultadoDistribucionOta:
+        """Devuelve la distribución con sus despliegues."""
         distribucion = self._distribucion_repo.obtener_por_id(id_distribucion)
         if distribucion is None:
             raise NotFoundError(

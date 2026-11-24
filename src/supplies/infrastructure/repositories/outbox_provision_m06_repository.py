@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: outbox persistente hacia M06       |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de :class:`OutboxProvisionM06Repository` (RF-79)."""
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ from src.supplies.infrastructure.models.outbox_provision_m06_model import Outbox
 
 
 class SqlAlchemyOutboxProvisionM06Repository(OutboxProvisionM06Repository):
+    """Implementación SQLAlchemy de ``OutboxProvisionM06Repository``."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -46,6 +48,7 @@ class SqlAlchemyOutboxProvisionM06Repository(OutboxProvisionM06Repository):
         )
 
     def encolar(self, evento: EventoProvisionM06) -> EventoProvisionM06:
+        """Encola la provisión para su entrega."""
         orm = OutboxProvisionM06Model(
             id_outbox_provision_m06=evento.id_evento_provision,
             modalidad=evento.modalidad,
@@ -68,6 +71,7 @@ class SqlAlchemyOutboxProvisionM06Repository(OutboxProvisionM06Repository):
         return self._a_entidad(orm)
 
     def listar_listos(self, ahora: datetime, limite: int) -> list[EventoProvisionM06]:
+        """Eventos no entregados cuyo próximo intento ya venció, en orden de creación."""
         filas = (
             self.db.query(OutboxProvisionM06Model)
             .filter(
@@ -81,6 +85,7 @@ class SqlAlchemyOutboxProvisionM06Repository(OutboxProvisionM06Repository):
         return [self._a_entidad(f) for f in filas]
 
     def actualizar(self, evento: EventoProvisionM06) -> None:
+        """Persiste estado, intentos y fechas del evento."""
         orm = self.db.get(OutboxProvisionM06Model, evento.id_evento_provision)
         orm.estado = evento.estado
         orm.numero_intentos = evento.numero_intentos
@@ -94,6 +99,7 @@ class SqlAlchemyOutboxProvisionM06Repository(OutboxProvisionM06Repository):
             raise_from_db_error(exc)
 
     def contar_pendientes(self) -> int:
+        """Eventos de cualquier ciclo aún sin entregar (RF-79 E7 e)."""
         return (
             self.db.query(OutboxProvisionM06Model)
             .filter(OutboxProvisionM06Model.estado != EstadoEventoProvision.ENTREGADO.value)
@@ -107,6 +113,7 @@ class SqlAlchemyOutboxProvisionM06Repository(OutboxProvisionM06Repository):
         )
 
     def contar_sin_entregar(self, id_gestion_fases: int) -> int:
+        """Eventos INCREMENTAL del ciclo retenidos en el outbox tras algún fallo de entrega (RF-79 E7 f)."""
         # Solo los que ya fallaron al menos una vez: uno recién encolado sale en el próximo ciclo
         # del despachador y no indica un problema de entrega (E7 f habla de eventos retenidos).
         return self._incrementales(id_gestion_fases).filter(
@@ -115,6 +122,7 @@ class SqlAlchemyOutboxProvisionM06Repository(OutboxProvisionM06Repository):
         ).count()
 
     def sumar_incrementales(self, id_gestion_fases: int) -> Decimal:
+        """Σ ``costo_registro`` de los eventos INCREMENTAL emitidos para el ciclo (RF-79 R11)."""
         total = self._incrementales(id_gestion_fases).with_entities(
             func.coalesce(func.sum(OutboxProvisionM06Model.costo_registro), 0)
         ).scalar()

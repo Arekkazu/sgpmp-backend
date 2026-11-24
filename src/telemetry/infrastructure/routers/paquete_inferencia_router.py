@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: consulta del paquete por id con alcance por finca |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstring del endpoint |
 """Router FastAPI para consultar paquetes de inferencia (RF-56).
 
   GET /iot/paquetes-inferencia/{id_paquete} — Paquete con su trazabilidad y su ciclo de vida
@@ -48,6 +49,7 @@ def obtener_paquete(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PaqueteInferenciaDetalleSchema:
+    """Devuelve un paquete de inferencia con su ciclo de vida."""
     resultado = ConsultarPaqueteInferenciaUseCase(
         paquete_repo=SqlAlchemyPaqueteInferenciaRepository(db),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),

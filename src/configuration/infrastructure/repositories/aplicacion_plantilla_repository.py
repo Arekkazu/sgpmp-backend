@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy del puerto :class:`AplicacionPlantillaRepository`."""
 from __future__ import annotations
 
@@ -10,6 +13,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyAplicacionPlantillaRepository(AplicacionPlantillaRepository):
+    """Implementación SQLAlchemy de ``AplicacionPlantillaRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -27,6 +31,7 @@ class SqlAlchemyAplicacionPlantillaRepository(AplicacionPlantillaRepository):
         )
 
     def guardar(self, aplicacion: AplicacionPlantilla) -> AplicacionPlantilla:
+        """Inserta el registro de aplicación. Hace ``flush``."""
         orm = AplicacionPlantillaModel(
             id_usuario=aplicacion.id_usuario,
             id_plantilla=aplicacion.id_plantilla,
@@ -44,6 +49,7 @@ class SqlAlchemyAplicacionPlantillaRepository(AplicacionPlantillaRepository):
         return self._a_entidad(orm)
 
     def listar_todas(self) -> list[AplicacionPlantilla]:
+        """Retorna todas las aplicaciones ordenadas por fecha desc."""
         rows = (
             self.db.query(AplicacionPlantillaModel)
             .order_by(AplicacionPlantillaModel.fecha_aplicacion.desc())

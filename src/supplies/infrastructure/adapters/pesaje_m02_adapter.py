@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74 E6: descarta pesajes ≤ 0            |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de consulta de pesaje (RF-40) contra ``modulo2`` para el ICA (RF-74).
 
 El peso vive en ``modulo2.eventos_crecimeinto`` (``id_evento`` comparte identidad con
@@ -41,12 +42,14 @@ class PesajeM02Adapter(PesajeConsultaPort):
     def obtener_peso_en_o_antes(
         self, id_activo_biologico: int, fecha: date, es_poblacional: bool
     ) -> Optional[Decimal]:
+        """Devuelve el último peso válido en o antes de la fecha, o ``None``."""
         fila = self._pesaje(id_activo_biologico, fecha, es_poblacional, valido=True)
         return Decimal(fila.peso) if fila is not None else None
 
     def obtener_peso_invalido_en_o_antes(
         self, id_activo_biologico: int, fecha: date, es_poblacional: bool
     ) -> Optional[tuple[date, Decimal]]:
+        """Devuelve el último pesaje inválido en o antes de la fecha, o ``None``."""
         fila = self._pesaje(id_activo_biologico, fecha, es_poblacional, valido=False)
         return (fila.fecha, Decimal(fila.peso)) if fila is not None else None
 

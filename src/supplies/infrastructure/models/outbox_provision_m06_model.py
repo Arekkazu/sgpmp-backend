@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: modelo del outbox hacia M06        |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM de ``modulo5.outbox_provisiones_m06`` (RF-79, migración bf404c6f1018)."""
 import datetime
 import decimal
@@ -15,6 +16,7 @@ from .base_model import Base
 
 
 class OutboxProvisionM06Model(Base):
+    """Modelo ORM de la tabla ``modulo5.outbox_provisiones_m06``."""
     __tablename__ = "outbox_provisiones_m06"
     __table_args__ = {"schema": "modulo5"}
 

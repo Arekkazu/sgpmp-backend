@@ -3,6 +3,7 @@
 # | 2026-11-14 | Arekkazu | M08 RF-105: nivel, agrupación, filtros de bandeja, entrega y purga  |
 # | 2026-11-18 | Arekkazu | M08 RF-105: preferencias de canal y ventana de agrupación configurable |
 # | 2026-11-21 | destroyerban | INC-M08-383-G014 RF-105: notificación ajena → 403 con el mensaje del RF |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Puerto del sistema de notificaciones (capa de dominio).
 
 Operaciones de comando y consulta para notificaciones y dispositivos FCM,
@@ -66,6 +67,7 @@ class NotificacionRepository(ABC):
         return {}
 
     def guardar_preferencias(self, id_usuario: int, preferencias: dict[tuple[str, str], bool]) -> None:
+        """Guarda las preferencias de canal por nivel del usuario."""
         raise NotImplementedError
 
     @abstractmethod

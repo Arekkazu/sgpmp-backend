@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Schemas de respuesta para los endpoints de fincas (RF-19)."""
 from __future__ import annotations
 
@@ -34,6 +37,7 @@ class FincaResponse(BaseModel):
 
     @classmethod
     def from_entity(cls, finca, nombre_usuario: Optional[str] = None) -> FincaResponse:
+        """Construye la respuesta a partir de la entidad de dominio."""
         return cls(
             id_finca=finca.id_finca,
             nombre=finca.nombre.valor,

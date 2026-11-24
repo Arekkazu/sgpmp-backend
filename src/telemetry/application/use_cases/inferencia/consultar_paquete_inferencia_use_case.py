@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: consulta del paquete por id con alcance por finca |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de clase y método |
 """RF-56 Postcondición 3 y 5, CA-8: consultar un paquete de inferencia y su ciclo de vida.
 
 El paquete trae su trazabilidad (sensor → evento Edge → paquete → versión de modelo) y su
@@ -26,11 +27,14 @@ MAX_EVENTOS_CICLO_VIDA = 200
 
 @dataclass
 class PaqueteConCicloVida:
+    """Paquete de inferencia junto con los eventos de su ciclo de vida."""
+
     paquete: PaqueteInferencia
     ciclo_vida: list[EventoAuditoriaIot] = field(default_factory=list)
 
 
 class ConsultarPaqueteInferenciaUseCase:
+    """Consulta un paquete de inferencia y su ciclo de vida."""
 
     def __init__(
         self,
@@ -43,6 +47,11 @@ class ConsultarPaqueteInferenciaUseCase:
     def execute(
         self, id_paquete: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> PaqueteConCicloVida:
+        """Devuelve el paquete y sus eventos de ciclo de vida.
+
+        Raises:
+            NotFoundError: Si el paquete no existe o queda fuera de las fincas permitidas.
+        """
         paquete = self.paquete_repo.obtener(id_paquete, ids_fincas_permitidas=ids_fincas_permitidas)
         if paquete is None:
             raise NotFoundError(

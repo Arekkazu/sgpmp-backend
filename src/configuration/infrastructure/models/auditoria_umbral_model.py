@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para `modulo9.auditorias_umbrales_ambientales` (append-only, CU03 RF-17)."""
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ from .base_model import Base
 
 
 class AuditoriaUmbralModel(Base):
+    """Modelo ORM de la tabla ``modulo9.auditorias_umbrales_ambientales``."""
     __tablename__ = 'auditorias_umbrales_ambientales'
     __table_args__ = (
         CheckConstraint(

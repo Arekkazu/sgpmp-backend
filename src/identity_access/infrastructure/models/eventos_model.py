@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Modelo ORM para la tabla `modulo1.eventos`.
 
 Log de auditoría inmutable. Cada evento almacena un hash SHA-256 de sus campos
@@ -20,6 +23,7 @@ if TYPE_CHECKING:
     from .notificaciones_model import Notificaciones
 
 class Eventos(Base):
+    """Modelo ORM de los eventos de auditoría (tabla ``modulo1.eventos``)."""
     __tablename__ = 'eventos'
     __table_args__ = (
         ForeignKeyConstraint(['id_usuario'], ['modulo1.usuarios.id_usuario'], name='fk_usuario'),

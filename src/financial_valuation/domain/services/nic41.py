@@ -5,6 +5,7 @@
 # | 2026-11-09 | LuisfNarvaez01 | INC-M06-281-G68-07 RF-88: alerta persistente al llevar el valor en libros a cero |
 # | 2026-11-09 | destroyerban | INC-M06-318-G20 RF-84: log de auditoría del ajuste manual de costos de venta |
 # | 2026-11-09 | destroyerban | INC-M06-322-G25 RF-85: la proporción cosechada se guarda a 6 decimales y nunca en 0 |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Núcleo de cálculo NIC 41 de M06. Python puro: lo usan todos los casos de uso.
 
 - RF-84 (¶12, ¶5): ``valor_neto = magnitud × precio − costos de venta``. Los costos de M05 son
@@ -37,6 +38,7 @@ CERO = Decimal("0")
 
 
 def q4(valor: Decimal) -> Decimal:
+    """Redondea a cuatro decimales (mitad hacia arriba)."""
     return Decimal(valor).quantize(Q4, rounding=ROUND_HALF_UP)
 
 
@@ -64,6 +66,7 @@ COMPONENTES_COSTO = ("transporte", "comisiones", "impuestos", "otros")
 
 @dataclass(frozen=True)
 class CostosVenta:
+    """Costos estimados de venta de un activo."""
     transporte: Decimal = CERO
     comisiones: Decimal = CERO
     impuestos: Decimal = CERO
@@ -75,6 +78,7 @@ class CostosVenta:
 
     @property
     def total(self) -> Decimal:
+        """Total de costos de venta."""
         return self.transporte + self.comisiones + self.impuestos + self.otros
 
     @property
@@ -85,6 +89,7 @@ class CostosVenta:
 
     @property
     def tiene_manuales(self) -> bool:
+        """Indica si algún costo se ingresó manualmente."""
         return "MANUAL" in self.metodos.values()
 
 
@@ -123,6 +128,7 @@ def costos_venta(
 
 @dataclass(frozen=True)
 class ValorNeto:
+    """Valor razonable neto de costos de venta."""
     magnitud: Decimal
     precio_unitario: Decimal
     bruto: Decimal
@@ -136,6 +142,7 @@ class ValorNeto:
 
 
 def valor_neto(magnitud: Decimal, precio_unitario: Decimal, costos: CostosVenta) -> ValorNeto:
+    """Calcula el valor razonable neto de la magnitud al precio dado."""
     bruto = q4(Decimal(magnitud) * Decimal(precio_unitario))
     return ValorNeto(Decimal(magnitud), Decimal(precio_unitario), bruto, costos, q4(bruto - costos.total))
 
@@ -144,6 +151,7 @@ def valor_neto(magnitud: Decimal, precio_unitario: Decimal, costos: CostosVenta)
 
 @dataclass(frozen=True)
 class Variacion:
+    """Variación de valor separada en precio y transformación."""
     total: Decimal
     precio: Decimal
     transformacion: Decimal
@@ -193,6 +201,7 @@ def meses_transcurridos(desde: date, hasta: date) -> int:
 
 @dataclass(frozen=True)
 class ValorPorCosto:
+    """Valor contable de un activo medido al costo."""
     costo_adquisicion: Decimal
     depreciacion_acumulada: Decimal
     deterioro_acumulado: Decimal
@@ -200,6 +209,7 @@ class ValorPorCosto:
 
     @property
     def totalmente_depreciado(self) -> bool:
+        """Indica si el activo ya no tiene valor contable."""
         return self.valor_contable <= 0
 
 
@@ -266,6 +276,7 @@ def rango_periodo(dia: date, tipo: TipoCierre) -> tuple[date, date]:
 
 
 def periodo_siguiente(fin: date, tipo: TipoCierre) -> tuple[date, date]:
+    """Calcula las fechas del periodo siguiente según el tipo de cierre."""
     dia = date(fin.year + (fin.month == 12), fin.month % 12 + 1, 1)
     return rango_periodo(dia, tipo)
 

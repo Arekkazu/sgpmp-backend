@@ -5,6 +5,8 @@
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: solo las 11 variables del RF-64 |
 # | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-11 RF-64: el intento rechazado queda en la bitácora |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
+"""Caso de uso de edición de una patología del catálogo."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -30,6 +32,7 @@ from src.shared.errors import (
 
 
 class EditarPatologiaUseCase:
+    """Edita una patología del catálogo."""
     def __init__(
         self,
         *,
@@ -48,6 +51,7 @@ class EditarPatologiaUseCase:
         self._modelo_activo_port = modelo_activo_port
 
     def execute(self, id_patologia: int, dto: EditarPatologiaDTO, id_usuario: int):
+        """Aplica los cambios a la patología y los audita."""
         try:
             return self._ejecutar(id_patologia, dto, id_usuario)
         except AppError as error:

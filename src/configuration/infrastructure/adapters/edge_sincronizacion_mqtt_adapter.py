@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador real de ``EdgeSincronizacionPort`` — umbrales al Gateway Edge vía broker (RF-17).
 
 INC-M09-104-G29: reemplaza a ``EdgeSincronizacionStubAdapter``. Por cada
@@ -77,15 +80,39 @@ _TIPO_MODELO = _Comando(
 
 
 class EdgeSincronizacionMqttAdapter(EdgeSincronizacionPort):
+    """Sincroniza umbrales y tipo de modelo con Edge vía el broker MQTT."""
 
     def __init__(self) -> None:
         self._base_url = os.environ.get("MQTT_BROKER_URL", "")
         self._token = os.environ.get("MQTT_BROKER_TOKEN", "")
 
     def propagar_umbral(self, seriales_gateway: list[str], payload: dict) -> dict[str, ResultadoEnvioMqtt]:
+        """Envía el umbral a cada Gateway Edge y devuelve el resultado de cada uno.
+
+        Nunca lanza -- el umbral ya quedó persistido antes de llamar acá. El
+        ``estado`` de cada resultado:
+
+        - ``"APLICADA"``: ese Edge confirmó (ACK).
+        - ``"PENDIENTE"``: el broker sabe que ese Edge está desconectado y no
+          publicó (TC-M09-63). Para RF-17 es un error de sincronización: el
+          Edge sigue con el umbral anterior.
+        - ``"NO_CONF"``: se intentó y falló (broker caído, timeout, sin ACK).
+          Es el "Error de sincronización con el Nodo Edge" de RF-17.
+        - ``ESTADO_SIN_INTEGRACION``: el ambiente no tiene broker configurado;
+          no hubo intento, así que no es un error.
+
+        Un adaptador real NO debe devolver ``PENDIENTE`` ante un fallo de
+        comunicación: ocultaría el 500 que el RF exige.
+        """
         return self._propagar(seriales_gateway, payload, _UMBRAL)
 
     def propagar_tipo_modelo(self, seriales_gateway: list[str], payload: dict) -> dict[str, ResultadoEnvioMqtt]:
+        """DEV-10 (RF-20, D-06): envía el ``tipo_modelo_asignado`` de un área a sus Gateway Edge.
+
+        ``origen: "tipo_modelo"`` (BRK-05). Nunca lanza; mismos estados que
+        ``propagar_umbral``. El nodo reinicia su módulo de procesamiento con el
+        esquema nuevo y conserva la calibración activa.
+        """
         return self._propagar(seriales_gateway, payload, _TIPO_MODELO)
 
     def _propagar(self, seriales_gateway: list[str], payload: dict, comando: _Comando) -> dict[str, ResultadoEnvioMqtt]:

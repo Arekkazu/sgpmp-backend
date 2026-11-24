@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-11-09 | destroyerban | INC-M06-320-G24 RF-85 FA-4: baja del activo cosechado completamente |
 # | 2026-11-14 | destroyerban | INC-M06-361-G24 RF-85 FA-4: la baja corre en la misma sesión de M06, como usuario de servicio |
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Adaptador de :class:`BajaActivoPort` sobre el caso de uso de bajas de M02 (RF-45).
 
 Usa el mismo caso de uso que el endpoint de M02, así la baja pasa por sus validaciones, su bitácora y sus
@@ -44,10 +45,15 @@ TIPO_BAJA_COSECHA = "sacrificio"
 
 
 class BajaActivoM02Adapter(BajaActivoPort):
+    """Da de baja activos por cosecha en activos biológicos."""
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def dar_de_baja_por_cosecha(self, id_activo_biologico: int, fecha: date, motivo: str) -> Optional[str]:
+        """Registra la baja total del activo en M02 en su propia transacción.
+
+        Devuelve ``None`` si quedó registrada o el mensaje por el que M02 la rechazó. Nunca propaga errores.
+        """
         db = self.db
         try:
             with como_sistema(db):

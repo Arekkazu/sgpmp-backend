@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                      |
+# |------------|----------|--------------------------------------------------|
+# | 2026-11-22 | Arekkazu | DOCS-pdoc: docstrings de módulo, clase y métodos |
 """Implementación SQLAlchemy de ``SincronizacionNodoEdgeRepository`` (DEV-09)."""
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ _SQL_SERIALES = text(
 
 
 class SqlAlchemySincronizacionNodoEdgeRepository(SincronizacionNodoEdgeRepository):
+    """Implementación SQLAlchemy de ``SincronizacionNodoEdgeRepository``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -38,6 +42,10 @@ class SqlAlchemySincronizacionNodoEdgeRepository(SincronizacionNodoEdgeRepositor
         motivo_fallo: Optional[str],
         fecha_intento: datetime,
     ) -> SincronizacionNodoEdge:
+        """Guarda el veredicto vigente del nodo y suma uno a los intentos.
+
+        ``fecha_aplicacion`` solo avanza cuando el estado es ``APLICADA``.
+        """
         try:
             orm = (
                 self.db.query(SincronizacionNodoEdgeModel)
@@ -69,6 +77,7 @@ class SqlAlchemySincronizacionNodoEdgeRepository(SincronizacionNodoEdgeRepositor
             raise_from_db_error(exc)
 
     def listar_por_tipo_modelo(self, tipo_modelo: str) -> list[SincronizacionNodoEdge]:
+        """Lista el estado de sincronización de los nodos del tipo de modelo."""
         orms = (
             self.db.query(SincronizacionNodoEdgeModel)
             .filter(SincronizacionNodoEdgeModel.tipo_modelo == tipo_modelo)
